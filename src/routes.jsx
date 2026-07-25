@@ -128,42 +128,11 @@ const routeEntries = [
   ["/superadmin/property-overview", "./pages/superadmin/property-overview.jsx"],
   ["/superadmin/accounting-overview", "./pages/superadmin/accounting-overview.jsx"],
   ["/superadmin/home-overview", "./pages/superadmin/home-overview.jsx"],
+  ["/superadmin/owner-subscriptions", "./pages/superadmin/owner-subscriptions.jsx"],
 
-  // Employee Routes
-  ["/employee/superadmin", "./pages/superadmin/superadmin.jsx"],
-  ["/employee/areaadmin", "./pages/superadmin/superadmin.jsx"],
-  ["/employee/backup", "./pages/superadmin/backup.jsx"],
-  ["/employee/booking", "./pages/superadmin/booking.jsx"],
-  ["/employee/complaint-history", "./pages/superadmin/complaint-history.jsx"],
-  ["/employee/enquiry-approved", "./pages/superadmin/enquiry-approved.jsx"],
-  ["/employee/enquiry-db", "./pages/superadmin/enquiry-db.jsx"],
-  ["/employee/enquiry-hold", "./pages/superadmin/enquiry-hold.jsx"],
-  ["/employee/enquiry-rejected", "./pages/superadmin/enquiry-rejected.jsx"],
-  ["/employee/enquiry", "./pages/superadmin/enquiry.jsx"],
-  ["/employee/import_local", "./pages/superadmin/import_local.jsx"],
-  ["/employee/kyc_verification", "./pages/superadmin/kyc_verification.jsx"],
-  ["/employee/location", "./pages/superadmin/location.jsx"],
-  ["/employee/log", "./pages/superadmin/log.jsx"],
-  ["/employee/manager", "./pages/superadmin/manager.jsx"],
-  ["/employee/monthly", "./pages/superadmin/monthly.jsx"],
-  ["/employee/new_signups", "./pages/superadmin/new_signups.jsx"],
-  ["/employee/owner", "./pages/superadmin/owner.jsx"],
-  ["/employee/payment_disputes", "./pages/superadmin/payment_disputes.jsx"],
-  ["/employee/platform", "./pages/superadmin/platform.jsx"],
-  ["/employee/platform_reports", "./pages/superadmin/platform_reports.jsx"],
-  ["/employee/profile", "./pages/superadmin/profile.jsx"],
-  ["/employee/properties", "./pages/superadmin/properties.jsx"],
-  ["/employee/refund", "./pages/superadmin/refund.jsx"],
-  ["/employee/rentcollection", "./pages/superadmin/rentcollection.jsx"],
-  ["/employee/reviews", "./pages/superadmin/reviews.jsx"],
-  ["/employee/security", "./pages/superadmin/security.jsx"],
-  ["/employee/settings", "./pages/superadmin/settings.jsx"],
-  ["/employee/superchat", "./pages/superadmin/superchat.jsx"],
-  ["/employee/tenant", "./pages/superadmin/tenant.jsx"],
-  ["/employee/visit", "./pages/employee/visit.jsx"],
-  ["/employee/website-db", "./pages/superadmin/website-db.jsx"],
-  ["/employee/website", "./pages/superadmin/website.jsx"],
-  ["/employee/websiteenq", "./pages/superadmin/websiteenq.jsx"],
+  // Employee Routes (dynamically mapped to superadmin components)
+  ["/employee/index", "./pages/employee/index.jsx"],
+
 
   // Property Owner Routes
   ["/propertyowner/admin", "./pages/propertyowner/admin.jsx"],
@@ -185,6 +154,7 @@ const routeEntries = [
   ["/propertyowner/properties", "./pages/propertyowner/properties.jsx"],
   ["/propertyowner/review", "./pages/propertyowner/review.jsx"],
   ["/propertyowner/rooms", "./pages/propertyowner/rooms.jsx"],
+["/propertyowner/room-photos", "./pages/propertyowner/room-photos.jsx"],
   ["/propertyowner/electricity-readings", "./pages/propertyowner/electricity-readings.jsx"],
   ["/propertyowner/schedulevisit", "./pages/propertyowner/schedulevisit.jsx"],
   ["/propertyowner/settings", "./pages/propertyowner/settings.jsx"],
@@ -370,6 +340,8 @@ const routeEntries = [
   ["/website/ourproperty/:city", "./pages/website/OurPropertyPage.jsx"],
   ["/website/ourproperty/:city/:area", "./pages/website/OurPropertyPage.jsx"],
   ["/website/property-details/:propertyId", "./pages/website/PropertyDetailsPage.jsx"],
+  ["/website/property-rooms/:propertyId", "./pages/website/PropertyRoomsPage.jsx"],
+
   ["/website/fast-bidding", "./pages/website/FastBiddingPage.jsx"],
   ["/website/pay", "./pages/website/PaymentCheckout.jsx"],
   ["/website/list", "./pages/website/ListYourPropertyPage.jsx"],
@@ -418,7 +390,7 @@ const buildRouteElement = (modulePath) => {
 
 const processedEntries = [...routeEntries];
 routeEntries.forEach(([path, modulePath]) => {
-  if (path.startsWith("/superadmin/") && path !== "/superadmin/superadmin" && path !== "/superadmin/index") {
+  if (path.startsWith("/superadmin/") && path !== "/superadmin/index") {
     const empPath = path.replace("/superadmin/", "/employee/");
     if (!processedEntries.find(r => r[0] === empPath)) {
       processedEntries.push([empPath, modulePath]);

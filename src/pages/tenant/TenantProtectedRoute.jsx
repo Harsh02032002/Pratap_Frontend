@@ -71,8 +71,10 @@ export default function TenantProtectedRoute({ children }) {
   const { user, loading } = useAuth();
   const location = useLocation();
 
-  // Step 1 — fast synchronous check: no token at all.
-  if (!getStoredToken()) {
+  const hasToken = getStoredToken() || localStorage.getItem("user") || sessionStorage.getItem("user");
+
+  // Step 1 — fast synchronous check: no token or session at all.
+  if (!hasToken) {
     return (
       <Navigate
         to="/tenant/tenantlogin"
@@ -82,13 +84,23 @@ export default function TenantProtectedRoute({ children }) {
     );
   }
 
-  // Step 2 — token exists; wait for the backend verification to complete.
+  // Step 2 — wait for AuthContext verification
   if (loading) {
     return <Spinner />;
   }
 
-  // Step 3a / 3b — token was invalid, or caller is not a tenant.
-  if (!user || user.role !== "tenant") {
+  // Step 3 — verify tenant role
+  const isTenant = user && (user.role === "tenant" || user.tenantLoginId || String(user.loginId || "").toUpperCase().startsWith("ROOMHYTNT"));
+
+  if (!isTenant) {
+    try {
+      const raw = sessionStorage.getItem("user") || localStorage.getItem("user");
+      const parsed = raw ? JSON.parse(raw) : null;
+      if (parsed && (parsed.role === "tenant" || parsed.tenantLoginId || String(parsed.loginId || "").toUpperCase().startsWith("ROOMHYTNT"))) {
+        return children;
+      }
+    } catch (_) {}
+
     return (
       <Navigate
         to="/tenant/tenantlogin"
@@ -98,6 +110,6 @@ export default function TenantProtectedRoute({ children }) {
     );
   }
 
-  // Step 3c — all checks passed.
   return children;
 }
+

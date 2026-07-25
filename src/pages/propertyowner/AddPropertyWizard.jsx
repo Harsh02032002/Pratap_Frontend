@@ -174,6 +174,7 @@ export default function AddPropertyWizard() {
         images: formData.images || [],
         featuredImage: formData.images?.[0] || '',
         propertyViews: formData.propertyViews || [],
+        status: 'pending_approval',
         contact: {
           name: formData.ownerName,
           number: formData.phone,

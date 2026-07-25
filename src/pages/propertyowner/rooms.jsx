@@ -1,48 +1,96 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
-import { X, Plus, Building2, ChevronDown, UploadCloud, Loader2, Wind, Table as TableIcon, Tv, Bath, LayoutTemplate, Refrigerator, DoorClosed, Armchair, Utensils, Microwave, Flame, Shirt, Video, Fan, Check, Edit2, Trash2, BedDouble, Home } from "lucide-react";
+import { X, Plus, Building2, ChevronDown, UploadCloud, Loader2, Wind, Table as TableIcon, Tv, Bath, LayoutTemplate, Refrigerator, DoorClosed, Armchair, Utensils, Microwave, Flame, Shirt, Video, Fan, Check, Edit2, Trash2, BedDouble, Home, Layers } from "lucide-react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
 import { getApiBase, getAuthHeader } from "../../utils/api";
 import {
-  assignTenant, clearOwnerFetchCache, clearOwnerRuntimeSession, createRoom, updateRoom, deleteRoom,
+  assignTenant, clearOwnerFetchCache, clearOwnerRuntimeSession, createRoom, updateRoom, deleteRoom, bulkCreateRooms,
   fetchOwnerProperties, fetchOwnerRooms, fetchOwnerTenants, getOwnerRuntimeSession
 } from "../../utils/propertyowner";
 
 const cn = (...c) => c.filter(Boolean).join(" ");
 
 const toLegacyBeds = (room) => {
-  // If room.beds is already an array of {status, tenantId, tenantName} objects, use as-is
-  if (Array.isArray(room?.beds) && room.beds.length && typeof room.beds[0] === 'object' && 'status' in room.beds[0]) {
-    return room.beds;
+  let targetCount = 0;
+  if (room?.sharingType) {
+    const sType = String(room.sharingType).trim();
+    if (sType === 'Single Sharing' || sType === 'Private Room (No Sharing)') targetCount = 1;
+    else if (sType === 'Double Sharing') targetCount = 2;
+    else if (sType === 'Triple Sharing') targetCount = 3;
+    else if (sType === 'Four Sharing') targetCount = 4;
   }
-  const bedCount = Number(room?.beds || room?.capacity || room?.totalBeds || 0);
-  return Array.from({ length: bedCount }, (_, i) => {
-    const a = room?.bedAssignments?.[i] || room?.bedsInfo?.[i] || null;
-    // tenantId can be an ObjectId object or a string
+  if (!targetCount) {
+    targetCount = typeof room?.beds === 'number' ? room.beds : (Array.isArray(room?.beds) ? room.beds.length : 0);
+  }
+  if (!targetCount && room?.capacity) targetCount = Number(room.capacity);
+  if (!targetCount && room?.totalBeds) targetCount = Number(room.totalBeds);
+  if (!targetCount) targetCount = 1;
+
+  let rawBeds = Array.isArray(room?.beds) && typeof room.beds[0] === 'object' && 'status' in room.beds[0]
+    ? room.beds
+    : [];
+
+  const assignments = room?.bedAssignments || room?.bedsInfo || [];
+  
+  return Array.from({ length: targetCount }, (_, i) => {
+    if (rawBeds[i]) return rawBeds[i];
+    const a = assignments[i];
     const tid = a?.tenantId;
     const hasOccupant = !!(a && (a.tenantName || a.name || (tid && String(tid).length > 0 && String(tid) !== '[object Object]')));
     return hasOccupant
       ? { status: "occupied", tenantId: tid ? String(tid) : null, tenantName: a.tenantName || a.name || null }
       : { status: "available", tenantId: null, tenantName: null };
-  }).concat(bedCount === 0 ? [{ status: "available", tenantId: null, tenantName: null }] : []);
+  });
 };
 
 
-const normalizeRoom = (room, ownerId) => {
+const normalizeRoom = (room, ownerId, properties = []) => {
   const number = room?.number || room?.roomNo || room?.title || "Room";
+  let bedCount = typeof room?.beds === 'number' ? room.beds : (Array.isArray(room?.beds) ? room.beds.length : 1);
+  if (room?.sharingType === 'Single Sharing' || room?.sharingType === 'Private Room (No Sharing)') bedCount = 1;
+  else if (room?.sharingType === 'Double Sharing') bedCount = 2;
+  else if (room?.sharingType === 'Triple Sharing') bedCount = 3;
+  else if (room?.sharingType === 'Four Sharing') bedCount = 4;
+
+  let gender = room?.gender || room?.roomGender || "";
+  const propId = room?.propertyId || room?.property?._id || "";
+  const propTitle = room?.propertyTitle || room?.property?.title || "";
+  const targetProp = (Array.isArray(properties) ? properties : []).find(p =>
+    (p._id && String(p._id) === String(propId)) ||
+    (p.id && String(p.id) === String(propId)) ||
+    (p.title && propTitle && p.title.trim().toLowerCase() === propTitle.trim().toLowerCase()) ||
+    (p.name && propTitle && p.name.trim().toLowerCase() === propTitle.trim().toLowerCase())
+  );
+
+  if (targetProp) {
+    const pGender = String(targetProp.gender || targetProp.genderSuitability || targetProp.propertyDetails?.genderPref || targetProp.pgType || targetProp.propertyType || "").toLowerCase();
+    const pTitle = String(targetProp.title || targetProp.name || "").toLowerCase();
+    const pCat = String(targetProp.propertyCategory || targetProp.category || "").toLowerCase();
+
+    if (pGender.includes("female") || pGender.includes("girl") || pGender === "female" || pTitle.includes("girls") || pTitle.includes("female") || pCat.includes("girls") || pCat.includes("female")) {
+      if (!gender || gender === "Mixed" || gender === "Co-ed" || gender === "any") {
+        gender = "Female";
+      }
+    } else if (pGender.includes("male") || pGender.includes("boy") || pGender === "male" || pTitle.includes("boys") || pTitle.includes("male") || pCat.includes("boys") || pCat.includes("male")) {
+      if (!gender || gender === "Mixed" || gender === "Co-ed" || gender === "any") {
+        gender = "Male";
+      }
+    }
+  }
+
   return {
     ...room,
     id: room?.id || room?._id || `R-${Date.now()}`,
     _id: room?._id || room?.id || null,
     ownerLoginId: room?.ownerLoginId || ownerId,
-    propertyId: room?.propertyId || room?.property?._id || "",
-    propertyTitle: room?.propertyTitle || room?.property?.title || "",
+    propertyId: propId,
+    propertyTitle: propTitle,
     number, roomNo: number, title: number,
     type: room?.type || room?.roomType || "AC",
     rent: Number(room?.rent ?? room?.price ?? room?.roomRent ?? 0),
-    gender: room?.gender || room?.roomGender || "",
-    beds: toLegacyBeds(room),
+    gender: gender || "Co-ed",
+    beds: toLegacyBeds({ ...room, beds: bedCount }),
   };
 };
 
@@ -82,6 +130,20 @@ export default function Rooms() {
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const defaultRoomForm = { roomNo: "", unitType: "", floor: "", sharingType: "", roomRent: "", remarks: "", isAvailable: true, facilities: [], roomTypeFeatures: [], media: [], roomType: "AC", roomGender: "", roomBeds: 2, electricityUnitCost: 0, meterReadings: [] };
   const [roomForm, setRoomForm] = useState(defaultRoomForm);
+  const [bulkModalOpen, setBulkModalOpen] = useState(false);
+  const [bulkForm, setBulkForm] = useState({
+    propertyId: "",
+    prefix: "Room ",
+    startNumber: 101,
+    count: 5,
+    unitType: "Room",
+    floor: "1st Floor",
+    sharingType: "Double Sharing",
+    roomRent: 2000,
+    roomGender: "Mixed",
+    facilities: ["WiFi", "AC"]
+  });
+  const [isBulkSubmitting, setIsBulkSubmitting] = useState(false);
   const [assignMode, setAssignMode] = useState("existing");
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [selectedBedIndex, setSelectedBedIndex] = useState(null);
@@ -90,6 +152,119 @@ export default function Rooms() {
   const [newTenantForm, setNewTenantForm] = useState({ name: "", phone: "", email: "" });
   const [isAssigning, setIsAssigning] = useState(false);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+
+  const handleBulkCreate = async (e) => {
+    e.preventDefault();
+    const propId = bulkForm.propertyId || currentProperty?._id || "";
+    if (!propId) {
+      toast.error("Please select a property");
+      return;
+    }
+    const totalCount = Number(bulkForm.count || 1);
+    const startNum = Number(bulkForm.startNumber || 101);
+    let bedCount = 2;
+    if (bulkForm.sharingType === 'Single Sharing' || bulkForm.sharingType === 'Private Room (No Sharing)') bedCount = 1;
+    else if (bulkForm.sharingType === 'Double Sharing') bedCount = 2;
+    else if (bulkForm.sharingType === 'Triple Sharing') bedCount = 3;
+    else if (bulkForm.sharingType === 'Four Sharing') bedCount = 4;
+
+    const roomItems = [];
+    for (let i = 0; i < totalCount; i++) {
+      const roomNum = startNum + i;
+      const title = `${bulkForm.prefix || ""}${roomNum}`;
+      roomItems.push({
+        title,
+        roomNo: title,
+        unitType: bulkForm.unitType,
+        floor: bulkForm.floor,
+        sharingType: bulkForm.sharingType,
+        price: Number(bulkForm.roomRent || 0),
+        rent: Number(bulkForm.roomRent || 0),
+        beds: bedCount,
+        capacity: bedCount,
+        totalBeds: bedCount,
+        gender: bulkForm.roomGender,
+        isAvailable: true,
+        facilities: bulkForm.facilities,
+        status: "active"
+      });
+    }
+
+    try {
+      setIsBulkSubmitting(true);
+      await bulkCreateRooms({ propertyId: propId, rooms: roomItems, ownerLoginId: owner.loginId });
+      toast.success(`${totalCount} Rooms created successfully!`);
+      setBulkModalOpen(false);
+      clearOwnerFetchCache(owner.loginId);
+      await load(owner, 1, ROOMS_PER_PAGE, true);
+    } catch (err) {
+      console.error(err);
+      toast.error(err?.message || "Failed to create bulk rooms");
+    } finally {
+      setIsBulkSubmitting(false);
+    }
+  };
+
+  const handleMediaUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    setIsUploadingMedia(true);
+    try {
+      const uploadedMedia = [];
+      const token = localStorage.getItem("token") || localStorage.getItem("roomhy_owner_token") || localStorage.getItem("owner_token") || localStorage.getItem("user_token");
+      const authHeaders = token ? { Authorization: `Bearer ${token}` } : getAuthHeader();
+
+      for (const file of files) {
+        let fileToUpload = file;
+        try {
+          fileToUpload = await compressImage(file);
+        } catch (cErr) {
+          console.warn("Compress failed, using original file", cErr);
+        }
+        const formData = new FormData();
+        formData.append("image", fileToUpload);
+        const res = await fetch(`${getApiBase()}/api/upload`, {
+          method: "POST",
+          headers: authHeaders,
+          body: formData,
+        });
+        const data = await res.json();
+        const mediaUrl = data.url || data.filePath || data.location || data.fileUrl;
+        if (mediaUrl) {
+          uploadedMedia.push({
+            url: mediaUrl,
+            type: file.type.startsWith("video/") ? "video" : "image",
+            uploadedAt: new Date().toISOString()
+          });
+        } else {
+          console.warn("Upload response missing mediaUrl:", data);
+        }
+      }
+
+      if (uploadedMedia.length > 0) {
+        setRoomForm(prev => ({
+          ...prev,
+          media: [...(prev.media || []), ...uploadedMedia]
+        }));
+        toast.success(`${uploadedMedia.length} photo(s) uploaded successfully!`);
+      } else {
+        toast.error("Failed to upload photo. Please try again.");
+      }
+    } catch (err) {
+      console.error("Room media upload error:", err);
+      toast.error("Failed to upload photos");
+    } finally {
+      setIsUploadingMedia(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleRemoveMedia = (index) => {
+    setRoomForm(prev => ({
+      ...prev,
+      media: (prev.media || []).filter((_, i) => i !== index)
+    }));
+  };
 
   const [showFilter, setShowFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
@@ -118,7 +293,7 @@ export default function Rooms() {
   const currentPropertyLocation = useMemo(() => currentProperty?.city || currentProperty?.area || "", [currentProperty]);
 
   const mergeRooms = (ownerId, backendRooms) =>
-    (backendRooms || []).map(r => normalizeRoom(r, ownerId));
+    (backendRooms || []).map(r => normalizeRoom(r, ownerId, properties));
 
   const handlePropertyPageChange = async (propTitle, propId, newPage) => {
     setPropPages(prev => ({ ...prev, [propTitle]: newPage }));
@@ -132,7 +307,7 @@ export default function Rooms() {
         const { fetchRoomsByPropertyId } = require("../../utils/propertyowner");
         const res = await fetchRoomsByPropertyId(propId, newPage, ROOMS_PER_PAGE);
         if (res.rooms && res.rooms.length > 0) {
-          const normalizedNewRooms = res.rooms.map(r => normalizeRoom(r, owner?.loginId));
+          const normalizedNewRooms = res.rooms.map(r => normalizeRoom(r, owner?.loginId, properties));
           setRooms(prev => {
             const newRooms = [...prev];
             normalizedNewRooms.forEach(nr => {
@@ -277,6 +452,22 @@ export default function Rooms() {
   };
 
   const handleEditRoom = (room) => {
+    let sType = room.sharingType || "";
+    let bedCount = 2;
+    if (sType === 'Single Sharing' || sType === 'Private Room (No Sharing)') bedCount = 1;
+    else if (sType === 'Double Sharing') bedCount = 2;
+    else if (sType === 'Triple Sharing') bedCount = 3;
+    else if (sType === 'Four Sharing') bedCount = 4;
+    else {
+      const bedsArr = toLegacyBeds(room);
+      bedCount = bedsArr.length;
+      if (bedCount === 1) sType = "Single Sharing";
+      else if (bedCount === 2) sType = "Double Sharing";
+      else if (bedCount === 3) sType = "Triple Sharing";
+      else if (bedCount === 4) sType = "Four Sharing";
+      else if (bedCount > 4) sType = "Custom";
+    }
+
     setRoomForm({
       ...defaultRoomForm,
       ...room,
@@ -284,11 +475,11 @@ export default function Rooms() {
       roomType: room.type || "AC",
       roomRent: room.rent || room.price || "",
       roomGender: room.gender || "",
-      roomBeds: room.beds?.length || room.capacity || 2,
+      roomBeds: bedCount,
       electricityUnitCost: room.electricity?.unitCost || room.electricityUnitCost || 0,
-      unitType: room.unitType || "",
+      unitType: room.unitType || "Room",
       floor: room.floor || "",
-      sharingType: room.sharingType || "",
+      sharingType: sType,
       remarks: room.remarks || "",
       facilities: room.facilities || [],
       roomTypeFeatures: room.roomTypeFeatures || [],
@@ -402,7 +593,14 @@ export default function Rooms() {
   );
 
   return (
-    <PropertyOwnerLayout owner={owner} title="Rooms & Beds" rooms={rooms} loading={loading} onLogout={() => { clearOwnerRuntimeSession(); window.location.href = "/propertyowner/ownerlogin"; }} contentClassName="max-w-7xl mx-auto">
+    <PropertyOwnerLayout 
+      owner={owner} 
+      title="Rooms & Beds" 
+      rooms={rooms} 
+      loading={loading} 
+      onLogout={() => { clearOwnerRuntimeSession(); window.location.href = "/propertyowner/ownerlogin"; }} 
+      contentClassName="max-w-7xl mx-auto"
+    >
 
       {/* Header */}
       {/* Stats Panel */}
@@ -555,7 +753,7 @@ export default function Rooms() {
               return (
                 <section key={propTitle} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                   {/* Property Header */}
-                  <div className="flex items-center justify-between mb-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                     <div>
                       <h2 className="font-semibold text-[17px] leading-tight text-slate-800">{propTitle}</h2>
                       <div className="text-[12px] text-slate-400 mt-0.5">
@@ -563,9 +761,33 @@ export default function Rooms() {
                         {allPropRooms.length} rooms · {pOcc}/{pTotal} beds occupied
                       </div>
                     </div>
-                    <span className={cn("inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold",
-                      pct > 90 ? "bg-blue-50 text-blue-600" : pct > 0 ? "bg-amber-50 text-amber-600" : "bg-emerald-50 text-emerald-600"
-                    )}>{pct}% full</span>
+                    <div className="flex items-center gap-2.5">
+                      <span className={cn("inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold mr-1",
+                        pct > 90 ? "bg-blue-50 text-blue-600" : pct > 0 ? "bg-amber-50 text-amber-600" : "bg-emerald-50 text-emerald-600"
+                      )}>{pct}% full</span>
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          const targetProp = properties.find(p => (p.title || p.name) === propTitle) || currentProperty;
+                          setRoomForm({ ...defaultRoomForm, propertyId: targetProp?._id || propId });
+                          setRoomModalOpen(true);
+                        }}
+                        className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-[12px] font-bold shadow-sm transition-all active:scale-95"
+                      >
+                        <Plus size={14} /> Add Room
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          const targetProp = properties.find(p => (p.title || p.name) === propTitle) || currentProperty;
+                          setBulkForm(prev => ({ ...prev, propertyId: targetProp?._id || propId }));
+                          setBulkModalOpen(true);
+                        }}
+                        className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[12px] font-bold shadow-sm shadow-emerald-600/20 transition-all active:scale-95"
+                      >
+                        <Layers size={14} /> Bulk Add Rooms
+                      </button>
+                    </div>
                   </div>
 
                   {/* Room Cards Grid */}
@@ -633,7 +855,20 @@ export default function Rooms() {
                                 <div>
                                   <h3 className="text-[14px] font-bold text-slate-900 leading-tight">Room {room.number || room.roomNo || room.title}</h3>
                                   <p className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1 font-medium">
-                                    {room.gender || "Mixed"} • {room.type || "AC"}
+                                    {(() => {
+                                      let g = room.gender;
+                                      const targetProp = properties.find(p => (p._id && String(p._id) === String(room.propertyId)) || p.title === propTitle || p.name === propTitle);
+                                      const pGen = String(targetProp?.gender || targetProp?.genderSuitability || targetProp?.propertyDetails?.genderPref || targetProp?.pgType || targetProp?.propertyType || "").toLowerCase();
+                                      const pTitleStr = String(propTitle || targetProp?.title || targetProp?.name || "").toLowerCase();
+                                      const pCatStr = String(targetProp?.propertyCategory || targetProp?.category || "").toLowerCase();
+
+                                      if (!g || g === "Mixed" || g === "Co-ed" || g === "any") {
+                                        if (pGen.includes("female") || pGen.includes("girl") || pTitleStr.includes("girls") || pTitleStr.includes("female") || pCatStr.includes("girls") || pCatStr.includes("female")) return "Female";
+                                        if (pGen.includes("male") || pGen.includes("boy") || pTitleStr.includes("boys") || pTitleStr.includes("male") || pCatStr.includes("boys") || pCatStr.includes("male")) return "Male";
+                                        return "Co-ed";
+                                      }
+                                      return g === "Mixed" ? "Co-ed" : g;
+                                    })()} • {room.type || "AC"}
                                   </p>
                                 </div>
                               </div>
@@ -908,24 +1143,78 @@ export default function Rooms() {
                 </div>
               </div>
 
-              <div className="pt-2 pb-6">
-                <h3 className="text-[14px] font-semibold text-primary mb-3">Room Media (Photos/Videos)</h3>
-                <div className="mb-3">
-                  {roomForm.media.length > 0 && (
-                    <div className="grid grid-cols-4 gap-2 mb-4">
-                      {roomForm.media.map((file, idx) => (
-                        <div key={idx} className="relative group">
-                          <img src={file.preview || file.url} alt={`media-${idx}`} className="w-full h-20 object-cover rounded-lg border border-border" />
-                        </div>
-                      ))}
-                    </div>
-                  )}
+              <div className="pt-4 pb-6 border-t border-slate-100">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-[14px] font-semibold text-primary">Room Media (Photos/Videos)</h3>
+                  <span className="text-[11px] text-slate-400 font-medium">Multiple photos allowed</span>
                 </div>
 
-                <div className="w-32 h-32 border-2 border-dashed border-border rounded-xl flex flex-col items-center justify-center gap-2 opacity-50 bg-slate-50 cursor-not-allowed text-slate-400">
-                  <UploadCloud size={28} />
-                  <span className="text-[11px] font-medium text-center px-2">Upload disabled</span>
+                {/* Admin Approval Info Banner */}
+                <div className="mb-4 bg-amber-50 border border-amber-200/80 rounded-xl p-3 flex items-start gap-2.5 text-amber-900 text-[12px] leading-relaxed font-medium">
+                  <span className="text-amber-500 font-bold shrink-0 text-[15px] mt-0.5">ℹ️</span>
+                  <div>
+                    <span className="font-bold text-amber-950">Approval Required for Live Website:</span>
+                    <p className="text-[11.5px] text-amber-800 mt-0.5 font-medium">
+                      Uploaded photos will be submitted to Admin for approval before going live on the website.
+                    </p>
+                  </div>
                 </div>
+
+                {/* Uploaded Photos/Videos Preview Grid */}
+                {roomForm.media && roomForm.media.length > 0 && (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-4">
+                    {roomForm.media.map((file, idx) => (
+                      <div key={idx} className="relative group rounded-xl overflow-hidden border border-slate-200 shadow-sm aspect-square bg-slate-100">
+                        {file.type === "video" ? (
+                          <video src={file.url} className="w-full h-full object-cover" />
+                        ) : (
+                          <img src={file.preview || file.url} alt={`media-${idx}`} className="w-full h-full object-cover" />
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveMedia(idx)}
+                          className="absolute top-1.5 right-1.5 p-1 rounded-full bg-slate-900/80 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-rose-600 shadow-md"
+                          title="Remove photo"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* File Upload Trigger */}
+                <label className={cn(
+                  "border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center gap-2 transition-all cursor-pointer text-center",
+                  isUploadingMedia 
+                    ? "border-blue-400 bg-blue-50/50 cursor-wait" 
+                    : "border-slate-200 hover:border-blue-500 hover:bg-slate-50/80"
+                )}>
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*,video/*"
+                    onChange={handleMediaUpload}
+                    disabled={isUploadingMedia}
+                    className="hidden"
+                  />
+                  {isUploadingMedia ? (
+                    <>
+                      <Loader2 size={30} className="text-blue-600 animate-spin mb-1" />
+                      <span className="text-[13px] font-bold text-blue-600">Uploading photos...</span>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shadow-inner">
+                        <UploadCloud size={24} />
+                      </div>
+                      <div>
+                        <p className="text-[13.5px] font-bold text-slate-800">Click to upload room photos</p>
+                        <p className="text-[11.5px] text-slate-400 mt-0.5 font-medium">Select multiple images (JPG, PNG, WEBP, MP4)</p>
+                      </div>
+                    </>
+                  )}
+                </label>
               </div>
 
             </form>
@@ -1012,6 +1301,94 @@ export default function Rooms() {
               </div>
             </form>
           )}
+        </div>
+      </div>
+
+      {/* Bulk Add Rooms Modal */}
+      <div className={cn("fixed inset-0 z-[100] flex items-center justify-center bg-black/70 transition-all", bulkModalOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none")}>
+        <div className={cn("bg-white dark:bg-card w-full max-w-lg rounded-2xl shadow-2xl flex flex-col transition-transform duration-300", bulkModalOpen ? "scale-100" : "scale-95")}>
+          <div className="flex items-center gap-3 px-6 py-4 border-b border-border">
+            <button type="button" onClick={() => setBulkModalOpen(false)} className="p-1 -ml-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-colors"><X size={18} /></button>
+            <div className="flex-1">
+              <h2 className="text-[18px] font-semibold text-foreground flex items-center gap-2">
+                <Layers className="w-5 h-5 text-emerald-600" /> Bulk Add Rooms
+              </h2>
+              <p className="text-[12px] text-muted-foreground">Add multiple rooms at once automatically</p>
+            </div>
+          </div>
+          <form onSubmit={handleBulkCreate} className="p-6 space-y-4 max-h-[calc(100vh-180px)] overflow-y-auto">
+            <div>
+              <label className="block text-[13px] font-medium text-muted-foreground mb-1">Select Property <span className="text-destructive">*</span></label>
+              <select required className="w-full bg-card border border-border rounded-lg px-3 py-2 text-[14px]" value={bulkForm.propertyId} onChange={e => setBulkForm(p => ({ ...p, propertyId: e.target.value }))}>
+                <option value="">-- Select Property --</option>
+                {properties.map(p => (
+                  <option key={p._id || p.id} value={p._id || p.id}>{p.title || p.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="block text-[12px] font-medium text-muted-foreground mb-1">Prefix</label>
+                <input className="w-full bg-card border border-border rounded-lg px-3 py-2 text-[14px]" placeholder="e.g. Room " value={bulkForm.prefix} onChange={e => setBulkForm(p => ({ ...p, prefix: e.target.value }))} />
+              </div>
+              <div>
+                <label className="block text-[12px] font-medium text-muted-foreground mb-1">Start Room No.</label>
+                <input type="number" min="1" required className="w-full bg-card border border-border rounded-lg px-3 py-2 text-[14px]" placeholder="101" value={bulkForm.startNumber} onChange={e => setBulkForm(p => ({ ...p, startNumber: e.target.value }))} />
+              </div>
+              <div>
+                <label className="block text-[12px] font-medium text-muted-foreground mb-1">Total Rooms</label>
+                <input type="number" min="1" max="50" required className="w-full bg-card border border-border rounded-lg px-3 py-2 text-[14px]" placeholder="5" value={bulkForm.count} onChange={e => setBulkForm(p => ({ ...p, count: e.target.value }))} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[12px] font-medium text-muted-foreground mb-1">Sharing Type</label>
+                <select className="w-full bg-card border border-border rounded-lg px-3 py-2 text-[14px]" value={bulkForm.sharingType} onChange={e => setBulkForm(p => ({ ...p, sharingType: e.target.value }))}>
+                  <option value="Single Sharing">Single Sharing (1 Bed)</option>
+                  <option value="Double Sharing">Double Sharing (2 Beds)</option>
+                  <option value="Triple Sharing">Triple Sharing (3 Beds)</option>
+                  <option value="Four Sharing">Four Sharing (4 Beds)</option>
+                  <option value="Private Room (No Sharing)">Private Room (1 Bed)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[12px] font-medium text-muted-foreground mb-1">Amount Per Bed (₹)</label>
+                <input type="number" required className="w-full bg-card border border-border rounded-lg px-3 py-2 text-[14px]" placeholder="2000" value={bulkForm.roomRent} onChange={e => setBulkForm(p => ({ ...p, roomRent: e.target.value }))} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[12px] font-medium text-muted-foreground mb-1">Floor</label>
+                <select className="w-full bg-card border border-border rounded-lg px-3 py-2 text-[14px]" value={bulkForm.floor} onChange={e => setBulkForm(p => ({ ...p, floor: e.target.value }))}>
+                  <option value="Ground Floor">Ground Floor</option>
+                  <option value="1st Floor">1st Floor</option>
+                  <option value="2nd Floor">2nd Floor</option>
+                  <option value="3rd Floor">3rd Floor</option>
+                  <option value="4th Floor">4th Floor</option>
+                  <option value="5th Floor">5th Floor</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[12px] font-medium text-muted-foreground mb-1">Gender</label>
+                <select className="w-full bg-card border border-border rounded-lg px-3 py-2 text-[14px]" value={bulkForm.roomGender} onChange={e => setBulkForm(p => ({ ...p, roomGender: e.target.value }))}>
+                  <option value="Mixed">Co-ed</option>
+                  <option value="Male">Male Only</option>
+                  <option value="Female">Female Only</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="pt-3 flex justify-end gap-2 border-t border-border">
+              <button type="button" onClick={() => setBulkModalOpen(false)} className="px-4 py-2 rounded-xl text-[13px] font-semibold bg-muted text-foreground hover:bg-muted/80">Cancel</button>
+              <button type="submit" disabled={isBulkSubmitting} className="px-5 py-2 rounded-xl text-[13px] font-bold bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-1.5 shadow-md shadow-emerald-600/20">
+                {isBulkSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Layers className="w-4 h-4" />}
+                {isBulkSubmitting ? "Generating..." : `Create ${bulkForm.count || 1} Rooms`}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </PropertyOwnerLayout>

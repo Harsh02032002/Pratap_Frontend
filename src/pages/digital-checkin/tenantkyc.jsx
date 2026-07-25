@@ -151,9 +151,11 @@ export default function DigitalCheckinTenantkyc() {
     aadhaarNumber, setAadhaarNumber,
     aadhaarLinkedPhone,
     tenantPhone,
+    tenantProfile,
     fetchingProfile,
     otp, setOtp,
     otpMsg, nextVisible, otpSent, otpLoading, uploading,
+    uploadedUrls, setUploadedUrls, mismatchDetails,
     frontOcr, backOcr, handleImageOcr,
     errors, setErrors,
     handleStart, handleComplete, handleNext
@@ -163,39 +165,66 @@ export default function DigitalCheckinTenantkyc() {
   const [aadhaarBack, setAadhaarBack]   = React.useState("");
   const [tenantPhoto, setTenantPhoto]   = React.useState("");
 
+  // Sync pre-filled uploaded URLs into local preview state
+  React.useEffect(() => {
+    if (uploadedUrls?.aadhaarFrontUrl && !aadhaarFront) {
+      setAadhaarFront(uploadedUrls.aadhaarFrontUrl);
+    }
+    if (uploadedUrls?.aadhaarBackUrl && !aadhaarBack) {
+      setAadhaarBack(uploadedUrls.aadhaarBackUrl);
+    }
+    if (uploadedUrls?.tenantPhotoUrl && !tenantPhoto) {
+      setTenantPhoto(uploadedUrls.tenantPhotoUrl);
+    }
+  }, [uploadedUrls]);
+
   // Run OCR and clear field error when an image is selected
   const onFrontChange = (base64, file) => {
     setAadhaarFront(base64);
+    if (!base64 && setUploadedUrls) {
+      setUploadedUrls((prev) => ({ ...prev, aadhaarFrontUrl: "" }));
+    }
     setErrors((prev) => ({ ...prev, aadhaarFront: "" }));
     if (base64) handleImageOcr(file || base64, "front");
     else handleImageOcr(null, "front");
   };
   const onBackChange = (base64, file) => {
     setAadhaarBack(base64);
+    if (!base64 && setUploadedUrls) {
+      setUploadedUrls((prev) => ({ ...prev, aadhaarBackUrl: "" }));
+    }
     setErrors((prev) => ({ ...prev, aadhaarBack: "" }));
     if (base64) handleImageOcr(file || base64, "back");
     else handleImageOcr(null, "back");
   };
+  const onPhotoChange = (base64) => {
+    setTenantPhoto(base64);
+    if (!base64 && setUploadedUrls) {
+      setUploadedUrls((prev) => ({ ...prev, tenantPhotoUrl: "" }));
+    }
+  };
 
-  // OTP button is disabled while: loading, OCR is running, or OTP was already sent successfully
+  // OTP button is disabled while loading or OCR scanning
   const sendOtpDisabled =
     otpLoading ||
     uploading ||
     frontOcr.status === "loading" ||
-    backOcr.status === "loading" ||
-    (otpSent && !otpMsg.startsWith("Failed"));
+    backOcr.status === "loading";
 
   const sendOtpLabel =
     otpLoading  ? "Sending OTP…" :
     uploading   ? "Uploading documents…" :
-    otpSent     ? "OTP Sent" : "Send OTP";
+    otpSent     ? "Resend OTP" : "Send OTP";
 
   return (
     <div className="html-page">
       <div className="wrap">
-        <h2>Tenant Aadhaar KYC</h2>
-
+        <h2>Tenant Digital Onboarding — Aadhaar KYC</h2>
+        <p style={{ fontSize: "13px", color: "#546e7a", marginTop: "-12px", marginBottom: "20px" }}>
+          Verify identity documents for seamless check-in. All pre-filled details are synced from your owner booking.
+        </p>
         <div className="grid">
+
           {/* Login ID — read-only, from URL */}
           <div>
             <label>Login ID</label>
@@ -296,7 +325,7 @@ export default function DigitalCheckinTenantkyc() {
               label="Tenant Photo"
               side="selfie"
               value={tenantPhoto}
-              onChange={(b64) => setTenantPhoto(b64)}
+              onChange={onPhotoChange}
             />
           </div>
         </div>
@@ -323,20 +352,27 @@ export default function DigitalCheckinTenantkyc() {
 
         {/* Status / error messages */}
         {otpMsg && (
-          <p
-            className="muted"
-            style={{
-              color: otpMsg.startsWith("Failed") || otpMsg.startsWith("Verification failed")
-                ? "#b71c1c"
-                : otpMsg.startsWith("KYC verification completed")
-                ? "#2e7d32"
-                : "#546e7a",
-              fontWeight: 600,
-              marginTop: "12px"
-            }}
-          >
-            {otpMsg}
-          </p>
+          <div style={{ marginTop: "14px" }}>
+            <p
+              className="muted"
+              style={{
+                color: otpMsg.startsWith("Failed") || otpMsg.startsWith("Verification failed")
+                  ? "#b71c1c"
+                  : otpMsg.startsWith("KYC verification completed")
+                  ? "#2e7d32"
+                  : "#546e7a",
+                fontWeight: 600,
+                margin: "0 0 6px"
+              }}
+            >
+              {otpMsg}
+            </p>
+            {mismatchDetails && (
+              <div style={{ background: "#fff3cd", border: "1px solid #ffc107", borderRadius: "8px", padding: "10px 14px", fontSize: "12px", color: "#856404", fontWeight: 500 }}>
+                <strong>⚠️ Mismatch Reason:</strong> {mismatchDetails}
+              </div>
+            )}
+          </div>
         )}
 
         {nextVisible && (

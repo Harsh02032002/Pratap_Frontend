@@ -10,7 +10,7 @@ import {
   Eye, AlertCircle, ChevronDown, ChevronUp, BadgeCheck, Ban
 } from "lucide-react";
 import { toast } from "react-hot-toast";
-import { getApiBase } from "../../utils/api";
+import { getApiBase, getAuthHeader } from "../../utils/api";
 import LocationMapPicker from "../../components/website/LocationMapPicker";
 import WebsitePropertyPreviewModal from "../../components/shared/WebsitePropertyPreviewModal";
 
@@ -381,7 +381,7 @@ function AddPropertyView({ onBack, apiUrl, editId }) {
   const [formData, setFormData] = useState({
     title: "", address: "", city: "", locality: "", ownerName: "", ownerPhone: "", ownerLoginId: "", 
     propertyType: "pg", gender: "any", monthlyRent: "", discount: "", description: "",
-    status: "inactive", isLiveOnWebsite: false, landmark: "", latitude: null, longitude: null
+    status: "active", isLiveOnWebsite: true, landmark: "", latitude: null, longitude: null
   });
   
   const [googleMapInput, setGoogleMapInput] = useState("");
@@ -625,7 +625,7 @@ function AddPropertyView({ onBack, apiUrl, editId }) {
       const data = new FormData();
       data.append("image", file);
       try {
-        const res = await fetch(`${apiUrl}/api/upload`, { method: "POST", body: data });
+        const res = await fetch(`${apiUrl}/api/upload`, { method: "POST", headers: getAuthHeader(), body: data });
         const json = await res.json();
         if (json.url) uploadedUrls.push(json.url);
       } catch (err) { console.error(err); }
@@ -645,7 +645,7 @@ function AddPropertyView({ onBack, apiUrl, editId }) {
       const data = new FormData();
       data.append("image", file);
       try {
-        const res = await fetch(`${apiUrl}/api/upload`, { method: "POST", body: data });
+        const res = await fetch(`${apiUrl}/api/upload`, { method: "POST", headers: getAuthHeader(), body: data });
         const json = await res.json();
         if (json.url) uploadedUrls.push(json.url);
       } catch (err) { console.error(err); }

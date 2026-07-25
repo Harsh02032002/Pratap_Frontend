@@ -384,12 +384,14 @@ export const addElectricityReading = async (roomId, payload) => {
   });
 };
 
-export const fetchOwnerTenants = async (loginId) => {
+export const fetchOwnerTenants = async (loginId, skipCache = true) => {
   const _cacheKey = `tenants_${loginId}`;
-  const _hit = _getCached(_cacheKey);
-  if (_hit) return _hit;
+  if (!skipCache) {
+    const _hit = _getCached(_cacheKey);
+    if (_hit) return _hit;
+  }
   try {
-    const response = await fetchJson(`/api/owners/${loginId}/tenants?nodues=true`);
+    const response = await fetchJson(`/api/owners/${encodeURIComponent(loginId)}/tenants?nodues=true&t=${Date.now()}`);
     let tenants = response?.tenants || response?.data || [];
     tenants = filterByActiveProperty(tenants);
     writeJson("roomhy_tenants", tenants);
@@ -397,14 +399,14 @@ export const fetchOwnerTenants = async (loginId) => {
     return tenants;
   } catch (_) {
     try {
-      const response = await fetchJson(`/api/tenants/owner/${encodeURIComponent(loginId)}`);
+      const response = await fetchJson(`/api/tenants/owner/${encodeURIComponent(loginId)}?t=${Date.now()}`);
       let tenants = Array.isArray(response) ? response : response?.tenants || response?.data || [];
       tenants = filterByActiveProperty(tenants);
       writeJson("roomhy_tenants", tenants);
       _setCached(_cacheKey, tenants);
       return tenants;
     } catch (_) {
-      const response = await fetchJson(`/api/owners/${encodeURIComponent(loginId)}/tenants`);
+      const response = await fetchJson(`/api/owners/${encodeURIComponent(loginId)}/tenants?t=${Date.now()}`);
       let tenants = response?.tenants || [];
       tenants = filterByActiveProperty(tenants);
       writeJson("roomhy_tenants", tenants);
@@ -413,6 +415,7 @@ export const fetchOwnerTenants = async (loginId) => {
     }
   }
 };
+
 
 export const fetchTenantById = async (tenantId) => {
   if (!tenantId) return null;
@@ -430,7 +433,7 @@ export const fetchActiveOwnerTenants = async (loginId) => {
   const _hit = _getCached(_cacheKey);
   if (_hit) return _hit;
   const all = await fetchOwnerTenants(loginId);
-  const active = (all || []).filter((t) => !t.status || t.status === "active");
+  const active = (all || []).filter((t) => (!t.status || t.status === "active") && (t.kycStatus === "verified" || t.kyc === "verified"));
   _setCached(_cacheKey, active);
   return active;
 };

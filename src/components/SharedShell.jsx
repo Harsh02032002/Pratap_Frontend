@@ -102,9 +102,10 @@ export default function SharedShell() {
           isMobile={isMobile}
           onClose={() => setSidebarOpen(false)} 
           onLogout={() => {
+            const role = String(user?.role || "").toLowerCase();
             localStorage.clear();
             sessionStorage.clear();
-            window.location.href = "/superadmin/index";
+            window.location.href = (role === "employee" || role === "areamanager" || role === "manager") ? "/employee/index" : "/superadmin/index";
           }}
         />
 
@@ -131,50 +132,8 @@ export default function SharedShell() {
             </div>
 
             <div className="flex items-center gap-6">
-              {/* Quick Actions Dropdown */}
-              {section !== "superadmin" && (
-                <div className="relative group">
-                  <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl transition-all shadow-lg shadow-blue-600/20 text-sm font-bold">
-                    <Plus size={16} />
-                    <span>Add Quick</span>
-                    <ChevronDown size={14} className="opacity-70" />
-                  </button>
-                  <div className="absolute top-full right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all -translate-y-2 group-hover:translate-y-0 z-50 overflow-hidden">
-                    <div className="space-y-1">
-                      <button onClick={() => navigate("/superadmin/owner?view=add")} className="w-full flex items-center gap-3 px-3 py-2 hover:bg-slate-50 rounded-lg text-sm text-slate-600 font-medium transition-colors">
-                        <UserPlus size={16} className="text-blue-600" /> Add Property Owner
-                      </button>
-                      <button onClick={() => navigate("/superadmin/add-tenant")} className="w-full flex items-center gap-3 px-3 py-2 hover:bg-slate-50 rounded-lg text-sm text-slate-600 font-medium transition-colors">
-                        <UserPlus size={16} className="text-blue-600" /> Add Tenant
-                      </button>
-                      <button onClick={() => navigate("/superadmin/rentcollection")} className="w-full flex items-center gap-3 px-3 py-2 hover:bg-slate-50 rounded-lg text-sm text-slate-600 font-medium transition-colors">
-                        <Wallet size={16} className="text-emerald-600" /> Collect Rent
-                      </button>
-                      <button onClick={() => navigate("/superadmin/complaint-history")} className="w-full flex items-center gap-3 px-3 py-2 hover:bg-slate-50 rounded-lg text-sm text-slate-600 font-medium transition-colors">
-                        <AlertCircle size={16} className="text-rose-600" /> Add Complaint
-                      </button>
-                      <button onClick={() => navigate("/superadmin/accounting/payouts")} className="w-full flex items-center gap-3 px-3 py-2 hover:bg-slate-50 rounded-lg text-sm text-slate-600 font-medium transition-colors">
-                        <Receipt size={16} className="text-amber-600" /> Add Expense
-                      </button>
-                      <button onClick={() => navigate("/superadmin/add-property")} className="w-full flex items-center gap-3 px-3 py-2 hover:bg-slate-50 rounded-lg text-sm text-slate-600 font-medium transition-colors">
-                        <Building2 size={16} className="text-indigo-600" /> Add Property
-                      </button>
-                      <button onClick={() => navigate("/superadmin/booking")} className="w-full flex items-center gap-3 px-3 py-2 hover:bg-slate-50 rounded-lg text-sm text-slate-600 font-medium transition-colors">
-                        <Calendar size={16} className="text-violet-600" /> Book Bed
-                      </button>
-                      <button onClick={() => navigate("/superadmin/superchat")} className="w-full flex items-center gap-3 px-3 py-2 hover:bg-slate-50 rounded-lg text-sm text-slate-600 font-medium transition-colors">
-                        <Bell size={16} className="text-orange-600" /> Send Reminder
-                      </button>
-                      <button onClick={() => navigate("/superadmin/accounting/invoices")} className="w-full flex items-center gap-3 px-3 py-2 hover:bg-slate-50 rounded-lg text-sm text-slate-600 font-medium transition-colors">
-                        <Receipt size={16} className="text-slate-600" /> Generate Receipt
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               {/* Messages */}
-              <button onClick={() => navigate("/superadmin/superchat")} className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all relative group hidden sm:block">
+              <button onClick={() => navigate(section === "employee" ? "/employee/superchat" : "/superadmin/superchat")} className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all relative group hidden sm:block">
                 <MessageSquare size={20} className="group-hover:scale-110 transition-transform" />
               </button>
 
@@ -244,17 +203,8 @@ export default function SharedShell() {
                 )}
               </div>
 
-              {/* Property Switcher */}
-              {section !== "superadmin" && (
-                <button className="hidden lg:flex items-center gap-2 p-2.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all border border-slate-100">
-                  <Building2 size={18} className="text-blue-600" />
-                  <span className="text-sm font-bold">All Properties</span>
-                  <ChevronDown size={14} className="opacity-50" />
-                </button>
-              )}
-
               {/* Help Center */}
-              <button onClick={() => navigate("/superadmin/complaint-history")} className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all relative group hidden sm:block">
+              <button onClick={() => navigate(section === "employee" ? "/employee/complaint-history" : "/superadmin/complaint-history")} className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all relative group hidden sm:block">
                 <HelpCircle size={20} className="group-hover:scale-110 transition-transform" />
               </button>
 
@@ -269,8 +219,8 @@ export default function SharedShell() {
                 </div>
                 <div className="absolute top-full right-0 mt-4 w-48 bg-white rounded-xl shadow-xl border border-slate-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all -translate-y-2 group-hover:translate-y-0 z-50 overflow-hidden">
                   <div className="p-2 space-y-1">
-                    <button onClick={() => navigate("/superadmin/settings")} className="w-full text-left px-3 py-2 hover:bg-slate-50 rounded-lg text-sm text-slate-600 font-medium transition-colors">Profile Settings</button>
-                    <button onClick={() => { localStorage.clear(); sessionStorage.clear(); window.location.href = "/superadmin/index"; }} className="w-full text-left px-3 py-2 hover:bg-rose-50 text-rose-600 rounded-lg text-sm font-medium transition-colors">Log Out</button>
+                    <button onClick={() => navigate(section === "employee" ? "/employee/settings" : "/superadmin/settings")} className="w-full text-left px-3 py-2 hover:bg-slate-50 rounded-lg text-sm text-slate-600 font-medium transition-colors">Profile Settings</button>
+                    <button onClick={() => { localStorage.clear(); sessionStorage.clear(); window.location.href = section === "employee" ? "/employee/index" : "/superadmin/index"; }} className="w-full text-left px-3 py-2 hover:bg-rose-50 text-rose-600 rounded-lg text-sm font-medium transition-colors">Log Out</button>
                   </div>
                 </div>
               </div>

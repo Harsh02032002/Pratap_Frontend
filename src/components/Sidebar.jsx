@@ -9,7 +9,7 @@ import {
   CreditCard, IndianRupee, RotateCcw, AlertCircle,
   BarChart, PieChart, Activity, Shield, LayoutGrid,
   FileSearch, CheckCircle2, History, MessageCircle,
-  Headset, ShieldAlert, Zap, ClipboardCheck
+  Headset, ShieldAlert, Zap, ClipboardCheck, Crown
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { LogoutDialog } from "./superadmin/LogoutDialog";
@@ -17,9 +17,10 @@ import { LogoutDialog } from "./superadmin/LogoutDialog";
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
 const NAV = [
-  { label: "Dashboard", icon: LayoutDashboard, path: "/superadmin/superadmin" },
+  { label: "Dashboard", id: "dashboard", icon: LayoutDashboard, path: "/superadmin/superadmin" },
   { 
     label: "Home", 
+    id: "home",
     icon: Home, 
     path: "/superadmin/home-overview",
     children: [
@@ -32,6 +33,7 @@ const NAV = [
   },
   { 
     label: "User Management", 
+    id: "user_management",
     icon: Users, 
     path: "/superadmin/user-overview", 
     children: [
@@ -65,6 +67,7 @@ const NAV = [
             { label: "Approved / Pending", path: "/superadmin/owner?view=pending" },
             { label: "KYC / Documents", path: "/superadmin/owner?view=kyc" },
             { label: "Agreements", path: "/superadmin/owner?view=agreements" },
+            { label: "🔐 Owner Subscriptions", path: "/superadmin/owner-subscriptions" },
           ]
         },
         { 
@@ -81,6 +84,7 @@ const NAV = [
   },
   { 
     label: "Property Management", 
+    id: "property_management",
     icon: Building2, 
     path: "/superadmin/property-overview", 
     children: [
@@ -97,6 +101,7 @@ const NAV = [
   },
   { 
     label: "Accounting", 
+    id: "accounting",
     icon: Wallet, 
     path: "/superadmin/accounting", 
     children: [
@@ -152,6 +157,7 @@ const NAV = [
   },
   { 
     label: "Chat Management", 
+    id: "chat_management",
     icon: MessageSquare, 
     path: "/superadmin/superchat",
     children: [
@@ -167,6 +173,7 @@ const NAV = [
   },
   { 
     label: "Reports", 
+    id: "report_analytics",
     icon: BarChart3, 
     path: "/superadmin/reports",
     children: [
@@ -181,6 +188,7 @@ const NAV = [
   },
   { 
     label: "Bookings", 
+    id: "booking_leads",
     icon: Calendar, 
     path: "/superadmin/booking",
     children: [
@@ -193,6 +201,7 @@ const NAV = [
   },
   { 
     label: "Reviews", 
+    id: "review",
     icon: Star, 
     path: "/superadmin/reviews",
     children: [
@@ -205,6 +214,7 @@ const NAV = [
   },
   { 
     label: "Support", 
+    id: "support",
     icon: Headphones, 
     path: "/superadmin/complaint-history",
     children: [
@@ -242,12 +252,11 @@ const getFilteredNav = () => {
       }
       
       const allowedNav = NAV.filter(item => {
-        // Find the id from allPermissions mapping
         let id = item.id;
         if (!id) {
           id = item.label.toLowerCase().replace(/ & /g, '_').replace(/ /g, '_');
         }
-        return id === "visits" || perms.includes(id);
+        return id === "visits" || perms.length === 0 || perms.includes(id);
       });
 
       // Rewrite paths to /employee/ for employees
@@ -255,7 +264,7 @@ const getFilteredNav = () => {
         let newPath = item.path;
         if (newPath) {
           if (newPath === "/superadmin/superadmin") {
-            newPath = "/employee/areaadmin";
+            newPath = "/employee/superadmin";
           } else if (newPath === "/superadmin/index") {
             newPath = "/employee/index";
           } else {
@@ -274,7 +283,7 @@ const getFilteredNav = () => {
   } catch (e) {
     console.error("Failed to parse user for sidebar filtering", e);
   }
-  return NAV.filter(item => item.label !== "Visit Reports");
+  return NAV;
 };
 
 export function Sidebar({ open, isMobile, onClose, onLogout }) {

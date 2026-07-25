@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { cleanPropertyName, getApiBases, isLocalHost } from "./utils";
+import { cleanPropertyName, getApiBases, getWithFallback, isLocalHost } from "./utils";
 
 const EMPTY = {
   loginId: "",
@@ -68,27 +68,25 @@ export const useTenantProfile = () => {
 
     (async () => {
       let tenant = null;
+      let cachedTenant = null;
 
-      // 1. Try the dedicated profile GET endpoint
+      // 1. Try local cache FIRST for owner-submitted tenant profile
       try {
-        for (const base of apiBases) {
-          const res = await fetch(`${base}/api/checkin/tenant/profile/${encodeURIComponent(loginId)}`);
-          if (res.ok) {
-            const data = await res.json().catch(() => ({}));
-            tenant = data?.tenant || null;
-            if (tenant) break;
-          }
-        }
+        const cachedList = JSON.parse(localStorage.getItem("roomhy_tenants") || "[]");
+        cachedTenant = cachedList.find((t) => String(t.loginId || "").toUpperCase() === loginId) || null;
       } catch (_) {}
 
-      // 2. Fallback: local cache or /api/tenants
-      if (!tenant) {
-        try {
-          const cached = JSON.parse(localStorage.getItem("roomhy_tenants") || "[]");
-          tenant = cached.find((t) => String(t.loginId || "").toUpperCase() === loginId) || null;
-        } catch (_) {}
-      }
-      if (!tenant) {
+      // 2. Try the dedicated profile GET endpoint
+      try {
+        const data = await getWithFallback(
+          `/api/checkin/tenant/profile/${encodeURIComponent(loginId)}`,
+          apiBases
+        );
+        tenant = data?.tenant || data || null;
+      } catch (_) {}
+
+      // 3. Fallback: /api/tenants
+      if (!tenant && !cachedTenant) {
         try {
           const res = await fetch(`${apiBase}/api/tenants`);
           const data = await res.json().catch(() => ({}));
@@ -97,57 +95,72 @@ export const useTenantProfile = () => {
         } catch (_) {}
       }
 
-      if (!tenant || cancelled) { setLoading(false); return; }
+      // Merge cached tenant & fetched tenant cleanly so non-empty fields are preserved
+      const cleanedCached = {};
+      if (cachedTenant) {
+        for (const [k, v] of Object.entries(cachedTenant)) {
+          if (v !== "" && v !== null && v !== undefined) cleanedCached[k] = v;
+        }
+      }
+      const cleanedFetched = {};
+      if (tenant) {
+        for (const [k, v] of Object.entries(tenant)) {
+          if (v !== "" && v !== null && v !== undefined) cleanedFetched[k] = v;
+        }
+      }
+      const merged = { ...(tenant || {}), ...(cachedTenant || {}), ...cleanedFetched, ...cleanedCached };
 
-      const profile  = tenant.digitalCheckin?.profile  || {};
-      const details  = tenant.digitalCheckin?.agreementDetails || {};
+      if ((!tenant && !cachedTenant) || cancelled) { setLoading(false); return; }
+
+      const profile   = merged.digitalCheckin?.profile  || {};
+      const details   = merged.digitalCheckin?.agreementDetails || {};
+      const kycData   = merged.kycVerificationData || {};
+      const kycInfo   = merged.kyc || {};
+      const emergency = merged.emergencyContact || {};
 
       // Resolve property name
-      const rawPropName = tenant.propertyTitle || profile.propertyName || tenant.propertyName || "";
+      const rawPropName = merged.propertyTitle || profile.propertyName || merged.propertyName || merged.property?.name || merged.property?.title || "";
       let propertyName = cleanPropertyName(rawPropName);
-      if (!propertyName && tenant.propertyId) {
+      if (!propertyName && merged.propertyId) {
         try {
           const res = await fetch(`${apiBase}/api/properties`);
           if (res.ok) {
             const pd = await res.json().catch(() => ({}));
             const match = (Array.isArray(pd?.properties) ? pd.properties : [])
-              .find((p) => String(p._id || p.id || "") === String(tenant.propertyId));
+              .find((p) => String(p._id || p.id || "") === String(merged.propertyId));
             propertyName = cleanPropertyName(match && (match.title || match.name));
           }
         } catch (_) {}
       }
 
-      const rentRaw   = tenant.agreedRent || profile.agreedRent || "";
+      const rentRaw   = merged.agreedRent || profile.agreedRent || merged.rent || merged.roomRent || "";
       const rentDisplay = rentRaw ? `INR ${rentRaw}` : "";
 
       const patch = {
-        name:               tenant.name             || profile.name            || "",
-        email:              tenant.email            || profile.email           || "",
-        phone:              tenant.phone            || profile.phone           || "",
-        dob:                tenant.dob              || profile.dob             || "",
-        guardianNumber:     tenant.guardianNumber   || profile.guardianNumber  || tenant.emergencyContact?.phone || "",
-        permanentAddress:   details.permanentAddress|| profile.permanentAddress|| "",
-        backupEmail:        details.backupEmail     || "",
-        propertyName:       propertyName            || "",
-        propertyAddress:    details.propertyAddress || "",
-        roomNo:             tenant.roomNo           || profile.roomNo          || "",
-        accommodationType:  details.accommodationType|| profile.accommodationType|| tenant.roomType || "",
+        name:               merged.name || merged.fullName || profile.name || kycData.adminEnteredName || "",
+        email:              merged.email || profile.email || "",
+        phone:              merged.phone || merged.mobile || profile.phone || kycData.adminEnteredPhone || "",
+        dob:                merged.dob || profile.dob || kycData.adminEnteredDob || "",
+        guardianNumber:     merged.guardianNumber || profile.guardianNumber || merged.emergencyNumber || emergency.phone || merged.additionalDetails?.emergencyPhone || "",
+        permanentAddress:   details.permanentAddress || profile.permanentAddress || merged.permanentAddress || merged.address || kycInfo.permanentAddress || kycData.adminEnteredAddress || merged.additionalDetails?.permanentAddress || "",
+        backupEmail:        details.backupEmail || merged.backupEmail || "",
+        propertyName:       propertyName || "Roomhy Stay",
+        propertyAddress:    details.propertyAddress || merged.propertyAddress || merged.property?.address || "",
+        roomNo:             merged.roomNo || merged.roomNumber || profile.roomNo || (merged.room?.number ? `Room ${merged.room.number}` : ""),
+        accommodationType:  details.accommodationType || profile.accommodationType || merged.sharingType || merged.roomType || merged.room?.type || "Double Sharing",
         agreedRent:         rentDisplay,
         securityDeposit:    (details.securityDeposit != null && details.securityDeposit !== "" && details.securityDeposit !== "0")
           ? String(details.securityDeposit)
-          : (tenant.securityDepositTotal ? String(tenant.securityDepositTotal) : (tenant.property?.pricing?.securityDeposit || tenant.property?.securityDeposit || "")),
-        moveInDate:         tenant.moveInDate ? String(tenant.moveInDate).slice(0, 10) : (profile.moveInDate || ""),
-        licenseDuration:    details.licenseDuration || "",
-        licenseEndDate:     details.licenseEndDate  || "",
-        licenseFeeDueDate:  details.licenseFeeDueDate|| "5",
-        moveOutCharges:     details.moveOutCharges  != null ? String(details.moveOutCharges)  : "",
-        noticePeriodCharges:details.noticePeriodCharges != null ? String(details.noticePeriodCharges) : "",
-        inclusions:         details.inclusions      || profile.inclusions      || "",
-        minimumStayDuration:details.minimumStayDuration|| "3 Months",
-        gstCharges:         details.gstCharges      != null ? String(details.gstCharges) : "0",
-        licenseDuration:    details.licenseDuration  || "",
-        propertyAddress:    details.propertyAddress  || "",
-        permanentAddress:   details.permanentAddress || profile.permanentAddress || ""
+          : (merged.securityDepositTotal ? String(merged.securityDepositTotal) : (merged.deposit ? String(merged.deposit) : (merged.property?.pricing?.securityDeposit || merged.property?.securityDeposit || ""))),
+        moveInDate:         merged.moveInDate ? String(merged.moveInDate).slice(0, 10) : (profile.moveInDate || new Date().toISOString().slice(0, 10)),
+        licenseDuration:    details.licenseDuration || merged.licenseDuration || "11 Months",
+        licenseEndDate:     details.licenseEndDate  || merged.licenseEndDate || "",
+        licenseFeeDueDate:  details.licenseFeeDueDate || merged.licenseFeeDueDate || "5",
+        moveOutCharges:     details.moveOutCharges  != null ? String(details.moveOutCharges)  : "0",
+        noticePeriodCharges:details.noticePeriodCharges != null ? String(details.noticePeriodCharges) : "0",
+        inclusions:         details.inclusions      || profile.inclusions      || merged.inclusions || "WiFi, Housekeeping",
+        minimumStayDuration:details.minimumStayDuration|| merged.minimumStayDuration || "3 Months",
+        gstCharges:         details.gstCharges      != null ? String(details.gstCharges) : "0"
       };
       if (!cancelled) {
         updateForm(patch);
@@ -158,6 +171,7 @@ export const useTenantProfile = () => {
         setLoading(false);
       }
     })();
+
 
     return () => { cancelled = true; };
   }, [form.loginId, apiBase, apiBases, updateForm]);

@@ -989,6 +989,13 @@ export default function Tenantdashboard() {
     if (params.get("pay") === "cash") { setPayOpen(true); setCashPanelOpen(true); }
   }, []);
 
+  useEffect(() => {
+    setActionMsg("");
+    setCashOtp("");
+    setCashPanelOpen(false);
+  }, [payOpen]);
+
+
   // ─── PDF Download ────────────────────────────────────────────────────────────
   const downloadReceiptPdf = async (rentItem) => {
     if (pdfBusy) return;
@@ -1094,12 +1101,15 @@ export default function Tenantdashboard() {
               method: "POST",
               body: JSON.stringify({
                 tenantId: loginId,
+                rentId: isCurrent ? rent?._id : prevMonthObj?._id,
+                paidAmount: paymentAmount,
                 ...(isCurrent ? { currentRentId: rent?._id } : { currentRentId: null, previousRentIds: [prevMonthObj?._id] }),
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
               }),
             });
+
             await syncPaymentState();
             setPayOpen(false);
 

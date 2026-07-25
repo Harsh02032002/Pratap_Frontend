@@ -57,11 +57,15 @@ export default function HomeOverview() {
           fetchHomeOverviewStats(selectedCity),
           fetchAccountingOverviewStats()
         ]);
+        const commissionRevenue = (acct?.success && acct?.summary?.revenue !== undefined) 
+          ? acct.summary.revenue 
+          : (res?.summary?.monthlyRevenue || 0);
+
         if (res.success && res.summary) {
           setStats({
             properties: res.summary.totalProperties || 0,
             tenants: res.summary.totalTenants || 0,
-            revenue: res.summary.monthlyRevenue || acct?.summary?.revenue || 0,
+            revenue: commissionRevenue,
             alerts: res.summary.alerts || 0
           });
           setRevenueTrend(res.revenueTrend || acct?.trends || []);
@@ -72,10 +76,9 @@ export default function HomeOverview() {
         }
         if (acct?.success && acct?.summary) {
           setAcctStats(acct.summary);
-          // Use accounting revenue if home stats revenue is 0
           setStats(prev => ({
             ...prev,
-            revenue: prev.revenue || acct.summary.revenue || acct.summary.totalCollection || 0
+            revenue: commissionRevenue
           }));
           if (!res.revenueTrend?.length && acct.trends?.length) {
             setRevenueTrend(acct.trends);
@@ -341,7 +344,12 @@ function HomeStatCard({ label, value, trend, icon: Icon, color, up, loading, onC
       {/* View All Link */}
       {viewAllLabel && viewAllPath && (
         <button
-          onClick={(e) => { e.stopPropagation(); navigate(viewAllPath); }}
+          onClick={(e) => { 
+            e.stopPropagation(); 
+            const isEmp = window.location.pathname.startsWith('/employee/');
+            const target = isEmp ? viewAllPath.replace(/^\/superadmin\//, '/employee/') : viewAllPath;
+            navigate(target); 
+          }}
           className={cn(
             "flex items-center justify-between px-6 py-3 border-t border-slate-50 text-xs font-bold transition-colors rounded-b-3xl hover:bg-slate-50",
             viewAllColor[color]

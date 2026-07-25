@@ -1,8 +1,6 @@
 const WEBSITE_USER_KEY = "website_user";
 const WEBSITE_TOKEN_KEY = "website_token";
 const ACCESS_TOKEN_KEY = "accessToken";
-const TOKEN_KEY = "token";
-const USER_KEY = "user";
 
 export const getWebsiteApiUrl = () =>
   import.meta.env?.VITE_API_URL ||
@@ -26,8 +24,6 @@ export const getStoredWebsiteToken = () => {
       sessionStorage.getItem(WEBSITE_TOKEN_KEY) ||
       localStorage.getItem(ACCESS_TOKEN_KEY) ||
       sessionStorage.getItem(ACCESS_TOKEN_KEY) ||
-      localStorage.getItem(TOKEN_KEY) ||
-      sessionStorage.getItem(TOKEN_KEY) ||
       ""
     );
   } catch {
@@ -37,6 +33,11 @@ export const getStoredWebsiteToken = () => {
 
 const normalizeWebsiteUser = (user) => {
   if (!user || typeof user !== "object") return null;
+  // Administrative roles must NEVER be treated as website tenant users
+  const role = String(user.role || "").toLowerCase();
+  if (role === "superadmin" || role === "admin" || role === "areamanager" || role === "employee" || role === "owner" || role === "manager") {
+    return null;
+  }
   const loginId = user.loginId || user.email || user.id || user.userId || "";
   return {
     ...user,
@@ -51,8 +52,6 @@ export const getWebsiteUser = () => {
     const user =
       safeParse(localStorage.getItem(WEBSITE_USER_KEY)) ||
       safeParse(sessionStorage.getItem(WEBSITE_USER_KEY)) ||
-      safeParse(localStorage.getItem(USER_KEY)) ||
-      safeParse(sessionStorage.getItem(USER_KEY)) ||
       null;
     return normalizeWebsiteUser(user);
   } catch {
@@ -67,16 +66,12 @@ export const setWebsiteSession = (user, token) => {
   try {
     localStorage.setItem(WEBSITE_USER_KEY, JSON.stringify(normalized));
     sessionStorage.setItem(WEBSITE_USER_KEY, JSON.stringify(normalized));
-    localStorage.setItem(USER_KEY, JSON.stringify(normalized));
-    sessionStorage.setItem(USER_KEY, JSON.stringify(normalized));
 
     if (safeToken) {
       localStorage.setItem(WEBSITE_TOKEN_KEY, safeToken);
       sessionStorage.setItem(WEBSITE_TOKEN_KEY, safeToken);
       localStorage.setItem(ACCESS_TOKEN_KEY, safeToken);
       sessionStorage.setItem(ACCESS_TOKEN_KEY, safeToken);
-      localStorage.setItem(TOKEN_KEY, safeToken);
-      sessionStorage.setItem(TOKEN_KEY, safeToken);
     }
   } catch (error) {
     console.error("Failed to store website session:", error);
@@ -86,11 +81,7 @@ export const setWebsiteSession = (user, token) => {
 
 export const clearWebsiteSession = () => {
   try {
-    const keys = [
-      WEBSITE_USER_KEY, WEBSITE_TOKEN_KEY, ACCESS_TOKEN_KEY, TOKEN_KEY, USER_KEY,
-      "staff_user", "staff_token", "manager_user", "owner_user",
-      "owner_session", "tenant_user", "userData"
-    ];
+    const keys = [WEBSITE_USER_KEY, WEBSITE_TOKEN_KEY, ACCESS_TOKEN_KEY];
     keys.forEach((k) => {
       localStorage.removeItem(k);
       sessionStorage.removeItem(k);
@@ -130,13 +121,10 @@ export const getWebsiteUserEmail = () => {
   return user.email || user.gmail || user.userEmail || "";
 };
 
-export const logoutWebsite = (redirectPage = "login") => {
+export const logoutWebsite = (redirectPage = "/login") => {
   clearWebsiteSession();
   try {
-    localStorage.removeItem("owner_session");
-    localStorage.removeItem("tenant_user");
     localStorage.removeItem("bookingRequestData");
-    sessionStorage.clear();
   } catch {
     // ignore
   }

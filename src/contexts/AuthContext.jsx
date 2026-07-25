@@ -14,21 +14,7 @@ const getAuthApiUrl = () =>
   import.meta.env?.VITE_API_URL ||
   (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
     ? "http://localhost:5001"
-    : "https://roohmy-backend-xwa9.vercel.app");
-
-const AUTH_STORAGE_KEYS = [
-  "token", "staff_token", "user", "staff_user", "manager_user",
-  "website_token", "website_user", "userData", "owner_user",
-  "owner_session", "tenant_user", "accessToken",
-  "staff_session", "employee_session"
-];
-
-export const clearAllAuthKeys = () => {
-  AUTH_STORAGE_KEYS.forEach((k) => {
-    try { localStorage.removeItem(k); } catch (_) {}
-    try { sessionStorage.removeItem(k); } catch (_) {}
-  });
-};
+    : "https://api.roomhy.com");
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -36,46 +22,47 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const token =
-      localStorage.getItem("website_token") ||
-      localStorage.getItem("token");
-    const rawUser =
-      localStorage.getItem("website_user") ||
-      localStorage.getItem("user") ||
-      localStorage.getItem("userData");
+      sessionStorage.getItem("token") ||
+      localStorage.getItem("token") ||
+      localStorage.getItem("website_token");
 
-    if (!token || !rawUser) {
+    const rawUserStr =
+      sessionStorage.getItem("user") ||
+      sessionStorage.getItem("staff_user") ||
+      localStorage.getItem("staff_user") ||
+      localStorage.getItem("user") ||
+      localStorage.getItem("website_user");
+
+    if (!token || !rawUserStr) {
       setLoading(false);
       return;
+    }
+
+    let parsedUser = null;
+    try {
+      parsedUser = JSON.parse(rawUserStr);
+    } catch (_) {}
+
+    if (parsedUser) {
+      setUser(parsedUser);
     }
 
     fetch(`${getAuthApiUrl()}/api/auth/me`, {
       headers: { Authorization: `Bearer ${token}` }
     })
-      .then((res) => {
-        if (res.ok) return res.json();
-        clearAllAuthKeys();
-        setLoading(false);
-        return null;
-      })
+      .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (!data) return;
-        try {
+        if (data) {
           const backendUser = (data?.user && typeof data.user === "object") ? data.user : data;
           if (backendUser && typeof backendUser === "object" && backendUser.role) {
             setUser(backendUser);
-          } else {
-            // Backend returned 200 but no recognisable user shape — treat as auth failure.
-            clearAllAuthKeys();
           }
-        } catch {
-          clearAllAuthKeys();
         }
-        setLoading(false);
       })
-      .catch(() => {
-        // Network failure, timeout, or any fetch error — never trust cached localStorage.
-        // Require a fresh login so the server remains the sole authentication authority.
-        clearAllAuthKeys();
+      .catch((err) => {
+        console.warn("[AuthContext] Auth verify warning:", err?.message);
+      })
+      .finally(() => {
         setLoading(false);
       });
   }, []);
@@ -89,7 +76,12 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     setUser(null);
-    clearAllAuthKeys();
+    try {
+      localStorage.removeItem('token');
+      sessionStorage.removeItem('token');
+      localStorage.removeItem('user');
+      sessionStorage.removeItem('user');
+    } catch (_) {}
   };
 
   const value = {
@@ -106,3 +98,23 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
+
+export const clearAllAuthKeys = () => {
+  try {
+    sessionStorage.removeItem("token");
+    localStorage.removeItem("token");
+    sessionStorage.removeItem("user");
+    localStorage.removeItem("user");
+    sessionStorage.removeItem("tenant");
+    localStorage.removeItem("tenant");
+    sessionStorage.removeItem("staff_user");
+    localStorage.removeItem("staff_user");
+    sessionStorage.removeItem("owner_session");
+    localStorage.removeItem("owner_session");
+    sessionStorage.removeItem("website_token");
+    localStorage.removeItem("website_token");
+    sessionStorage.removeItem("website_user");
+    localStorage.removeItem("website_user");
+  } catch (_) {}
+};
+

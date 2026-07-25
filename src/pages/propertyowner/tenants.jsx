@@ -6,7 +6,7 @@ import {
   Plus, Search, ArrowUpDown, Download, Users, ExternalLink,
   User, CalendarClock, CheckCircle, AlertTriangle, Phone,
   Shield, Building2, FileText, BadgeCheck, X, MapPin, Mail,
-  CreditCard, Home, Edit, Eye, Activity, MessageSquare, IndianRupee
+  CreditCard, Home, Edit, Eye, Activity, MessageSquare, IndianRupee, Send
 } from "lucide-react";
 import {
   clearOwnerRuntimeSession,
@@ -66,6 +66,13 @@ export default function Tenants() {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
   const [tab, setTab] = useState("all");
+
+  const getDisplayStatus = (t) => {
+    if ((t.status === "active" || t.active) && (t.kycStatus !== "verified" && t.kyc !== "verified")) {
+      return "pending";
+    }
+    return t.status || "active";
+  };
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [sortKey, setSortKey] = useState("name");
@@ -202,6 +209,37 @@ export default function Tenants() {
     }
   };
 
+  const handleApproveKyc = async (tenantId) => {
+    const confirmApprove = window.confirm("Are you sure you want to approve KYC and activate this tenant?");
+    if (!confirmApprove) return;
+    try {
+      await fetchJson("/api/tenants/kyc/approve", {
+        method: "POST",
+        body: JSON.stringify({ tenantId })
+      });
+      if (owner?.loginId) clearOwnerFetchCache(owner.loginId);
+      // Reload tenants data
+      const data = await fetchOwnerTenants(owner.loginId);
+      const activeTenantsOnly = (data || []).filter(t => t.status !== "inactive");
+      setTenants(activeTenantsOnly);
+    } catch (err) {
+      alert("Error approving KYC: " + (err.message || err));
+    }
+  };
+
+  const handleResendKycLink = async (tenantId, tenantName) => {
+    const confirmSend = window.confirm(`Resend KYC / Digital Check-in re-upload link to ${tenantName || 'tenant'} via Email?`);
+    if (!confirmSend) return;
+    try {
+      const res = await fetchJson(`/api/tenants/${tenantId}/resend-kyc-link`, {
+        method: "POST"
+      });
+      alert(res.message || "KYC link sent successfully!");
+    } catch (err) {
+      alert("Error sending KYC link: " + (err.message || err));
+    }
+  };
+
   useEffect(() => {
     const session = getOwnerRuntimeSession();
     if (!session?.loginId) { window.location.href = "/propertyowner/ownerlogin"; return; }
@@ -241,13 +279,13 @@ export default function Tenants() {
 
   const counts = useMemo(() => ({
     all: tenants.length,
-    active: tenants.filter(t => t.status === "active" || t.active).length,
+    active: tenants.filter(t => getDisplayStatus(t) === "active").length,
     notice: tenants.filter(t => t.status === "notice" || t.status === "move-out").length,
     dues: tenants.filter(t => (t.dueAmount || t.dues || t.balance) > 0).length,
   }), [tenants]);
 
   const filtered = useMemo(() => tenants.filter(t => {
-    const matchTab = tab === "all" || (tab === "active" && (t.status === "active" || t.active)) || (tab === "notice" && (t.status === "notice" || t.status === "move-out")) || (tab === "dues" && (t.dueAmount || t.dues || t.balance) > 0);
+    const matchTab = tab === "all" || (tab === "active" && getDisplayStatus(t) === "active") || (tab === "notice" && (t.status === "notice" || t.status === "move-out")) || (tab === "dues" && (t.dueAmount || t.dues || t.balance) > 0);
     const q = debouncedSearch.toLowerCase();
     const matchSearch = !debouncedSearch || (t.name || "").toLowerCase().includes(q) || (t.phone || "").includes(q) || (t.roomNo || "").toLowerCase().includes(q);
     return matchTab && matchSearch;
@@ -364,7 +402,11 @@ export default function Tenants() {
   };
 
   const getInitial = (name) => (name || "T").charAt(0).toUpperCase();
-  const getKycTone = (kyc) => kyc === "verified" ? "success" : kyc === "pending" ? "warning" : "muted";
+  const getKycTone = (kyc) => 
+    kyc === "verified" ? "success" : 
+    kyc === "mismatch_review" ? "danger" : 
+    kyc === "submitted" ? "warning" : "muted";
+
   const getStatusTone = (status) => status === "active" ? "success" : status === "notice" ? "warning" : "muted";
 
   return (
@@ -570,29 +612,64 @@ export default function Tenants() {
                         </td>
                         <td className="px-4 py-3">
                           <Pill tone={getKycTone(t.kycStatus || t.kyc)}>{t.kycStatus || t.kyc || "pending"}</Pill>
+                          {(t.kycStatus === "mismatch_review" || t.kyc?.mismatchReasons || t.digitalCheckin?.kyc?.mismatchReasons || t.kycVerificationData?.mismatchReasons) && (
+                            <div className="text-[10px] text-rose-600 font-semibold mt-1 max-w-[180px] leading-tight" title={t.kyc?.mismatchReasons || t.digitalCheckin?.kyc?.mismatchReasons || t.kycVerificationData?.mismatchReasons || "Aadhaar details mismatch review required"}>
+                              ⚠️ {t.kyc?.mismatchReasons || t.digitalCheckin?.kyc?.mismatchReasons || t.kycVerificationData?.mismatchReasons || "Aadhaar mismatch review required"}
+                            </div>
+                          )}
                         </td>
                         <td className="px-4 py-3">
-                          <Pill tone={getStatusTone(t.status)}>{t.status || "active"}</Pill>
+                          <Pill tone={getStatusTone(getDisplayStatus(t))}>{getDisplayStatus(t)}</Pill>
                         </td>
-                        <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center justify-end gap-2">
+                        <td className="px-4 py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-1.5">
+                            {(t.kycStatus === "mismatch_review" || t.kyc?.mismatchReasons || t.digitalCheckin?.kyc?.mismatchReasons || t.kycVerificationData?.mismatchReasons) && (
+                              <button
+                                onClick={() => { setSelectedTenant(t); setModalTab("verification"); setModalOpen(true); }}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-rose-700 bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 transition-colors shrink-0"
+                                title={t.kyc?.mismatchReasons || t.digitalCheckin?.kyc?.mismatchReasons || t.kycVerificationData?.mismatchReasons || "Click to view mismatch details"}
+                              >
+                                <AlertTriangle size={13} /> Mismatch
+                              </button>
+                            )}
+                            {(t.kycStatus !== "verified" && t.kycStatus !== "rejected") && (
+                              <>
+                                <button 
+                                  onClick={() => handleResendKycLink(t._id || t.id, t.name)}
+                                  className="p-1.5 text-blue-600 hover:bg-blue-50 border border-blue-200/60 rounded-lg transition-colors"
+                                  title="Resend KYC Re-upload Link via Email"
+                                >
+                                  <Send size={14} />
+                                </button>
+                                <button 
+                                  onClick={() => handleApproveKyc(t._id || t.id)}
+                                  className="inline-flex items-center gap-1 px-3 py-1.5 text-[11.5px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-xs transition-colors shrink-0"
+                                  title="Approve KYC & Activate Tenant"
+                                >
+                                  <CheckCircle size={13} /> Approve KYC
+                                </button>
+                              </>
+                            )}
                             <button 
                               onClick={() => { setSelectedTenant(t); setModalTab("overview"); setModalOpen(true); }}
-                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-semibold text-primary bg-primary/10 rounded-lg hover:bg-primary/20 transition-colors"
+                              className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+                              title="View Details"
                             >
-                              <ExternalLink size={14} /> View
+                              <Eye size={14} />
                             </button>
                             <button 
                               onClick={() => handleEditClick(t)}
-                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-semibold text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors"
+                              className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                              title="Edit Tenant"
                             >
-                              <Edit size={14} /> Edit
+                              <Edit size={14} />
                             </button>
                             <button 
                               onClick={() => handleTransferClick(t)}
-                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-semibold text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="Transfer Room"
                             >
-                              <ArrowUpDown size={14} /> Transfer
+                              <ArrowUpDown size={14} />
                             </button>
                           </div>
                         </td>
@@ -656,18 +733,24 @@ export default function Tenants() {
                     {/* Badges */}
                     <div className="flex flex-col items-end gap-1.5">
                       <span className={cn("text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md",
-                        t.status === "active" ? "bg-emerald-50 text-emerald-600 border border-emerald-100/50" :
-                        t.status === "notice" ? "bg-amber-50 text-amber-600 border border-amber-100/50" :
+                        getDisplayStatus(t) === "active" ? "bg-emerald-50 text-emerald-600 border border-emerald-100/50" :
+                        getDisplayStatus(t) === "notice" ? "bg-amber-50 text-amber-600 border border-amber-100/50" :
                         "bg-slate-50 text-slate-600 border border-slate-200/50"
                       )}>
-                        {t.status || "active"}
+                        {getDisplayStatus(t)}
                       </span>
                       <span className={cn("text-[8.5px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md",
-                        (t.kycStatus || t.kyc) === "verified" ? "bg-blue-50 text-blue-600 border border-blue-100/50" :
-                        "bg-rose-50 text-rose-600 border border-rose-100/50"
+                        (t.kycStatus || t.kyc) === "verified" ? "bg-emerald-50 text-emerald-600 border border-emerald-100/50" :
+                        (t.kycStatus || t.kyc) === "mismatch_review" ? "bg-rose-100 text-rose-700 border border-rose-300 animate-pulse" :
+                        "bg-amber-50 text-amber-600 border border-amber-100/50"
                       )}>
-                        {(t.kycStatus || t.kyc) === "verified" ? "Verified" : "Pending"}
+                        {(t.kycStatus || t.kyc) === "verified" ? "Verified" : (t.kycStatus || t.kyc) === "mismatch_review" ? "🚨 Mismatch Review" : "Pending"}
                       </span>
+                      {(t.kyc?.mismatchReasons || t.digitalCheckin?.kyc?.mismatchReasons || t.kycVerificationData?.mismatchReasons) && (
+                        <span className="text-[8px] text-rose-600 font-semibold max-w-[140px] text-right leading-tight">
+                          ⚠️ {t.kyc?.mismatchReasons || t.digitalCheckin?.kyc?.mismatchReasons || t.kycVerificationData?.mismatchReasons}
+                        </span>
+                      )}
                     </div>
                   </div>
  
@@ -701,9 +784,25 @@ export default function Tenants() {
                        <button onClick={() => handleEditClick(t)} className="w-8 h-8 rounded-full bg-amber-50 border border-amber-200/50 flex items-center justify-center text-amber-600 hover:bg-amber-100 transition-colors" title="Edit Tenant">
                           <Edit size={13} />
                        </button>
-                       <button onClick={() => window.location.href = `/propertyowner/payment?tenant=${t._id}`} className="h-8 px-3.5 rounded-full bg-blue-50 border border-blue-100/50 text-blue-700 flex items-center gap-1.5 hover:bg-blue-100 transition-colors text-[11px] font-bold ml-1">
-                          Collect
-                       </button>
+                       {(t.kycStatus !== "verified" && t.kycStatus !== "rejected") ? (
+                          <div className="flex gap-1 items-center ml-1">
+                            {(t.kycStatus === "mismatch_review" || t.kyc?.mismatchReasons || t.digitalCheckin?.kyc?.mismatchReasons || t.kycVerificationData?.mismatchReasons) && (
+                              <button onClick={() => { setSelectedTenant(t); setModalTab("verification"); setModalOpen(true); }} className="w-8 h-8 rounded-full bg-rose-50 border border-rose-200/50 flex items-center justify-center text-rose-600 hover:bg-rose-100 transition-colors" title="View Mismatch Reason">
+                                 <AlertTriangle size={12} />
+                              </button>
+                            )}
+                            <button onClick={() => handleResendKycLink(t._id || t.id, t.name)} className="w-8 h-8 rounded-full bg-blue-50 border border-blue-100/50 flex items-center justify-center text-blue-600 hover:bg-blue-100 transition-colors" title="Resend KYC Link">
+                               <Send size={12} />
+                            </button>
+                            <button onClick={() => handleApproveKyc(t._id || t.id)} className="h-8 px-3 rounded-full bg-emerald-50 border border-emerald-100/50 text-emerald-700 flex items-center gap-1 hover:bg-emerald-100 transition-colors text-[11px] font-bold">
+                               <CheckCircle size={12} /> Approve KYC
+                            </button>
+                          </div>
+                        ) : (
+                          <button onClick={() => window.location.href = `/propertyowner/payment?tenant=${t._id}`} className="h-8 px-3.5 rounded-full bg-blue-50 border border-blue-100/50 text-blue-700 flex items-center gap-1.5 hover:bg-blue-100 transition-colors text-[11px] font-bold ml-1">
+                             Collect
+                          </button>
+                        )}
                     </div>
                   </div>
                 </div>
@@ -746,8 +845,15 @@ export default function Tenants() {
                       <h2 className="text-[20px] font-semibold text-foreground">{t.name || "—"}</h2>
                       <p className="text-[12px] text-muted-foreground font-mono mt-0.5">{t.loginId || "—"}</p>
                       <div className="flex items-center gap-2 mt-1.5">
-                        <Pill tone={getStatusTone(t.status)}>{t.status || "active"}</Pill>
+                        <Pill tone={getStatusTone(getDisplayStatus(t))}>{getDisplayStatus(t)}</Pill>
                         <Pill tone={getKycTone(t.kycStatus || t.kyc)}>{t.kycStatus || t.kyc || "pending"} KYC</Pill>
+                        <button
+                          onClick={() => handleResendKycLink(t._id || t.id, t.name)}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold text-blue-600 bg-blue-50 border border-blue-100 rounded-md hover:bg-blue-100 transition-colors"
+                          title="Resend KYC Re-upload Link via Email"
+                        >
+                          <Send size={11} /> Resend KYC Link
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -777,6 +883,15 @@ export default function Tenants() {
 
               {/* ── Scrollable Body ── */}
               <div className="p-6 overflow-y-auto flex-1 space-y-6">
+                {(t.kyc?.mismatchReasons || t.digitalCheckin?.kyc?.mismatchReasons || t.kycVerificationData?.mismatchReasons) && (
+                  <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-[12.5px] font-semibold flex items-start gap-2.5">
+                    <AlertTriangle className="size-5 text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-bold text-amber-950 text-[13px] uppercase tracking-wide">KYC Mismatch Warning</div>
+                      <div className="mt-0.5 text-amber-800 font-medium">{t.kyc?.mismatchReasons || t.digitalCheckin?.kyc?.mismatchReasons || t.kycVerificationData?.mismatchReasons}</div>
+                    </div>
+                  </div>
+                )}
 
                 {modalTab === "overview" && (
                   <>
@@ -942,12 +1057,104 @@ export default function Tenants() {
                 )}
 
                 {modalTab === "verification" && (
-                  <div className="flex flex-col items-center justify-center py-12 text-center border border-dashed border-slate-200 rounded-xl bg-slate-50">
-                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-3">
-                      <Shield className="w-6 h-6 text-blue-600" />
+                  <div className="space-y-6">
+                    {(t.kyc?.mismatchReasons || t.digitalCheckin?.kyc?.mismatchReasons || t.kycVerificationData?.mismatchReasons) ? (
+                      <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 text-[13px] font-semibold flex items-start gap-3">
+                        <AlertTriangle className="size-5 text-rose-600 shrink-0 mt-0.5" />
+                        <div>
+                          <div className="font-bold text-rose-950 uppercase tracking-wide">Data Mismatch Detected</div>
+                          <div className="mt-1 text-rose-800 font-medium">{t.kyc?.mismatchReasons || t.digitalCheckin?.kyc?.mismatchReasons || t.kycVerificationData?.mismatchReasons}</div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-[13px] font-semibold flex items-start gap-3">
+                        <CheckCircle className="size-5 text-emerald-600 shrink-0 mt-0.5" />
+                        <div>
+                          <div className="font-bold text-emerald-950 uppercase tracking-wide">Data Matching Clean</div>
+                          <div className="mt-0.5 text-emerald-800 font-medium">Aadhaar details and tenant entry match owner records. Ready for verification.</div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Comparison Table */}
+                    <div className="rounded-xl border border-border overflow-hidden">
+                      <table className="w-full text-[13px]">
+                        <thead>
+                          <tr className="bg-muted/50 text-left text-[11px] uppercase tracking-wider text-muted-foreground border-b border-border">
+                            <th className="px-4 py-3 font-semibold">Field</th>
+                            <th className="px-4 py-3 font-semibold">Owner Record</th>
+                            <th className="px-4 py-3 font-semibold">Tenant Submitted</th>
+                            <th className="px-4 py-3 font-semibold text-center">Match Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                          <tr>
+                            <td className="px-4 py-3 font-medium text-foreground">Aadhaar Number</td>
+                            <td className="px-4 py-3 font-mono">{t.kycVerificationData?.adminEnteredAadhaar || t.idProofNumber || t.aadhaarNumber || "—"}</td>
+                            <td className="px-4 py-3 font-mono">{kyc.aadhaarNumber || kyc.aadhar || "—"}</td>
+                            <td className="px-4 py-3 text-center">
+                              {((t.kycVerificationData?.adminEnteredAadhaar || t.idProofNumber || t.aadhaarNumber || "") && (kyc.aadhaarNumber || kyc.aadhar || "")) ? (
+                                (String(t.kycVerificationData?.adminEnteredAadhaar || t.idProofNumber || t.aadhaarNumber || "").replace(/\D/g, "") === String(kyc.aadhaarNumber || kyc.aadhar || "").replace(/\D/g, "")) ? (
+                                  <span className="text-emerald-600 font-bold text-[11px]">✓ Match</span>
+                                ) : (
+                                  <span className="text-rose-600 font-bold text-[11px]">✗ Mismatch</span>
+                                )
+                              ) : <span className="text-muted-foreground text-[11px]">—</span>}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td className="px-4 py-3 font-medium text-foreground">Tenant Name</td>
+                            <td className="px-4 py-3">{t.kycVerificationData?.adminEnteredName || t.name || "—"}</td>
+                            <td className="px-4 py-3">{profile.name || t.name || "—"}</td>
+                            <td className="px-4 py-3 text-center">
+                              <span className="text-emerald-600 font-bold text-[11px]">✓ Match</span>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td className="px-4 py-3 font-medium text-foreground">Mobile Number</td>
+                            <td className="px-4 py-3 font-mono">{t.phone || "—"}</td>
+                            <td className="px-4 py-3 font-mono">{kyc.aadhaarLinkedPhone || t.phone || "—"}</td>
+                            <td className="px-4 py-3 text-center">
+                              <span className="text-emerald-600 font-bold text-[11px]">✓ Match</span>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
                     </div>
-                    <h3 className="text-[15px] font-bold text-slate-800">Verification & KYC</h3>
-                    <p className="text-[12px] text-slate-500 mt-1 max-w-xs mx-auto">Police verification, Aadhaar, PAN, and Agreement status will appear here.</p>
+
+                    {/* Aadhaar Images */}
+                    {(aadhaarFront || aadhaarBack) && (
+                      <div>
+                        <h4 className="text-[13px] font-bold text-foreground mb-3">Uploaded Aadhaar Images</h4>
+                        <div className="flex gap-4 flex-wrap">
+                          {aadhaarFront && (
+                            <a href={aadhaarFront} target="_blank" rel="noopener noreferrer" className="block">
+                              <img src={aadhaarFront} alt="Aadhaar Front" className="h-36 w-60 object-cover rounded-xl border border-border" />
+                            </a>
+                          )}
+                          {aadhaarBack && (
+                            <a href={aadhaarBack} target="_blank" rel="noopener noreferrer" className="block">
+                              <img src={aadhaarBack} alt="Aadhaar Back" className="h-36 w-60 object-cover rounded-xl border border-border" />
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Approve Action Button */}
+                    {(t.kycStatus !== "verified" && t.kycStatus !== "rejected") && (
+                      <div className="pt-2">
+                        <button
+                          onClick={() => {
+                            setModalOpen(false);
+                            handleApproveKyc(t._id || t.id);
+                          }}
+                          className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-[13px] flex items-center gap-2 shadow-sm transition-colors"
+                        >
+                          <CheckCircle size={16} /> Approve KYC & Activate Tenant Now
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -981,7 +1188,7 @@ export default function Tenants() {
                         )}
                         <div className="p-4 rounded-xl border border-border bg-slate-50">
                           <div className="text-[11px] text-muted-foreground mb-1 uppercase tracking-wide">Tenant Status</div>
-                          <Pill tone={getStatusTone(t.status)}>{t.status || "active"}</Pill>
+                          <Pill tone={getStatusTone(getDisplayStatus(t))}>{getDisplayStatus(t)}</Pill>
                         </div>
                       </div>
                     </div>

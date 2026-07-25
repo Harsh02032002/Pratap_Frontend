@@ -179,7 +179,11 @@ export default function SuperadminAreaadminPage() {
                         return (
                             <div 
                                 key={widget.id}
-                                onClick={() => navigate(sidebarConfig[widget.id].to)}
+                                onClick={() => {
+                                    const targetPath = sidebarConfig[widget.id].to;
+                                    const isEmp = window.location.pathname.startsWith('/employee/');
+                                    navigate(isEmp ? targetPath.replace('/superadmin/', '/employee/') : targetPath);
+                                }}
                                 className="bg-white p-6 rounded-2xl border border-slate-100 shadow-md hover:translate-y-[-4px] transition-all group cursor-pointer"
                             >
                                 <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center mb-6 border transition-transform group-hover:scale-105", colors[widget.color])}>

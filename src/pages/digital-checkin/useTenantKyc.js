@@ -11,6 +11,7 @@ export const useTenantKyc = () => {
   const [aadhaarNumber, setAadhaarNumber]           = useState("");
   const [aadhaarLinkedPhone, setAadhaarLinkedPhone] = useState("");
   const [tenantPhone, setTenantPhone]               = useState(""); // read-only, from DB
+  const [tenantProfile, setTenantProfile]           = useState(null); // full pre-filled profile
   const [otp, setOtp]                               = useState("");
   const [otpMsg, setOtpMsg]                         = useState("");
   const [nextVisible, setNextVisible]               = useState(false);
@@ -20,6 +21,7 @@ export const useTenantKyc = () => {
   const [uploadedUrls, setUploadedUrls]             = useState({});
   const [fetchingProfile, setFetchingProfile]       = useState(false);
   const [errors, setErrors]                         = useState({});
+  const [mismatchDetails, setMismatchDetails]       = useState("");
 
   const { frontOcr, backOcr, checkImage, resetOcr } = useAadhaarOcr(apiBases, "tenant");
 
@@ -30,7 +32,7 @@ export const useTenantKyc = () => {
     if (id) setLoginId(id);
   }, []);
 
-  // Fetch tenant profile to get phone number (read-only, set by owner)
+  // Fetch full tenant profile to auto-fill ALL fields
   useEffect(() => {
     if (!loginId) return;
     const load = async () => {
@@ -40,11 +42,42 @@ export const useTenantKyc = () => {
           `/api/checkin/tenant/profile/${encodeURIComponent(loginId.trim().toUpperCase())}`,
           apiBases
         );
-        const phone = data?.tenant?.phone || data?.tenant?.guardianNumber || "";
-        if (phone) {
-          setTenantPhone(phone);
-          setAadhaarLinkedPhone(phone);
+        const t = data?.tenant || data;
+        if (t) {
+          setTenantProfile(t);
+          const phone = t.phone || t.guardianNumber || "";
+          if (phone) {
+            setTenantPhone(phone);
+            setAadhaarLinkedPhone(phone);
+          }
+          // Prefill Aadhaar number if owner entered or if existing
+          const existingAadhaar = (
+            t.aadhaarNumber ||
+            t.idProofNumber ||
+            t.kyc?.aadhaarNumber ||
+            t.kycVerificationData?.adminEnteredAadhaar ||
+            t.aadhar ||
+            ""
+          ).replace(/\D/g, "");
+          if (existingAadhaar) {
+            setAadhaarNumber(existingAadhaar);
+          }
+
+          // Prefill existing uploaded documents so tenant can view/remove/replace them
+          const existingFront = t.digitalCheckin?.documents?.aadhaarFrontUrl || t.kyc?.aadhaarFront || t.aadhaarFront || "";
+          const existingBack = t.digitalCheckin?.documents?.aadhaarBackUrl || t.kyc?.aadhaarBack || t.aadhaarBack || "";
+          const existingPhoto = t.digitalCheckin?.documents?.tenantPhotoUrl || t.kyc?.tenantPhoto || t.photo || "";
+          
+          if (existingFront || existingBack || existingPhoto) {
+            setUploadedUrls((prev) => ({
+              ...prev,
+              ...(existingFront ? { aadhaarFrontUrl: existingFront } : {}),
+              ...(existingBack ? { aadhaarBackUrl: existingBack } : {}),
+              ...(existingPhoto ? { tenantPhotoUrl: existingPhoto } : {})
+            }));
+          }
         }
+
       } catch (_) {
         // Non-blocking — phone may be entered manually if fetch fails
       } finally {
@@ -53,6 +86,7 @@ export const useTenantKyc = () => {
     };
     load();
   }, [loginId, apiBases]);
+
 
   const saveKycState = useCallback(
     (extra = {}) => {
@@ -74,7 +108,6 @@ export const useTenantKyc = () => {
       const state = JSON.parse(sessionStorage.getItem(TENANT_KYC_STATE_KEY) || "{}");
       if (!state || typeof state !== "object") return;
       if (!loginId && state.loginId) setLoginId(state.loginId);
-      if (state.aadhaarNumber) setAadhaarNumber(state.aadhaarNumber);
       if (state.otpSent) setOtpSent(true);
     } catch (_) {}
   }, [loginId]);
@@ -114,18 +147,19 @@ export const useTenantKyc = () => {
     [aadhaarLinkedPhone, aadhaarNumber, frontOcr]
   );
 
-  // Called when an image is selected — runs OCR; auto-fills Aadhaar number if empty
+  // Called when an image is selected — runs OCR; auto-fills Aadhaar number directly from card image
   const handleImageOcr = useCallback(
     async (fileOrBase64, side) => {
       if (!fileOrBase64) { resetOcr(side); return; }
       setErrors((prev) => ({ ...prev, [side === "front" ? "aadhaarFront" : "aadhaarBack"]: "" }));
       const extractedNum = await checkImage(fileOrBase64, side);
-      if (extractedNum && side === "front" && !aadhaarNumber.trim().replace(/\D/g, "")) {
+      if (extractedNum) {
         setAadhaarNumber(extractedNum);
       }
     },
-    [aadhaarNumber, checkImage, resetOcr]
+    [checkImage, resetOcr]
   );
+
 
   // Uploads all provided images to Cloudinary via tenant/documents endpoint
   const uploadDocuments = useCallback(
@@ -194,9 +228,9 @@ export const useTenantKyc = () => {
         );
       } catch (err) {
         setOtpMsg(`Failed to send OTP: ${err.message}`);
-        setOtpLoading(false); // Re-enable button on failure so tenant can retry
+      } finally {
+        setOtpLoading(false);
       }
-      // On success keep button disabled — tenant must now use the OTP
     },
     [aadhaarLinkedPhone, aadhaarNumber, apiBases, loginId, saveKycState, uploadDocuments, validate]
   );
@@ -207,14 +241,61 @@ export const useTenantKyc = () => {
       if (!/^\d{12}$/.test(aadhaarRaw)) return setOtpMsg("Aadhaar number must be 12 digits");
       if (!otp.trim()) return setOtpMsg("Please enter the OTP");
 
+      // Compute Aadhaar OCR Mismatch against Owner's Pre-filled Record
+      const ownerExpectedAadhaar = (
+        tenantProfile?.idProofNumber ||
+        tenantProfile?.aadhaarNumber ||
+        tenantProfile?.kyc?.aadhaarNumber ||
+        tenantProfile?.kyc?.aadhar ||
+        tenantProfile?.kycVerificationData?.adminEnteredAadhaar ||
+        tenantProfile?.idProof?.number ||
+        ""
+      ).replace(/\D/g, "");
+
+      const scannedCardAadhaar = (frontOcr?.aadhaarNumber || "").replace(/\D/g, "");
+
+      const isAadhaarMatch = (expected, scanned) => {
+        if (!expected || !scanned) return true;
+        const expClean = String(expected).replace(/\D/g, "");
+        const scnClean = String(scanned).replace(/\D/g, "");
+        if (!expClean || !scnClean) return true;
+        if (expClean === scnClean) return true;
+        if (scnClean.length === 8 && expClean.length === 12) {
+          return expClean.startsWith(scnClean.slice(0, 4)) && expClean.endsWith(scnClean.slice(4, 8));
+        }
+        if (expClean.length === 8 && scnClean.length === 12) {
+          return scnClean.startsWith(expClean.slice(0, 4)) && scnClean.endsWith(expClean.slice(4, 8));
+        }
+        return false;
+      };
+
+      const mismatchReasons = [];
+
+      // Check 1: Uploaded Card vs Owner Record
+      if (ownerExpectedAadhaar && scannedCardAadhaar && !isAadhaarMatch(ownerExpectedAadhaar, scannedCardAadhaar)) {
+        mismatchReasons.push(`Aadhaar Card image mismatch: Owner Record (${ownerExpectedAadhaar}) vs Scanned Card Image (${scannedCardAadhaar})`);
+      }
+      // Check 2: Entered Number vs Owner Record
+      if (ownerExpectedAadhaar && aadhaarRaw && !isAadhaarMatch(ownerExpectedAadhaar, aadhaarRaw)) {
+        mismatchReasons.push(`Aadhaar Number mismatch: Owner Record (${ownerExpectedAadhaar}) vs Submitted Number (${aadhaarRaw})`);
+      }
+
+      const isMismatch = mismatchReasons.length > 0;
+      const targetKycStatus = isMismatch ? "mismatch_review" : "audit_pending";
+      setMismatchDetails(mismatchReasons.join("; "));
+
+
+
       try {
         const payload = {
-          loginId:      loginId.trim(),
-          aadhaarNumber: aadhaarRaw,
-          otp:          otp.trim(),
-          aadhaarFront: uploadedUrls.aadhaarFrontUrl || aadhaarFront,
-          aadhaarBack:  uploadedUrls.aadhaarBackUrl  || aadhaarBack,
-          tenantPhoto:  uploadedUrls.tenantPhotoUrl  || tenantPhoto
+          loginId:         loginId.trim(),
+          aadhaarNumber:   aadhaarRaw,
+          otp:             otp.trim(),
+          aadhaarFront:    uploadedUrls.aadhaarFrontUrl || aadhaarFront,
+          aadhaarBack:     uploadedUrls.aadhaarBackUrl  || aadhaarBack,
+          tenantPhoto:     uploadedUrls.tenantPhotoUrl  || tenantPhoto,
+          kycStatus:       targetKycStatus,
+          mismatchReasons: mismatchReasons.join("; ")
         };
         saveKycState({ otpSent: true });
         await postExpectSuccess("/api/checkin/tenant/kyc/verify-otp", payload, apiBases);
@@ -225,29 +306,35 @@ export const useTenantKyc = () => {
           const tenants = JSON.parse(localStorage.getItem("roomhy_tenants") || "[]");
           const idx = tenants.findIndex((t) => String(t.loginId || "").toUpperCase() === upperLogin);
           if (idx > -1) {
-            tenants[idx].kycStatus = "verified";
+            tenants[idx].kycStatus = targetKycStatus;
             tenants[idx].kyc = {
               ...(tenants[idx].kyc || {}),
-              aadhaarNumber:  payload.aadhaarNumber,
-              aadhar:         payload.aadhaarNumber,
-              aadhaarFront:   payload.aadhaarFront,
-              aadhaarBack:    payload.aadhaarBack,
-              otpVerified:    true,
-              otpVerifiedAt:  new Date().toISOString()
+              aadhaarNumber:   payload.aadhaarNumber,
+              aadhar:          payload.aadhaarNumber,
+              aadhaarFront:    payload.aadhaarFront,
+              aadhaarBack:     payload.aadhaarBack,
+              otpVerified:     true,
+              otpVerifiedAt:   new Date().toISOString(),
+              mismatchReasons: payload.mismatchReasons
             };
             if (payload.tenantPhoto) tenants[idx].photo = payload.tenantPhoto;
             localStorage.setItem("roomhy_tenants", JSON.stringify(tenants));
           }
         } catch (_) {}
 
-        setOtpMsg("KYC verification completed successfully!");
+        if (isMismatch) {
+          setOtpMsg("KYC Submitted! Mismatch detected between entered details and Aadhaar image. Owner will review and verify your onboarding.");
+        } else {
+          setOtpMsg("KYC verification completed successfully!");
+        }
         setNextVisible(true);
       } catch (err) {
         setOtpMsg(`Verification failed: ${err.message}`);
       }
     },
-    [aadhaarNumber, apiBases, loginId, otp, saveKycState, uploadedUrls]
+    [aadhaarNumber, apiBases, frontOcr, loginId, otp, saveKycState, uploadedUrls]
   );
+
 
   const handleNext = useCallback(() => {
     window.location.href = `/digital-checkin/tenantagreement?loginId=${encodeURIComponent(loginId.trim())}`;
@@ -258,11 +345,14 @@ export const useTenantKyc = () => {
     aadhaarNumber, setAadhaarNumber,
     aadhaarLinkedPhone,           // read-only, from DB — do NOT expose setter to UI
     tenantPhone,                  // original value from DB
+    tenantProfile,
     fetchingProfile,
     otp, setOtp,
     otpMsg, nextVisible, otpSent, otpLoading, uploading,
+    uploadedUrls, setUploadedUrls, mismatchDetails,
     frontOcr, backOcr, handleImageOcr,
     errors, setErrors,
     handleStart, handleComplete, handleNext
   };
 };
+

@@ -45,19 +45,32 @@ export default function TenantDocsPage() {
     try {
       setLoading(true);
       const all = await fetchOwnerTenants(owner.loginId);
-      {
-        const withDocs = (all || []).filter(t =>
-          t.kycStatus !== "pending" ||
-          t.kyc?.aadhaarNumber ||
-          t.kyc?.aadharFile ||
-          t.kyc?.aadhaarFront ||
-          t.agreementSigned ||
-          t.digitalCheckin?.agreement?.pdfUrl ||
-          t.kyc?.idProofFile ||
-          t.photo
-        );
-        setTenants(withDocs);
+      const baseList = (all || []).filter(t =>
+        t.kycStatus !== "pending" ||
+        t.kyc?.aadhaarNumber ||
+        t.kyc?.aadharFile ||
+        t.kyc?.aadhaarFront ||
+        t.agreementSigned ||
+        t.digitalCheckin?.agreement?.pdfUrl ||
+        t.kyc?.idProofFile ||
+        t.photo
+      );
+
+      const merged = [];
+      for (const t of baseList) {
+        try {
+          const kycData = await apiFetch(`/api/tenants/${encodeURIComponent(t._id || t.loginId)}/kyc`);
+          if (kycData?.success) {
+            merged.push({ ...t, kyc: { ...(t.kyc || {}), ...(kycData.kyc || {}) }, kycStatus: kycData.kycStatus || t.kycStatus });
+          } else {
+            merged.push(t);
+          }
+        } catch {
+          merged.push(t);
+        }
       }
+
+      setTenants(merged);
     } catch (err) {
       console.error("Error fetching tenant docs:", err);
     } finally {
@@ -237,22 +250,22 @@ export default function TenantDocsPage() {
                       <td className="px-6 py-4">
                         <div className="flex flex-col gap-1.5">
                           <div className="flex gap-2">
-                            {aadhaarFrontUrl ? (
-                              <a href={aadhaarFrontUrl} target="_blank" rel="noopener noreferrer" title="View Aadhaar Front">
-                                <img src={aadhaarFrontUrl} alt="Aadhaar Front"
-                                  className="w-14 h-9 object-cover rounded-md border border-border hover:opacity-80 transition-opacity"
-                                  onError={e => { e.currentTarget.style.display = "none"; }}
-                                />
-                              </a>
-                            ) : null}
-                            {aadhaarBackUrl ? (
-                              <a href={aadhaarBackUrl} target="_blank" rel="noopener noreferrer" title="View Aadhaar Back">
-                                <img src={aadhaarBackUrl} alt="Aadhaar Back"
-                                  className="w-14 h-9 object-cover rounded-md border border-border hover:opacity-80 transition-opacity"
-                                  onError={e => { e.currentTarget.style.display = "none"; }}
-                                />
-                              </a>
-                            ) : null}
+                             {aadhaarFrontUrl ? (
+                               <a href={aadhaarFrontUrl} target="_blank" rel="noopener noreferrer" title="View Aadhaar Front">
+                                 <img src={aadhaarFrontUrl} alt="Aadhaar Front"
+                                   className="w-14 h-9 object-cover rounded-md border border-border hover:opacity-80 transition-opacity"
+                                   onError={(e) => { e.currentTarget.style.display = "none"; }}
+                                 />
+                               </a>
+                             ) : null}
+                             {aadhaarBackUrl ? (
+                               <a href={aadhaarBackUrl} target="_blank" rel="noopener noreferrer" title="View Aadhaar Back">
+                                 <img src={aadhaarBackUrl} alt="Aadhaar Back"
+                                   className="w-14 h-9 object-cover rounded-md border border-border hover:opacity-80 transition-opacity"
+                                   onError={(e) => { e.currentTarget.style.display = "none"; }}
+                                 />
+                               </a>
+                             ) : null}
                             {hasAadharFile && (
                               <a href={getFileUrl(d.kyc.aadharFile)} target="_blank" rel="noopener noreferrer"
                                 className="inline-flex items-center gap-1 text-[11.5px] text-blue-600 hover:underline font-medium">

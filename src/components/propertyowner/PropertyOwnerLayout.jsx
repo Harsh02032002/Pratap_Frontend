@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import TrialGuard from "./TrialGuard";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { LayoutDashboard, 
   BedDouble, 
@@ -19,7 +20,7 @@ import { LayoutDashboard,
   Menu, 
   Bell, 
   Settings2,
-  Search, Lock, ChevronRight, Crown, Zap, Users, BookOpen, FileText, Smartphone, Wallet, PieChart, Shield, Target, Navigation, Megaphone, Coffee, Receipt, Sparkles, LinkIcon, UserPlus, AlertCircle, Calendar, HelpCircle, Building2 } from "lucide-react";
+  Search, Lock, ChevronRight, Crown, Zap, Users, BookOpen, FileText, Smartphone, Wallet, PieChart, Shield, Target, Navigation, Megaphone, Coffee, Receipt, Sparkles, LinkIcon, UserPlus, AlertCircle, Calendar, HelpCircle, Building2, Image as ImageIcon } from "lucide-react";
 import { SILVER_NAV, GOLD_NAV } from './navConfig';
 import { fetchOwnerProperties } from "../../utils/propertyowner";
 import { getStaffPanelNav, filterNotificationsForStaff, hasStaffPermission } from "../../utils/staffAccess";
@@ -29,6 +30,7 @@ import PropertyOwnerMobileLayout from "./PropertyOwnerMobileLayout";
 const DEFAULT_DESKTOP_ITEMS = [
   { href: "/propertyowner/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/propertyowner/rooms", label: "Rooms", icon: BedDouble },
+  { href: "/propertyowner/room-photos", label: "Room Photos", icon: ImageIcon },
   { href: "/propertyowner/tenantrec", label: "Tenant Records", icon: ClipboardList },
   { href: "/propertyowner/booking_request", label: "Booking Requests", icon: CalendarCheck },
   { href: "/propertyowner/ownerchat", label: "Chat", icon: MessageCircle },
@@ -39,6 +41,7 @@ const DEFAULT_DESKTOP_ITEMS = [
 const FULL_NAV_ITEMS = [
   { href: "/propertyowner/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/propertyowner/rooms", label: "Rooms", icon: BedDouble },
+  { href: "/propertyowner/room-photos", label: "Room Photos", icon: ImageIcon },
   { href: "/propertyowner/tenantrec", label: "Tenant Records", icon: ClipboardList },
   { href: "/propertyowner/payment", label: "Payments", icon: CreditCard },
   { href: "/propertyowner/booking_request", label: "Booking Requests", icon: CalendarCheck },
@@ -50,6 +53,7 @@ const FULL_NAV_ITEMS = [
 const SETTINGS_DESKTOP_ITEMS = [
   { href: "/propertyowner/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/propertyowner/rooms", label: "Rooms", icon: BedDouble },
+  { href: "/propertyowner/room-photos", label: "Room Photos", icon: ImageIcon },
   { href: "/propertyowner/tenantrec", label: "Tenant Records", icon: ClipboardList },
   { href: "/propertyowner/payment", label: "Payments", icon: CreditCard },
   { href: "#", label: "Chat", icon: MessageSquare, disabled: true },
@@ -60,6 +64,7 @@ const SETTINGS_DESKTOP_ITEMS = [
 const CHAT_DESKTOP_ITEMS = [
   { href: "/propertyowner/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/propertyowner/rooms", label: "Rooms", icon: BedDouble },
+  { href: "/propertyowner/room-photos", label: "Room Photos", icon: ImageIcon },
   { href: "/propertyowner/tenantrec", label: "Tenant Records", icon: ClipboardList },
   { href: "/propertyowner/payment", label: "Payments", icon: CreditCard },
   { href: "/propertyowner/ownerchat", label: "Chat", icon: MessageSquare },
@@ -95,6 +100,7 @@ export default function PropertyOwnerLayout({
   mainClassName = "flex-1 overflow-y-auto p-6 md:p-8",
   contentClassName = "",
   headerRight = null,
+  actions = null,
   navVariant = "default",
   headerVariant = "default",
   notificationCount = 0,
@@ -744,7 +750,12 @@ export default function PropertyOwnerLayout({
             <h2 className="hidden md:block text-lg font-black text-slate-900 tracking-tight">{title}</h2>
           </div>
 
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3">
+            {(actions || headerRight) && (
+              <div className="flex items-center gap-2">
+                {actions || headerRight}
+              </div>
+            )}
             {/* Search Box */}
             {/* Quick Actions Dropdown — permission-filtered for staff */}
             {visibleQuickActions.length > 0 && (
@@ -894,7 +905,9 @@ export default function PropertyOwnerLayout({
           </div>
         </header>
         <main className={cn("flex-1 overflow-y-auto custom-scrollbar bg-background p-8", mainClassName)}>
-          <div className={contentClassName}>{children}</div>
+          <TrialGuard owner={owner}>
+            <div className={contentClassName}>{children}</div>
+          </TrialGuard>
         </main>
 
         {/* Mobile Overlay */}

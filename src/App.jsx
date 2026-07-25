@@ -10,6 +10,7 @@ import { OwnerPanelShell } from "./components/propertyowner/OwnerPanelErrorBound
 import TenantProtectedRoute from "./pages/tenant/TenantProtectedRoute";
 import { getStaffSession, setStaffSession, clearStaffSession, canAccessOwnerPathAsStaff, STAFF_HOME_PATH, UNIFIED_LOGIN_PATH } from "./utils/staffAccess";
 import { fetchJson } from "./utils/api";
+import { hasEmployeePermission, getFirstAllowedEmployeeRoute } from "./utils/employeePermissions";
 import { Toaster } from "react-hot-toast";
 import InstallPWA from "./components/InstallPWA";
 
@@ -68,7 +69,7 @@ const resolveHostHome = () => {
         !!localStorage.getItem("managerData");
       if (hasManagerSession) return "/propertyowner/admin";
     }
-    if (role === "areamanager" || role === "employee") return "/employee/areaadmin";
+    if (role === "areamanager" || role === "employee") return "/employee/superadmin";
     return "/superadmin/index";
   }
   if (host === "app.roomhy.com" || host === "www.app.roomhy.com") {
@@ -85,7 +86,7 @@ const resolveHostHome = () => {
         !!localStorage.getItem("managerData");
       if (hasManagerSession) return "/propertyowner/admin";
     }
-    if (role === "areamanager" || role === "employee") return "/employee/areaadmin";
+    if (role === "areamanager" || role === "employee") return "/employee/superadmin";
     if (owner?.loginId) return "/propertyowner/admin";
     // On localhost — default to website homepage for normal users/visitors
     return "/website/index";
@@ -155,8 +156,22 @@ const RouteRoleGuard = () => {
     const isEmployeeRoute = path.startsWith('/employee/');
     if (!isAdminRoute && !isEmployeeRoute) return;
 
-    // Use backend-confirmed role from AuthContext — never trust localStorage role directly
-    const role = String(authUser?.role || '').toLowerCase();
+    const getStoredUserObj = () => {
+      const keys = ["staff_user", "user", "manager_user"];
+      for (const k of keys) {
+        try {
+          const val = sessionStorage.getItem(k) || localStorage.getItem(k);
+          if (val) {
+            const parsed = JSON.parse(val);
+            if (parsed && parsed.role) return parsed;
+          }
+        } catch (_) {}
+      }
+      return authUser || null;
+    };
+
+    const userObj = getStoredUserObj();
+    const role = String(userObj?.role || "").toLowerCase();
 
     // Owner session must not access admin panels unless they are logged in as superadmin/admin
     const owner = getOwnerSession();
@@ -165,12 +180,32 @@ const RouteRoleGuard = () => {
       return;
     }
 
+    if (role === 'areamanager' || role === 'employee' || role === 'manager') {
+      if (isAdminRoute) {
+        const empPath = path.replace('/superadmin/', '/employee/');
+        window.location.replace(empPath);
+        return;
+      }
+
+      if (isEmployeeRoute && path !== '/employee/index') {
+        if (!hasEmployeePermission(userObj, path)) {
+          const fallback = getFirstAllowedEmployeeRoute(userObj);
+          if (fallback && fallback !== path) {
+            window.location.replace(fallback);
+          } else if (path !== '/employee/areaadmin') {
+            window.location.replace('/employee/areaadmin');
+          }
+        }
+      }
+      return;
+    }
+
     if (isAdminRoute && role !== 'superadmin' && role !== 'admin') {
       window.location.replace('/superadmin/index');
       return;
     }
 
-    if (isEmployeeRoute && role !== 'areamanager' && role !== 'employee') {
+    if (isEmployeeRoute && role !== 'areamanager' && role !== 'employee' && role !== 'manager' && role !== 'superadmin' && role !== 'admin') {
       window.location.replace('/superadmin/index');
     }
   }, [location.pathname, authUser, loading]);
@@ -423,8 +458,8 @@ export default function App() {
 
                 <Route path="/" element={<Navigate to={resolveHostHome()} replace />} />
                 <Route path="/superadmin" element={<Navigate to="/superadmin/index" replace />} />
-                <Route path="/employee" element={<Navigate to="/employee/areaadmin" replace />} />
-                <Route path="/employee/superadmin" element={<Navigate to="/employee/areaadmin" replace />} />
+                <Route path="/employee" element={<Navigate to="/employee/superadmin" replace />} />
+                <Route path="/employee/areaadmin" element={<Navigate to="/employee/superadmin" replace />} />
                 <Route path="/propertyowner" element={<Navigate to="/propertyowner/index" replace />} />
                 {/* The standalone Staff Panel is gone — old links fold into the one panel */}
                 <Route path="/staff/login" element={<Navigate to={UNIFIED_LOGIN_PATH} replace />} />

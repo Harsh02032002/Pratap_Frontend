@@ -46,7 +46,7 @@ export default function KycVerification() {
   useEffect(() => { loadData(); }, []);
 
   const pendingOwners = useMemo(() => owners.filter(o => (o.kycStatus || o.kyc?.status || "pending") === "pending"), [owners]);
-  const pendingTenants = useMemo(() => tenants.filter(t => ["submitted", "pending"].includes(t.kycStatus || t.kyc?.status || "pending")), [tenants]);
+  const pendingTenants = useMemo(() => tenants.filter(t => ["submitted", "pending", "pending_verification", "audit_pending", "mismatch_review"].includes(t.kycStatus || t.kyc?.status || "pending")), [tenants]);
 
   const stats = useMemo(() => {
     const total = owners.length + tenants.length;
@@ -266,7 +266,7 @@ export default function KycVerification() {
                               <p className="text-[9px] font-bold text-slate-400 truncate max-w-[150px] uppercase tracking-wider">{item.email || "No Email"}</p>
                            </div>
                         </td>
-                        <td className="px-6 py-8 text-center">
+        <td className="px-6 py-8 text-center">
                            <span className="text-[9px] font-bold text-slate-500 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 shadow-sm uppercase tracking-widest">
                               {tab === "tenants" ? "Tenant" : "Owner"}
                            </span>
@@ -274,10 +274,15 @@ export default function KycVerification() {
                         <td className="px-6 py-8 text-center">
                            <span className={cn(
                               "text-[8px] font-bold px-4 py-1.5 rounded-xl border uppercase tracking-[0.2em] shadow-sm",
-                              "bg-amber-50 text-amber-600 border-amber-100"
+                              (item.kycStatus || item.kyc?.status) === "mismatch_review" ? "bg-rose-100 text-rose-700 border-rose-300 animate-pulse" : "bg-amber-50 text-amber-600 border-amber-100"
                            )}>
                               {item.kycStatus || item.kyc?.status || "Pending"}
                            </span>
+                           {(item.kyc?.mismatchReasons || item.digitalCheckin?.kyc?.mismatchReasons || item.kycVerificationData?.mismatchReasons) && (
+                             <div className="text-[10px] text-rose-600 font-semibold mt-1.5 max-w-[200px] mx-auto leading-tight" title={item.kyc?.mismatchReasons || item.digitalCheckin?.kyc?.mismatchReasons || item.kycVerificationData?.mismatchReasons}>
+                               ⚠️ {item.kyc?.mismatchReasons || item.digitalCheckin?.kyc?.mismatchReasons || item.kycVerificationData?.mismatchReasons}
+                             </div>
+                           )}
                         </td>
                         <td className="px-10 py-8 text-right" onClick={(e) => e.stopPropagation()}>
                            <div className="flex items-center justify-end gap-3">

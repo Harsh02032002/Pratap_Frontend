@@ -638,7 +638,15 @@ export default function RoomsManagement() {
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sharing Type</label>
                   <select
                     value={roomForm.sharingType}
-                    onChange={e => setRoomForm(p => ({ ...p, sharingType: e.target.value }))}
+                    onChange={e => {
+                      const val = e.target.value;
+                      let beds = roomForm.beds;
+                      if (val === 'Single Sharing' || val === 'Private Room (No Sharing)') beds = 1;
+                      else if (val === 'Double Sharing') beds = 2;
+                      else if (val === 'Triple Sharing') beds = 3;
+                      else if (val === 'Four Sharing') beds = 4;
+                      setRoomForm(p => ({ ...p, sharingType: val, beds }));
+                    }}
                     className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-3 px-4 text-xs font-bold text-slate-700 outline-none focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all shadow-sm"
                   >
                     <option value="">Select Sharing Type</option>

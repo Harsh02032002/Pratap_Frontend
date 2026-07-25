@@ -236,17 +236,17 @@ export default function WebsiteSignup() {
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans relative">
       <WebsiteNavbar />
 
-      <main className="flex-grow flex items-center justify-center py-6 px-4 sm:px-6 lg:px-8 relative overflow-hidden h-[calc(100vh-80px)]">
+      <main className="flex-grow flex items-center justify-center py-8 px-4 sm:px-6 lg:px-8 relative overflow-hidden min-h-[calc(100vh-80px)]">
         {/* Background Decorative Elements */}
         <div className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-hidden">
             <div className="absolute top-[-10%] left-[-5%] w-[500px] h-[500px] bg-teal-50 rounded-full blur-3xl opacity-60"></div>
             <div className="absolute bottom-[-10%] right-[-5%] w-[400px] h-[400px] bg-rose-50 rounded-full blur-3xl opacity-60"></div>
         </div>
 
-        <div className="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-2 bg-white rounded-3xl shadow-2xl overflow-hidden relative z-10 border border-gray-100 max-h-[90vh]">
+        <div className="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-2 bg-white rounded-3xl shadow-2xl overflow-hidden relative z-10 border border-gray-100 my-auto">
           
           {/* Left Side: Marketing & Benefits */}
-          <div className="hidden lg:flex flex-col justify-between p-10 bg-gradient-to-br from-teal-900 to-gray-900 text-white relative">
+          <div className="hidden lg:flex flex-col justify-between p-8 lg:p-10 bg-gradient-to-br from-teal-900 to-gray-900 text-white relative">
             <div className="absolute inset-0 opacity-20 pointer-events-none" 
                  style={{ backgroundImage: `url("https://www.transparenttextures.com/patterns/pinstripe.png")` }}>
             </div>
@@ -298,8 +298,8 @@ export default function WebsiteSignup() {
           </div>
 
           {/* Right Side: Auth Forms */}
-          <div className="p-8 lg:p-12 flex flex-col justify-center bg-white overflow-y-auto custom-scrollbar">
-            <div className="mb-6 text-center lg:text-left">
+          <div className="p-6 sm:p-8 lg:p-9 flex flex-col justify-center bg-white">
+            <div className="mb-5 text-center lg:text-left">
               <h2 className="text-2xl font-bold text-gray-900 mb-1">
                 {signupMode ? "Create Account" : "Sign In"}
               </h2>
@@ -310,29 +310,29 @@ export default function WebsiteSignup() {
 
             {signupMode ? (
               // SIGNUP FORM
-              <form onSubmit={handleSignupSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                   <div className="space-y-1.5">
+              <form onSubmit={handleSignupSubmit} className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                   <div className="space-y-1">
                       <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">First Name</label>
                       <div className="relative group">
-                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                           <User className="h-4 w-4 text-gray-400 group-focus-within:text-teal-500 transition-colors" />
                         </div>
                         <input
                           type="text"
                           required
-                          className="block w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all outline-none"
+                          className="block w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all outline-none"
                           placeholder="Harsh"
                           value={signup.firstName}
                           onChange={(e) => setSignup({ ...signup, firstName: e.target.value })}
                         />
                       </div>
                    </div>
-                   <div className="space-y-1.5">
+                   <div className="space-y-1">
                       <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">Last Name</label>
                       <input
                         type="text"
-                        className="block w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all outline-none"
+                        className="block w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all outline-none"
                         placeholder="Kaur"
                         value={signup.lastName}
                         onChange={(e) => setSignup({ ...signup, lastName: e.target.value })}
@@ -340,16 +340,16 @@ export default function WebsiteSignup() {
                    </div>
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">Email Address</label>
                   <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                       <Mail className="h-4 w-4 text-gray-400 group-focus-within:text-teal-500 transition-colors" />
                     </div>
                     <input
                       type="email"
                       required
-                      className="block w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all outline-none"
+                      className="block w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all outline-none"
                       placeholder="hello@roomhy.com"
                       value={signup.email}
                       onChange={(e) => setSignup({ ...signup, email: e.target.value })}
@@ -357,17 +357,17 @@ export default function WebsiteSignup() {
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">Phone Number</label>
                   <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                       <Phone className="h-4 w-4 text-gray-400 group-focus-within:text-teal-500 transition-colors" />
                     </div>
                     <input
                       type="tel"
                       required
                       maxLength="10"
-                      className="block w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all outline-none"
+                      className="block w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all outline-none"
                       placeholder="9876543210"
                       value={signup.phone}
                       onChange={(e) => setSignup({ ...signup, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })}
@@ -375,16 +375,16 @@ export default function WebsiteSignup() {
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">Password</label>
                   <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                       <Lock className="h-4 w-4 text-gray-400 group-focus-within:text-teal-500 transition-colors" />
                     </div>
                     <input
                       type={showPassword ? "text" : "password"}
                       required
-                      className="block w-full pl-10 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all outline-none"
+                      className="block w-full pl-9 pr-9 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all outline-none"
                       placeholder="••••••••"
                       value={signup.password}
                       onChange={(e) => setSignup({ ...signup, password: e.target.value })}
@@ -392,16 +392,16 @@ export default function WebsiteSignup() {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-teal-600 transition-colors"
+                      className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-teal-600 transition-colors"
                       tabIndex={-1}
                     >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
                 </div>
 
                 {verificationVisible && (
-                  <div className="space-y-3 p-3 bg-teal-50 rounded-2xl border border-teal-100 animate-in fade-in zoom-in-95">
+                  <div className="space-y-2.5 p-3 bg-teal-50 rounded-2xl border border-teal-100 animate-in fade-in zoom-in-95">
                     <p className="text-[10px] text-teal-800 font-medium text-center">
                        Code sent to your email 
                        {signupDelivery.whatsapp ? " & WhatsApp" : signupDelivery.sms ? " & SMS" : ""}.
@@ -418,7 +418,7 @@ export default function WebsiteSignup() {
                       type="button"
                       onClick={handleVerify}
                       disabled={loadingVerify}
-                      className="w-full bg-teal-600 hover:bg-teal-700 text-white py-2.5 rounded-xl font-bold transition-all text-sm"
+                      className="w-full bg-teal-600 hover:bg-teal-700 text-white py-2.5 rounded-xl font-bold transition-all text-sm shadow-md"
                     >
                       {loadingVerify ? "Verifying..." : "Verify & Create"}
                     </button>
@@ -426,9 +426,9 @@ export default function WebsiteSignup() {
                 )}
 
                 {secondsLeft > 0 && (
-                  <div className="p-4 bg-rose-50 border border-rose-100 text-rose-800 rounded-2xl flex items-center gap-3 text-xs font-medium animate-in fade-in slide-in-from-top-1">
-                    <div className="w-8 h-8 rounded-lg bg-rose-500/10 flex items-center justify-center shrink-0">
-                      <Lock className="w-4 h-4 text-rose-600 animate-pulse" />
+                  <div className="p-3 bg-rose-50 border border-rose-100 text-rose-800 rounded-2xl flex items-center gap-3 text-xs font-medium animate-in fade-in slide-in-from-top-1">
+                    <div className="w-7 h-7 rounded-lg bg-rose-500/10 flex items-center justify-center shrink-0">
+                      <Lock className="w-3.5 h-3.5 text-rose-600 animate-pulse" />
                     </div>
                     <div>
                       <p className="font-bold">Rate Limit Exceeded</p>
@@ -441,7 +441,7 @@ export default function WebsiteSignup() {
                     <button
                       type="submit"
                       disabled={loadingCreate || secondsLeft > 0}
-                      className="group w-full py-3.5 bg-gray-900 hover:bg-black text-white font-bold rounded-2xl transition-all shadow-xl hover:shadow-2xl flex items-center justify-center gap-2 transform hover:-translate-y-1 active:translate-y-0 disabled:bg-gray-400"
+                      className="group w-full py-3 bg-gray-900 hover:bg-black text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 transform hover:-translate-y-0.5 active:translate-y-0 disabled:bg-gray-400 text-sm mt-1"
                     >
                       {secondsLeft > 0 ? (
                         `Locked (Wait ${formatTime(secondsLeft)})`
@@ -456,12 +456,12 @@ export default function WebsiteSignup() {
                     </button>
                 )}
 
-                <p className="text-center mt-4 text-xs text-gray-500">
+                <p className="text-center mt-3 pt-1 text-xs text-gray-500">
                   Already have an account?{" "}
                   <button
                     type="button"
                     onClick={() => setSignupMode(false)}
-                    className="font-bold text-gray-900 hover:text-teal-600 transition-colors underline decoration-2 underline-offset-4 decoration-teal-500/30 hover:decoration-teal-500"
+                    className="font-bold text-gray-900 hover:text-teal-600 transition-colors underline decoration-2 underline-offset-4 decoration-teal-500/30 hover:decoration-teal-500 ml-1"
                   >
                     Log in
                   </button>

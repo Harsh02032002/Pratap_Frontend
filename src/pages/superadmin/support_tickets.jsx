@@ -26,8 +26,17 @@ export default function VerificationCenter() {
   const [selectedItem, setSelectedItem] = useState(null); // { type, data }
   const [assignModal, setAssignModal] = useState(null); // { type, id }
   const [searchQuery, setSearchQuery] = useState("");
+  const [fullscreenImage, setFullscreenImage] = useState(null); // { url, index }
 
   const loadData = async () => {
+    // Check for authentication token
+    const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+    if (!token) {
+      console.error("No authentication token found");
+      window.location.href = "/superadmin/login";
+      return;
+    }
+
     setLoading(true);
     try {
       // 1. Fetch new property requests (status: pending_approval)
@@ -55,6 +64,10 @@ export default function VerificationCenter() {
       }
     } catch (err) {
       console.error("Failed to load verification center data:", err);
+      // If auth error, redirect to login
+      if (err?.message?.includes("Not authorized") || err?.status === 401) {
+        window.location.href = "/superadmin/login";
+      }
       toast.error("Error loading verification requests");
     } finally {
       setLoading(false);
@@ -68,9 +81,13 @@ export default function VerificationCenter() {
   // Quick Action Handlers
   const handleApproveNewProperty = async (id) => {
     try {
+      const token = sessionStorage.getItem("token") || localStorage.getItem("token");
       const res = await fetch(`${getApiUrl()}/api/properties/${id}/publish`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" }
+        headers: { 
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        }
       });
       const data = await res.json();
       if (data.success || res.ok) {
@@ -88,9 +105,13 @@ export default function VerificationCenter() {
 
   const handleRejectNewProperty = async (id) => {
     try {
+      const token = sessionStorage.getItem("token") || localStorage.getItem("token");
       const res = await fetch(`${getApiUrl()}/api/properties/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({ status: "blocked", isPublished: false, isLiveOnWebsite: false })
       });
       const data = await res.json();
@@ -109,9 +130,13 @@ export default function VerificationCenter() {
 
   const handleApprovePropertyEdit = async (id) => {
     try {
+      const token = sessionStorage.getItem("token") || localStorage.getItem("token");
       const res = await fetch(`${getApiUrl()}/api/properties/${id}/approve-changes`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" }
+        headers: { 
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        }
       });
       const data = await res.json();
       if (data.success || res.ok) {
@@ -129,9 +154,13 @@ export default function VerificationCenter() {
 
   const handleRejectPropertyEdit = async (id, reason = "Rejected by admin") => {
     try {
+      const token = sessionStorage.getItem("token") || localStorage.getItem("token");
       const res = await fetch(`${getApiUrl()}/api/properties/${id}/reject-changes`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({ rejectReason: reason })
       });
       const data = await res.json();
@@ -150,9 +179,13 @@ export default function VerificationCenter() {
 
   const handleApproveRoomEdit = async (id) => {
     try {
+      const token = sessionStorage.getItem("token") || localStorage.getItem("token");
       const res = await fetch(`${getApiUrl()}/api/rooms/${id}/approve-changes`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" }
+        headers: { 
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        }
       });
       const data = await res.json();
       if (data.success || res.ok) {
@@ -170,9 +203,13 @@ export default function VerificationCenter() {
 
   const handleRejectRoomEdit = async (id) => {
     try {
+      const token = sessionStorage.getItem("token") || localStorage.getItem("token");
       const res = await fetch(`${getApiUrl()}/api/rooms/${id}/reject-changes`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" }
+        headers: { 
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        }
       });
       const data = await res.json();
       if (data.success || res.ok) {
@@ -504,13 +541,13 @@ export default function VerificationCenter() {
                   {/* Images & Details */}
                   <div className="space-y-4">
                     <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">Property Media</h4>
-                    <div className="grid grid-cols-2 gap-2">
-                      {selectedItem.data.images?.length > 0 ? (
-                        selectedItem.data.images.map((img, i) => <img key={i} src={img} alt="" className="w-full h-32 object-cover rounded-xl border border-slate-100" />)
-                      ) : (
-                        <div className="col-span-2 py-8 bg-slate-50 rounded-xl text-center text-xs font-bold text-slate-400 uppercase">No images uploaded</div>
-                      )}
-                    </div>
+                     <div className="grid grid-cols-2 gap-2">
+                       {selectedItem.data.images?.length > 0 ? (
+                         selectedItem.data.images.map((img, i) => <img key={i} src={img} alt="" className="w-full h-32 object-cover rounded-xl border border-slate-100" loading="lazy" onError={(e) => { e.currentTarget.style.display = 'none'; }} />)
+                       ) : (
+                         <div className="col-span-2 py-8 bg-slate-50 rounded-xl text-center text-xs font-bold text-slate-400 uppercase">No images uploaded</div>
+                       )}
+                     </div>
                   </div>
 
                   <div className="space-y-4">
@@ -558,14 +595,14 @@ export default function VerificationCenter() {
                               <tr key={field}>
                                 <td className="px-4 py-4 font-bold text-slate-400 uppercase tracking-wider text-[9px]">Gallery Images</td>
                                 <td className="px-4 py-4">
-                                  <div className="flex gap-1.5 overflow-x-auto max-w-[260px] pb-1">
-                                    {(liveVal || []).map((img, i) => <img key={i} src={img} className="w-12 h-10 object-cover rounded-lg" />)}
-                                  </div>
+                                   <div className="flex gap-1.5 overflow-x-auto max-w-[260px] pb-1">
+                                     {(liveVal || []).map((img, i) => <img key={i} src={img} className="w-12 h-10 object-cover rounded-lg" loading="lazy" onError={(e) => { e.currentTarget.style.display = 'none'; }} />)}
+                                   </div>
                                 </td>
                                 <td className="px-4 py-4 bg-blue-50/10">
-                                  <div className="flex gap-1.5 overflow-x-auto max-w-[260px] pb-1">
-                                    {(requestedVal || []).map((img, i) => <img key={i} src={img} className="w-12 h-10 object-cover rounded-lg border border-blue-200" />)}
-                                  </div>
+                                <div className="flex gap-1.5 overflow-x-auto max-w-[260px] pb-1">
+                                  {(requestedVal || []).map((img, i) => <img key={i} src={img} className="w-12 h-10 object-cover rounded-lg border border-blue-200" loading="lazy" onError={(e) => { e.currentTarget.style.display = 'none'; }} />)}
+                                </div>
                                 </td>
                               </tr>
                             );
@@ -610,12 +647,26 @@ export default function VerificationCenter() {
                                 <td className="px-4 py-4 font-bold text-slate-400 uppercase tracking-wider text-[9px]">Room Media</td>
                                 <td className="px-4 py-4">
                                   <div className="flex gap-1.5 overflow-x-auto max-w-[260px] pb-1">
-                                    {(liveVal || []).map((img, i) => <img key={i} src={typeof img === 'object' ? img.url : img} className="w-12 h-10 object-cover rounded-lg" />)}
+                                    {(liveVal || []).map((img, i) => (
+                                      <img 
+                                        key={i} 
+                                        src={typeof img === 'object' ? img.url : img} 
+                                        className="w-12 h-10 object-cover rounded-lg cursor-pointer hover:scale-110 transition-transform"
+                                        onClick={() => setFullscreenImage({ url: typeof img === 'object' ? img.url : img, index: i })}
+                                      />
+                                    ))}
                                   </div>
                                 </td>
                                 <td className="px-4 py-4 bg-blue-50/10">
                                   <div className="flex gap-1.5 overflow-x-auto max-w-[260px] pb-1">
-                                    {(requestedVal || []).map((img, i) => <img key={i} src={typeof img === 'object' ? img.url : img} className="w-12 h-10 object-cover rounded-lg border border-blue-200" />)}
+                                    {(requestedVal || []).map((img, i) => (
+                                      <img 
+                                        key={i} 
+                                        src={typeof img === 'object' ? img.url : img} 
+                                        className="w-12 h-10 object-cover rounded-lg border border-blue-200 cursor-pointer hover:scale-110 transition-transform"
+                                        onClick={() => setFullscreenImage({ url: typeof img === 'object' ? img.url : img, index: i })}
+                                      />
+                                    ))}
                                   </div>
                                 </td>
                               </tr>
@@ -666,6 +717,24 @@ export default function VerificationCenter() {
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Fullscreen Image Modal */}
+      {fullscreenImage && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[200] flex items-center justify-center p-4" onClick={() => setFullscreenImage(null)}>
+          <button 
+            onClick={() => setFullscreenImage(null)}
+            className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all"
+          >
+            <X size={24} />
+          </button>
+          <img 
+            src={fullscreenImage.url} 
+            alt="Fullscreen view" 
+            className="max-w-full max-h-full object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
 

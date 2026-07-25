@@ -1,17 +1,17 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
-  Users, UserCheck, Shield, Clock, MoreVertical, 
+  Users, Shield, Clock, 
   ArrowUpRight, ArrowDownRight, Building2, Search,
-  CheckCircle2, AlertCircle, XCircle, Globe,
+  CheckCircle2, XCircle,
   Phone, Mail, Calendar, MapPin, Zap, Filter,
   ChevronRight, RefreshCw, LayoutGrid, Plus,
-  Loader2, Save, Sparkles, Layers, Box, Globe2,
-  IndianRupee, Inbox, CreditCard, Tag, ShieldCheck,
-  Smartphone, Monitor, Info, X, Eye, Trash2, 
-  Download, Sheet, FileText, User, Fingerprint,
+  Loader2, Sparkles, Layers, Globe2,
+  IndianRupee, Tag, ShieldCheck,
+  CreditCard, Eye, Trash2, 
+  Sheet, FileText, User, Fingerprint,
   Home, Hash, Banknote, Wallet, Briefcase, AlertTriangle,
-  CheckCircle, Circle, UserCheck2, Key
+  CheckCircle, Key, X
 } from "lucide-react";
 import { fetchJson, getAuthHeader } from "../../utils/api";
 import { PageHeader } from "../../components/superadmin/PageHeader";
@@ -84,6 +84,28 @@ function normalizeTenant(tenant, record) {
       digilockerVerified: modelKyc.digilockerVerified || tenantKyc.digilockerVerified || false
     }
   };
+}
+
+function StatCard({ label, value, sub, icon: Icon, color }) {
+  const colors = {
+    blue:   { bg: "bg-blue-50",   text: "text-blue-600",   ring: "ring-blue-100" },
+    emerald:{ bg: "bg-emerald-50", text: "text-emerald-600", ring: "ring-emerald-100" },
+    purple: { bg: "bg-violet-50", text: "text-violet-600", ring: "ring-violet-100" },
+    amber:  { bg: "bg-amber-50",  text: "text-amber-600",  ring: "ring-amber-100" },
+  }[color] || { bg: "bg-blue-50", text: "text-blue-600", ring: "ring-blue-100" };
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex items-center gap-4 hover:shadow-md transition-all">
+      <div className={`w-12 h-12 rounded-xl ${colors.bg} ${colors.text} ring-4 ${colors.ring} flex items-center justify-center shrink-0`}>
+        <Icon className="w-6 h-6" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider truncate">{label}</p>
+        <p className="text-2xl font-black text-slate-900 mt-0.5">{value}</p>
+        {sub && <p className="text-[11px] text-emerald-600 font-semibold mt-0.5 flex items-center gap-0.5"><ArrowUpRight className="w-3 h-3" />{sub}</p>}
+      </div>
+    </div>
+  );
 }
 
 export default function Tenant() {
@@ -214,61 +236,65 @@ export default function Tenant() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-8">
       <PageHeader 
         title="View All Tenants"
         subtitle="Manage and view all tenant records and occupancy."
         actions={
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <button 
               onClick={() => navigate("/superadmin/add-tenant")}
-              className="bg-slate-900 text-white px-6 py-3 rounded-2xl text-[10px] font-bold uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:bg-black transition-all flex items-center gap-2 active:scale-95"
+              className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 shadow-sm transition-all flex items-center gap-2 active:scale-95"
             >
-               <Plus size={14} /> Add Tenant
+               <Plus className="w-4 h-4" /> Add Tenant
             </button>
             <button 
               onClick={exportToExcel}
-              className="bg-white text-slate-600 border border-slate-100 px-6 py-3 rounded-2xl text-[10px] font-bold uppercase tracking-widest shadow-xl shadow-slate-200 transition-all flex items-center gap-2 active:scale-95"
+              className="px-4 py-2 bg-white text-slate-600 border border-slate-200 rounded-xl text-xs font-bold hover:bg-slate-50 shadow-sm transition-all flex items-center gap-2 active:scale-95"
             >
-               <Sheet className="w-4 h-4" /> Export Excel
+               <Sheet className="w-4 h-4 text-emerald-600" /> Export Excel
             </button>
           </div>
         }
       />
 
       {/* Metrics Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCardHorizontal label="Active Tenants" value={stats.total} trend="Active" up icon={Users} color="blue" />
-        <StatCardHorizontal label="KYC Verified" value={stats.verified} trend="Verified" up icon={ShieldCheck} color="emerald" />
-        <StatCardHorizontal label="Total Rent" value={`₹${stats.revenue.toLocaleString()}`} trend="Monthly" up icon={Banknote} color="indigo" />
-        <StatCardHorizontal label="Pending KYC" value={stats.submitted} trend="Pending" up icon={Clock} color="amber" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard label="Active Tenants" value={stats.total.toLocaleString()} sub="Active Residents" icon={Users} color="blue" />
+        <StatCard label="KYC Verified" value={stats.verified.toLocaleString()} sub="Verified Accounts" icon={ShieldCheck} color="emerald" />
+        <StatCard label="Total Rent" value={`₹${stats.revenue.toLocaleString('en-IN')}`} sub="Monthly Rent" icon={Banknote} color="purple" />
+        <StatCard label="Pending KYC" value={stats.submitted.toLocaleString()} sub="Needs Review" icon={Clock} color="amber" />
       </div>
 
       {/* Main Ledger Card */}
-      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-2xl shadow-slate-200/50 overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-700">
-         <div className="p-10 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-8">
-            <div className="flex items-center gap-6">
-               <div className="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-lg">
-                  <LayoutGrid size={20} />
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+         <div className="p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+               <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                  <Users className="w-5 h-5" />
                </div>
                <div>
-                  <h3 className="text-xl font-bold text-slate-800">Tenant Registry</h3>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">View active and pending tenants</p>
+                  <h3 className="font-bold text-base text-slate-900">Tenant Registry</h3>
+                  <p className="text-xs text-slate-400">View active and pending tenants</p>
                </div>
             </div>
             
-            <div className="flex items-center gap-4">
-               <div className="relative w-72 group">
-                  <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-blue-500 transition-colors" />
+            <div className="flex items-center gap-3">
+               <div className="relative w-72">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input 
                     value={search} onChange={e => setSearch(e.target.value)}
                     placeholder="Search tenants..." 
-                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-12 pr-6 text-xs font-bold text-slate-700 outline-none focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all shadow-sm" 
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pl-10 pr-4 text-xs font-semibold text-slate-700 outline-none focus:bg-white focus:border-blue-400 transition-all" 
                   />
                </div>
                
-               <button onClick={loadTenants} className="p-4 rounded-2xl bg-white text-slate-400 hover:text-blue-600 transition-all border border-slate-100 shadow-md active:scale-95">
-                  <RefreshCw className={cn("w-5 h-5", loading && "animate-spin")} />
+               <button 
+                onClick={loadTenants} 
+                className="p-2 rounded-xl bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-blue-600 border border-slate-200 transition-all"
+                title="Refresh"
+               >
+                  <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
                </button>
             </div>
          </div>
@@ -276,92 +302,104 @@ export default function Tenant() {
          <div className="overflow-x-auto">
             <table className="w-full text-left">
                <thead>
-                  <tr className="bg-slate-50/50 text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em] border-b border-slate-100">
-                     <th className="px-10 py-8">Tenant Name</th>
-                     <th className="px-6 py-8">Property Name</th>
-                     <th className="px-6 py-8 text-center">Contact Details</th>
-                     <th className="px-6 py-8 text-center">KYC Status</th>
-                     <th className="px-10 py-8 text-right">Actions</th>
+                  <tr className="bg-slate-50/80 text-slate-400 text-[10px] font-bold uppercase tracking-wider border-b border-slate-100">
+                     <th className="px-5 py-3.5">Tenant Name</th>
+                     <th className="px-5 py-3.5">Property Name</th>
+                     <th className="px-5 py-3.5 text-center">Contact Details</th>
+                     <th className="px-5 py-3.5 text-center">KYC Status</th>
+                     <th className="px-5 py-3.5 text-right">Actions</th>
                   </tr>
                </thead>
                <tbody className="divide-y divide-slate-50">
                   {loading ? (
-                    <tr><td colSpan="5" className="py-40 text-center">
-                       <div className="w-16 h-16 border-4 border-blue-600/10 border-t-blue-600 rounded-full animate-spin mx-auto mb-8" />
-                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em]">Loading tenant data...</p>
+                    <tr><td colSpan="5" className="py-20 text-center">
+                       <div className="w-10 h-10 border-3 border-blue-600/20 border-t-blue-600 rounded-full animate-spin mx-auto mb-4" />
+                       <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Loading tenant data...</p>
                     </td></tr>
                   ) : filteredTenants.length === 0 ? (
-                    <tr><td colSpan="5" className="py-40 text-center">
-                       <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-200">
-                          <Users size={40} />
+                    <tr><td colSpan="5" className="py-20 text-center">
+                       <div className="w-14 h-14 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-300">
+                          <Users size={28} />
                        </div>
-                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">No tenants found</p>
+                       <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">No tenants found</p>
                     </td></tr>
                   ) : paginatedTenants.map((t, i) => (
-                    <tr key={i} className="group hover:bg-slate-50/50 transition-all duration-300 cursor-pointer" onClick={() => setSelectedTenant(t)}>
-                       <td className="px-10 py-8">
-                          <div className="flex items-center gap-6">
-                             <div className="w-14 h-14 rounded-2xl bg-white border border-slate-100 text-blue-600 flex items-center justify-center font-bold text-xl shadow-xl shadow-slate-200/40 transition-transform group-hover:scale-110 shrink-0">
+                    <tr key={i} className="group hover:bg-slate-50/60 transition-colors cursor-pointer" onClick={() => setSelectedTenant(t)}>
+                       <td className="px-5 py-4">
+                          <div className="flex items-center gap-3">
+                             <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 font-bold text-sm flex items-center justify-center shrink-0">
                                 {t.profile.name.charAt(0).toUpperCase()}
                              </div>
                              <div>
-                                <p className="text-base font-bold text-slate-800 tracking-tight">{t.profile.name}</p>
-                                <div className="flex items-center gap-2 mt-2">
-                                   <span className="text-[9px] font-black bg-blue-600 text-white px-2 py-0.5 rounded-lg uppercase tracking-widest">{t.loginId || "ID-GEN"}</span>
+                                <p className="text-sm font-bold text-slate-900">{t.profile.name}</p>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                   <span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md">{t.loginId || "ID-GEN"}</span>
                                    <span className={cn(
-                                       "text-[8px] font-black px-2 py-0.5 rounded-lg uppercase tracking-widest ml-2",
-                                       t.status === "suspended" ? "bg-rose-100 text-rose-700" :
-                                       t.status === "active" ? "bg-emerald-100 text-emerald-700" :
+                                       "text-[10px] font-bold px-2 py-0.5 rounded-md uppercase",
+                                       t.status === "suspended" ? "bg-rose-50 text-rose-600" :
+                                       t.status === "active" ? "bg-emerald-50 text-emerald-600" :
                                        "bg-slate-100 text-slate-600"
                                     )}>
                                        {t.status || "pending"}
                                     </span>
-                                   <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-2">Moved in: {formatDate(t.profile.moveInDate)}</span>
+                                   <span className="text-[10px] font-medium text-slate-400">Moved in: {formatDate(t.profile.moveInDate)}</span>
                                 </div>
                              </div>
                           </div>
                        </td>
-                       <td className="px-6 py-8">
-                          <div className="space-y-2">
-                             <p className="text-xs font-bold text-slate-700 leading-none truncate max-w-[200px]">{t.profile.propertyText}</p>
-                             <div className="flex items-center gap-2">
-                                <Building2 className="w-3 h-3 text-slate-300" />
-                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Unit {t.profile.roomNo} • {t.profile.bedNo} Bed</span>
+                       <td className="px-5 py-4">
+                          <div className="space-y-0.5">
+                             <p className="text-xs font-bold text-slate-800 truncate max-w-[220px]">{t.profile.propertyText}</p>
+                             <div className="flex items-center gap-1.5">
+                                <Building2 className="w-3 h-3 text-slate-400" />
+                                <span className="text-[11px] font-medium text-slate-500">Unit {t.profile.roomNo} • {t.profile.bedNo} Bed</span>
                              </div>
                           </div>
                        </td>
-                       <td className="px-6 py-8 text-center">
-                          <div className="inline-flex flex-col items-center gap-1.5">
-                             <p className="text-xs font-bold text-slate-800 leading-none">{t.profile.phone}</p>
-                             <span className="text-[9px] font-bold text-slate-400 uppercase truncate max-w-[120px]">{t.profile.email}</span>
+                       <td className="px-5 py-4 text-center">
+                          <div className="inline-flex flex-col items-center">
+                             <p className="text-xs font-bold text-slate-800">{t.profile.phone}</p>
+                             <span className="text-[11px] text-slate-400 truncate max-w-[140px]">{t.profile.email}</span>
                           </div>
                        </td>
-                       <td className="px-6 py-8 text-center">
+                       <td className="px-5 py-4 text-center">
                           <span className={cn(
-                             "text-[8px] font-bold px-4 py-1.5 rounded-xl border uppercase tracking-[0.2em] shadow-sm",
-                             t.kyc.status === "verified" ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
-                             t.kyc.status === "submitted" ? "bg-amber-50 text-amber-600 border-amber-100" :
-                             "bg-slate-50 text-slate-400 border-slate-100"
+                             "text-[10px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider",
+                             t.kyc.status === "verified" ? "bg-emerald-50 text-emerald-600 border border-emerald-100" :
+                             t.kyc.status === "submitted" ? "bg-amber-50 text-amber-600 border border-amber-100" :
+                             "bg-slate-100 text-slate-500 border border-slate-200"
                           )}>
                              {t.kyc.status}
                           </span>
                        </td>
-                        <td className="px-10 py-8 text-right" onClick={(e) => e.stopPropagation()}>
-                           <div className="flex items-center justify-end gap-3">
+                        <td className="px-5 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                           <div className="flex items-center justify-end gap-1.5">
                               <button 
                                  onClick={() => handleToggleDeactivate(t)} 
                                  title={t.status === "suspended" ? "Reactivate Account" : "Deactivate Account"} 
                                  className={cn(
-                                    "p-3.5 rounded-2xl border transition-all shadow-md active:scale-95",
+                                    "w-8 h-8 rounded-xl border flex items-center justify-center transition-all",
                                     t.status === "suspended" 
                                        ? "bg-rose-50 text-rose-600 border-rose-100 hover:bg-rose-100" 
-                                       : "bg-white text-slate-400 border-slate-100 hover:text-slate-600 hover:border-slate-300"
+                                       : "bg-slate-50 text-slate-500 border-slate-100 hover:text-slate-700 hover:bg-slate-100"
                                  )}
                                >
-                                 <Shield size={20} className={t.status === "suspended" ? "animate-pulse" : ""} />
+                                 <Shield className={cn("w-4 h-4", t.status === "suspended" && "animate-pulse")} />
                                </button>
-                              <button onClick={() => setSelectedTenant(t)} className="p-3.5 rounded-2xl bg-white text-slate-400 hover:text-blue-600 hover:border-blue-100 transition-all border border-slate-100 shadow-md active:scale-95"><Eye className="w-5 h-5" /></button>
-                              <button onClick={() => handleDeleteTenant(t)} className="p-3.5 rounded-2xl bg-white text-slate-400 hover:text-rose-600 hover:border-rose-100 transition-all border border-slate-100 shadow-md active:scale-95"><Trash2 className="w-5 h-5" /></button>
+                              <button 
+                                onClick={() => setSelectedTenant(t)} 
+                                title="View Details"
+                                className="w-8 h-8 rounded-xl bg-slate-50 text-slate-500 hover:bg-blue-50 hover:text-blue-600 border border-slate-100 flex items-center justify-center transition-all"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteTenant(t)} 
+                                title="Delete Tenant"
+                                className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-100 flex items-center justify-center transition-all"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
                            </div>
                         </td>
                     </tr>
@@ -372,58 +410,69 @@ export default function Tenant() {
 
          {/* Pagination */}
          {totalPages > 1 && (
-           <div className="px-10 py-6 border-t border-slate-50 flex items-center justify-between">
-             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-               Showing {(currentPage-1)*LIMIT+1}–{Math.min(currentPage*LIMIT, totalRecords)} of {totalRecords}
+           <div className="px-5 py-4 border-t border-slate-100 flex items-center justify-between bg-white">
+             <p className="text-[11px] font-bold text-slate-400">
+               Showing {(currentPage-1)*LIMIT+1} to {Math.min(currentPage*LIMIT, totalRecords)} of {totalRecords} tenants
              </p>
-             <div className="flex items-center gap-2">
-               <button onClick={() => setCurrentPage(p => Math.max(1,p-1))} disabled={currentPage===1}
-                 className="px-4 py-2 rounded-xl border border-slate-100 text-[10px] font-bold text-slate-500 hover:bg-slate-50 disabled:opacity-30 transition-all">Prev</button>
+             <div className="flex items-center gap-1.5">
+               <button 
+                 onClick={() => setCurrentPage(p => Math.max(1,p-1))} 
+                 disabled={currentPage===1}
+                 className="px-3 py-1.5 rounded-xl border border-slate-200 text-[11px] font-bold text-slate-500 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+               >
+                 Prev
+               </button>
                {Array.from({length: Math.min(5,totalPages)}, (_,i) => i+1).map(n => (
-                 <button key={n} onClick={() => setCurrentPage(n)}
-                   className={cn("w-9 h-9 rounded-xl text-[10px] font-bold transition-all", n===currentPage ? "bg-slate-900 text-white shadow-lg" : "border border-slate-100 text-slate-500 hover:bg-slate-50")}>
+                 <button 
+                   key={n} 
+                   onClick={() => setCurrentPage(n)}
+                   className={cn("w-8 h-8 rounded-xl text-[11px] font-bold transition-all", n===currentPage ? "bg-blue-600 text-white shadow-md shadow-blue-200" : "border border-slate-200 text-slate-500 hover:bg-slate-50")}
+                 >
                    {n}
                  </button>
                ))}
-               <button onClick={() => setCurrentPage(p => Math.min(totalPages,p+1))} disabled={currentPage===totalPages}
-                 className="px-4 py-2 rounded-xl border border-slate-100 text-[10px] font-bold text-slate-500 hover:bg-slate-50 disabled:opacity-30 transition-all">Next</button>
+               <button 
+                 onClick={() => setCurrentPage(p => Math.min(totalPages,p+1))} 
+                 disabled={currentPage===totalPages}
+                 className="px-3 py-1.5 rounded-xl border border-slate-200 text-[11px] font-bold text-slate-500 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+               >
+                 Next
+               </button>
              </div>
            </div>
          )}
       </div>
 
-      {/* ═══════════════════════════════════════════════════════════
-          FULL DETAIL SLIDE-OVER — Complete Onboarding Details View
-          ═══════════════════════════════════════════════════════════ */}
+      {/* DETAIL SLIDE-OVER MODAL */}
       {selectedTenant && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-end p-4 bg-slate-900/50 backdrop-blur-md animate-in fade-in duration-300">
-           <div className="bg-white w-full max-w-3xl h-full rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col animate-in slide-in-from-right duration-500">
+        <div className="fixed inset-0 z-[120] flex items-center justify-end p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+           <div className="bg-white w-full max-w-3xl h-full rounded-2xl shadow-2xl relative overflow-hidden flex flex-col animate-in slide-in-from-right duration-300">
               
               {/* Header */}
-              <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-900 to-slate-800 text-white shrink-0">
-                 <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-white/10 text-white flex items-center justify-center font-bold text-2xl border border-white/20">
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-900 text-white shrink-0">
+                 <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-white/10 text-white flex items-center justify-center font-bold text-lg border border-white/20">
                        {selectedTenant.profile.name[0].toUpperCase()}
                     </div>
                     <div>
-                       <h3 className="text-xl font-bold tracking-tight">{selectedTenant.profile.name}</h3>
-                       <div className="flex items-center gap-2 mt-1">
-                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">ID: {selectedTenant.loginId}</span>
-                         <span className={cn("text-[9px] font-black px-2 py-0.5 rounded-md",
+                       <h3 className="text-base font-bold tracking-tight">{selectedTenant.profile.name}</h3>
+                       <div className="flex items-center gap-2 mt-0.5">
+                         <span className="text-[10px] font-bold text-slate-300">ID: {selectedTenant.loginId}</span>
+                         <span className={cn("text-[9px] font-bold px-2 py-0.5 rounded-md uppercase",
                            selectedTenant.status === "active" ? "bg-emerald-500/20 text-emerald-300" :
                            selectedTenant.status === "suspended" ? "bg-rose-500/20 text-rose-300" :
                            "bg-amber-500/20 text-amber-300"
-                         )}>{(selectedTenant.status || "pending").toUpperCase()}</span>
+                         )}>{selectedTenant.status || "pending"}</span>
                        </div>
                     </div>
                  </div>
-                 <button onClick={() => setSelectedTenant(null)} className="p-3 rounded-2xl bg-white/10 hover:bg-white/20 transition-all border border-white/10 active:scale-90">
-                    <X size={20} />
+                 <button onClick={() => setSelectedTenant(null)} className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-all">
+                    <X className="w-5 h-5" />
                  </button>
               </div>
 
               {/* Scrollable Body */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              <div className="flex-1 overflow-y-auto p-6 space-y-5">
 
                 {/* 1. Personal Profile */}
                 <SectionCard icon={User} title="1. Resident Personal Profile" color="blue">
@@ -464,16 +513,11 @@ export default function Tenant() {
                         ? `${selectedTenant.profile.agreementDetails?.noticePeriodDays || selectedTenant.digitalCheckin?.agreementDetails?.noticePeriodDays} days`
                         : "—"
                     } />
-                    <DetailItem icon={Calendar} label="Rent Due Date (Day)" value={selectedTenant.profile.agreementDetails?.licenseFeeDueDate || selectedTenant.digitalCheckin?.agreementDetails?.licenseFeeDueDate || "—"} />
+                    <DetailItem icon={Calendar} label="Rent Due Date" value={selectedTenant.profile.agreementDetails?.licenseFeeDueDate || selectedTenant.digitalCheckin?.agreementDetails?.licenseFeeDueDate || "—"} />
                     <DetailItem icon={RefreshCw} label="Payment Frequency" value={selectedTenant.profile.paymentFrequency || "Monthly"} />
                     <DetailItem icon={Zap} label="Electricity Charge" value={selectedTenant.profile.electricityCharge ? `₹${selectedTenant.profile.electricityCharge}` : "—"} />
                     <DetailItem icon={Tag} label="Maintenance Charge" value={selectedTenant.profile.maintenanceCharge ? `₹${selectedTenant.profile.maintenanceCharge}` : "—"} />
                   </div>
-                  {(selectedTenant.profile.agreementDetails?.inclusions || selectedTenant.digitalCheckin?.agreementDetails?.inclusions) && (
-                    <div className="mt-4 pt-4 border-t border-emerald-100">
-                      <DetailItem icon={CheckCircle} label="Inclusions (WiFi, Meals, etc.)" value={selectedTenant.profile.agreementDetails?.inclusions || selectedTenant.digitalCheckin?.agreementDetails?.inclusions} />
-                    </div>
-                  )}
                 </SectionCard>
 
                 {/* 4. Occupation & Emergencies */}
@@ -481,20 +525,13 @@ export default function Tenant() {
                   <div className="grid grid-cols-2 gap-4">
                     <DetailItem icon={Briefcase} label="Occupation" value={selectedTenant.profile.occupation || "—"} />
                     <DetailItem icon={Building2} label="Company / Organization" value={selectedTenant.profile.company || "—"} />
-                    <DetailItem icon={User} label="Emergency Contact Name" value={selectedTenant.profile.emergencyName || "—"} />
-                    <DetailItem icon={Phone} label="Emergency Contact Number" value={selectedTenant.profile.emergencyPhone || "—"} />
-                    <DetailItem icon={Tag} label="Relationship" value={selectedTenant.profile.emergencyRelationship || "—"} />
-                    <DetailItem icon={MapPin} label="Permanent Address" value={selectedTenant.permanentAddress || "—"} />
+                    <DetailItem icon={User} label="Emergency Contact" value={selectedTenant.profile.emergencyName || "—"} />
+                    <DetailItem icon={Phone} label="Emergency Phone" value={selectedTenant.profile.emergencyPhone || "—"} />
                   </div>
-                  {selectedTenant.profile.remarks && (
-                    <div className="mt-4 pt-4 border-t border-amber-100">
-                      <DetailItem icon={FileText} label="Remarks" value={selectedTenant.profile.remarks} />
-                    </div>
-                  )}
                 </SectionCard>
 
                 {/* 5. KYC & Identity */}
-                <SectionCard icon={Fingerprint} title="5. KYC & Identity Verification" color="violet">
+                <SectionCard icon={Fingerprint} title="5. KYC & Identity Verification" color="purple">
                   <div className="grid grid-cols-2 gap-4 mb-4">
                     <DetailItem icon={FileText} label="Aadhaar Number" value={selectedTenant.kyc.aadhaarNumber || "—"} mono />
                     <DetailItem icon={ShieldCheck} label="KYC Status" value={selectedTenant.kyc.status.toUpperCase()} highlight />
@@ -502,107 +539,46 @@ export default function Tenant() {
                     <DetailItem icon={ShieldCheck} label="DigiLocker Verified" value={selectedTenant.kyc.digilockerVerified ? "✅ Yes" : "❌ No"} />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{selectedTenant.kyc.idProofType || "ID Proof"} Front</p>
+                    <div className="space-y-1.5">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{selectedTenant.kyc.idProofType || "ID Proof"} Front</p>
                       {selectedTenant.kyc.idProofFile ? (
-                        <img src={selectedTenant.kyc.idProofFile} className="w-full h-32 object-cover rounded-xl border border-slate-100 shadow-sm" alt="ID Proof" />
+                        <img src={selectedTenant.kyc.idProofFile} className="w-full h-28 object-cover rounded-xl border border-slate-200" alt="ID Proof" />
                       ) : (
-                        <div className="w-full h-32 bg-slate-50 rounded-xl border border-dashed border-slate-200 flex items-center justify-center text-slate-300 text-[10px] font-bold uppercase tracking-widest">No Document</div>
+                        <div className="w-full h-28 bg-slate-50 rounded-xl border border-dashed border-slate-200 flex items-center justify-center text-slate-400 text-xs font-bold uppercase">No Document</div>
                       )}
                     </div>
                     {selectedTenant.kyc.aadhaarBack && (
-                      <div className="space-y-2">
-                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Aadhaar Back</p>
-                        <img src={selectedTenant.kyc.aadhaarBack} className="w-full h-32 object-cover rounded-xl border border-slate-100 shadow-sm" alt="Aadhaar Back" />
+                      <div className="space-y-1.5">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Aadhaar Back</p>
+                        <img src={selectedTenant.kyc.aadhaarBack} className="w-full h-28 object-cover rounded-xl border border-slate-200" alt="Aadhaar Back" />
                       </div>
                     )}
-                  </div>
-                </SectionCard>
-
-                {/* 6. Rental Agreement */}
-                <SectionCard icon={FileText} title="6. Rental Agreement" color="rose">
-                  <div className="grid grid-cols-2 gap-4">
-                    <DetailItem icon={ShieldCheck} label="Agreement Status" value={selectedTenant.agreementStatus || (selectedTenant.agreementSigned ? "✅ Signed" : "❌ Not Signed")} highlight />
-                    <DetailItem icon={User} label="e-Signature Name" value={selectedTenant.agreementESignName || selectedTenant.digitalCheckin?.agreement?.eSignName || "—"} />
-                    <DetailItem icon={Calendar} label="Signed At" value={formatDate(selectedTenant.agreementSignedAt || selectedTenant.digitalCheckin?.agreement?.acceptedAt)} />
-                    <DetailItem icon={Hash} label="Agreement Request ID" value={selectedTenant.agreementRequestId || "—"} mono />
-                  </div>
-                  {selectedTenant.digitalCheckin?.agreement?.signatureDataUrl && (
-                    <div className="mt-4 space-y-2">
-                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Signature Preview</p>
-                      <img src={selectedTenant.digitalCheckin.agreement.signatureDataUrl} className="h-14 object-contain rounded-xl bg-white border p-2" alt="Signature" />
-                    </div>
-                  )}
-                </SectionCard>
-
-                {/* 7. Onboarding Timeline */}
-                <SectionCard icon={CheckCircle2} title="Onboarding Timeline" color="teal">
-                  <div className="space-y-3">
-                    {[
-                      {
-                        step: 1,
-                        title: "Personal Details & Room",
-                        desc: "Add tenant details, assign room and tenancy information.",
-                        done: !!(selectedTenant.profile.name && selectedTenant.profile.roomNo && selectedTenant.profile.roomNo !== "N/A"),
-                      },
-                      {
-                        step: 2,
-                        title: "E-KYC Verification",
-                        desc: "An E-KYC link is sent to the tenant's email and phone.",
-                        done: ["submitted","verified"].includes(selectedTenant.kyc.status),
-                      },
-                      {
-                        step: 3,
-                        title: "E-Sign Agreement",
-                        desc: "After successful KYC, rental agreement link is sent for e-sign.",
-                        done: !!(selectedTenant.agreementSigned || selectedTenant.agreementSignedAt || selectedTenant.digitalCheckin?.agreement?.acceptedAt),
-                      },
-                      {
-                        step: 4,
-                        title: "Tenant Added",
-                        desc: "Tenant is fully active after agreement is signed successfully.",
-                        done: selectedTenant.status === "active",
-                      }
-                    ].map((item, i) => (
-                      <div key={i} className="flex items-start gap-3">
-                        <div className={cn(
-                          "w-8 h-8 rounded-xl flex items-center justify-center font-black text-sm shrink-0",
-                          item.done ? "bg-emerald-500 text-white shadow-sm" : "bg-slate-100 text-slate-400"
-                        )}>
-                          {item.done ? <CheckCircle size={14} /> : item.step}
-                        </div>
-                        <div className="pt-0.5">
-                          <p className={cn("text-sm font-bold", item.done ? "text-slate-800" : "text-slate-400")}>{item.title}</p>
-                          <p className="text-[11px] text-slate-400 mt-0.5">{item.desc}</p>
-                        </div>
-                      </div>
-                    ))}
                   </div>
                 </SectionCard>
 
               </div>
 
               {/* Footer Actions */}
-              <div className="px-8 py-5 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center shrink-0">
-                 <div className="flex items-center gap-4">
+              <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-between items-center shrink-0">
+                 <div className="flex items-center gap-3">
                     <button onClick={() => { handleDeleteTenant(selectedTenant); setSelectedTenant(null); }}
-                       className="text-[10px] font-bold text-rose-500 uppercase tracking-widest hover:underline">
+                       className="text-xs font-bold text-rose-600 hover:underline">
                        Delete Resident
                     </button>
                     <span className="text-slate-300">|</span>
                     <button onClick={() => { handleToggleDeactivate(selectedTenant); setSelectedTenant(null); }}
-                       className={cn("text-[10px] font-bold uppercase tracking-widest hover:underline",
+                       className={cn("text-xs font-bold hover:underline",
                           selectedTenant.status === "suspended" ? "text-emerald-600" : "text-amber-600")}>
                        {selectedTenant.status === "suspended" ? "Reactivate Account" : "Deactivate Account"}
                     </button>
                  </div>
-                <div className="flex gap-3">
+                <div className="flex gap-2">
                    <button onClick={() => handleKycUpdate(selectedTenant.loginId, "rejected")} disabled={isUpdatingKyc}
-                      className="px-6 py-3 bg-white text-slate-600 border border-slate-200 rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-slate-50 transition-all disabled:opacity-50">
+                      className="px-4 py-2 bg-white text-slate-600 border border-slate-200 rounded-xl text-xs font-bold hover:bg-slate-100 transition-all disabled:opacity-50">
                       Reject Audit
                    </button>
                    <button onClick={() => handleKycUpdate(selectedTenant.loginId, "verified")} disabled={isUpdatingKyc}
-                      className="px-6 py-3 bg-slate-900 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:bg-black transition-all flex items-center gap-2 disabled:opacity-50">
+                      className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold shadow-sm hover:bg-blue-700 transition-all flex items-center gap-2 disabled:opacity-50">
                       {isUpdatingKyc ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
                       Approve Compliance
                    </button>
@@ -617,22 +593,20 @@ export default function Tenant() {
 
 function SectionCard({ icon: Icon, title, color, children }) {
   const styles = {
-    blue:   { icon: "bg-blue-600 shadow-blue-200",     border: "border-blue-100 bg-blue-50/20" },
-    indigo: { icon: "bg-indigo-600 shadow-indigo-200", border: "border-indigo-100 bg-indigo-50/20" },
-    emerald:{ icon: "bg-emerald-600 shadow-emerald-200",border: "border-emerald-100 bg-emerald-50/20" },
-    amber:  { icon: "bg-amber-500 shadow-amber-200",   border: "border-amber-100 bg-amber-50/20" },
-    violet: { icon: "bg-violet-600 shadow-violet-200", border: "border-violet-100 bg-violet-50/20" },
-    rose:   { icon: "bg-rose-600 shadow-rose-200",     border: "border-rose-100 bg-rose-50/20" },
-    teal:   { icon: "bg-teal-600 shadow-teal-200",     border: "border-teal-100 bg-teal-50/20" },
+    blue:   { icon: "bg-blue-600",   border: "border-blue-100 bg-blue-50/20" },
+    indigo: { icon: "bg-indigo-600", border: "border-indigo-100 bg-indigo-50/20" },
+    emerald:{ icon: "bg-emerald-600",border: "border-emerald-100 bg-emerald-50/20" },
+    amber:  { icon: "bg-amber-500",  border: "border-amber-100 bg-amber-50/20" },
+    purple: { icon: "bg-purple-600", border: "border-purple-100 bg-purple-50/20" },
   };
-  const s = styles[color] || { icon: "bg-slate-700 shadow-slate-200", border: "border-slate-100 bg-slate-50/20" };
+  const s = styles[color] || { icon: "bg-slate-700", border: "border-slate-100 bg-slate-50/20" };
   return (
-    <div className={cn("p-5 rounded-2xl border", s.border)}>
-      <div className="flex items-center gap-3 mb-4">
-        <div className={cn("w-8 h-8 rounded-xl text-white flex items-center justify-center shadow-md", s.icon)}>
-          <Icon size={15} />
+    <div className={cn("p-4 rounded-xl border", s.border)}>
+      <div className="flex items-center gap-2.5 mb-3">
+        <div className={cn("w-7 h-7 rounded-lg text-white flex items-center justify-center shadow-sm", s.icon)}>
+          <Icon className="w-4 h-4" />
         </div>
-        <h4 className="text-xs font-bold text-slate-700 uppercase tracking-widest">{title}</h4>
+        <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">{title}</h4>
       </div>
       {children}
     </div>
@@ -642,44 +616,19 @@ function SectionCard({ icon: Icon, title, color, children }) {
 function DetailItem({ icon: Icon, label, value, highlight, mono }) {
   const isEmpty = !value || value === "—" || value === "-";
   return (
-    <div className="space-y-1">
-       <div className="flex items-center gap-1.5 text-slate-400">
-          <Icon size={10} />
-          <span className="text-[9px] font-bold uppercase tracking-widest">{label}</span>
+    <div className="space-y-0.5">
+       <div className="flex items-center gap-1 text-slate-400">
+          <Icon className="w-3 h-3" />
+          <span className="text-[10px] font-bold uppercase tracking-wider">{label}</span>
        </div>
        <p className={cn(
-         "text-sm font-bold tracking-tight break-words leading-snug",
-         highlight ? "text-blue-600" : "text-slate-700",
-         mono && "font-mono text-xs",
-         isEmpty && "text-slate-300 italic font-normal text-xs"
+         "text-xs font-bold tracking-tight break-words",
+         highlight ? "text-blue-600" : "text-slate-800",
+         mono && "font-mono",
+         isEmpty && "text-slate-300 italic font-normal"
        )}>
           {value || "—"}
        </p>
-    </div>
-  );
-}
-
-function StatCardHorizontal({ label, value, trend, up, icon: Icon, color }) {
-  const bgColors = { 
-    blue: "bg-blue-50 text-blue-600 border-blue-100", 
-    emerald: "bg-emerald-50 text-emerald-600 border-emerald-100", 
-    indigo: "bg-indigo-50 text-indigo-600 border-indigo-100", 
-    amber: "bg-amber-50 text-amber-600 border-amber-100" 
-  };
-  return (
-    <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-xl shadow-slate-200/40 flex items-start gap-5 group hover:translate-y-[-5px] transition-all duration-500">
-      <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 border-2 shadow-sm transition-transform group-hover:rotate-6", bgColors[color])}>
-         <Icon className="w-7 h-7" />
-      </div>
-      <div className="min-w-0">
-         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2 leading-none truncate">{label}</p>
-         <p className="text-3xl font-black text-slate-800 tracking-tighter leading-none mb-3">{value}</p>
-         <div className={cn("inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider",
-           up ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600")}>
-            {up ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-            {trend}
-         </div>
-      </div>
     </div>
   );
 }

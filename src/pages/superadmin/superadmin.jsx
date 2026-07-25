@@ -115,6 +115,14 @@ export default function SuperadminDashboard() {
   // fetch all in parallel
   useEffect(() => {
     (async () => {
+      // Check for authentication token
+      const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+      if (!token) {
+        console.error("No authentication token found");
+        navigate("/superadmin/login");
+        return;
+      }
+
       setLoading(true);
       try {
         const [s, b, p, u, a] = await Promise.all([
@@ -131,11 +139,15 @@ export default function SuperadminDashboard() {
         if (a.success)  setAcctData(a);
       } catch (e) {
         console.error("Dashboard load error:", e);
+        // If auth error, redirect to login
+        if (e?.message?.includes("Not authorized") || e?.status === 401) {
+          navigate("/superadmin/login");
+        }
       } finally {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [navigate]);
 
   // ── derived data ────────────────────────────────────────────────────────
   const totalUsers    = (stats?.stats?.tenants || 0) + (stats?.stats?.owners || 0);
@@ -295,7 +307,7 @@ export default function SuperadminDashboard() {
         <MiniStatCard label="Total Users"      value={fmt(totalUsers)}    sub="+10.5% from last week" icon={Users}      color="blue"   loading={loading} />
         <MiniStatCard label="Total Properties" value={fmt(totalProps)}    sub="+8.0% from last week"  icon={Building2}  color="green"  loading={loading} />
         <MiniStatCard label="Total Bookings"   value={fmt(totalBookings)} sub="+15.5% from last week" icon={ShoppingBag} color="purple" loading={loading} />
-        <MiniStatCard label="Total Revenue"    value={fmtRevenue(totalRevenue)} sub="+18.8% from last week" icon={Wallet} color="amber" loading={loading} />
+        <MiniStatCard label="Admin Revenue"    value={fmtRevenue(totalRevenue)} sub="Commission Earned" icon={Wallet} color="amber" loading={loading} />
       </div>
 
       {/* ── Row 2: Overview Chart + Recent Bookings ── */}

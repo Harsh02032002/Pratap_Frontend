@@ -19,36 +19,37 @@ body::before {
 
 .wrap {
   max-width: 980px;
-  margin: 34px auto;
-  background: rgba(255, 255, 255, 0.985);
-  border: 1.5px solid rgba(44, 57, 70, 0.18);
-  border-radius: 22px;
-  padding: 32px 34px 36px;
-  box-shadow: 0 22px 60px rgba(31, 45, 61, 0.16);
-}
-
-h2 {
-  margin: 0 0 18px;
-  font-size: 36px;
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  color: #fff;
-  position: relative;
-  margin-top: -112px;
-  padding-bottom: 72px;
+  margin: 40px auto;
+  background: #ffffff;
+  border: 1.5px solid rgba(44, 57, 70, 0.14);
+  border-radius: 24px;
+  padding: 36px 40px;
+  box-shadow: 0 20px 50px rgba(31, 45, 61, 0.12);
 }
 
 .wrap::before {
   content: "Digital Check-In";
   display: block;
-  margin: -10px 0 6px;
-  font-size: 13px;
-  font-weight: 700;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.82);
-  transform: translateY(-110px);
+  color: #EE4266;
 }
+
+h2 {
+  margin: 0 0 16px;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #0f172a;
+  position: relative;
+  margin-top: 0;
+  padding-bottom: 0;
+}
+
+
 
 .grid {
   display: grid;

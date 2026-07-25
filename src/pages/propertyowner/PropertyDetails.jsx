@@ -163,14 +163,53 @@ const fetchPropertyDetails = async () => {
     setPropertyViews(propertyViews.filter((_, i) => i !== index));
   };
 
-  const handleImageUpload = (e, viewType = 'new') => {
-    const files = Array.from(e.target.files);
-    // In production, upload to cloud storage and get URLs
-    // For now, create object URLs
-    const imageUrls = files.map(file => URL.createObjectURL(file));
-    
-    if (viewType === 'new') {
-      setNewView({ ...newView, images: [...newView.images, ...imageUrls] });
+  const handleImageUpload = async (e, viewType = 'new') => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    const toDataUrl = (file) =>
+      new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+    const compress = (dataUrl, maxWidth = 1200) =>
+      new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          const scale = Math.min(maxWidth / img.width, 1);
+          const w = Math.round(img.width * scale);
+          const h = Math.round(img.height * scale);
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          try {
+            resolve(canvas.toDataURL('image/jpeg', 0.85));
+          } catch (err) {
+            reject(err);
+          }
+        };
+        img.onerror = reject;
+        img.src = dataUrl;
+      });
+
+    try {
+      const imageUrls = [];
+      for (const file of files) {
+        const raw = await toDataUrl(file);
+        const compressed = await compress(raw, 1200);
+        imageUrls.push(compressed);
+      }
+
+      if (viewType === 'new') {
+        setNewView({ ...newView, images: [...newView.images, ...imageUrls] });
+      }
+    } catch (err) {
+      console.error('Image processing failed', err);
     }
   };
 

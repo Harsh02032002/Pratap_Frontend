@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import { useHtmlPage } from "../../utils/htmlPage";
 import { fetchJson } from "../../utils/api";
+import { getFirstAllowedEmployeeRoute } from "../../utils/employeePermissions";
 
 const WINDOW_NAME_SESSION_PREFIX = "__ROOMHY_STAFF_SESSION__:";
 
@@ -143,7 +144,7 @@ export default function Index() {
           localStorage.setItem("managerData", JSON.stringify(data.user));
           navigate(resolvePanelPath("manager", "dashboard"));
         } else if (role === "areamanager" || role === "employee") {
-          navigate(resolvePanelPath("employee", "areaadmin"));
+          navigate(getFirstAllowedEmployeeRoute(data.user));
         } else if (role === "owner") {
           navigate(resolvePanelPath("propertyowner", "admin"));
         } else if (role === "tenant") {

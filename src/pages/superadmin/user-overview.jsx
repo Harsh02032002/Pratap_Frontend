@@ -134,8 +134,23 @@ export default function UserOverview() {
                <div className="relative h-56 w-56 flex items-center justify-center shrink-0">
                   <ResponsiveContainer width="100%" height="100%">
                      <PieChart>
-                        <Pie data={userDistributionData} innerRadius={70} outerRadius={95} paddingAngle={5} dataKey="value" stroke="none">
-                           {userDistributionData.map((entry, index) => <Cell key={index} fill={entry.color} />)}
+                        <Pie 
+                           data={[
+                             { name: "Team Members", value: stats.team, color: "#6366F1" },
+                             { name: "Property Owners", value: stats.owners, color: "#10B981" },
+                             { name: "Tenants", value: stats.tenants, color: "#3B82F6" },
+                           ]} 
+                           innerRadius={70} 
+                           outerRadius={95} 
+                           paddingAngle={5} 
+                           dataKey="value" 
+                           stroke="none"
+                        >
+                           {[
+                             { name: "Team Members", value: stats.team, color: "#6366F1" },
+                             { name: "Property Owners", value: stats.owners, color: "#10B981" },
+                             { name: "Tenants", value: stats.tenants, color: "#3B82F6" },
+                           ].map((entry, index) => <Cell key={index} fill={entry.color} />)}
                         </Pie>
                      </PieChart>
                   </ResponsiveContainer>
@@ -146,9 +161,9 @@ export default function UserOverview() {
                </div>
                <div className="flex-1 space-y-5 w-full">
                   {[
-                    { name: "Team Members", value: stats.team, color: "hsl(var(--chart-1))", total: stats.total },
-                    { name: "Property Owners", value: stats.owners, color: "hsl(var(--chart-2))", total: stats.total },
-                    { name: "Tenants", value: stats.tenants, color: "hsl(var(--chart-3))", total: stats.total },
+                    { name: "Team Members", value: stats.team, color: "#6366F1", total: stats.total },
+                    { name: "Property Owners", value: stats.owners, color: "#10B981", total: stats.total },
+                    { name: "Tenants", value: stats.tenants, color: "#3B82F6", total: stats.total },
                   ].map((item) => (
                      <div key={item.name} className="flex items-center justify-between group">
                         <div className="flex items-center gap-3">

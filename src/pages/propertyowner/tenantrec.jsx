@@ -12,6 +12,7 @@ import { getApiBase, fetchJson, getAuthHeader } from "../../utils/api";
 import { toast } from "react-hot-toast";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
 import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerProperties, clearOwnerFetchCache } from "../../utils/propertyowner";
+import Tesseract from "tesseract.js";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
@@ -409,8 +410,13 @@ export default function TenantRec() {
     gender: "",
     idProofType: "Aadhaar Card",
     idProofNumber: "",
-    idProofFile: null
+    idProofFile: null,
+    aadhaarFront: null,
+    aadhaarBack: null
   });
+
+  const [ocrLoadingFront, setOcrLoadingFront] = useState(false);
+  const [ocrLoadingBack, setOcrLoadingBack] = useState(false);
 
   // Section 2: Room Assignment
   const [roomAssignment, setRoomAssignment] = useState({
@@ -848,13 +854,19 @@ export default function TenantRec() {
         gstCharges: tenancyDetails.gstCharges,
         propertyAddress: roomAssignment.propertyAddress,
         permanentAddress: additionalDetails.permanentAddress,
+        idProofNumber: basicDetails.idProofNumber,
+        aadhaarNumber: basicDetails.idProofNumber,
         idProof: {
           type: basicDetails.idProofType,
           number: basicDetails.idProofNumber,
-          file: basicDetails.idProofFile
+          file: basicDetails.idProofFile || basicDetails.aadhaarFront,
+          aadhaarFront: basicDetails.aadhaarFront,
+          aadhaarBack: basicDetails.aadhaarBack
         },
+
         additional: additionalDetails,
       };
+
 
       let res;
       if (editMode && editTenantId) {
@@ -923,7 +935,7 @@ export default function TenantRec() {
       if (!res.ok) throw new Error(json.error || "Upload failed");
 
       if (json.url) {
-        setBasicDetails({ ...basicDetails, idProofFile: json.url });
+        setBasicDetails(prev => ({ ...prev, idProofFile: json.url }));
         toast.success("ID Proof uploaded!");
       }
     } catch (err) {
@@ -933,6 +945,267 @@ export default function TenantRec() {
       toast.dismiss(loadingToast);
     }
   };
+
+  const extractOcrDataFront = async (file, uploadedUrl) => {
+    setOcrLoadingFront(true);
+    const toastId = toast.loading("Scanning Aadhaar Front with OCR...");
+    try {
+      const result = await Tesseract.recognize(file, 'eng');
+      const text = result?.data?.text || "";
+      console.log("OCR Front text:", text);
+
+      // Extract Aadhaar Number
+      const aadhaarMatch = text.match(/[2-9]\d{3}[\s\-]?\d{4}[\s\-]?\d{4}/) || text.replace(/[\s\-]/g, "").match(/[2-9]\d{11}/);
+      const aadhaarNum = aadhaarMatch ? aadhaarMatch[0].replace(/[\s\-]/g, "") : "";
+
+      // Extract DOB
+      let dobVal = "";
+      const dobMatch = text.match(/(?:dob|date\s*of\s*birth|d\.?\s*o\.?\s*b\.?)[:\s]+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})/i) || text.match(/\b(\d{2})[\/\-](\d{2})[\/\-](\d{4})\b/);
+      if (dobMatch) {
+        const parts = dobMatch[0].match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+        if (parts) {
+          const [, d, m, y] = parts;
+          dobVal = `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+        }
+      }
+
+      // Extract Gender
+      let genderVal = "";
+      if (/\b(female|महिला)\b/i.test(text)) genderVal = "Female";
+      else if (/\b(male|पुरुष)\b/i.test(text)) genderVal = "Male";
+      else if (/\b(transgender)\b/i.test(text)) genderVal = "Other";
+
+      // Extract Name from Aadhaar Front
+      let extractedName = "";
+      const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
+
+      // Tier 1: Check for explicit "Name:" tag
+      for (const line of lines) {
+        const match = line.match(/^(?:name|naam|नाम)[:\s]+([A-Za-z.\s]{2,40})/i);
+        if (match) {
+          extractedName = match[1].replace(/[^A-Za-z\s.]/g, " ").replace(/\s+/g, " ").trim();
+          break;
+        }
+      }
+
+      // Tier 2: Look for line above DOB / Gender / Aadhaar Number anchor
+      if (!extractedName) {
+        let anchorIdx = lines.findIndex(l => /(?:dob|date\s*of\s*birth|d\.o\.b|gender|male|female|year\s*of\s*birth|\d{2}[\/-]\d{2}[\/-]\d{4})/i.test(l));
+        if (anchorIdx === -1) {
+          anchorIdx = lines.findIndex(l => /[2-9]\d{3}[\s\-]?\d{4}[\s\-]?\d{4}/.test(l));
+        }
+
+        const searchRange = anchorIdx > 0 
+          ? lines.slice(Math.max(0, anchorIdx - 4), anchorIdx) 
+          : lines.slice(0, 6);
+
+        for (let i = searchRange.length - 1; i >= 0; i--) {
+          const raw = searchRange[i];
+          const clean = raw.replace(/[^A-Za-z\s]/g, " ").replace(/\s+/g, " ").trim();
+          
+          if (/^(government|india|uidai|unique|identification|authority|male|female|address|dob|date|birth|year|father|mother|husband|aadhaar|card|enrollment|help|issue|download|re[li]|e[eoi]|govt)$/i.test(clean)) continue;
+          if (clean.length < 2 || clean.length > 40) continue;
+
+          const words = clean.split(" ").filter(w => !/^(rel|govt|india|uidai|card|issue|help|download|govt)$/i.test(w) && w.length >= 2);
+          if (words.length >= 1) {
+            extractedName = words.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+            break;
+          }
+        }
+      }
+
+      // Tier 3: Fallback - grab first valid non-header English line
+      if (!extractedName) {
+        for (const line of lines) {
+          const clean = line.replace(/[^A-Za-z\s]/g, " ").replace(/\s+/g, " ").trim();
+          if (/government|india|uidai|unique|identification|authority|male|female|address|dob|date|birth|year|father|mother|husband|aadhaar|card/i.test(clean)) continue;
+          const words = clean.split(" ").filter(w => w.length >= 2 && !/^(rel|govt|india|uidai|card|issue|help|download)$/i.test(w));
+          if (words.length >= 1 && clean.length >= 3 && clean.length <= 40) {
+            extractedName = words.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+            break;
+          }
+        }
+      }
+
+      // Format Name: Title Case
+      if (extractedName) {
+        extractedName = extractedName
+          .split(" ")
+          .filter(w => w.length >= 2 && !/^(REL|Ee|EE|EO|EN|Govt|India|UIDAI|Aadhaar|Card)$/i.test(w))
+          .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+          .join(" ")
+          .trim();
+        
+        if (extractedName.length < 2) extractedName = "";
+      }
+
+
+      setBasicDetails(prev => ({
+        ...prev,
+        idProofFile: uploadedUrl || prev.idProofFile,
+        aadhaarFront: uploadedUrl || prev.aadhaarFront,
+        ...(aadhaarNum ? { idProofNumber: aadhaarNum, idProofType: "Aadhaar Card" } : {}),
+        ...(dobVal ? { dob: dobVal } : {}),
+        ...(genderVal ? { gender: genderVal } : {}),
+        ...(extractedName ? { fullName: extractedName } : {})
+      }));
+
+      toast.success("Aadhaar Front Scanned! Details auto-filled.");
+    } catch (err) {
+      console.error("OCR Front error:", err);
+      toast.error("Could not scan text automatically. Please enter details manually.");
+    } finally {
+      setOcrLoadingFront(false);
+      toast.dismiss(toastId);
+    }
+  };
+
+  const extractOcrDataBack = async (file, uploadedUrl) => {
+    setOcrLoadingBack(true);
+    const toastId = toast.loading("Scanning Aadhaar Back with OCR...");
+    try {
+      const result = await Tesseract.recognize(file, 'eng');
+      const text = result?.data?.text || "";
+      console.log("OCR Back text:", text);
+
+      // Extract Address
+      let extractedAddress = "";
+      const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
+      let addrIdx = lines.findIndex(l => /(?:address|पता|s\/o|d\/o|w\/o|c\/o)[:\s]/i.test(l));
+      if (addrIdx !== -1) {
+        extractedAddress = lines.slice(addrIdx, addrIdx + 4)
+          .map(l => l.replace(/^(?:address|पता)[:\s]*/i, "").trim())
+          .filter(l => !/aa?dh?[ao]a?r|u[il1][do][ai4]|unique|government|india|help/i.test(l))
+          .join(", ");
+      } else {
+        const pinMatch = text.match(/\b\d{6}\b/);
+        if (pinMatch) {
+          const pinIdx = text.indexOf(pinMatch[0]);
+          const snippet = text.substring(Math.max(0, pinIdx - 120), pinIdx + 8);
+          extractedAddress = snippet.split("\n").map(l => l.trim()).filter(l => l.length > 5 && !/aa?dh?[ao]a?r|u[il1]|government|india/i.test(l)).join(", ");
+        }
+      }
+
+      // Extract Father / Guardian / Husband Name & Relationship
+      let fatherName = "";
+      let relationType = "";
+      const relMatch = text.match(/(?:s\/o|d\/o|w\/o|c\/o|son\s+of|daughter\s+of|wife\s+of|care\s+of|father['’]?s?\s+name|father|fathername|पिता|संरक्षक)[:\s]+([A-Za-z.\s]{2,40})/i);
+      if (relMatch) {
+        fatherName = relMatch[1].split(/,|\n|\/|HOUSE|NO|CAT|GEA|NEAR|SECTOR|ROAD|DIST|DISTRICT|PIN/i)[0].trim();
+        const tag = relMatch[0].toLowerCase();
+        if (tag.includes("w/o") || tag.includes("wife")) {
+          relationType = "Spouse";
+        } else if (tag.includes("c/o") || tag.includes("care") || tag.includes("संरक्षक")) {
+          relationType = "Guardian";
+        } else {
+          relationType = "Father";
+        }
+      }
+
+      // Clean & Sanitize Permanent Address
+      if (extractedAddress) {
+        let clean = extractedAddress
+          .replace(/(?:s\/o|d\/o|w\/o|c\/o|son\s+of|daughter\s+of|wife\s+of|care\s+of)[:\s]+[A-Za-z.\s]{2,40}(?:,|\n|$)/gi, "")
+          .replace(/\b(?:address|पता|addr)[:\s,.-]*/gi, "")
+          .replace(/^[:\s,.-]+/, "");
+
+        // Trim after 6-digit pincode if present
+        const pinMatch = clean.match(/\b(\d{6})\b/);
+        if (pinMatch) {
+          const pIdx = clean.indexOf(pinMatch[0]);
+          clean = clean.substring(0, pIdx + 6);
+        }
+
+        // Clean noise tokens
+        clean = clean
+          .replace(/\b(?:le|GT|eg|Cat|GEA|dx|AE|ie|Le|peels|fi|v|i|s|Sar\s+a|vi)\b/gi, " ")
+          .replace(/[^a-zA-Z0-9\s#\/\-\.,]/g, " ")
+          .replace(/\s+/g, " ");
+
+        // Deduplicate comma-separated parts & remove leftover Address tag
+        const rawParts = clean.split(",").map(p => p.trim()).filter(Boolean);
+        const uniqueParts = [];
+        const seen = new Set();
+
+        for (let p of rawParts) {
+          p = p.replace(/^(?:address|पता|addr)[:\s,.-]*/i, "").replace(/\bNER\b/i, "NEAR").replace(/\s+/g, " ").trim();
+          if (p.length < 2) continue;
+          const lower = p.toLowerCase();
+          if (!seen.has(lower) && !/^(address|पता|india|govt|unique|aadhaar|help)$/i.test(p)) {
+            seen.add(lower);
+            uniqueParts.push(p);
+          }
+        }
+
+        extractedAddress = uniqueParts.join(", ").replace(/,\s*,/g, ",").trim();
+      }
+
+      setAdditionalDetails(prev => ({
+        ...prev,
+        ...(extractedAddress ? { permanentAddress: extractedAddress } : {}),
+        ...(fatherName ? { emergencyName: fatherName, relationship: relationType || "Father" } : {})
+      }));
+
+      if (extractedAddress || fatherName) {
+        toast.success(`Aadhaar Back Scanned! ${fatherName ? `Father (${fatherName}) & ` : ''}Address auto-filled.`);
+      } else {
+        toast.success("Aadhaar Back uploaded!");
+      }
+
+
+
+
+
+
+      setBasicDetails(prev => ({
+        ...prev,
+        aadhaarBack: uploadedUrl || prev.aadhaarBack
+      }));
+    } catch (err) {
+      console.error("OCR Back error:", err);
+      toast.error("Back uploaded. Enter address manually if needed.");
+    } finally {
+      setOcrLoadingBack(false);
+      toast.dismiss(toastId);
+    }
+  };
+
+  const handleAadhaarFrontUpload = async (file) => {
+    if (!file) return;
+    const loadingToast = toast.loading("Uploading Aadhaar Front...");
+    const data = new FormData();
+    data.append("image", file);
+    try {
+      const res = await fetch(`${apiUrl}/api/upload`, { method: "POST", body: data, headers: getAuthHeader() });
+      const json = await res.json();
+      if (json.url) {
+        extractOcrDataFront(file, json.url);
+      }
+    } catch (err) {
+      toast.error("Upload failed: " + err.message);
+    } finally {
+      toast.dismiss(loadingToast);
+    }
+  };
+
+  const handleAadhaarBackUpload = async (file) => {
+    if (!file) return;
+    const loadingToast = toast.loading("Uploading Aadhaar Back...");
+    const data = new FormData();
+    data.append("image", file);
+    try {
+      const res = await fetch(`${apiUrl}/api/upload`, { method: "POST", body: data, headers: getAuthHeader() });
+      const json = await res.json();
+      if (json.url) {
+        extractOcrDataBack(file, json.url);
+      }
+    } catch (err) {
+      toast.error("Upload failed: " + err.message);
+    } finally {
+      toast.dismiss(loadingToast);
+    }
+  };
+
 
   return (
     <PropertyOwnerLayout
@@ -1061,17 +1334,64 @@ export default function TenantRec() {
                   placeholder="Enter ID proof number"
                   error={errors.idProofNumber}
                 />
-                <div className="sm:col-span-2">
-                  <label className="text-[10px] font-black text-slate-800 uppercase mb-3 block tracking-tight">
-                    Upload ID Proof File <span className="text-rose-500">*</span>
-                  </label>
-                  <MultiSourceUpload
-                    value={basicDetails.idProofFile}
-                    onUpload={handlePhotoUpload}
-                    error={errors.idProofFile}
-                  />
-                  {errors.idProofFile && <span className="text-[8px] font-bold text-rose-500 mt-2 uppercase tracking-widest block">{errors.idProofFile}</span>}
-                </div>
+                {basicDetails.idProofType === "Aadhaar Card" ? (
+                  <div className="sm:col-span-3 space-y-3">
+                    <label className="text-[10px] font-black text-slate-800 uppercase block tracking-tight">
+                      Aadhaar Card Upload (Front & Back) <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {/* Front Upload */}
+                      <div className="space-y-1.5">
+                        <span className="text-[10px] font-bold text-slate-600 uppercase flex items-center gap-1">
+                          Front Upload {ocrLoadingFront && <Loader2 className="w-3 h-3 animate-spin text-blue-500 inline" />}
+                        </span>
+                        <MultiSourceUpload
+                          value={basicDetails.aadhaarFront || basicDetails.idProofFile}
+                          onUpload={handleAadhaarFrontUpload}
+                          error={errors.idProofFile}
+                        />
+                        {basicDetails.aadhaarFront && (
+                          <span className="text-[9px] font-bold text-emerald-600 flex items-center gap-1">
+                            <CheckCircle2 size={12} /> Front Uploaded & Scanned
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Back Upload */}
+                      <div className="space-y-1.5">
+                        <span className="text-[10px] font-bold text-slate-600 uppercase flex items-center gap-1">
+                          Back Upload {ocrLoadingBack && <Loader2 className="w-3 h-3 animate-spin text-blue-500 inline" />}
+                        </span>
+                        <MultiSourceUpload
+                          value={basicDetails.aadhaarBack}
+                          onUpload={handleAadhaarBackUpload}
+                        />
+                        {basicDetails.aadhaarBack && (
+                          <span className="text-[9px] font-bold text-emerald-600 flex items-center gap-1">
+                            <CheckCircle2 size={12} /> Back Uploaded & Scanned
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {errors.idProofFile && <span className="text-[8px] font-bold text-rose-500 mt-1 uppercase tracking-widest block">{errors.idProofFile}</span>}
+                    <p className="text-[10px] text-blue-600 bg-blue-50/70 p-2.5 rounded-xl font-medium flex items-center gap-1.5">
+                      <Info size={14} className="shrink-0" /> Upload front & back to automatically extract Name, Aadhaar No, DOB, Gender & Permanent Address!
+                    </p>
+                  </div>
+                ) : (
+                  <div className="sm:col-span-2">
+                    <label className="text-[10px] font-black text-slate-800 uppercase mb-3 block tracking-tight">
+                      Upload ID Proof File <span className="text-rose-500">*</span>
+                    </label>
+                    <MultiSourceUpload
+                      value={basicDetails.idProofFile}
+                      onUpload={handlePhotoUpload}
+                      error={errors.idProofFile}
+                    />
+                    {errors.idProofFile && <span className="text-[8px] font-bold text-rose-500 mt-2 uppercase tracking-widest block">{errors.idProofFile}</span>}
+                  </div>
+                )}
+
               </div>
             </div>
           )}

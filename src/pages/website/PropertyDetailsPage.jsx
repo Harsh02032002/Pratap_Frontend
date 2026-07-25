@@ -355,6 +355,7 @@ export default function PropertyDetailsPage() {
   const [selectedImage, setSelectedImage] = useState(0);
   const [loadingInstitutes, setLoadingInstitutes] = useState(false);
   const [showQuickBookingModal, setShowQuickBookingModal] = useState(false);
+  const [rooms, setRooms] = useState([]);
 
   // Layout sections from CMS editor
   const [layoutSections, setLayoutSections] = useState([]);
@@ -642,6 +643,41 @@ export default function PropertyDetailsPage() {
 
           if (actualId) {
             trackPropertyView(actualId);
+            
+            // Fetch rooms for this property with fallbacks
+            try {
+              let roomsData = null;
+              try {
+                roomsData = await fetchJson(`/api/rooms/property/${encodeURIComponent(actualId)}?limit=100`);
+              } catch (_) {}
+              
+              let roomList = (roomsData && Array.isArray(roomsData.rooms)) ? roomsData.rooms : (Array.isArray(roomsData) ? roomsData : []);
+
+              if (roomList.length === 0 && foundProperty.visitId) {
+                try {
+                  const visitRoomsData = await fetchJson(`/api/rooms/property/${encodeURIComponent(foundProperty.visitId)}?limit=100`);
+                  if (visitRoomsData && Array.isArray(visitRoomsData.rooms)) roomList = visitRoomsData.rooms;
+                } catch (_) {}
+              }
+
+              if (roomList.length === 0 && (foundProperty.ownerLoginId || foundProperty.owner_id)) {
+                const ownerId = foundProperty.ownerLoginId || foundProperty.owner_id;
+                try {
+                  const ownerRoomsData = await fetchJson(`/api/rooms/owner/${encodeURIComponent(ownerId)}?limit=100`);
+                  const allOwnerRooms = ownerRoomsData?.rooms || (Array.isArray(ownerRoomsData) ? ownerRoomsData : []);
+                  const matched = allOwnerRooms.filter(r => {
+                    const rPid = String(r.propertyId || r.property?._id || r.property || '');
+                    return rPid === String(actualId) || rPid === String(foundProperty.visitId);
+                  });
+                  if (matched.length) roomList = matched;
+                } catch (_) {}
+              }
+
+              setRooms(roomList);
+            } catch (err) {
+              console.error('Failed to fetch rooms:', err);
+            }
+
           }
           
           const formatted = {
@@ -652,9 +688,24 @@ export default function PropertyDetailsPage() {
             area: foundProperty.propertyInfo?.area || foundProperty.area || "",
             type: foundProperty.propertyInfo?.propertyType || foundProperty.propertyType || "",
             price: foundProperty.propertyInfo?.rent || foundProperty.monthlyRent || foundProperty.price || "0",
-            beds: foundProperty.propertyInfo?.totalSeats || foundProperty.bedrooms || foundProperty.beds || 0,
-            gender: foundProperty.propertyInfo?.genderSuitability || foundProperty.gender || "Any",
-            owner: foundProperty.propertyInfo?.ownerName || foundProperty.contact?.name || foundProperty.generatedCredentials?.ownerName || foundProperty.ownerName || foundProperty.owner || "Owner",
+            gender: (() => {
+              const gRaw = String(
+                foundProperty.gender ||
+                foundProperty.genderSuitability ||
+                foundProperty.propertyInfo?.genderSuitability ||
+                foundProperty.forGender ||
+                foundProperty.propertyInfo?.forGender ||
+                foundProperty.suitableFor ||
+                foundProperty.tenantType ||
+                ""
+              ).toLowerCase().trim();
+              const propName = String(foundProperty.propertyName || foundProperty.property_name || foundProperty.title || "").toLowerCase();
+              if (gRaw.includes("female") || gRaw.includes("girl") || gRaw.includes("women") || /girl|female|women|lady|ladies|kanya|mahila/i.test(propName)) return "Female";
+              if (gRaw.includes("male") || gRaw.includes("boy") || gRaw.includes("men") || /boy|male|men|gents/i.test(propName)) return "Male";
+              if (gRaw.includes("co-ed") || gRaw.includes("coed") || gRaw.includes("both") || gRaw.includes("unisex")) return "Co-Ed";
+              return "Female";
+            })(),
+
             owner_id: foundProperty.ownerLoginId || foundProperty.owner_id || foundProperty.generatedCredentials?.loginId || "",
             ownerPhone: foundProperty.propertyInfo?.ownerPhone || foundProperty.ownerPhoneNumber || foundProperty.ownerPhone || foundProperty.contact?.number || "",
             ownerEmail: foundProperty.propertyInfo?.ownerEmail || foundProperty.propertyInfo?.ownerGmail || foundProperty.ownerEmail || foundProperty.contact?.email || "",
@@ -713,9 +764,24 @@ export default function PropertyDetailsPage() {
             advanceRent: foundProperty.pricing?.advanceRent || foundProperty.propertyInfo?.advanceRent || 0,
             discountPercent: foundProperty.pricing?.discountPercent || foundProperty.discountPercent || 0,
             totalRooms: (() => {
+              // Calculate from actual rooms if available
+              if (rooms && rooms.length > 0) {
+                return rooms.length;
+              }
+              // Fallback to roomTypes
               const fromRoomTypes = (foundProperty.roomTypes || foundProperty.propertyInfo?.roomTypes || [])
                 .reduce((acc, rt) => acc + parseInt(rt.totalRooms || 0), 0);
               return fromRoomTypes || foundProperty.totalRooms || foundProperty.propertyDetails?.floors || 0;
+            })(),
+            totalBeds: (() => {
+              // Calculate total beds from individual rooms
+              if (rooms && rooms.length > 0) {
+                return rooms.reduce((acc, room) => acc + (room.beds || 1), 0);
+              }
+              // Fallback to roomTypes calculation
+              const fromRoomTypes = (foundProperty.roomTypes || foundProperty.propertyInfo?.roomTypes || [])
+                .reduce((acc, rt) => acc + (parseInt(rt.totalRooms || 0) * parseInt(rt.bedsPerRoom || 1)), 0);
+              return fromRoomTypes || foundProperty.beds || foundProperty.bedrooms || 0;
             })(),
             bedsPerRoom: foundProperty.bedsPerRoom || 1,
             
@@ -974,30 +1040,12 @@ export default function PropertyDetailsPage() {
                 <PropertyHeader property={property} reviewStats={reviewStats} />
               </div>
 
-              {/* 3. Highlights */}
-              <HighlightsSection property={property} />
-
-              {/* 4. Description + Features */}
-              <DescriptionSection
-                description={property.description}
-                amenities={property.amenities}
-                beds={property.totalRooms}
-                gender={property.gender}
-                price={property.price}
-              />
-
-              {/* 5. Amenities Section */}
-              <div className="px-4 md:px-0">
-                <AmenitiesSection
-                  amenities={property.amenities}
-                  facilities={property.facilities}
-                />
-              </div>
-
               {/* 5.5. Choose Your Room (Room Types) */}
               <div className="px-4 md:px-0">
-                <RoomTypesSection roomTypes={property.roomTypes} />
+                <RoomTypesSection roomTypes={property.roomTypes} rooms={rooms} property={property} onSelectRoom={handleBookNow} />
               </div>
+
+
 
               {/* 6. Exclusive Benefits Section */}
               <div className="px-4 md:px-0">

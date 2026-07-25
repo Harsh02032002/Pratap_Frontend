@@ -5,11 +5,12 @@ import {
   MapPin, Building2, Users, Home, X,
   Zap, ShieldCheck, Loader2,
   CheckCircle2, Save, Info, Clock, User, Eye, LayoutGrid, Pencil, RefreshCw,
-  Mail, Phone, Calendar, Fingerprint, Briefcase, Heart, MessageSquare, AlertCircle, ChevronDown
+  Mail, Phone, Calendar, Fingerprint, Briefcase, Heart, MessageSquare, AlertCircle, ChevronDown, Camera, FileText
 } from "lucide-react";
 import { getApiBase, fetchJson } from "../../utils/api";
 import { toast } from "react-hot-toast";
 import { PageHeader } from "../../components/superadmin/PageHeader";
+import Tesseract from 'tesseract.js';
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
@@ -172,8 +173,15 @@ export default function AddTenant() {
     gender: "",
     idProofType: "Aadhaar Card",
     idProofNumber: "",
-    idProofFile: null
+    idProofFile: null,
+    fatherName: "",
+    permanentAddress: ""
   });
+
+  // Aadhaar OCR states
+  const [aadhaarFrontImage, setAadhaarFrontImage] = useState(null);
+  const [aadhaarBackImage, setAadhaarBackImage] = useState(null);
+  const [isProcessingOCR, setIsProcessingOCR] = useState(false);
 
   // Section 2: Room Assignment
   const [roomAssignment, setRoomAssignment] = useState({
@@ -362,10 +370,25 @@ export default function AddTenant() {
         idProof: {
           type: basicDetails.idProofType,
           number: basicDetails.idProofNumber,
-          file: basicDetails.idProofFile
+          file: basicDetails.idProofFile,
+          // Add Aadhaar OCR data for verification
+          aadhaarData: {
+            frontImage: aadhaarFrontImage,
+            backImage: aadhaarBackImage,
+            extractedName: basicDetails.fullName,
+            extractedFatherName: basicDetails.fatherName,
+            extractedAddress: basicDetails.permanentAddress,
+            extractedDob: basicDetails.dob,
+            extractedAadhaarNumber: basicDetails.idProofNumber
+          }
         },
-        additional: additionalDetails,
-        status: "pending"
+        additional: {
+          ...additionalDetails,
+          fatherName: basicDetails.fatherName,
+          permanentAddress: basicDetails.permanentAddress
+        },
+        status: "pending",
+        kycStatus: "pending_verification" // New status for owner verification
       };
 
       const res = await fetch(`${apiUrl}/api/tenants/assign`, {
@@ -411,6 +434,134 @@ export default function AddTenant() {
     } finally {
       toast.dismiss(loadingToast);
     }
+  };
+
+  // OCR function to extract text from Aadhaar card
+  const extractAadhaarData = async (imageFile, side) => {
+    if (!imageFile) return;
+    
+    setIsProcessingOCR(true);
+    const loadingToast = toast.loading(`Processing Aadhaar ${side}...`);
+
+    try {
+      const result = await Tesseract.recognize(
+        imageFile,
+        'eng',
+        {
+          logger: m => console.log(m)
+        }
+      );
+
+      const text = result.data.text;
+      console.log('Extracted text:', text);
+
+      // Parse extracted text and map to form fields
+      const extractedData = parseAadhaarText(text, side);
+      
+      if (Object.keys(extractedData).length > 0) {
+        setBasicDetails(prev => ({ ...prev, ...extractedData }));
+        toast.success(`Aadhaar ${side} data extracted successfully!`);
+      }
+    } catch (err) {
+      console.error('OCR Error:', err);
+      toast.error('Failed to extract data from Aadhaar card');
+    } finally {
+      setIsProcessingOCR(false);
+      toast.dismiss(loadingToast);
+    }
+  };
+
+  // Parse Aadhaar OCR text and extract relevant fields
+  const parseAadhaarText = (text, side) => {
+    const data = {};
+    const lines = text.split('\n').map(line => line.trim()).filter(line => line);
+
+    if (side === 'front') {
+      // Try to extract name (usually appears after "Name" or similar)
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (line.toLowerCase().includes('name') && i + 1 < lines.length) {
+          data.fullName = lines[i + 1].replace(/[^a-zA-Z\s]/g, '').trim();
+          break;
+        }
+      }
+      
+      // Try to extract Father's Name
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (line.toLowerCase().includes('father') || line.toLowerCase().includes('s/o') || line.toLowerCase().includes('d/o')) {
+          const nextLine = lines[i + 1] || '';
+          data.fatherName = nextLine.replace(/[^a-zA-Z\s]/g, '').trim();
+          break;
+        }
+      }
+
+      // Try to extract Gender
+      if (/\b(female|महिला)\b/i.test(text)) {
+        data.gender = "Female";
+      } else if (/\b(male|पुरुष)\b/i.test(text)) {
+        data.gender = "Male";
+      } else if (/\b(transgender)\b/i.test(text)) {
+        data.gender = "Other";
+      }
+
+      // Try to extract DOB and format to YYYY-MM-DD
+      const dobMatch = text.match(/(?:dob|date\s*of\s*birth|d\.?\s*o\.?\s*b\.?)[:\s]+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})/i) || text.match(/\b(\d{2})[\/\-](\d{2})[\/\-](\d{4})\b/);
+      if (dobMatch) {
+        const parts = dobMatch[0].match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+        if (parts) {
+          const [, d, m, y] = parts;
+          data.dob = `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+        }
+      }
+
+      // Try to extract Aadhaar number
+      const aadhaarMatch = text.match(/[2-9]\d{3}[\s\-]?\d{4}[\s\-]?\d{4}/) || text.replace(/[\s\-]/g, "").match(/[2-9]\d{11}/);
+      if (aadhaarMatch) {
+        data.idProofNumber = aadhaarMatch[0].replace(/[\s\-]/g, '');
+      }
+    } else if (side === 'back') {
+      // Back side usually has address
+      const addressLines = [];
+      let foundAddress = false;
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (line.toLowerCase().includes('address') || line.toLowerCase().includes('पता') || line.toLowerCase().includes('s/o') || line.toLowerCase().includes('d/o') || line.toLowerCase().includes('w/o') || foundAddress) {
+          foundAddress = true;
+          if (!line.toLowerCase().includes('address') && !line.toLowerCase().includes('पता') && line.length > 3) {
+            addressLines.push(line);
+          }
+        }
+        if (foundAddress && (line.toLowerCase().includes('pin') || line.match(/^\d{6}$/))) {
+          if (line.match(/^\d{6}$/)) addressLines.push(line);
+          break;
+        }
+      }
+      
+      if (addressLines.length > 0) {
+        data.permanentAddress = addressLines.join(', ').replace(/[^a-zA-Z0-9\s,-]/g, '').trim();
+      }
+    }
+
+    return data;
+  };
+
+
+  const handleAadhaarFrontUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    setAadhaarFrontImage(file);
+    await extractAadhaarData(file, 'front');
+  };
+
+  const handleAadhaarBackUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    setAadhaarBackImage(file);
+    await extractAadhaarData(file, 'back');
   };
 
   return (
@@ -511,46 +662,179 @@ export default function AddTenant() {
                 placeholder="Enter ID proof number"
                 error={errors.idProofNumber}
               />
-              <div className="md:col-span-2">
-                <label className="text-[10px] font-black text-slate-800 uppercase mb-3 block tracking-tight">
-                  Upload ID Proof <span className="text-rose-500">*</span>
-                </label>
-                <div className={cn(
-                  "relative group rounded-2xl",
-                  errors.idProofFile && "ring-4 ring-rose-500/5"
-                )}>
-                  <input 
-                    type="file" 
-                    id="id-proof-upload"
-                    className="hidden" 
-                    onChange={handlePhotoUpload}
-                    accept="image/*,.pdf"
+              
+              {/* Aadhaar Card Specific Upload Section */}
+              {basicDetails.idProofType === "Aadhaar Card" ? (
+                <>
+                  {/* Father Name Field */}
+                  <FormField 
+                    label="Father's Name" 
+                    value={basicDetails.fatherName}
+                    onChange={e => setBasicDetails({...basicDetails, fatherName: e.target.value})}
+                    placeholder="Father's name (auto-filled from Aadhaar)"
                   />
-                  <label 
-                    htmlFor="id-proof-upload"
-                    className={cn(
-                      "w-full h-24 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer transition-all group-active:scale-[0.98]",
-                      errors.idProofFile ? "border-rose-300 bg-rose-50/30" : "border-slate-200 hover:bg-slate-50 hover:border-blue-200"
-                    )}
-                  >
-                    {basicDetails.idProofFile ? (
-                      <div className="flex items-center gap-3">
-                        <CheckCircle2 className="w-6 h-6 text-emerald-500" />
-                        <span className="text-[10px] font-bold text-slate-600">ID Proof Uploaded Successfully</span>
+                  {/* Permanent Address Field */}
+                  <FormField 
+                    label="Permanent Address" 
+                    value={basicDetails.permanentAddress}
+                    onChange={e => setBasicDetails({...basicDetails, permanentAddress: e.target.value})}
+                    placeholder="Permanent address (auto-filled from Aadhaar back)"
+                  />
+                  
+                  <div className="md:col-span-3">
+                    <label className="text-[10px] font-black text-slate-800 uppercase mb-3 block tracking-tight">
+                      Aadhaar Card Upload (Front & Back) <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Front Side */}
+                      <div className={cn(
+                        "relative group rounded-2xl",
+                        errors.idProofFile && "ring-4 ring-rose-500/5"
+                      )}>
+                        <input 
+                          type="file" 
+                          id="aadhaar-front-upload"
+                          className="hidden" 
+                          onChange={handleAadhaarFrontUpload}
+                          accept="image/*"
+                          disabled={isProcessingOCR}
+                        />
+                        <label 
+                          htmlFor="aadhaar-front-upload"
+                          className={cn(
+                            "w-full h-32 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer transition-all group-active:scale-[0.98] relative overflow-hidden",
+                            errors.idProofFile ? "border-rose-300 bg-rose-50/30" : "border-slate-200 hover:bg-slate-50 hover:border-blue-200",
+                            isProcessingOCR && "opacity-50 cursor-not-allowed"
+                          )}
+                        >
+                          {aadhaarFrontImage && typeof aadhaarFrontImage !== 'string' ? (
+                            <img 
+                              src={URL.createObjectURL(aadhaarFrontImage)} 
+                              alt="Aadhaar Front" 
+                              className="absolute inset-0 w-full h-full object-cover"
+                            />
+                          ) : null}
+                          <div className={cn(
+                            "relative z-10 flex flex-col items-center gap-2",
+                            aadhaarFrontImage && "bg-black/50 w-full h-full items-center justify-center"
+                          )}>
+                            {isProcessingOCR ? (
+                              <div className="flex flex-col items-center gap-2">
+                                <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
+                                <span className="text-[10px] font-bold text-white">Processing OCR...</span>
+                              </div>
+                            ) : aadhaarFrontImage ? (
+                              <div className="flex flex-col items-center gap-2">
+                                <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+                                <span className="text-[10px] font-bold text-white">Front Uploaded</span>
+                                <span className="text-[8px] font-bold text-emerald-400">Data Extracted</span>
+                              </div>
+                            ) : (
+                              <>
+                                <Camera className="w-5 h-5 text-slate-400 group-hover:text-blue-500 transition-colors" />
+                                <div className="text-center">
+                                  <p className="text-[10px] font-black text-slate-600 uppercase">Front Side</p>
+                                  <p className="text-[8px] font-bold text-slate-400 mt-1 uppercase">Click to upload</p>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </label>
                       </div>
-                    ) : (
-                      <>
-                        <Upload className="w-5 h-5 text-slate-400 group-hover:text-blue-500 transition-colors" />
-                        <div className="text-center">
-                          <p className="text-[10px] font-black text-slate-600 uppercase">Click to upload or drag and drop</p>
-                          <p className="text-[8px] font-bold text-slate-400 mt-1 uppercase">PNG, JPG, PDF up to 5MB</p>
-                        </div>
-                      </>
-                    )}
+                      
+                      {/* Back Side */}
+                      <div className={cn(
+                        "relative group rounded-2xl",
+                        errors.idProofFile && "ring-4 ring-rose-500/5"
+                      )}>
+                        <input 
+                          type="file" 
+                          id="aadhaar-back-upload"
+                          className="hidden" 
+                          onChange={handleAadhaarBackUpload}
+                          accept="image/*"
+                          disabled={isProcessingOCR}
+                        />
+                        <label 
+                          htmlFor="aadhaar-back-upload"
+                          className={cn(
+                            "w-full h-32 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer transition-all group-active:scale-[0.98] relative overflow-hidden",
+                            errors.idProofFile ? "border-rose-300 bg-rose-50/30" : "border-slate-200 hover:bg-slate-50 hover:border-blue-200",
+                            isProcessingOCR && "opacity-50 cursor-not-allowed"
+                          )}
+                        >
+                          {aadhaarBackImage && typeof aadhaarBackImage !== 'string' ? (
+                            <img 
+                              src={URL.createObjectURL(aadhaarBackImage)} 
+                              alt="Aadhaar Back" 
+                              className="absolute inset-0 w-full h-full object-cover"
+                            />
+                          ) : null}
+                          <div className={cn(
+                            "relative z-10 flex flex-col items-center gap-2",
+                            aadhaarBackImage && "bg-black/50 w-full h-full items-center justify-center"
+                          )}>
+                            {isProcessingOCR ? (
+                              <div className="flex flex-col items-center gap-2">
+                                <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
+                                <span className="text-[10px] font-bold text-white">Processing OCR...</span>
+                              </div>
+                            ) : aadhaarBackImage ? (
+                              <div className="flex flex-col items-center gap-2">
+                                <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+                                <span className="text-[10px] font-bold text-white">Back Uploaded</span>
+                                <span className="text-[8px] font-bold text-emerald-400">Address Extracted</span>
+                              </div>
+                            ) : (
+                              <>
+                                <Camera className="w-5 h-5 text-slate-400 group-hover:text-blue-500 transition-colors" />
+                                <div className="text-center">
+                                  <p className="text-[10px] font-black text-slate-600 uppercase">Back Side</p>
+                                  <p className="text-[8px] font-bold text-slate-400 mt-1 uppercase">Click to upload</p>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+                    {errors.idProofFile && <span className="text-[8px] font-bold text-rose-500 mt-2 uppercase tracking-widest block">{errors.idProofFile}</span>}
+                    <div className="mt-3 flex items-center gap-2 bg-blue-50/50 rounded-xl p-3">
+                      <Info className="w-4 h-4 text-blue-600" />
+                      <p className="text-[9px] font-bold text-blue-700">Upload both sides for automatic data extraction using OCR</p>
+                    </div>
+                  </div>
+                </>
+              ) : null}
+              
+              {/* Standard ID Proof Upload for non-Aadhaar */}
+              {basicDetails.idProofType !== "Aadhaar Card" && (
+                <div className="md:col-span-3">
+                  <label className="text-[10px] font-black text-slate-800 uppercase mb-3 block tracking-tight">
+                    ID Proof Upload <span className="text-rose-500">*</span>
                   </label>
+                  <div className="relative group rounded-2xl border-2 border-dashed border-slate-200 hover:bg-slate-50 hover:border-blue-200 transition-all">
+                    <input 
+                      type="file" 
+                      id="id-proof-upload"
+                      className="hidden" 
+                      onChange={handlePhotoUpload}
+                      accept="image/*"
+                    />
+                    <label 
+                      htmlFor="id-proof-upload"
+                      className="w-full h-32 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all group-active:scale-[0.98]"
+                    >
+                      <Upload className="w-5 h-5 text-slate-400 group-hover:text-blue-500 transition-colors" />
+                      <div className="text-center">
+                        <p className="text-[10px] font-black text-slate-600 uppercase">Upload ID Proof</p>
+                        <p className="text-[8px] font-bold text-slate-400 mt-1 uppercase">Click to upload</p>
+                      </div>
+                    </label>
+                  </div>
+                  {errors.idProofFile && <span className="text-[8px] font-bold text-rose-500 mt-2 uppercase tracking-widest block">{errors.idProofFile}</span>}
                 </div>
-                {errors.idProofFile && <span className="text-[8px] font-bold text-rose-500 mt-2 uppercase tracking-widest block">{errors.idProofFile}</span>}
-              </div>
+              )}
             </div>
           </section>
 

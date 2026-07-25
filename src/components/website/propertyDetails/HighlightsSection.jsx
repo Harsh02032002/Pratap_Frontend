@@ -46,25 +46,27 @@ export default function HighlightsSection({ property = {} }) {
     }
 
     // Gender specific
-    if (gender === 'male') {
-      displayHighlights.push({ 
-        icon: "male", 
-        text: "For Male", 
-        subtext: "Boys accommodation" 
-      });
-    } else if (gender === 'female') {
+    const gNorm = String(gender || '').toLowerCase().trim();
+    if (gNorm.includes('female') || gNorm.includes('girl') || gNorm.includes('women') || gNorm.includes('ladies')) {
       displayHighlights.push({ 
         icon: "family", 
         text: "For Female", 
         subtext: "Girls accommodation" 
       });
+    } else if (gNorm.includes('male') || gNorm.includes('boy') || gNorm.includes('men') || gNorm.includes('gents')) {
+      displayHighlights.push({ 
+        icon: "male", 
+        text: "For Male", 
+        subtext: "Boys accommodation" 
+      });
     } else {
       displayHighlights.push({ 
         icon: "family", 
-        text: "Family Friendly", 
+        text: "Co-Ed / Unisex", 
         subtext: "Suitable for everyone" 
       });
     }
+
 
     // Room count
     if (totalRooms && totalRooms > 0) {

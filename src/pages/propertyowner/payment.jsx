@@ -376,27 +376,15 @@ export default function Payment() {
   }, [invoices]);
 
   // Active tenants with rent > 0 who haven't checked out — only these get invoices.
-  // Exclude onboarding month tenants from the invoiceable list (skipped on the backend).
   const invoiceableTenants = useMemo(() => {
-    const month = currentBillingMonth();
     return tenants.filter(t => {
       if ((t.agreedRent || t.rent || 0) <= 0 || t.checkoutDate) {
         return false;
       }
-      const moveInDateRaw = t.moveInDate || t.createdAt;
-      if (moveInDateRaw) {
-        const d = new Date(moveInDateRaw);
-        if (!isNaN(d.getTime())) {
-          const utcMonth = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
-          const localMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-          if (utcMonth === month || localMonth === month || String(moveInDateRaw).startsWith(month)) {
-            return false;
-          }
-        }
-      }
       return true;
     });
   }, [tenants]);
+
 
   // Filter pending cash requests (PENDING_APPROVAL or REQUESTED) to hide owner-approved/rejected ones.
   const pendingRequests = useMemo(() => {
@@ -418,7 +406,13 @@ export default function Payment() {
 
   // Merge tenant list with invoice data; recalculate phase + charges live from current config
   const rows = useMemo(() => tenants.map(t => {
-    const inv = invoiceMap.get(String(t._id || t.id));
+    const tId = String(t._id || t.id || "");
+    const tLogin = String(t.loginId || "").toUpperCase();
+    const inv = invoiceMap.get(tId) || invoices.find(i => {
+      const invTenantId = String(i.tenantId?._id || i.tenantId?.id || i.tenantId || "");
+      const invLogin = String(i.tenantId?.loginId || i.tenantLoginId || "").toUpperCase();
+      return (invTenantId === tId || (tLogin && invLogin === tLogin));
+    });
     if (!inv) return { ...t, payStatus: "no-invoice", phase: 0, invoice: null, outstandingAmount: 0, activePenalty: 0 };
     const liveCalc = calcLivePenalties(inv, penaltyConfig);
     const due = liveCalc.totalDue;
@@ -874,10 +868,10 @@ export default function Payment() {
                       </td>
                       <td className="px-4 py-3 font-medium text-foreground">{fmt(t.outstandingAmount)}</td>
                       <td className="px-4 py-3">
-                        {phCfg ? (
+                        {t.payStatus === "paid" ? (
+                          <span className="text-[11.5px] text-muted-foreground">—</span>
+                        ) : phCfg ? (
                           <Pill tone={phCfg.tone}>{phCfg.label}</Pill>
-                        ) : t.payStatus === "paid" ? (
-                          <Pill tone="success">Paid</Pill>
                         ) : (
                           <span className="text-[11.5px] text-muted-foreground">—</span>
                         )}

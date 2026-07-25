@@ -2,16 +2,16 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { 
   Building2, Users, Shield, Clock, Search,
-  ArrowUpRight, ArrowDownRight, MoreVertical,
-  Filter, Globe, MapPin, Zap, Sheet, Trash2,
+  Filter, MapPin, Sheet, Trash2,
   ChevronRight, ChevronLeft, Phone, Mail, User, RefreshCw,
-  LayoutGrid, CreditCard, Wallet, Download, Loader2,
-  ShieldCheck, Banknote, Map, X, CheckCircle2, AlertCircle,
-  Calendar, Fingerprint, Landmark, CreditCard as CardIcon,
-  Eye, FileText, UserPlus, FileCheck, ClipboardList,
-  ShieldAlert, Sparkles, Send, Save, Lock
+  Loader2, ShieldCheck, CheckCircle2, AlertCircle,
+  Calendar, Fingerprint, Banknote,
+  Eye, UserPlus, FileCheck, ClipboardList, FileText,
+  ShieldAlert, Send, Save, Lock, Plus, X
 } from "lucide-react";
 import { fetchJson, getAuthHeader } from "../../utils/api";
+import { PageHeader } from "../../components/superadmin/PageHeader";
+import { StatCard } from "../../components/superadmin/StatCard";
 import * as XLSX from 'xlsx';
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
@@ -49,6 +49,14 @@ export default function Owner() {
   const [formUpiId, setFormUpiId] = useState("");
 
   const loadOwners = async () => {
+    // Check for authentication token
+    const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+    if (!token) {
+      console.error("No authentication token found");
+      window.location.href = "/superadmin/login";
+      return;
+    }
+
     try {
       setLoading(true);
       const [res, visitsRes] = await Promise.all([
@@ -78,7 +86,13 @@ export default function Owner() {
         ...o,
         ...(visitMap[o.loginId] || {})
       })));
-    } catch (err) { console.error("Failed to load owners:", err); }
+    } catch (err) { 
+      console.error("Failed to load owners:", err);
+      // If auth error, redirect to login
+      if (err?.message?.includes("Not authorized") || err?.status === 401) {
+        window.location.href = "/superadmin/login";
+      }
+    }
     finally { setLoading(false); }
   };
 
@@ -97,7 +111,7 @@ export default function Owner() {
 
   const handleAddOwner = async (e) => {
     e.preventDefault();
-    if (!formName || !formPhone || !formEmail) return alert("Fill required fields");
+    if (!formName || !formPhone || !formEmail) return alert("Please fill in all required fields.");
     setSaving(true);
     try {
       await fetchJson("/api/owners", {
@@ -119,10 +133,10 @@ export default function Owner() {
           checkinUpiId: formUpiId
         })
       });
-      alert("Property Owner added successfully! Digital KYC link has been sent to their email.");
+      alert("Property Owner added successfully! Account credentials have been generated.");
       setSearchParams({ view: "list" });
       loadOwners();
-    } catch (err) { alert(err.message || "Failed to add stakeholder"); }
+    } catch (err) { alert(err.message || "Failed to add property owner."); }
     finally { setSaving(false); }
   };
 
@@ -131,9 +145,7 @@ export default function Owner() {
     setSavingEdit(true);
     try {
       const id = selectedOwner.loginId || selectedOwner._id;
-      // Always send both top-level and checkin-prefixed fields so DB is consistent
       const payload = {
-        // Identity
         email: editOwnerForm.email,
         checkinEmail: editOwnerForm.email,
         phone: editOwnerForm.phone,
@@ -141,7 +153,6 @@ export default function Owner() {
         checkinDob: editOwnerForm.checkinDob,
         address: editOwnerForm.address,
         checkinAddress: editOwnerForm.address,
-        // Banking
         bankName: editOwnerForm.bankName,
         checkinBankName: editOwnerForm.bankName,
         accountNumber: editOwnerForm.accountNumber,
@@ -162,27 +173,10 @@ export default function Owner() {
       
       alert("Owner details updated successfully!");
       setIsEditingOwner(false);
-      // Refresh the full owner list and update selected owner with saved values
       loadOwners();
       setSelectedOwner(prev => ({
         ...prev,
-        email: editOwnerForm.email,
-        checkinEmail: editOwnerForm.email,
-        phone: editOwnerForm.phone,
-        checkinPhone: editOwnerForm.phone,
-        checkinDob: editOwnerForm.checkinDob,
-        address: editOwnerForm.address,
-        checkinAddress: editOwnerForm.address,
-        bankName: editOwnerForm.bankName,
-        checkinBankName: editOwnerForm.bankName,
-        accountNumber: editOwnerForm.accountNumber,
-        checkinBankAccountNumber: editOwnerForm.accountNumber,
-        ifscCode: editOwnerForm.ifscCode,
-        checkinIfscCode: editOwnerForm.ifscCode,
-        branchName: editOwnerForm.branchName,
-        checkinBranchName: editOwnerForm.branchName,
-        checkinAccountHolderName: editOwnerForm.accountHolderName,
-        checkinUpiId: editOwnerForm.checkinUpiId
+        ...payload
       }));
     } catch (err) {
       alert("Failed to update owner details: " + (err.body?.message || err.message));
@@ -198,7 +192,7 @@ export default function Owner() {
     if (currentView === "pending") {
       base = owners.filter(o => !o.isActive);
     } else if (currentView === "kyc") {
-      base = owners.filter(o => (o.kycStatus || o.kyc?.status || "pending") === "pending");
+      base = owners; // Show all owners in KYC view, status displayed in table
     }
 
     return base.filter(o => {
@@ -241,15 +235,11 @@ export default function Owner() {
 
   const handleToggleDeactivate = async (owner) => {
     const id = owner.loginId || owner._id;
-    if (!id) {
-      alert("Owner ID not found");
-      return;
-    }
+    if (!id) return alert("Owner ID not found");
     const isCurrentlyActive = owner.isActive !== false;
     const action = isCurrentlyActive ? "deactivate" : "reactivate";
-    if (!window.confirm(`Are you sure you want to ${action} owner ${owner.name || "this owner"}?`)) {
-      return;
-    }
+    if (!window.confirm(`Are you sure you want to ${action} ${owner.name || "this owner"}?`)) return;
+    
     try {
       setLoading(true);
       const res = await fetchJson(`/api/owners/${encodeURIComponent(id)}/${action}`, {
@@ -277,36 +267,6 @@ export default function Owner() {
     } catch (err) { alert("Failed to delete owner"); }
   };
 
-  const handleKycUpdate = async (id, status, reason = "") => {
-    try {
-      setIsUpdatingKyc(true);
-      await fetchJson(`/api/owners/${id}/kyc`, {
-        method: "PATCH",
-        headers: getAuthHeader(),
-        body: JSON.stringify({ status, rejectionReason: reason })
-      });
-      loadOwners();
-      setSelectedOwner(prev => prev ? { ...prev, kycStatus: status, kyc: { ...prev.kyc, status } } : null);
-    } catch (err) { alert("Failed to update KYC status"); }
-    finally { setIsUpdatingKyc(false); }
-  };
-
-  const handleApproveRequest = async (id) => {
-    try {
-      setIsUpdatingKyc(true);
-      const password = Math.random().toString(36).slice(-8).toUpperCase();
-      await fetchJson(`/api/owners/${id}/approve`, {
-        method: "POST",
-        headers: getAuthHeader(),
-        body: JSON.stringify({ password })
-      });
-      alert("Owner request approved and link sent successfully!");
-      loadOwners();
-      setSelectedOwner(prev => prev ? { ...prev, kycStatus: "sent", kyc: { ...prev.kyc, status: "sent" }, credentials: { password } } : null);
-    } catch (err) { alert(err?.body?.message || err?.message || "Failed to approve owner request"); }
-    finally { setIsUpdatingKyc(false); }
-  };
-
   const exportToExcel = () => {
     const data = filteredOwners.map(o => ({
       "Owner ID": o.loginId,
@@ -315,7 +275,7 @@ export default function Owner() {
       "Phone": o.phone,
       "Area": o.locationCode || o.checkinArea,
       "Bank": o.bankName || o.checkinBankName,
-      "KYC": o.kycStatus || o.kyc?.status || "pending",
+      "KYC Status": o.kycStatus || o.kyc?.status || "pending",
       "Properties": o.propertyCount || 0
     }));
     const ws = XLSX.utils.json_to_sheet(data);
@@ -325,203 +285,246 @@ export default function Owner() {
   };
 
   return (
-    <div className="p-8 space-y-10 bg-[#F8FAFC] min-h-full">
-      {/* Header Area */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-         <div className="flex flex-col gap-2">
-            <h1 className="text-4xl font-bold text-slate-800 tracking-tight leading-none">
-              {currentView === "add" ? "Add Property Owner" : 
-               currentView === "pending" ? "Approved / Pending" : 
-               currentView === "kyc" ? "KYC / Documents" : 
-               "Property Owners"}
-            </h1>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-2">
-              {currentView === "add" ? "Initialize new asset partner credentials" : 
-               currentView === "pending" ? "Manage requests from property listing funnel" : 
-               currentView === "kyc" ? "Deep document verification & identity pulse" : 
-               "Governance Matrix & Stakeholder Asset Network"}
-            </p>
-         </div>
-         <div className="flex items-center gap-4">
-            <button 
-              onClick={() => setSearchParams({ view: currentView === "add" ? "list" : "add" })}
-              className={cn(
-                "px-8 py-4 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-3 active:scale-95 shadow-xl",
-                currentView === "add" ? "bg-white text-slate-600 border border-slate-100 shadow-slate-200" : "bg-slate-900 text-white shadow-slate-900/20 hover:bg-black"
-              )}
-            >
-               {currentView === "add" ? <RefreshCw className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
-               {currentView === "add" ? "Back to Owners List" : "Add Property Owner"}
-            </button>
-            <button 
-              onClick={exportToExcel}
-              className="bg-emerald-600 text-white px-8 py-4 rounded-2xl text-[10px] font-bold uppercase tracking-widest shadow-xl shadow-emerald-200 hover:bg-emerald-700 transition-all flex items-center gap-3 active:scale-95"
-            >
-               <Sheet className="w-4 h-4" /> Export Ledger
-            </button>
-         </div>
-      </div>
+    <div className="space-y-6 pb-8">
+      {/* Standardized Page Header */}
+      <PageHeader 
+        title={
+          currentView === "add" ? "Add Property Owner" : 
+          currentView === "pending" ? "Approved / Pending Owners" : 
+          currentView === "kyc" ? "KYC & Documents Verification" : 
+          "Property Owners"
+        }
+        subtitle={
+          currentView === "add" ? "Create a new property owner account and generate credentials." : 
+          currentView === "pending" ? "Review property owner onboarding and approval requests." : 
+          currentView === "kyc" ? "Audit document integrity and KYC compliance." : 
+          "Manage all registered property owners, properties, and banking details."
+        }
+        actions={
+          <div className="flex items-center gap-3">
+             <button 
+               onClick={() => setSearchParams({ view: currentView === "add" ? "list" : "add" })}
+               className={cn(
+                 "px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-sm active:scale-95",
+                 currentView === "add" ? "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50" : "bg-blue-600 hover:bg-blue-700 text-white"
+               )}
+             >
+                {currentView === "add" ? <RefreshCw className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                {currentView === "add" ? "Back to Owners List" : "Add Property Owner"}
+             </button>
+             {currentView !== "add" && (
+               <button 
+                 onClick={exportToExcel}
+                 className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-sm active:scale-95"
+               >
+                  <Sheet className="w-4 h-4 text-emerald-600" /> Export Excel
+               </button>
+             )}
+          </div>
+        }
+      />
 
       {/* Metrics Row (Only on main lists) */}
       {currentView !== "add" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCardHorizontal label="Total Partners" value={stats.total} trend="+14.2% Delta" up icon={Users} color="indigo" />
-          <StatCardHorizontal label="Compliance Pass" value={stats.verified} trend="KYC Cleared" up icon={ShieldCheck} color="emerald" />
-          <StatCardHorizontal label="Operational Units" value={`${stats.properties}`} trend="Supply Units" up icon={Building2} color="blue" />
-          <StatCardHorizontal label="Audit Required" value={stats.pending} trend="Risk Buffer" up={false} icon={ShieldAlert} color="amber" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard label="Total Partners" value={stats.total.toLocaleString()} delta="Active Owners" icon={Users} iconColor="blue" loading={loading} />
+          <StatCard label="KYC Verified" value={stats.verified.toLocaleString()} delta="KYC Cleared" icon={ShieldCheck} iconColor="green" loading={loading} />
+          <StatCard label="Total Properties" value={stats.properties.toLocaleString()} delta="Listed Properties" icon={Building2} iconColor="purple" loading={loading} />
+          <StatCard label="Pending KYC" value={stats.pending.toLocaleString()} delta="Needs Audit" icon={Clock} iconColor="yellow" loading={loading} />
         </div>
       )}
 
       {currentView === "add" ? (
-        /* Add Form */
-        <div className="max-w-4xl mx-auto bg-white rounded-[3rem] border border-slate-100 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-500">
-           <div className="p-10 border-b border-slate-50 bg-slate-50/50 flex items-center gap-6">
-              <div className="w-16 h-16 rounded-[2rem] bg-slate-900 text-white flex items-center justify-center shadow-2xl">
-                 <UserPlus size={28} />
+        /* Standard Add Form Card */
+        <div className="max-w-4xl mx-auto bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden animate-in fade-in zoom-in-95 duration-300">
+           <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold shadow-md shadow-blue-500/20 shrink-0">
+                 <UserPlus size={22} />
               </div>
               <div>
-                 <h3 className="text-2xl font-bold text-slate-800 tracking-tight">Property Owner Identity</h3>
-                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Define primary attributes for the new partner</p>
+                 <h3 className="text-lg font-bold text-slate-900">Property Owner Information</h3>
+                 <p className="text-xs text-slate-500">Fill in owner details and banking info to create account.</p>
               </div>
            </div>
 
-           <form onSubmit={handleAddOwner} className="p-12 space-y-12">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                 <div className="space-y-3">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Stakeholder Name</label>
-                    <input value={formName} onChange={e => setFormName(e.target.value)} placeholder="e.g. Rahul Sharma" className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-5 text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all outline-none" />
+           <form onSubmit={handleAddOwner} className="p-6 sm:p-8 space-y-6">
+              {/* Basic Identity Section */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                 <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Owner Name *</label>
+                    <input 
+                      required
+                      value={formName} 
+                      onChange={e => setFormName(e.target.value)} 
+                      placeholder="e.g. Rahul Sharma" 
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" 
+                    />
                  </div>
-                 <div className="space-y-3">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
-                    <input value={formEmail} onChange={e => setFormEmail(e.target.value)} type="email" placeholder="rahul@example.com" className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-5 text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all outline-none" />
+                 <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Email Address *</label>
+                    <input 
+                      required
+                      value={formEmail} 
+                      onChange={e => setFormEmail(e.target.value)} 
+                      type="email" 
+                      placeholder="rahul@example.com" 
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" 
+                    />
                  </div>
-                 <div className="space-y-3">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Pulse Contact</label>
-                    <input value={formPhone} onChange={e => setFormPhone(e.target.value)} placeholder="+91 XXXX" className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-5 text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all outline-none" />
+                 <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Phone Number *</label>
+                    <input 
+                      required
+                      value={formPhone} 
+                      onChange={e => setFormPhone(e.target.value)} 
+                      placeholder="9876543210" 
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" 
+                    />
                  </div>
-                 <div className="space-y-3">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Operating Area</label>
-                    <input value={formArea} onChange={e => setFormArea(e.target.value)} placeholder="e.g. Koramangala" className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-5 text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all outline-none" />
+                 <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Operating Area / City</label>
+                    <input 
+                      value={formArea} 
+                      onChange={e => setFormArea(e.target.value)} 
+                      placeholder="e.g. Koramangala, Bangalore" 
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" 
+                    />
                  </div>
               </div>
 
               {/* Banking Details */}
-              <div className="space-y-6">
+              <div className="pt-4 border-t border-slate-100 space-y-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center">
-                    <Banknote size={16} className="text-slate-500" />
+                  <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <Banknote size={18} />
                   </div>
                   <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Banking Details</p>
-                    <p className="text-[10px] text-slate-300">Pre-filled in owner KYC form — editable by owner</p>
+                    <h4 className="text-sm font-bold text-slate-900">Banking & Settlement Details</h4>
+                    <p className="text-xs text-slate-400">Used for rent payouts — owner can also edit in their panel</p>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Bank Name</label>
-                    <input value={formBankName} onChange={e => setFormBankName(e.target.value)} placeholder="e.g. State Bank of India" className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all outline-none" />
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Bank Name</label>
+                    <input value={formBankName} onChange={e => setFormBankName(e.target.value)} placeholder="e.g. State Bank of India" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Branch Name</label>
-                    <input value={formBranchName} onChange={e => setFormBranchName(e.target.value)} placeholder="e.g. MG Road Branch" className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all outline-none" />
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Branch Name</label>
+                    <input value={formBranchName} onChange={e => setFormBranchName(e.target.value)} placeholder="e.g. MG Road Branch" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Bank Account Number</label>
-                    <input value={formBankAccountNumber} onChange={e => setFormBankAccountNumber(e.target.value)} placeholder="e.g. 1234567890" className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all outline-none" />
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Bank Account Number</label>
+                    <input value={formBankAccountNumber} onChange={e => setFormBankAccountNumber(e.target.value)} placeholder="e.g. 1234567890" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">IFSC Code</label>
-                    <input value={formIfscCode} onChange={e => setFormIfscCode(e.target.value.toUpperCase())} placeholder="e.g. SBIN0001234" className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all outline-none" />
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">IFSC Code</label>
+                    <input value={formIfscCode} onChange={e => setFormIfscCode(e.target.value.toUpperCase())} placeholder="e.g. SBIN0001234" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Account Holder Name</label>
-                    <input value={formAccountHolderName} onChange={e => setFormAccountHolderName(e.target.value)} placeholder="e.g. Rahul Sharma" className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all outline-none" />
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Account Holder Name</label>
+                    <input value={formAccountHolderName} onChange={e => setFormAccountHolderName(e.target.value)} placeholder="e.g. Rahul Sharma" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">UPI ID <span className="normal-case font-normal">(optional)</span></label>
-                    <input value={formUpiId} onChange={e => setFormUpiId(e.target.value)} placeholder="e.g. rahul@upi" className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all outline-none" />
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">UPI ID <span className="text-slate-400 font-normal">(Optional)</span></label>
+                    <input value={formUpiId} onChange={e => setFormUpiId(e.target.value)} placeholder="e.g. rahul@upi" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
                   </div>
                 </div>
               </div>
 
-              <div className="bg-slate-900 rounded-[2.5rem] p-10 flex flex-col md:flex-row items-center justify-between gap-8">
-                 <div className="flex items-center gap-6">
-                    <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center text-white border border-white/10 shadow-inner">
-                       <Lock size={24} />
+              {/* Generated Credentials Banner */}
+              <div className="bg-slate-900 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-white">
+                 <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white border border-white/10 shrink-0">
+                       <Lock size={20} />
                     </div>
                     <div>
-                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Generated Credentials</p>
-                       <div className="flex items-center gap-4">
-                          <code className="text-xl font-black text-white tracking-widest">{formLoginId}</code>
-                          <span className="w-1 h-1 rounded-full bg-white/20" />
-                          <code className="text-base font-bold text-blue-400">{formPassword}</code>
+                       <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Generated Owner Credentials</p>
+                       <div className="flex items-center gap-3">
+                          <span className="text-xs font-semibold text-slate-400">ID:</span>
+                          <code className="text-sm font-mono font-bold text-white bg-slate-800 px-2.5 py-1 rounded-lg">{formLoginId}</code>
+                          <span className="text-xs font-semibold text-slate-400 ml-2">Password:</span>
+                          <code className="text-sm font-mono font-bold text-blue-400 bg-slate-800 px-2.5 py-1 rounded-lg">{formPassword}</code>
                        </div>
                     </div>
                  </div>
-                 <button type="button" onClick={generateCreds} className="px-6 py-3 bg-white/10 text-white rounded-xl text-[9px] font-bold uppercase tracking-widest hover:bg-white/20 transition-all border border-white/10">Re-generate</button>
+                 <button 
+                   type="button" 
+                   onClick={generateCreds} 
+                   className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 transition-colors flex items-center gap-2 shrink-0"
+                 >
+                    <RefreshCw size={14} /> Re-generate
+                 </button>
               </div>
 
-              <div className="flex justify-end gap-4 pt-4">
-                 <button type="button" onClick={() => setSearchParams({ view: "list" })} className="px-10 py-5 rounded-2xl text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-all">Cancel Onboarding</button>
+              {/* Form Actions */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                 <button 
+                   type="button" 
+                   onClick={() => setSearchParams({ view: "list" })} 
+                   className="px-5 py-2.5 bg-white hover:bg-slate-50 text-slate-700 font-bold rounded-xl text-xs border border-slate-200 transition-all"
+                 >
+                   Cancel
+                 </button>
                  <button 
                    type="submit"
                    disabled={saving}
-                   className="px-12 py-5 bg-blue-600 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest shadow-2xl shadow-blue-200 hover:bg-blue-700 transition-all flex items-center gap-3 disabled:opacity-50 active:scale-95"
+                   className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-all shadow-sm flex items-center gap-2 disabled:opacity-50 active:scale-95"
                  >
-                    {saving ? "Commiting Intelligence..." : "Authorize Stakeholder"}
-                    <Send className="w-4 h-4" />
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    {saving ? "Creating Account..." : "Add Property Owner"}
                  </button>
               </div>
            </form>
         </div>
       ) : (
-        /* Ledger List View */
-        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-2xl shadow-slate-200/50 overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-700">
-           <div className="p-10 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-8">
-              <div className="flex items-center gap-6">
-                 <div className="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-lg">
+        /* Standard List View Table Card */
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+           <div className="p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                 <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 font-bold">
                     {currentView === "pending" ? <ClipboardList size={20} /> : 
                      currentView === "kyc" ? <Fingerprint size={20} /> : 
-                     <LayoutGrid size={20} />}
+                     <Building2 size={20} />}
                  </div>
                  <div>
-                    <h3 className="text-xl font-bold text-slate-800">
-                      {currentView === "pending" ? "Approved / Pending Requests" : 
-                       currentView === "kyc" ? "KYC / Documents Verification Hub" : 
-                       "Property Owners Ledger"}
+                    <h3 className="font-bold text-base text-slate-900">
+                      {currentView === "pending" ? "Approved / Pending Owners" : 
+                       currentView === "kyc" ? "KYC & Documents Verification" : 
+                       "Property Owners Registry"}
                     </h3>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-                      {currentView === "pending" ? "Review requests from independent asset listings" : 
-                       currentView === "kyc" ? "Audit document integrity and compliance flags" : 
-                       "Real-time database of all asset partners"}
+                    <p className="text-xs text-slate-500">
+                      {currentView === "pending" ? "Review property owner onboarding requests." : 
+                       currentView === "kyc" ? "Audit identity documents and KYC verification." : 
+                       "Manage all active property owner accounts."}
                     </p>
                  </div>
               </div>
               
-              <div className="flex items-center gap-4">
-                 <div className="flex items-center gap-3 bg-slate-50 px-6 py-3.5 rounded-2xl border border-slate-100 shadow-inner">
+              <div className="flex items-center gap-3">
+                 <div className="flex items-center gap-2 bg-slate-50 px-3.5 py-2 rounded-xl border border-slate-200">
                     <Filter size={14} className="text-slate-400" />
                     <select 
                       value={areaFilter}
                       onChange={e => setAreaFilter(e.target.value)}
-                      className="bg-transparent text-[10px] font-bold text-slate-600 outline-none uppercase tracking-widest border-none p-0 focus:ring-0"
+                      className="bg-transparent text-xs font-semibold text-slate-700 outline-none border-none p-0 focus:ring-0 cursor-pointer"
                     >
                        <option value="all">All Zones</option>
                        {areas.map(a => <option key={a} value={a}>{a}</option>)}
                     </select>
                  </div>
                  
-                 <div className="relative w-72 group">
-                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-blue-500 transition-colors" />
+                 <div className="relative w-64">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input 
                       value={search} onChange={e => setSearch(e.target.value)}
-                      placeholder="Search Stakeholders..." 
-                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-12 pr-6 text-xs font-bold text-slate-700 outline-none focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all shadow-sm" 
+                      placeholder="Search owners..." 
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pl-10 pr-4 text-xs font-semibold text-slate-700 outline-none focus:bg-white focus:border-blue-400 transition-all" 
                     />
                  </div>
                  
-                 <button onClick={loadOwners} className="p-4 rounded-2xl bg-white text-slate-400 hover:text-blue-600 transition-all border border-slate-100 shadow-md active:scale-95">
-                    <RefreshCw className={cn("w-5 h-5", loading && "animate-spin")} />
+                 <button onClick={loadOwners} className="p-2 rounded-xl bg-white text-slate-400 hover:text-blue-600 transition-all border border-slate-200 shadow-sm active:scale-95">
+                    <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
                  </button>
               </div>
            </div>
@@ -529,31 +532,31 @@ export default function Owner() {
            <div className="overflow-x-auto">
               <table className="w-full text-left">
                  <thead>
-                    <tr className="bg-slate-50/50 text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em] border-b border-slate-100">
-                       <th className="px-10 py-8">Identity Hub</th>
-                       <th className="px-6 py-8">Primary Asset</th>
-                       <th className="px-6 py-8 text-center">{currentView === "kyc" ? "Document Status" : "Banking Intel"}</th>
-                       <th className="px-6 py-8 text-center">{currentView === "pending" ? "System Status" : "Audit Status"}</th>
-                       <th className="px-10 py-8 text-right">Operations</th>
+                    <tr className="bg-slate-50/80 text-slate-500 text-xs font-bold uppercase tracking-wider border-b border-slate-100">
+                       <th className="px-6 py-4">Owner Profile</th>
+                       <th className="px-6 py-4">Location / Area</th>
+                       <th className="px-6 py-4 text-center">{currentView === "kyc" ? "Document Status" : "Banking Status"}</th>
+                       <th className="px-6 py-4 text-center">KYC Status</th>
+                       <th className="px-6 py-4 text-right">Actions</th>
                     </tr>
                  </thead>
-                 <tbody className="divide-y divide-slate-50">
+                 <tbody className="divide-y divide-slate-100">
                     {loading ? (
-                      <tr><td colSpan="5" className="py-40 text-center">
-                         <div className="w-16 h-16 border-4 border-blue-600/10 border-t-blue-600 rounded-full animate-spin mx-auto mb-8" />
-                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em]">Accessing Distributed Ledger...</p>
+                      <tr><td colSpan="5" className="py-20 text-center">
+                         <div className="w-10 h-10 border-4 border-blue-600/10 border-t-blue-600 rounded-full animate-spin mx-auto mb-3" />
+                         <p className="text-xs font-semibold text-slate-400">Loading Property Owners...</p>
                       </td></tr>
                     ) : filteredOwners.length === 0 ? (
-                      <tr><td colSpan="5" className="py-40 text-center">
-                         <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-200">
-                            {currentView === "pending" ? <FileCheck size={40} /> : <Users size={40} />}
+                      <tr><td colSpan="5" className="py-20 text-center">
+                         <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-400">
+                            {currentView === "pending" ? <FileCheck size={24} /> : <Users size={24} />}
                          </div>
-                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Compliance Queue Clear</p>
+                         <p className="text-xs font-semibold text-slate-500">No property owners found</p>
                       </td></tr>
                     ) : paginatedOwners.map((o, i) => {
                       const status = (o.kycStatus || o.kyc?.status || "pending").toLowerCase();
                       return (
-                        <tr key={i} className="group hover:bg-slate-50/50 transition-all duration-300 cursor-pointer" onClick={() => {
+                        <tr key={i} className="group hover:bg-slate-50/60 transition-colors cursor-pointer" onClick={() => {
                            setSelectedOwner(o);
                            setIsEditingOwner(false);
                            setEditOwnerForm({
@@ -569,88 +572,86 @@ export default function Owner() {
                              checkinUpiId: o.checkinUpiId || o.upiId || ""
                            });
                         }}>
-                           <td className="px-10 py-8">
-                              <div className="flex items-center gap-6">
-                                 <div className="w-14 h-14 rounded-2xl bg-white border border-slate-100 text-blue-600 flex items-center justify-center font-bold text-xl shadow-xl shadow-slate-200/40 transition-transform group-hover:scale-110 shrink-0">
+                           <td className="px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                 <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm shrink-0 border border-blue-100">
                                     {(o.name || "U").charAt(0).toUpperCase()}
                                  </div>
                                  <div>
-                                    <p className="text-base font-bold text-slate-800 tracking-tight">{o.name || "Unknown Partner"}</p>
-                                    <div className="flex items-center gap-2 mt-2">
-                                       <span className="text-[9px] font-black bg-blue-600 text-white px-2 py-0.5 rounded-lg uppercase tracking-widest">{o.loginId || "ID-GEN"}</span>
+                                    <p className="text-sm font-bold text-slate-800 leading-snug">{o.name || "Unknown Owner"}</p>
+                                    <div className="flex items-center gap-2 mt-0.5">
+                                       <span className="text-[10px] font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded uppercase font-mono">{o.loginId || "ID-GEN"}</span>
                                        <span className={cn(
-                                          "text-[8px] font-black px-2 py-0.5 rounded-lg uppercase tracking-widest ml-2",
+                                          "text-[10px] font-bold px-1.5 py-0.5 rounded uppercase",
                                           o.isActive === false ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"
                                        )}>
                                           {o.isActive === false ? "suspended" : "active"}
                                        </span>
-                                       <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-2">{o.phone || "No Pulse"}</span>
+                                       <span className="text-xs text-slate-500 ml-1">{o.phone || "No Phone"}</span>
                                     </div>
                                  </div>
                               </div>
                            </td>
-                           <td className="px-6 py-8">
-                              <div className="space-y-2">
-                                 <p className="text-xs font-bold text-slate-700 leading-none truncate max-w-[200px]">{o.propertyTitle || "Global Portfolio"}</p>
-                                 <div className="flex items-center gap-2">
-                                    <MapPin className="w-3 h-3 text-slate-300" />
-                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{o.locationCode || o.checkinArea || "Core Zone"}</span>
+                           <td className="px-6 py-4">
+                              <div className="space-y-0.5">
+                                 <p className="text-xs font-semibold text-slate-800 truncate max-w-[180px]">{o.propertyTitle || "Main Portfolio"}</p>
+                                 <div className="flex items-center gap-1 text-slate-400">
+                                    <MapPin className="w-3 h-3" />
+                                    <span className="text-xs font-medium">{o.locationCode || o.checkinArea || "General Zone"}</span>
                                  </div>
                               </div>
                            </td>
-                           <td className="px-6 py-8 text-center">
+                           <td className="px-6 py-4 text-center">
                               {currentView === "kyc" ? (() => {
-                                 const hasDoc = o.checkinAadhaarImage || o.kyc?.documentImage || o.checkinAadhaarNumber;
+                                 const hasDoc = o.checkinAadhaarImage || o.checkinOwnerPhoto || o.checkinBankProof || o.checkinCancelledCheque || o.checkinAadhaarNumber || o.documentImage || o.kyc?.documentImage || o.aadharNumber || o.kycStatus === "verified" || o.kycStatus === "submitted";
                                  return (
-                                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100">
-                                    {hasDoc ? <CheckCircle2 className="w-3 h-3 text-emerald-500" /> : <AlertCircle className="w-3 h-3 text-amber-500" />}
-                                    <span className="text-[9px] font-bold uppercase text-slate-600">{hasDoc ? "Document Attached" : "Awaiting Upload"}</span>
+                                 <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-50 rounded-lg border border-slate-200">
+                                    {hasDoc ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <AlertCircle className="w-3.5 h-3.5 text-amber-500" />}
+                                    <span className="text-xs font-semibold text-slate-600">{hasDoc ? "Uploaded" : "Pending Upload"}</span>
                                  </div>
                                  );
                                })() : (
-                                <div className="inline-flex flex-col items-center gap-2 bg-slate-50 px-4 py-3 rounded-2xl border border-slate-100 shadow-sm group-hover:bg-white transition-colors">
-                                   <p className="text-[10px] font-bold text-slate-800 leading-none">{o.bankName || o.checkinBankName || "Not Linked"}</p>
-                                   <span className="text-[8px] font-black text-blue-600 uppercase tracking-widest opacity-60">Verified Settlement</span>
+                                <div className="inline-flex flex-col items-center">
+                                   <p className="text-xs font-bold text-slate-800">{o.bankName || o.checkinBankName || "Not Linked"}</p>
+                                   <span className="text-[10px] text-slate-400 font-medium">Bank Account</span>
                                 </div>
                               )}
                            </td>
-                           <td className="px-6 py-8 text-center">
-                              {currentView === "pending" ? (
-                                <span className="text-[8px] font-bold px-4 py-1.5 rounded-xl border border-blue-100 bg-blue-50 text-blue-600 uppercase tracking-widest shadow-sm">Review Required</span>
-                              ) : (
-                                <span className={cn(
-                                   "text-[8px] font-bold px-4 py-1.5 rounded-xl border uppercase tracking-[0.2em] shadow-sm",
-                                   status === "verified" ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-amber-50 text-amber-600 border-amber-100"
-                                )}>
-                                   {status}
-                                </span>
-                              )}
+                           <td className="px-6 py-4 text-center">
+                              <span className={cn(
+                                 "text-xs font-bold px-2.5 py-1 rounded-lg uppercase inline-block",
+                                 status === "verified" ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-amber-50 text-amber-600 border border-amber-100"
+                              )}>
+                                 {status}
+                              </span>
                            </td>
-                           <td className="px-10 py-8 text-right" onClick={(e) => e.stopPropagation()}>
-                              <div className="flex items-center justify-end gap-3">
+                           <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center justify-end gap-2">
                                  <button 
                                    onClick={() => handleToggleDeactivate(o)}
-                                   title={o.isActive === false ? "Reactivate Account" : "Deactivate Account"}
+                                   title={o.isActive === false ? "Reactivate Owner" : "Deactivate Owner"}
                                    className={cn(
-                                      "p-3.5 rounded-2xl border transition-all shadow-md active:scale-95",
+                                      "p-2 rounded-lg border transition-all shadow-sm active:scale-95",
                                       o.isActive === false 
-                                         ? "bg-rose-50 text-rose-600 border-rose-100 hover:bg-rose-100" 
-                                         : "bg-white text-slate-400 border-slate-100 hover:text-slate-600 hover:border-slate-300"
+                                         ? "bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100" 
+                                         : "bg-white text-slate-400 border-slate-200 hover:text-slate-600 hover:bg-slate-50"
                                    )}
                                  >
-                                    <Shield size={20} className={o.isActive === false ? "animate-pulse" : ""} />
+                                    <Shield size={16} />
                                  </button>
                                  <button 
                                     onClick={() => setSelectedOwner(o)}
-                                    className="p-3.5 rounded-2xl bg-white text-slate-400 hover:text-blue-600 hover:border-blue-100 transition-all border border-slate-100 shadow-md active:scale-95"
+                                    title="View Details"
+                                    className="p-2 rounded-lg bg-white text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all border border-slate-200 shadow-sm active:scale-95"
                                  >
-                                    <Eye className="w-5 h-5" />
+                                    <Eye size={16} />
                                  </button>
                                  <button 
                                     onClick={() => handleDelete(o.loginId || o._id)}
-                                    className="p-3.5 rounded-2xl bg-white text-slate-400 hover:text-rose-600 hover:border-rose-100 transition-all border border-slate-100 shadow-md active:scale-95"
+                                    title="Delete Owner"
+                                    className="p-2 rounded-lg bg-white text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all border border-slate-200 shadow-sm active:scale-95"
                                  >
-                                    <Trash2 className="w-5 h-5" />
+                                    <Trash2 size={16} />
                                  </button>
                               </div>
                            </td>
@@ -661,312 +662,172 @@ export default function Owner() {
               </table>
            </div>
 
-            {/* Pagination */}
-            {totalRecords > 0 && (
-              <div className="flex items-center justify-between px-10 py-6 border-t border-slate-100 bg-white">
-                <p className="text-[11px] font-bold text-slate-400">
-                  Showing {((currentPage-1)*LIMIT)+1} to {Math.min(currentPage*LIMIT,totalRecords)} of{" "}
-                  <span className="text-slate-700">{totalRecords.toLocaleString()}</span> property owners
-                </p>
-                <div className="flex items-center gap-2">
-                  <button disabled={currentPage===1} onClick={()=>setCurrentPage(currentPage-1)}
-                    className="flex items-center gap-1 px-4 py-2.5 rounded-xl border border-slate-200 text-[11px] font-bold text-slate-500 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all">
-                    <ChevronLeft className="w-4 h-4"/> Prev
-                  </button>
-                  {Array.from({length:Math.min(totalPages,7)},(_,i)=>{
-                    let n;
-                    if(totalPages<=7) n=i+1;
-                    else if(currentPage<=4) n=i+1;
-                    else if(currentPage>=totalPages-3) n=totalPages-6+i;
-                    else n=currentPage-3+i;
-                    return (
-                      <button key={n} onClick={()=>setCurrentPage(n)}
-                        className={cn("w-10 h-10 rounded-xl text-[11px] font-bold transition-all",
-                          currentPage===n?"bg-blue-600 text-white shadow-lg shadow-blue-200":"text-slate-500 hover:bg-slate-100 border border-slate-200")}>
-                        {n}
-                      </button>
-                    );
-                  })}
-                  <button disabled={currentPage===totalPages} onClick={()=>setCurrentPage(currentPage+1)}
-                    className="flex items-center gap-1 px-4 py-2.5 rounded-xl border border-slate-200 text-[11px] font-bold text-slate-500 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all">
-                    Next <ChevronRight className="w-4 h-4"/>
-                  </button>
-                </div>
-              </div>
-            )}
+           {/* Pagination */}
+           {totalRecords > 0 && (
+             <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-white">
+               <p className="text-xs font-semibold text-slate-500">
+                 Showing {((currentPage-1)*LIMIT)+1} to {Math.min(currentPage*LIMIT,totalRecords)} of{" "}
+                 <span className="text-slate-900 font-bold">{totalRecords.toLocaleString()}</span> property owners
+               </p>
+               <div className="flex items-center gap-2">
+                 <button 
+                   disabled={currentPage===1} 
+                   onClick={()=>setCurrentPage(currentPage-1)}
+                   className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                 >
+                   <ChevronLeft className="w-4 h-4"/> Prev
+                 </button>
+                 {Array.from({length:Math.min(totalPages,7)},(_,i)=>{
+                   let n;
+                   if(totalPages<=7) n=i+1;
+                   else if(currentPage<=4) n=i+1;
+                   else if(currentPage>=totalPages-3) n=totalPages-6+i;
+                   else n=currentPage-3+i;
+                   return (
+                     <button 
+                       key={n} 
+                       onClick={()=>setCurrentPage(n)}
+                       className={cn("w-8 h-8 rounded-lg text-xs font-bold transition-all",
+                         currentPage===n?"bg-blue-600 text-white shadow-sm":"text-slate-600 hover:bg-slate-100 border border-slate-200")}
+                     >
+                       {n}
+                     </button>
+                   );
+                 })}
+                 <button 
+                   disabled={currentPage===totalPages} 
+                   onClick={()=>setCurrentPage(currentPage+1)}
+                   className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                 >
+                   Next <ChevronRight className="w-4 h-4"/>
+                 </button>
+               </div>
+             </div>
+           )}
         </div>
       )}
 
-      {/* Detail Slide-over Panel (Enhanced) */}
+      {/* Detail Slide-over Panel */}
       {selectedOwner && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-end p-6 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-300">
-           <div className="bg-white w-full max-w-2xl h-full rounded-[3rem] shadow-2xl relative overflow-hidden flex flex-col animate-in slide-in-from-right duration-500">
-              <div className="px-10 py-10 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
-                 <div className="flex items-center gap-6">
-                    <div className="w-20 h-20 rounded-3xl bg-slate-900 text-white flex items-center justify-center font-bold text-3xl shadow-2xl">
+        <div className="fixed inset-0 z-[120] flex items-center justify-end p-4 sm:p-6 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+           <div className="bg-white w-full max-w-xl h-full rounded-2xl shadow-2xl relative overflow-hidden flex flex-col animate-in slide-in-from-right duration-300">
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                 <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-xl shadow-md shadow-blue-500/20">
                        {selectedOwner.name?.[0]?.toUpperCase() ?? "?"}
                     </div>
                     <div>
-                       <h3 className="text-3xl font-bold text-slate-800 tracking-tight">{selectedOwner.name}</h3>
-                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-2">ID: {selectedOwner.loginId} | Compliance Hub</p>
+                       <h3 className="text-xl font-bold text-slate-900">{selectedOwner.name}</h3>
+                       <p className="text-xs text-slate-500 font-medium mt-0.5">ID: {selectedOwner.loginId}</p>
                     </div>
                  </div>
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
                      {isEditingOwner && (
                         <button 
                            onClick={handleSaveEdit}
                            disabled={savingEdit}
-                           className="px-6 py-3 bg-blue-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-blue-600/20 hover:bg-blue-700 transition-all active:scale-95 flex items-center gap-2"
+                           className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold shadow-sm hover:bg-blue-700 transition-all flex items-center gap-1.5 active:scale-95"
                         >
-                          {savingEdit ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                          Save Changes
+                          {savingEdit ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                          Save
                         </button>
                      )}
-                     <button onClick={() => setIsEditingOwner(!isEditingOwner)} className="px-6 py-3 bg-slate-100 text-slate-600 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-slate-200 transition-all border border-slate-200">
-                       {isEditingOwner ? "Cancel Edit" : "Edit Details"}
+                     <button onClick={() => setIsEditingOwner(!isEditingOwner)} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all border border-slate-200">
+                       {isEditingOwner ? "Cancel" : "Edit"}
                      </button>
-                     <button onClick={() => setSelectedOwner(null)} className="p-4 rounded-3xl bg-white text-slate-400 hover:text-rose-600 transition-all shadow-xl border border-slate-100 active:scale-90">
-                        <X size={24} />
+                     <button onClick={() => setSelectedOwner(null)} className="p-2 rounded-xl bg-white text-slate-400 hover:text-slate-700 transition-all border border-slate-200 shadow-sm">
+                        <X size={20} />
                      </button>
                   </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-12 custom-scrollbar space-y-12">
-                 {/* Identity Pulse */}
-                 <section>
-                    <div className="flex items-center gap-4 mb-10">
-                       <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-bold shadow-lg shadow-blue-200">
-                          <User size={20} />
-                       </div>
-                       <h4 className="text-lg font-bold text-slate-800 uppercase tracking-widest">Stakeholder Identity</h4>
+              <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+                 <section className="space-y-4">
+                    <div className="flex items-center gap-2 text-slate-900 font-bold text-sm">
+                       <User size={18} className="text-blue-600" />
+                       <span>Owner Details</span>
                     </div>
-                    <div className="grid grid-cols-2 gap-8">
-                       <DetailItem isEditing={isEditingOwner} onChange={e => setEditOwnerForm({...editOwnerForm, email: e.target.value})} type="email" icon={Mail} label="Official Email" value={isEditingOwner ? editOwnerForm.email : (selectedOwner.email || selectedOwner.checkinEmail)} />
-                       <DetailItem isEditing={isEditingOwner} onChange={e => setEditOwnerForm({...editOwnerForm, phone: e.target.value})} type="tel" icon={Phone} label="Pulse Contact" value={isEditingOwner ? editOwnerForm.phone : (selectedOwner.phone || selectedOwner.checkinPhone)} />
-                       <DetailItem isEditing={isEditingOwner} onChange={e => setEditOwnerForm({...editOwnerForm, checkinDob: e.target.value})} type="date" icon={Calendar} label="Birth Index" value={isEditingOwner ? editOwnerForm.checkinDob : (selectedOwner.checkinDob || "Not Defined")} />
-                       <DetailItem isEditing={isEditingOwner} onChange={e => setEditOwnerForm({...editOwnerForm, address: e.target.value})} icon={MapPin} label="Home Base" value={isEditingOwner ? editOwnerForm.address : (selectedOwner.address || selectedOwner.checkinAddress)} />
-                    </div>
-                    {!isEditingOwner && selectedOwner.checkinDob && (
-                      <p className="text-[10px] text-slate-400 mt-2">DOB: {new Date(selectedOwner.checkinDob).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
-                    )}
-                 </section>
-
-                 {/* Asset Pulse */}
-                 <section className="bg-amber-50/30 p-8 rounded-[2.5rem] border border-amber-100">
-                    <div className="flex items-center gap-4 mb-10">
-                       <div className="w-10 h-10 rounded-2xl bg-amber-600 text-white flex items-center justify-center font-bold shadow-lg shadow-amber-200">
-                          <Building2 size={20} />
-                       </div>
-                       <h4 className="text-lg font-bold text-slate-800 uppercase tracking-widest">Asset Pulse</h4>
-                    </div>
-                    <div className="grid grid-cols-2 gap-8">
-                       <DetailItem icon={LayoutGrid} label="Vacant Rooms" value={selectedOwner.vacantRooms} />
-                       <DetailItem icon={Users} label="Vacant Beds" value={selectedOwner.vacantBeds} />
-                       <DetailItem icon={Banknote} label="Monthly Yield" value={selectedOwner.monthlyRent ? `₹${selectedOwner.monthlyRent}` : "Not Set"} highlight />
-                       <DetailItem icon={Wallet} label="Security Reserve" value={selectedOwner.deposit ? `₹${selectedOwner.deposit}` : "Not Set"} />
+                    <div className="grid grid-cols-2 gap-4">
+                       <DetailItem isEditing={isEditingOwner} onChange={e => setEditOwnerForm({...editOwnerForm, email: e.target.value})} type="email" icon={Mail} label="Email Address" value={isEditingOwner ? editOwnerForm.email : (selectedOwner.email || selectedOwner.checkinEmail)} />
+                       <DetailItem isEditing={isEditingOwner} onChange={e => setEditOwnerForm({...editOwnerForm, phone: e.target.value})} type="tel" icon={Phone} label="Phone Number" value={isEditingOwner ? editOwnerForm.phone : (selectedOwner.phone || selectedOwner.checkinPhone)} />
+                       <DetailItem isEditing={isEditingOwner} onChange={e => setEditOwnerForm({...editOwnerForm, checkinDob: e.target.value})} type="date" icon={Calendar} label="Date of Birth" value={isEditingOwner ? editOwnerForm.checkinDob : (selectedOwner.checkinDob || "Not Defined")} />
+                       <DetailItem isEditing={isEditingOwner} onChange={e => setEditOwnerForm({...editOwnerForm, address: e.target.value})} type="text" icon={MapPin} label="Address" value={isEditingOwner ? editOwnerForm.address : (selectedOwner.address || selectedOwner.checkinAddress)} />
                     </div>
                  </section>
 
-                 {/* Compliance Matrix */}
-                 <section className="bg-slate-50/50 p-8 rounded-[2.5rem] border border-slate-100">
-                    <div className="flex items-center gap-4 mb-10">
-                       <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold shadow-lg shadow-indigo-200">
-                          <Fingerprint size={20} />
-                       </div>
-                       <h4 className="text-lg font-bold text-slate-800 uppercase tracking-widest">Compliance Audit</h4>
+                 <section className="pt-4 border-t border-slate-100 space-y-4">
+                    <div className="flex items-center gap-2 text-slate-900 font-bold text-sm">
+                       <Banknote size={18} className="text-emerald-600" />
+                       <span>Banking Details</span>
                     </div>
-                    <div className="grid grid-cols-2 gap-8">
-                       <DetailItem icon={FileText} label="Aadhaar ID" value={selectedOwner.aadharNumber || selectedOwner.checkinAadhaarNumber} />
-                       <DetailItem icon={Phone} label="KYC Linked Phone" value={selectedOwner.checkinAadhaarLinkedPhone} />
-                       <DetailItem icon={Shield} label="Audit Status" value={(selectedOwner.kycStatus || selectedOwner.kyc?.status || "PENDING").toUpperCase()} highlight />
-                       
-                       <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-slate-400">
-                             <FileText size={12} />
-                             <span className="text-[9px] font-bold uppercase tracking-widest">KYC Document</span>
-                          </div>
-                          {(() => {
-                             const singleDocUrl = selectedOwner.kyc?.documentImage || selectedOwner.checkinAadhaarImage || selectedOwner.tenantKyc?.documentImage || selectedOwner.kyc?.aadharImage;
-                             const frontUrl = selectedOwner.kyc?.aadhaarFront || selectedOwner.checkinAadhaarFront;
-                             const backUrl = selectedOwner.kyc?.aadhaarBack || selectedOwner.checkinAadhaarBack;
-                             const ownerPhoto = selectedOwner.checkinOwnerPhoto;
-                             const bankProof = selectedOwner.checkinBankProof;
-                             
-                             const hasAnyDoc = singleDocUrl || frontUrl || backUrl || ownerPhoto || bankProof;
-                             
-                             if (!hasAnyDoc) {
-                                return <p className="text-sm font-bold text-slate-300 italic font-medium">No Document</p>;
-                             }
-                             
-                             return (
-                               <div className="flex flex-col gap-2">
-                                 {ownerPhoto && (
-                                    <div className="flex items-center gap-3">
-                                      <span className="text-xs font-medium text-slate-500 w-24">Profile Photo:</span>
-                                      <button onClick={() => window.open(ownerPhoto, "_blank")} className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1"><Eye size={12} /> View</button>
-                                      <button onClick={() => { const a = document.createElement("a"); a.href = ownerPhoto; a.download = `Profile_${selectedOwner.loginId || selectedOwner._id}.jpg`; a.target = "_blank"; a.click(); }} className="text-xs font-bold text-emerald-600 hover:underline flex items-center gap-1"><Download size={12} /> Download</button>
-                                    </div>
-                                 )}
-                                 {bankProof && (
-                                    <div className="flex items-center gap-3">
-                                      <span className="text-xs font-medium text-slate-500 w-24">Bank Proof:</span>
-                                      <button onClick={() => window.open(bankProof, "_blank")} className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1"><Eye size={12} /> View</button>
-                                      <button onClick={() => { const a = document.createElement("a"); a.href = bankProof; a.download = `Bank_${selectedOwner.loginId || selectedOwner._id}.jpg`; a.target = "_blank"; a.click(); }} className="text-xs font-bold text-emerald-600 hover:underline flex items-center gap-1"><Download size={12} /> Download</button>
-                                    </div>
-                                 )}
-                                 {singleDocUrl && (
-                                    <div className="flex items-center gap-3">
-                                      <span className="text-xs font-medium text-slate-500 w-24">Aadhaar Doc:</span>
-                                      <button onClick={() => window.open(singleDocUrl, "_blank")} className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1"><Eye size={12} /> View</button>
-                                      <button onClick={() => { const a = document.createElement("a"); a.href = singleDocUrl; a.download = `Aadhaar_${selectedOwner.loginId || selectedOwner._id}.jpg`; a.target = "_blank"; a.click(); }} className="text-xs font-bold text-emerald-600 hover:underline flex items-center gap-1"><Download size={12} /> Download</button>
-                                    </div>
-                                 )}
-                                 {frontUrl && (
-                                    <div className="flex items-center gap-3">
-                                      <span className="text-xs font-medium text-slate-500 w-24">Aadhaar Front:</span>
-                                      <button onClick={() => window.open(frontUrl, "_blank")} className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1"><Eye size={12} /> View</button>
-                                      <button onClick={() => { const a = document.createElement("a"); a.href = frontUrl; a.download = `Aadhaar_Front_${selectedOwner.loginId || selectedOwner._id}.jpg`; a.target = "_blank"; a.click(); }} className="text-xs font-bold text-emerald-600 hover:underline flex items-center gap-1"><Download size={12} /> Download</button>
-                                    </div>
-                                 )}
-                                 {backUrl && (
-                                    <div className="flex items-center gap-3">
-                                      <span className="text-xs font-medium text-slate-500 w-24">Aadhaar Back:</span>
-                                      <button onClick={() => window.open(backUrl, "_blank")} className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1"><Eye size={12} /> View</button>
-                                      <button onClick={() => { const a = document.createElement("a"); a.href = backUrl; a.download = `Aadhaar_Back_${selectedOwner.loginId || selectedOwner._id}.jpg`; a.target = "_blank"; a.click(); }} className="text-xs font-bold text-emerald-600 hover:underline flex items-center gap-1"><Download size={12} /> Download</button>
-                                    </div>
-                                 )}
-                               </div>
-                             );
-                          })()}
-                       </div>
+                    <div className="grid grid-cols-2 gap-4">
+                       <DetailItem isEditing={isEditingOwner} onChange={e => setEditOwnerForm({...editOwnerForm, bankName: e.target.value})} type="text" icon={Building2} label="Bank Name" value={isEditingOwner ? editOwnerForm.bankName : (selectedOwner.bankName || selectedOwner.checkinBankName)} />
+                       <DetailItem isEditing={isEditingOwner} onChange={e => setEditOwnerForm({...editOwnerForm, branchName: e.target.value})} type="text" icon={MapPin} label="Branch Name" value={isEditingOwner ? editOwnerForm.branchName : (selectedOwner.branchName || selectedOwner.checkinBranchName)} />
+                       <DetailItem isEditing={isEditingOwner} onChange={e => setEditOwnerForm({...editOwnerForm, accountNumber: e.target.value})} type="text" icon={Fingerprint} label="Account Number" value={isEditingOwner ? editOwnerForm.accountNumber : (selectedOwner.accountNumber || selectedOwner.checkinBankAccountNumber)} />
+                       <DetailItem isEditing={isEditingOwner} onChange={e => setEditOwnerForm({...editOwnerForm, ifscCode: e.target.value})} type="text" icon={Shield} label="IFSC Code" value={isEditingOwner ? editOwnerForm.ifscCode : (selectedOwner.ifscCode || selectedOwner.checkinIfscCode)} />
                     </div>
                  </section>
 
-                 {/* Banking Hub */}
-                 <section>
-                    <div className="flex items-center gap-4 mb-10">
-                       <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-bold shadow-lg shadow-emerald-200">
-                          <Landmark size={20} />
+                 {/* KYC & Uploaded Documents Section */}
+                 <section className="pt-4 border-t border-slate-100 space-y-4">
+                    <div className="flex items-center justify-between">
+                       <div className="flex items-center gap-2 text-slate-900 font-bold text-sm">
+                          <ShieldCheck size={18} className="text-blue-600" />
+                          <span>KYC & Verification Documents</span>
                        </div>
-                       <h4 className="text-lg font-bold text-slate-800 uppercase tracking-widest">Settlement Engine</h4>
+                       <span className={cn(
+                          "text-xs font-bold px-2.5 py-1 rounded-lg uppercase",
+                          (selectedOwner.kycStatus || selectedOwner.kyc?.status) === "verified" ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-amber-50 text-amber-600 border border-amber-100"
+                       )}>
+                          {selectedOwner.kycStatus || selectedOwner.kyc?.status || "Pending"}
+                       </span>
                     </div>
-                    <div className="grid grid-cols-2 gap-8">
-                       <DetailItem isEditing={isEditingOwner} onChange={e => setEditOwnerForm({...editOwnerForm, bankName: e.target.value})} icon={Building2} label="Institution" value={isEditingOwner ? editOwnerForm.bankName : (selectedOwner.bankName || selectedOwner.checkinBankName)} />
-                       <DetailItem isEditing={isEditingOwner} onChange={e => setEditOwnerForm({...editOwnerForm, branchName: e.target.value})} icon={Landmark} label="Branch Name" value={isEditingOwner ? editOwnerForm.branchName : (selectedOwner.branchName || selectedOwner.checkinBranchName)} />
-                       <DetailItem isEditing={isEditingOwner} onChange={e => setEditOwnerForm({...editOwnerForm, accountNumber: e.target.value})} icon={CreditCard} label="Ledger Number" value={isEditingOwner ? editOwnerForm.accountNumber : (selectedOwner.accountNumber || selectedOwner.checkinBankAccountNumber)} />
-                       <DetailItem isEditing={isEditingOwner} onChange={e => setEditOwnerForm({...editOwnerForm, ifscCode: e.target.value})} icon={Zap} label="Routing (IFSC)" value={isEditingOwner ? editOwnerForm.ifscCode : (selectedOwner.ifscCode || selectedOwner.checkinIfscCode)} />
-                       <DetailItem isEditing={isEditingOwner} onChange={e => setEditOwnerForm({...editOwnerForm, accountHolderName: e.target.value})} icon={User} label="Account Holder" value={isEditingOwner ? editOwnerForm.accountHolderName : (selectedOwner.checkinAccountHolderName)} />
-                       <DetailItem isEditing={isEditingOwner} onChange={e => setEditOwnerForm({...editOwnerForm, checkinUpiId: e.target.value})} icon={Wallet} label="UPI Link" value={isEditingOwner ? editOwnerForm.checkinUpiId : selectedOwner.checkinUpiId} />
-                    </div>
-                 </section>
 
-                 {/* Rental Agreement */}
-                 <section className="bg-violet-50/30 p-8 rounded-[2.5rem] border border-violet-100">
-                    <div className="flex items-center gap-4 mb-10">
-                       <div className="w-10 h-10 rounded-2xl bg-violet-600 text-white flex items-center justify-center font-bold shadow-lg shadow-violet-200">
-                          <FileText size={20} />
-                       </div>
-                       <h4 className="text-lg font-bold text-slate-800 uppercase tracking-widest">Rental Agreement</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                       <DetailItem icon={Fingerprint} label="Aadhaar Number" value={selectedOwner.checkinAadhaarNumber || selectedOwner.aadharNumber || selectedOwner.kyc?.aadharNumber || "Not Provided"} />
+                       <DetailItem icon={Phone} label="Aadhaar Phone" value={selectedOwner.checkinAadhaarLinkedPhone || selectedOwner.kyc?.aadhaarLinkedPhone || "Not Provided"} />
                     </div>
-                    {(() => {
-                       const agreement = selectedOwner.digitalCheckin?.agreement || selectedOwner.agreement || {};
-                       const isAgreementSigned = selectedOwner.agreementSigned || agreement.signed || agreement.acceptedAt || agreement.eSignName;
-                       const agreementStatus = selectedOwner.agreementStatus || (isAgreementSigned ? "Signed" : "Not Signed");
-                       const eSignName = selectedOwner.agreementESignName || agreement.eSignName || "—";
-                       const signedAt = selectedOwner.agreementSignedAt || agreement.acceptedAt || agreement.signedAt;
-                       const signatureUrl = agreement.signatureDataUrl || selectedOwner.agreementSignatureUrl;
-                       const agreementDocUrl = selectedOwner.agreementDocUrl || agreement.documentUrl;
-                       return (
-                          <>
-                             <div className="grid grid-cols-2 gap-8 mb-6">
-                                <DetailItem icon={ShieldCheck} label="Agreement Status" value={agreementStatus} highlight={isAgreementSigned} />
-                                <DetailItem icon={User} label="e-Signature Name" value={eSignName} />
-                                <DetailItem icon={Calendar} label="Signed At" value={signedAt ? new Date(signedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : "—"} />
-                                <div className="space-y-2">
-                                   <div className="flex items-center gap-2 text-slate-400">
-                                      <FileText size={12} />
-                                      <span className="text-[9px] font-bold uppercase tracking-widest">Agreement Document</span>
-                                   </div>
-                                   {agreementDocUrl ? (
-                                      <div className="flex items-center gap-3">
-                                         <button onClick={() => window.open(agreementDocUrl, "_blank")} className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1"><Eye size={12} /> View</button>
-                                         <button onClick={() => { const a = document.createElement("a"); a.href = agreementDocUrl; a.download = `Agreement_${selectedOwner.loginId}.pdf`; a.target = "_blank"; a.click(); }} className="text-xs font-bold text-emerald-600 hover:underline flex items-center gap-1"><Download size={12} /> Download</button>
-                                      </div>
-                                   ) : (
-                                      <p className="text-sm font-bold text-slate-300 italic">No Document</p>
-                                   )}
-                                </div>
-                             </div>
-                             {signatureUrl && (
-                                <div className="mt-4 space-y-3">
-                                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Signature Preview</p>
-                                   <img src={signatureUrl} className="h-20 object-contain rounded-xl bg-white border border-slate-100 p-2 shadow-sm" alt="Signature" />
-                                </div>
-                             )}
-                             {!isAgreementSigned && (
-                                <div className="mt-4 p-4 bg-amber-50 border border-amber-100 rounded-2xl">
-                                   <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest">Agreement not yet signed by this owner.</p>
-                                </div>
-                             )}
-                          </>
-                       );
-                    })()}
-                 </section>
-              </div>
 
-              <div className="px-10 py-10 border-t border-slate-50 bg-slate-50/50 flex justify-between items-center">
-                 <div className="flex items-center gap-4">
-                    <button 
-                       onClick={() => {
-                          handleDelete(selectedOwner.loginId || selectedOwner._id);
-                          setSelectedOwner(null);
-                       }}
-                       className="text-[10px] font-bold text-rose-500 uppercase tracking-widest hover:underline"
-                    >
-                       Purge Stakeholder
-                    </button>
-                    <span className="text-slate-300">|</span>
-                    <button 
-                       onClick={() => {
-                          handleToggleDeactivate(selectedOwner);
-                          setSelectedOwner(null);
-                       }}
-                       className={cn(
-                          "text-[10px] font-bold uppercase tracking-widest hover:underline",
-                          selectedOwner.isActive === false ? "text-emerald-600" : "text-amber-600"
-                       )}
-                    >
-                       {selectedOwner.isActive === false ? "Reactivate Account" : "Deactivate Account"}
-                    </button>
-                 </div>
-                 <div className="flex gap-4">
-                    <button 
-                      onClick={() => handleKycUpdate(selectedOwner.loginId || selectedOwner._id, "rejected", "Documents unclear")}
-                      disabled={isUpdatingKyc}
-                      className="px-8 py-4 bg-white text-slate-600 border border-slate-200 rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-slate-50 transition-all disabled:opacity-50"
-                    >
-                       Reject Audit
-                    </button>
-                    {(selectedOwner.kycStatus === 'requested' || selectedOwner.kyc?.status === 'requested') ? (
-                       <button 
-                         onClick={() => handleApproveRequest(selectedOwner.loginId || selectedOwner._id)}
-                         disabled={isUpdatingKyc}
-                         className="px-8 py-4 bg-blue-600 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest shadow-xl shadow-blue-600/20 hover:bg-blue-700 transition-all flex items-center gap-3 disabled:opacity-50"
-                       >
-                          {isUpdatingKyc ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                          Approve Request
-                       </button>
-                    ) : (
-                       <button 
-                         onClick={() => handleKycUpdate(selectedOwner.loginId || selectedOwner._id, "verified")}
-                         disabled={isUpdatingKyc}
-                         className="px-8 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:bg-black transition-all flex items-center gap-3 disabled:opacity-50"
-                       >
-                          {isUpdatingKyc ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
-                          Approve Compliance
-                       </button>
-                    )}
-                 </div>
+                    {/* Uploaded Document Previews */}
+                     <div className="grid grid-cols-3 gap-3 pt-2">
+                        {selectedOwner.checkinOwnerPhoto && (
+                           <a href={selectedOwner.checkinOwnerPhoto} target="_blank" rel="noreferrer" className="group relative rounded-xl border border-slate-200 p-2 text-center bg-slate-50 hover:bg-blue-50/50 hover:border-blue-300 transition-all">
+                              <div className="aspect-square w-full rounded-lg overflow-hidden bg-slate-200 mb-1.5">
+                                 <img src={selectedOwner.checkinOwnerPhoto} alt="Owner Photo" className="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement && (e.currentTarget.parentElement.innerHTML = '<div class=\'flex items-center justify-center h-full text-slate-400 text-xs\'>No Preview</div>'); }} />
+                              </div>
+                              <span className="text-[11px] font-bold text-slate-700 group-hover:text-blue-600">Owner Photo ↗</span>
+                           </a>
+                        )}
+                        {(selectedOwner.checkinAadhaarImage || selectedOwner.kyc?.documentImage || selectedOwner.documentImage) && (
+                           <a href={selectedOwner.checkinAadhaarImage || selectedOwner.kyc?.documentImage || selectedOwner.documentImage} target="_blank" rel="noreferrer" className="group relative rounded-xl border border-slate-200 p-2 text-center bg-slate-50 hover:bg-blue-50/50 hover:border-blue-300 transition-all">
+                              <div className="aspect-square w-full rounded-lg overflow-hidden bg-slate-200 mb-1.5 flex items-center justify-center">
+                                 <img src={selectedOwner.checkinAadhaarImage || selectedOwner.kyc?.documentImage || selectedOwner.documentImage} alt="Aadhaar Card" className="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement && (e.currentTarget.parentElement.innerHTML = '<div class=\'flex items-center justify-center h-full text-slate-400 text-xs\'>No Preview</div>'); }} />
+                              </div>
+                              <span className="text-[11px] font-bold text-slate-700 group-hover:text-blue-600">Aadhaar Card ↗</span>
+                           </a>
+                        )}
+                        {(selectedOwner.checkinBankProof || selectedOwner.checkinCancelledCheque) && (
+                           <a href={typeof selectedOwner.checkinBankProof === 'string' ? selectedOwner.checkinBankProof : (typeof selectedOwner.checkinCancelledCheque === 'string' ? selectedOwner.checkinCancelledCheque : selectedOwner.checkinCancelledCheque?.dataUrl)} target="_blank" rel="noreferrer" className="group relative rounded-xl border border-slate-200 p-2 text-center bg-slate-50 hover:bg-blue-50/50 hover:border-blue-300 transition-all">
+                              <div className="aspect-square w-full rounded-lg overflow-hidden bg-slate-200 mb-1.5 flex items-center justify-center text-slate-400">
+                                 {String(selectedOwner.checkinBankProof || selectedOwner.checkinCancelledCheque?.dataUrl || '').startsWith("http") ? (
+                                    <img src={selectedOwner.checkinBankProof || selectedOwner.checkinCancelledCheque?.dataUrl} alt="Bank Proof" className="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement && (e.currentTarget.parentElement.innerHTML = '<div class=\'flex items-center justify-center h-full text-slate-400 text-xs\'>No Preview</div>'); }} />
+                                 ) : (
+                                    <FileText size={28} />
+                                 )}
+                              </div>
+                              <span className="text-[11px] font-bold text-slate-700 group-hover:text-blue-600">Bank Proof ↗</span>
+                           </a>
+                        )}
+                        {selectedOwner.checkinCancelledCheque && typeof selectedOwner.checkinCancelledCheque === 'object' && selectedOwner.checkinCancelledCheque.dataUrl && !selectedOwner.checkinBankProof && (
+                           <a href={selectedOwner.checkinCancelledCheque.dataUrl} target="_blank" rel="noreferrer" className="group relative rounded-xl border border-slate-200 p-2 text-center bg-slate-50 hover:bg-blue-50/50 hover:border-blue-300 transition-all">
+                              <div className="aspect-square w-full rounded-lg overflow-hidden bg-slate-200 mb-1.5 flex items-center justify-center text-slate-400">
+                                 <img src={selectedOwner.checkinCancelledCheque.dataUrl} alt="Cancelled Cheque" className="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement && (e.currentTarget.parentElement.innerHTML = '<div class=\'flex items-center justify-center h-full text-slate-400 text-xs\'>No Preview</div>'); }} />
+                              </div>
+                              <span className="text-[11px] font-bold text-slate-700 group-hover:text-blue-600">Cancelled Cheque ↗</span>
+                           </a>
+                        )}
+                     </div>
+                 </section>
               </div>
            </div>
         </div>
@@ -975,57 +836,23 @@ export default function Owner() {
   );
 }
 
-function DetailItem({ icon: Icon, label, value, highlight, isEditing, onChange, type = "text" }) {
-  return (
-    <div className="space-y-2">
-       <div className="flex items-center gap-2 text-slate-400">
-          <Icon size={12} />
-          <span className="text-[9px] font-bold uppercase tracking-widest">{label}</span>
-       </div>
-       {isEditing ? (
-          <input 
-             type={type}
-             value={value || ""}
-             onChange={onChange}
-             className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all outline-none shadow-sm"
-          />
-       ) : (
-          <p className={cn(
-            "text-sm font-bold tracking-tight truncate",
-            highlight ? "text-blue-600" : "text-slate-700",
-            !value && "text-slate-300 italic font-medium"
-          )}>
-             {value || "Field Null"}
-          </p>
-       )}
-    </div>
-  );
-}
-
-function StatCardHorizontal({ label, value, trend, up, icon: Icon, color }) {
-  const bgColors = { 
-    indigo: "bg-indigo-50 text-indigo-600 border-indigo-100", 
-    emerald: "bg-emerald-50 text-emerald-600 border-emerald-100", 
-    blue: "bg-blue-50 text-blue-600 border-blue-100", 
-    amber: "bg-amber-50 text-amber-600 border-amber-100" 
-  };
-  
-  return (
-    <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-xl shadow-slate-200/40 flex items-start gap-5 group hover:translate-y-[-5px] transition-all duration-500">
-      <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 border-2 shadow-sm transition-transform group-hover:rotate-6", bgColors[color])}>
-         <Icon className="w-7 h-7" />
-      </div>
-      <div className="min-w-0">
-         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2 leading-none truncate">{label}</p>
-         <p className="text-3xl font-black text-slate-800 tracking-tighter leading-none mb-3">{value}</p>
-         <div className={cn(
-           "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider",
-           up ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
-         )}>
-            {up ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-            {trend}
+function DetailItem({ label, value, icon: Icon, isEditing, onChange, type = "text" }) {
+   return (
+      <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 space-y-1">
+         <div className="flex items-center gap-1.5 text-slate-400">
+            {Icon && <Icon size={14} />}
+            <span className="text-[11px] font-semibold text-slate-500">{label}</span>
          </div>
+         {isEditing ? (
+            <input 
+               type={type}
+               value={value || ""}
+               onChange={onChange}
+               className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
+            />
+         ) : (
+            <p className="text-xs font-bold text-slate-900 truncate">{value || "Not Set"}</p>
+         )}
       </div>
-    </div>
-  );
+   );
 }

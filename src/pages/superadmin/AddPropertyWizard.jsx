@@ -7,7 +7,7 @@ import {
   Camera, Play, AlertCircle, CheckCircle2, Send, Save, Image as ImageIcon,
   Wifi, IndianRupee, Info, Clock, User, Eye, LayoutGrid, Pencil, RefreshCw
 } from "lucide-react";
-import { getApiBase, fetchCities, fetchAreas } from "../../utils/api";
+import { getApiBase, getAuthHeader, fetchCities, fetchAreas } from "../../utils/api";
 import { toast } from "react-hot-toast";
 import { PageHeader } from "../../components/superadmin/PageHeader";
 import LocationMapPicker from "../../components/website/LocationMapPicker";
@@ -454,7 +454,11 @@ export default function AddPropertyWizard({ propEditId, isModal, onClose }) {
       const data = new FormData();
       data.append("image", file);
       try {
-        const res = await fetch(`${apiUrl}/api/upload`, { method: "POST", body: data });
+        const res = await fetch(`${apiUrl}/api/upload`, { 
+          method: "POST", 
+          headers: getAuthHeader(), 
+          body: data 
+        });
         const json = await res.json();
         if (json.url) {
           if (target === "property") {
@@ -484,7 +488,11 @@ export default function AddPropertyWizard({ propEditId, isModal, onClose }) {
     const data = new FormData();
     data.append("image", file); // Backend uses "image" field for all uploads
     try {
-      const res = await fetch(`${apiUrl}/api/upload`, { method: "POST", body: data });
+      const res = await fetch(`${apiUrl}/api/upload`, { 
+        method: "POST", 
+        headers: getAuthHeader(), 
+        body: data 
+      });
       const json = await res.json();
       if (json.url) {
         setVideoUrl(json.url);
@@ -1029,18 +1037,51 @@ export default function AddPropertyWizard({ propEditId, isModal, onClose }) {
                    <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-8">Additional Details</h3>
                    <div className="grid grid-cols-3 gap-6">
                       <FormField label="Total Property Area (Optional)" value={totalArea} onChange={e => setTotalArea(e.target.value)} suffix="Sq.ft" />
-                      <div>
-                        <label className="text-[9px] font-black text-slate-400 uppercase mb-2 block">Year Built</label>
-                        <select value={yearBuilt} onChange={e => setYearBuilt(e.target.value)} className="w-full bg-slate-50 border border-slate-100 rounded-xl py-2.5 px-4 text-xs font-black outline-none">
-                           <option>2020</option><option>2021</option><option>2022</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-[9px] font-black text-slate-400 uppercase mb-2 block">Property Age</label>
-                        <select value={propertyAge} onChange={e => setPropertyAge(e.target.value)} className="w-full bg-slate-50 border border-slate-100 rounded-xl py-2.5 px-4 text-xs font-black outline-none">
-                           <option>1-2 Years</option><option>3-5 Years</option>
-                        </select>
-                      </div>
+                      <div className="flex flex-col">
+                         <label className="text-[10px] font-black text-slate-800 uppercase mb-3 block tracking-tight">Year Built</label>
+                         <div className="flex items-center bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 focus-within:bg-white focus-within:border-blue-200 focus-within:ring-2 focus-within:ring-blue-500/10 transition-all">
+                           <input 
+                             type="text" 
+                             list="year-built-options" 
+                             value={yearBuilt} 
+                             onChange={e => setYearBuilt(e.target.value)} 
+                             placeholder="Select or type year..." 
+                             className="w-full bg-transparent text-[10px] font-black text-slate-800 outline-none placeholder:text-slate-300"
+                           />
+                         </div>
+                         <datalist id="year-built-options">
+                           {Array.from({ length: 37 }, (_, i) => 2026 - i).map(year => (
+                             <option key={year} value={String(year)} />
+                           ))}
+                           <option value="Before 1990" />
+                         </datalist>
+                       </div>
+
+                       <div className="flex flex-col">
+                         <label className="text-[10px] font-black text-slate-800 uppercase mb-3 block tracking-tight">Property Age</label>
+                         <div className="flex items-center bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 focus-within:bg-white focus-within:border-blue-200 focus-within:ring-2 focus-within:ring-blue-500/10 transition-all">
+                           <input 
+                             type="text" 
+                             list="property-age-options" 
+                             value={propertyAge} 
+                             onChange={e => setPropertyAge(e.target.value)} 
+                             placeholder="Select or type age..." 
+                             className="w-full bg-transparent text-[10px] font-black text-slate-800 outline-none placeholder:text-slate-300"
+                           />
+                         </div>
+                         <datalist id="property-age-options">
+                           <option value="Brand New (Newly Built)" />
+                           <option value="Under 1 Year" />
+                           <option value="1 - 2 Years" />
+                           <option value="2 - 3 Years" />
+                           <option value="3 - 5 Years" />
+                           <option value="5 - 7 Years" />
+                           <option value="7 - 10 Years" />
+                           <option value="10 - 15 Years" />
+                           <option value="15 - 20 Years" />
+                           <option value="20+ Years" />
+                         </datalist>
+                       </div>
                    </div>
 
                     <div className="grid grid-cols-12 gap-4 mt-8 items-end">
