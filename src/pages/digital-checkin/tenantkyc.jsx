@@ -42,7 +42,128 @@ const OcrBadge = ({ ocr }) => {
   return null;
 };
 
-const AadhaarUpload = ({ label, side, value, onChange, ocrStatus, error }) => {
+const CameraSelfieModal = ({ isOpen, onClose, onCapture }) => {
+  const videoRef = React.useRef(null);
+  const canvasRef = React.useRef(null);
+  const [stream, setStream] = React.useState(null);
+  const [cameraError, setCameraError] = React.useState("");
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setCameraError("");
+      navigator.mediaDevices?.getUserMedia({ video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } } })
+        .then((mediaStream) => {
+          setStream(mediaStream);
+          if (videoRef.current) {
+            videoRef.current.srcObject = mediaStream;
+          }
+        })
+        .catch((err) => {
+          console.error("Camera access error:", err);
+          setCameraError("Camera permission denied or camera not found. Please upload a photo file instead.");
+        });
+    } else {
+      stopCamera();
+    }
+    return () => {
+      stopCamera();
+    };
+  }, [isOpen]);
+
+  const stopCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach((track) => track.stop());
+      setStream(null);
+    }
+  };
+
+  const handleCapture = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    const ctx = canvas.getContext("2d");
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+    stopCamera();
+    onCapture(dataUrl);
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.75)",
+      display: "flex", alignItems: "center", justifyContent: "center", padding: "16px"
+    }}>
+      <div style={{
+        background: "#fff", borderRadius: "16px", maxWidth: "440px", width: "100%",
+        padding: "20px", textAlign: "center", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.3)"
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+          <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: "#1e293b" }}>🤳 Take Live Selfie</h3>
+          <button
+            type="button"
+            onClick={() => { stopCamera(); onClose(); }}
+            style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: "#64748b" }}
+          >
+            ✕
+          </button>
+        </div>
+
+        {cameraError ? (
+          <div style={{ padding: "16px", background: "#fef2f2", color: "#991b1b", borderRadius: "10px", fontSize: "13px", marginBottom: "16px" }}>
+            {cameraError}
+          </div>
+        ) : (
+          <div style={{ position: "relative", width: "100%", borderRadius: "12px", overflow: "hidden", background: "#000", marginBottom: "16px", aspectRatio: "4/3" }}>
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)" }}
+            />
+          </div>
+        )}
+
+        <canvas ref={canvasRef} style={{ display: "none" }} />
+
+        <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
+          {!cameraError && (
+            <button
+              type="button"
+              onClick={handleCapture}
+              style={{
+                background: "#7c3aed", color: "#fff", border: "none", padding: "12px 24px",
+                borderRadius: "8px", fontWeight: 700, cursor: "pointer", fontSize: "14px",
+                display: "inline-flex", alignItems: "center", gap: "8px"
+              }}
+            >
+              📸 Capture Photo
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => { stopCamera(); onClose(); }}
+            style={{
+              background: "#e2e8f0", color: "#334155", border: "none", padding: "12px 20px",
+              borderRadius: "8px", fontWeight: 600, cursor: "pointer", fontSize: "14px"
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const AadhaarUpload = ({ label, side, value, onChange, ocrStatus, error, onOpenCamera }) => {
   const inputRef = React.useRef(null);
 
   const borderColor =
@@ -104,6 +225,22 @@ const AadhaarUpload = ({ label, side, value, onChange, ocrStatus, error }) => {
           </>
         )}
       </div>
+
+      {side === "selfie" && !value && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onOpenCamera && onOpenCamera(); }}
+          style={{
+            marginTop: "8px", width: "100%", padding: "8px 12px", fontSize: "12px",
+            background: "#7c3aed", color: "#fff", border: "none", borderRadius: "6px",
+            fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center",
+            justifyContent: "center", gap: "6px", boxShadow: "0 2px 4px rgba(124, 58, 237, 0.2)"
+          }}
+        >
+          📷 Take Live Selfie (Camera)
+        </button>
+      )}
+
       <OcrBadge ocr={ocrStatus} />
       {error && !ocrStatus?.status && <FieldError msg={error} />}
       {value && (
@@ -164,19 +301,7 @@ export default function DigitalCheckinTenantkyc() {
   const [aadhaarFront, setAadhaarFront] = React.useState("");
   const [aadhaarBack, setAadhaarBack]   = React.useState("");
   const [tenantPhoto, setTenantPhoto]   = React.useState("");
-
-  // Sync pre-filled uploaded URLs into local preview state
-  React.useEffect(() => {
-    if (uploadedUrls?.aadhaarFrontUrl && !aadhaarFront) {
-      setAadhaarFront(uploadedUrls.aadhaarFrontUrl);
-    }
-    if (uploadedUrls?.aadhaarBackUrl && !aadhaarBack) {
-      setAadhaarBack(uploadedUrls.aadhaarBackUrl);
-    }
-    if (uploadedUrls?.tenantPhotoUrl && !tenantPhoto) {
-      setTenantPhoto(uploadedUrls.tenantPhotoUrl);
-    }
-  }, [uploadedUrls]);
+  const [isCameraOpen, setIsCameraOpen] = React.useState(false);
 
   // Run OCR and clear field error when an image is selected
   const onFrontChange = (base64, file) => {
@@ -314,21 +439,28 @@ export default function DigitalCheckinTenantkyc() {
           </div>
         </div>
 
-        {/* Tenant Selfie — optional */}
+        {/* Tenant Selfie / Photo */}
         <div style={{ marginTop: "24px" }}>
           <label style={{ marginBottom: "4px" }}>Tenant Selfie / Photo</label>
           <p style={{ margin: "0 0 14px", fontSize: "12px", color: "#7a8fa6" }}>
-            Upload a clear face photo of the tenant (optional).
+            Take a live face selfie using your camera or upload a clear photo file.
           </p>
-          <div style={{ maxWidth: "200px" }}>
+          <div style={{ maxWidth: "220px" }}>
             <AadhaarUpload
               label="Tenant Photo"
               side="selfie"
               value={tenantPhoto}
               onChange={onPhotoChange}
+              onOpenCamera={() => setIsCameraOpen(true)}
             />
           </div>
         </div>
+
+        <CameraSelfieModal
+          isOpen={isCameraOpen}
+          onClose={() => setIsCameraOpen(false)}
+          onCapture={(capturedBase64) => onPhotoChange(capturedBase64)}
+        />
 
         {/* Send OTP button — disabled while loading or already sent */}
         <button

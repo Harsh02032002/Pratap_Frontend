@@ -1,6 +1,6 @@
 import React from "react";
 import OwnerLayout from "../../components/OwnerLayout";
-import { Calendar, User, Home, Clock, Check, X, MoreHorizontal, ArrowRight, Sparkles, MapPin } from "lucide-react";
+import { Calendar, User, Home, Clock, Check, X, MoreHorizontal, ArrowRight, Sparkles, MapPin, Trash2 } from "lucide-react";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
@@ -60,6 +60,9 @@ export default function OwnerBookings() {
                 </button>
                 <button className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-400 font-black text-[9px] uppercase tracking-widest rounded-xl transition-all active:scale-95">
                   <X size={16} /> Decline
+                </button>
+                <button className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-100 hover:bg-red-50 hover:text-red-600 text-slate-400 font-black text-[9px] uppercase tracking-widest rounded-xl transition-all active:scale-95">
+                  <Trash2 size={16} /> Delete
                 </button>
                 <button className="p-3 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-100 transition-all text-slate-400 hover:text-slate-900">
                    <MoreHorizontal size={18} />

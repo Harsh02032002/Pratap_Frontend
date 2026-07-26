@@ -4,7 +4,7 @@ import { MobileTabs, MobileEmptyState, MobileStatCard, cn } from "../../componen
 import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerProperties } from "../../utils/propertyowner";
 import { apiFetch } from "../../utils/api";
 import { cacheGet, cacheSet, cacheInvalidate } from "../../utils/cache";
-import { Search, Plus, Phone, MessageCircle, MoreHorizontal, X, Mail, MapPin, Loader2, Trash2, Users, TrendingUp, CalendarCheck, UserCheck, BookOpen } from "lucide-react";
+import { Search, Plus, Phone, MessageCircle, MoreHorizontal, X, Mail, MapPin, Loader2, Trash2, Users, TrendingUp, CalendarCheck, UserCheck, BookOpen, Check, MessageSquare } from "lucide-react";
 
 const Pill = ({ tone="muted", children }) => {
   const t = { 

@@ -84,7 +84,7 @@ export default function Locations() {
     return (
       <div className="flex flex-col items-center justify-center h-[600px] gap-4">
         <div className="w-12 h-12 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Accessing Geographical Data...</p>
+        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Loading Cities & Locations...</p>
       </div>
     );
   }
@@ -94,30 +94,30 @@ export default function Locations() {
       {/* Header Area */}
       <div className="flex items-center justify-between">
          <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-bold text-slate-800 tracking-tight leading-none">Territory Hub</h1>
-            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Regional Operational Coverage & Geographic Network Governance Matrix</p>
+            <h1 className="text-2xl font-bold text-slate-800 tracking-tight leading-none">Location Wise Data</h1>
+            <p className="text-xs font-semibold text-slate-400 mt-1">View active cities, states, and property distribution across locations.</p>
          </div>
          <div className="flex items-center gap-3">
-            <div className="relative group w-48">
+            <div className="relative group w-64">
                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-300" />
                <input 
                  value={search} onChange={e => setSearch(e.target.value)}
-                 placeholder="Search territories..." 
-                 className="w-full bg-white border border-slate-100 rounded-xl py-2 pl-9 pr-3 text-[10px] font-bold shadow-sm outline-none focus:ring-2 focus:ring-blue-100 transition-all" 
+                 placeholder="Search cities, states..." 
+                 className="w-full bg-white border border-slate-100 rounded-xl py-2 pl-9 pr-3 text-xs font-bold shadow-sm outline-none focus:ring-2 focus:ring-blue-100 transition-all" 
                />
             </div>
-            <button onClick={() => openModal()} className="bg-slate-800 text-white px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-lg shadow-slate-800/10 hover:bg-slate-900 transition-all flex items-center gap-2">
-               <MapPin className="w-3.5 h-3.5" /> Map City
+            <button onClick={() => openModal()} className="bg-slate-800 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider shadow-lg shadow-slate-800/10 hover:bg-slate-900 transition-all flex items-center gap-2">
+               <MapPin className="w-3.5 h-3.5" /> Add City / Location
             </button>
          </div>
       </div>
 
       {/* Metrics Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCardHorizontal label="Cities Active" value={locations.length} trend="Global Network" up icon={Map} color="blue" />
-        <StatCardHorizontal label="State Coverage" value={new Set(locations.map(l => l.state)).size} trend="Regional Pulse" up icon={Globe} color="emerald" />
-        <StatCardHorizontal label="Asset Density" value={Math.round(locations.reduce((s, l) => s + (l.propertyCount || 0), 0) / (locations.length || 1))} trend="Avg Per Zone" up icon={Building2} color="indigo" />
-        <StatCardHorizontal label="Total Outreach" value={locations.reduce((s, l) => s + (l.propertyCount || 0), 0)} trend="+12% Alpha" up icon={Activity} color="amber" />
+        <StatCardHorizontal label="Active Cities" value={locations.length} trend="Active Cities" up icon={Map} color="blue" />
+        <StatCardHorizontal label="States Covered" value={new Set(locations.map(l => l.state)).size} trend="States" up icon={Globe} color="emerald" />
+        <StatCardHorizontal label="Avg Properties / City" value={Math.round(locations.reduce((s, l) => s + (l.propertyCount || 0), 0) / (locations.length || 1))} trend="Average" up icon={Building2} color="indigo" />
+        <StatCardHorizontal label="Total Properties" value={locations.reduce((s, l) => s + (l.propertyCount || 0), 0)} trend="Live Properties" up icon={Activity} color="amber" />
       </div>
 
       {/* Territory Grid */}
@@ -135,18 +135,18 @@ export default function Locations() {
             </div>
             
             <div className="space-y-0.5">
-               <h3 className="text-[12px] font-bold text-slate-800 tracking-tight leading-tight truncate">{l.name}</h3>
-               <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest truncate leading-none mt-0.5">{l.state}, {l.country}</p>
+               <h3 className="text-[13px] font-bold text-slate-800 tracking-tight leading-tight truncate">{l.name}</h3>
+               <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider truncate leading-none mt-0.5">{l.state}, {l.country}</p>
             </div>
 
             <div className="mt-6 pt-4 border-t border-slate-50 flex items-end justify-between">
                <div>
-                  <p className="text-xl font-bold text-slate-800 tracking-tighter leading-none">{l.propertyCount || 0}</p>
-                  <p className="text-[7px] font-bold text-slate-400 uppercase mt-1 tracking-widest leading-none">Operational Assets</p>
+                  <p className="text-xl font-black text-slate-900 tracking-tight leading-none">{l.propertyCount || 0}</p>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-wider leading-none">Properties</p>
                </div>
-               <div className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-lg border border-emerald-100 text-[7px] font-bold uppercase shadow-sm">
+               <div className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-lg border border-emerald-100 text-[8px] font-bold uppercase shadow-sm">
                   <TrendingUp className="w-2.5 h-2.5" />
-                  Growth
+                  Active
                </div>
             </div>
           </div>
@@ -156,8 +156,8 @@ export default function Locations() {
               <Plus className="w-5 h-5" />
            </div>
            <div className="text-center">
-              <p className="text-[9px] font-bold uppercase tracking-widest leading-none">Map City</p>
-              <p className="text-[7px] text-slate-400 mt-1 uppercase tracking-tighter opacity-60">Expand Reach</p>
+              <p className="text-xs font-bold uppercase tracking-wider leading-none">Add New City</p>
+              <p className="text-[9px] text-slate-400 mt-1 uppercase tracking-tight font-semibold">Add Location</p>
            </div>
         </button>
       </div>
@@ -169,34 +169,34 @@ export default function Locations() {
               <div className="px-6 py-4 border-b border-slate-50 flex items-center justify-between bg-white shrink-0">
                  <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100 shadow-sm"><Navigation className="w-4 h-4" /></div>
-                    <h3 className="text-[10px] font-bold text-slate-800 uppercase tracking-widest">{editingId ? "Refine Territory Architecture" : "Map New Operational City"}</h3>
+                    <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">{editingId ? "Edit City Details" : "Add New City"}</h3>
                  </div>
                  <button onClick={closeModal} className="p-1.5 rounded-lg hover:bg-slate-50 text-slate-400 transition-all"><X className="w-4 h-4" /></button>
               </div>
               <form onSubmit={handleSubmit} className="p-6 space-y-4">
                  <div>
-                    <label className="block text-[8px] font-bold text-slate-400 uppercase mb-1.5 tracking-widest leading-none pl-1">City Identity</label>
-                    <input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl py-2.5 px-4 text-xs font-bold outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all shadow-sm" placeholder="e.g. Hyderabad" required />
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1.5 tracking-wider leading-none pl-1">City Name</label>
+                    <input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl py-2.5 px-4 text-xs font-bold outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all shadow-sm" placeholder="e.g. Jaipur" required />
                  </div>
                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                       <label className="block text-[8px] font-bold text-slate-400 uppercase mb-1.5 tracking-widest leading-none pl-1">State / Province</label>
-                       <input value={formData.state} onChange={e => setFormData({...formData, state: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl py-2.5 px-4 text-xs font-bold outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all shadow-sm" placeholder="e.g. Telangana" required />
+                       <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1.5 tracking-wider leading-none pl-1">State</label>
+                       <input value={formData.state} onChange={e => setFormData({...formData, state: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl py-2.5 px-4 text-xs font-bold outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all shadow-sm" placeholder="e.g. Rajasthan" required />
                     </div>
                     <div>
-                       <label className="block text-[8px] font-bold text-slate-400 uppercase mb-1.5 tracking-widest leading-none pl-1">Country</label>
+                       <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1.5 tracking-wider leading-none pl-1">Country</label>
                        <input value={formData.country} onChange={e => setFormData({...formData, country: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl py-2.5 px-4 text-xs font-bold outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all shadow-sm" />
                     </div>
                  </div>
                  <div>
-                    <label className="block text-[8px] font-bold text-slate-400 uppercase mb-1.5 tracking-widest leading-none pl-1">Operational Asset Density</label>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1.5 tracking-wider leading-none pl-1">Total Properties</label>
                     <input type="number" value={formData.propertyCount} onChange={e => setFormData({...formData, propertyCount: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl py-2.5 px-4 text-xs font-bold outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all shadow-sm" />
                  </div>
                  <div className="flex gap-3 pt-4">
-                    <button type="button" onClick={closeModal} className="flex-1 py-2.5 rounded-xl bg-slate-50 text-[9px] font-bold uppercase text-slate-400 hover:bg-slate-100 transition-all">Dismiss</button>
-                    <button type="submit" disabled={saving} className="flex-[2] py-2.5 rounded-xl bg-slate-800 text-[9px] font-bold uppercase text-white shadow-lg shadow-slate-800/10 hover:bg-black transition-all flex items-center justify-center gap-2">
+                    <button type="button" onClick={closeModal} className="flex-1 py-2.5 rounded-xl bg-slate-50 text-xs font-bold capitalize text-slate-600 hover:bg-slate-100 transition-all">Cancel</button>
+                    <button type="submit" disabled={saving} className="flex-[2] py-2.5 rounded-xl bg-slate-800 text-xs font-bold uppercase text-white shadow-lg shadow-slate-800/10 hover:bg-black transition-all flex items-center justify-center gap-2">
                        {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                       {editingId ? "Update Intelligence" : "Activate Territory"}
+                       {editingId ? "Save Changes" : "Add City"}
                     </button>
                  </div>
               </form>

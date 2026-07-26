@@ -1214,9 +1214,15 @@ export const deleteReview = async (reviewId) => {
 // ==================== SUPERADMIN API FUNCTIONS ====================
 
 // Fetch overall platform stats
-export const fetchSuperadminStats = async () => {
+export const fetchSuperadminStats = async (range, startDate, endDate) => {
   try {
-    const data = await fetchJson('/api/superadmin/stats');
+    let url = '/api/superadmin/stats';
+    const params = new URLSearchParams();
+    if (range) params.append('range', range);
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    if (params.toString()) url += `?${params.toString()}`;
+    const data = await fetchJson(url);
     return data;
   } catch (error) {
     console.error('Error fetching superadmin stats:', error);
@@ -1280,9 +1286,15 @@ export const fetchAccountingOverviewStats = async () => {
 };
 
 // Fetch booking and leads overview stats
-export const fetchBookingOverviewStats = async () => {
+export const fetchBookingOverviewStats = async (range, startDate, endDate) => {
   try {
-    const data = await fetchJson('/api/superadmin/bookings/overview');
+    let url = '/api/superadmin/bookings/overview';
+    const params = new URLSearchParams();
+    if (range) params.append('range', range);
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    if (params.toString()) url += `?${params.toString()}`;
+    const data = await fetchJson(url);
     return data;
   } catch (error) {
     console.error('Error fetching booking stats:', error);

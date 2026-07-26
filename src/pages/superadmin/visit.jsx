@@ -161,7 +161,14 @@ export default function Visit() {
   const loadVisits = async () => {
     try {
       setLoading(true);
-      const data = await fetchJson("/api/visits");
+      const isEmpPage = window.location.pathname.startsWith("/employee");
+      const storedUser = JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user") || "{}");
+      let url = "/api/visits";
+      if (isEmpPage && (storedUser.loginId || storedUser.employeeId || storedUser.name)) {
+        const sid = storedUser.loginId || storedUser.employeeId || storedUser.name;
+        url += `?staffId=${encodeURIComponent(sid)}&staffName=${encodeURIComponent(storedUser.name || "")}`;
+      }
+      const data = await fetchJson(url);
       const list = data?.visits || data || [];
       setVisits(list);
     } catch (err) { console.error(err); }
@@ -247,8 +254,8 @@ export default function Visit() {
           internalRemarks: formInternalRemarks,
           photos: formPhotos,
           roomTypes: formRoomTypes,
-          staffName: "Superadmin",
-          staffId: "SUPERADMIN",
+          staffName: JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user") || "{}").name || "Staff Member",
+          staffId: JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user") || "{}").loginId || "STAFF",
           _id: visitId,
         }),
       });

@@ -6,7 +6,7 @@ import {
   Plus, Search, ArrowUpDown, Download, Users, ExternalLink,
   User, CalendarClock, CheckCircle, AlertTriangle, Phone,
   Shield, Building2, FileText, BadgeCheck, X, MapPin, Mail,
-  CreditCard, Home, Edit, Eye, Activity, MessageSquare, IndianRupee, Send
+  CreditCard, Home, Edit, Eye, Activity, MessageSquare, IndianRupee, Send, Trash2
 } from "lucide-react";
 import {
   clearOwnerRuntimeSession,
@@ -116,6 +116,20 @@ export default function Tenants() {
     // Navigate to full Add Tenant form in edit mode (same page, pre-filled)
     const tenantId = t._id || t.id;
     window.location.href = `/propertyowner/tenantrec?edit=${tenantId}`;
+  };
+
+  const handleDeleteClick = async (t) => {
+    if (!window.confirm(`Are you sure you want to delete tenant ${t.name}? This action cannot be undone.`)) {
+      return;
+    }
+    const tenantId = t._id || t.id;
+    try {
+      await fetchJson(`/api/tenants/${tenantId}`, { method: 'DELETE' });
+      setTenants(prev => prev.filter(t => (t._id !== tenantId && t.id !== tenantId)));
+      if (owner?.loginId) clearOwnerFetchCache(owner.loginId);
+    } catch (err) {
+      setErrorMsg(err?.body || err?.message || 'Failed to delete tenant.');
+    }
   };
 
   const handleSaveEdit = async (e) => {
@@ -501,6 +515,38 @@ export default function Tenants() {
         </div>
       </div>
 
+      {/* Bulk Action Bar - Shows when items are selected */}
+      {selectedIds.size > 0 && (
+        <div className="mb-4 p-4 bg-indigo-50 border border-indigo-200 rounded-2xl flex items-center justify-between animate-in slide-in-from-top-2">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+              {selectedIds.size}
+            </div>
+            <span className="text-sm font-semibold text-indigo-900">{selectedIds.size} tenant(s) selected</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleBulkExportCSV}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-indigo-300 text-indigo-700 rounded-xl text-sm font-semibold hover:bg-indigo-100 transition-colors"
+            >
+              <Download size={14} /> Export CSV
+            </button>
+            <button
+              onClick={() => setBroadcastModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 transition-colors"
+            >
+              <MessageSquare size={14} /> Send Broadcast
+            </button>
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-600 rounded-xl text-sm font-semibold hover:bg-slate-100 transition-colors"
+            >
+              <X size={14} /> Clear Selection
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* List Container */}
       <div className="w-full">
         {loading ? (
@@ -611,27 +657,24 @@ export default function Tenants() {
                             : <span className="text-muted-foreground">—</span>}
                         </td>
                         <td className="px-4 py-3">
-                          <Pill tone={getKycTone(t.kycStatus || t.kyc)}>{t.kycStatus || t.kyc || "pending"}</Pill>
-                          {(t.kycStatus === "mismatch_review" || t.kyc?.mismatchReasons || t.digitalCheckin?.kyc?.mismatchReasons || t.kycVerificationData?.mismatchReasons) && (
-                            <div className="text-[10px] text-rose-600 font-semibold mt-1 max-w-[180px] leading-tight" title={t.kyc?.mismatchReasons || t.digitalCheckin?.kyc?.mismatchReasons || t.kycVerificationData?.mismatchReasons || "Aadhaar details mismatch review required"}>
-                              ⚠️ {t.kyc?.mismatchReasons || t.digitalCheckin?.kyc?.mismatchReasons || t.kycVerificationData?.mismatchReasons || "Aadhaar mismatch review required"}
-                            </div>
-                          )}
+                          <span
+                            onClick={() => {
+                              if (t.kycStatus === "mismatch_review" || t.kyc?.mismatchReasons || t.digitalCheckin?.kyc?.mismatchReasons || t.kycVerificationData?.mismatchReasons) {
+                                setSelectedTenant(t);
+                                setModalTab("verification");
+                                setModalOpen(true);
+                              }
+                            }}
+                            className={cn("cursor-pointer", (t.kycStatus === "mismatch_review" || t.kyc?.mismatchReasons || t.digitalCheckin?.kyc?.mismatchReasons || t.kycVerificationData?.mismatchReasons) ? "hover:opacity-80" : "")}
+                          >
+                            <Pill tone={getKycTone(t.kycStatus || t.kyc)}>{t.kycStatus || t.kyc || "pending"}</Pill>
+                          </span>
                         </td>
                         <td className="px-4 py-3">
                           <Pill tone={getStatusTone(getDisplayStatus(t))}>{getDisplayStatus(t)}</Pill>
                         </td>
                         <td className="px-4 py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1.5">
-                            {(t.kycStatus === "mismatch_review" || t.kyc?.mismatchReasons || t.digitalCheckin?.kyc?.mismatchReasons || t.kycVerificationData?.mismatchReasons) && (
-                              <button
-                                onClick={() => { setSelectedTenant(t); setModalTab("verification"); setModalOpen(true); }}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-rose-700 bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 transition-colors shrink-0"
-                                title={t.kyc?.mismatchReasons || t.digitalCheckin?.kyc?.mismatchReasons || t.kycVerificationData?.mismatchReasons || "Click to view mismatch details"}
-                              >
-                                <AlertTriangle size={13} /> Mismatch
-                              </button>
-                            )}
                             {(t.kycStatus !== "verified" && t.kycStatus !== "rejected") && (
                               <>
                                 <button 
@@ -664,12 +707,19 @@ export default function Tenants() {
                             >
                               <Edit size={14} />
                             </button>
-                            <button 
+                            <button
                               onClick={() => handleTransferClick(t)}
                               className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                               title="Transfer Room"
                             >
                               <ArrowUpDown size={14} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteClick(t)}
+                              className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Delete Tenant"
+                            >
+                              <Trash2 size={14} />
                             </button>
                           </div>
                         </td>
@@ -739,11 +789,21 @@ export default function Tenants() {
                       )}>
                         {getDisplayStatus(t)}
                       </span>
-                      <span className={cn("text-[8.5px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md",
-                        (t.kycStatus || t.kyc) === "verified" ? "bg-emerald-50 text-emerald-600 border border-emerald-100/50" :
-                        (t.kycStatus || t.kyc) === "mismatch_review" ? "bg-rose-100 text-rose-700 border border-rose-300 animate-pulse" :
-                        "bg-amber-50 text-amber-600 border border-amber-100/50"
-                      )}>
+                      <span
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (t.kycStatus === "mismatch_review" || t.kyc?.mismatchReasons || t.digitalCheckin?.kyc?.mismatchReasons || t.kycVerificationData?.mismatchReasons) {
+                            setSelectedTenant(t);
+                            setModalTab("verification");
+                            setModalOpen(true);
+                          }
+                        }}
+                        className={cn("text-[8.5px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md cursor-pointer",
+                          (t.kycStatus || t.kyc) === "verified" ? "bg-emerald-50 text-emerald-600 border border-emerald-100/50" :
+                          (t.kycStatus || t.kyc) === "mismatch_review" ? "bg-rose-100 text-rose-700 border border-rose-300 animate-pulse hover:opacity-80" :
+                          "bg-amber-50 text-amber-600 border border-amber-100/50"
+                        )}
+                      >
                         {(t.kycStatus || t.kyc) === "verified" ? "Verified" : (t.kycStatus || t.kyc) === "mismatch_review" ? "🚨 Mismatch Review" : "Pending"}
                       </span>
                       {(t.kyc?.mismatchReasons || t.digitalCheckin?.kyc?.mismatchReasons || t.kycVerificationData?.mismatchReasons) && (

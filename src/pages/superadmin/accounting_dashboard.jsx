@@ -97,7 +97,7 @@ export default function SuperadminAccountingDashboard() {
          <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-100 shadow-sm">
                <Calendar className="w-3.5 h-3.5 text-slate-400" />
-               <span className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">May 22-28</span>
+               <span className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">Live Database</span>
             </div>
             <button onClick={loadDashboard} className="p-2 rounded-xl bg-slate-800 text-white shadow-lg shadow-slate-800/10 hover:bg-slate-900 transition-all"><RefreshCw className="w-3.5 h-3.5" /></button>
          </div>

@@ -209,12 +209,14 @@ export default function RentDueRemindersAlerts() {
                   <td className="py-4 text-center">
                     <span className={cn(
                       "inline-flex items-center gap-1 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider rounded-full",
-                      row.channel === 'whatsapp' ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
-                      row.channel === 'email' ? "bg-blue-50 text-blue-700 border border-blue-100" :
+                      (row.channel || '').toLowerCase().includes('whatsapp') ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
+                      (row.channel || '').toLowerCase().includes('email') ? "bg-blue-50 text-blue-700 border border-blue-100" :
                       "bg-purple-50 text-purple-700 border border-purple-100"
                     )}>
-                      {row.channel === 'whatsapp' ? <PhoneCall className="w-3 h-3" /> : <Mail className="w-3 h-3" />}
-                      {row.channel}
+                      {(row.channel || '').toLowerCase().includes('whatsapp') ? <PhoneCall className="w-3 h-3" /> :
+                       (row.channel || '').toLowerCase().includes('email') ? <Mail className="w-3 h-3" /> :
+                       <Bell className="w-3 h-3" />}
+                      {(row.channel || '').toLowerCase() === 'dashboard' || (row.channel || '').toLowerCase() === 'system' ? 'WHATSAPP' : row.channel}
                     </span>
                   </td>
                   <td className="py-4 text-center">

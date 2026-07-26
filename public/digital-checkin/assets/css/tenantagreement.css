@@ -27,27 +27,24 @@ body::before {
   box-shadow: 0 22px 60px rgba(31, 45, 61, 0.16);
 }
 
-h2 {
-  margin: 0 0 18px;
-  font-size: 36px;
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  color: #fff;
-  position: relative;
-  margin-top: -112px;
-  padding-bottom: 72px;
-}
-
 .wrap::before {
   content: "Digital Check-In";
   display: block;
-  margin: -10px 0 6px;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.82);
-  transform: translateY(-110px);
+  color: #6366f1;
+}
+
+h2 {
+  margin: 0 0 24px;
+  font-size: 38px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #1e293b;
+  line-height: 1.2;
 }
 
 .box {

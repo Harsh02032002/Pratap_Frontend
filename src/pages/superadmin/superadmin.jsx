@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Users, Building2, Calendar, Wallet,
-  ArrowUpRight, ArrowDownRight, ChevronRight,
+  ArrowUpRight, ArrowDownRight, ChevronRight, ChevronDown,
   UserCircle, ShoppingBag, TrendingUp,
   Home, MessageSquare, CheckCircle2, Clock, DollarSign,
   Activity, Bell, AlertCircle
@@ -110,7 +110,18 @@ export default function SuperadminDashboard() {
   const [acctData,     setAcctData]     = useState(null);
   const [overviewPeriod, setOverviewPeriod] = useState("This Week");
   const [revPeriod,    setRevPeriod]    = useState("This Month");
+  const [dateRange,    setDateRange]    = useState("7days");
+  const [customStart,  setCustomStart]  = useState("");
+  const [customEnd,    setCustomEnd]    = useState("");
+  const [showCustomPopover, setShowCustomPopover] = useState(false);
   const [loading,      setLoading]      = useState(true);
+
+  // Dynamic date labels using current date
+  const now = new Date();
+  const past7 = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const past30 = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const label7Days = `${past7.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} – ${now.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+  const label30Days = `${past30.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} – ${now.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`;
 
   // fetch all in parallel
   useEffect(() => {
@@ -126,8 +137,8 @@ export default function SuperadminDashboard() {
       setLoading(true);
       try {
         const [s, b, p, u, a] = await Promise.all([
-          fetchSuperadminStats(),
-          fetchBookingOverviewStats(),
+          fetchSuperadminStats(dateRange, customStart, customEnd),
+          fetchBookingOverviewStats(dateRange, customStart, customEnd),
           fetchPropertyOverviewStats(),
           fetchUserOverviewStats(),
           fetchAccountingOverviewStats(),
@@ -147,7 +158,7 @@ export default function SuperadminDashboard() {
         setLoading(false);
       }
     })();
-  }, [navigate]);
+  }, [navigate, dateRange, customStart, customEnd]);
 
   // ── derived data ────────────────────────────────────────────────────────
   const totalUsers    = (stats?.stats?.tenants || 0) + (stats?.stats?.owners || 0);
@@ -161,34 +172,37 @@ export default function SuperadminDashboard() {
     const trends = bookingData?.trends || [];
     if (trends.length > 0) {
       return trends.slice(-7).map((t, i) => ({
-        name: t.label || t.date || `Day ${i + 1}`,
+        name: t.label || t.name || t.date || `Day ${i + 1}`,
         Users:    t.users    || Math.round(Math.random() * 20 + 10),
         Bookings: t.bookings || t.count || 0,
         Revenue:  t.revenue  || 0,
       }));
     }
-    // fallback skeleton data
-    const days = ["May 22","May 23","May 24","May 25","May 26","May 27","May 28"];
-    return days.map((d, i) => ({
-      name: d,
-      Users: [18, 22, 19, 28, 25, 30, 27][i],
-      Bookings: [8, 12, 10, 15, 13, 18, 16][i],
-      Revenue: [5000,8000,6000,12000,10000,15000,13000][i],
-    }));
+    // fallback dynamic skeleton data using recent dates
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      const dateLabel = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+      return {
+        name: dateLabel,
+        Users: [18, 22, 19, 28, 25, 30, 27][i],
+        Bookings: [8, 12, 10, 15, 13, 18, 16][i],
+        Revenue: [5000,8000,6000,12000,10000,15000,13000][i],
+      };
+    });
   })();
 
   // Recent Bookings — normalize all possible field name variants from API
-  const hasRealBookings = !!(bookingData?.recentLeads?.length || bookingData?.recentBookings?.length);
   const recentBookings = (() => {
     const raw = bookingData?.recentLeads || bookingData?.recentBookings || [];
-    if (raw.length === 0) return []; // return empty → show empty state
+    if (raw.length === 0) return [];
     return raw.slice(0, 5).map(b => ({
       _id:          b._id || b.id,
-      propertyName: b.propertyName || b.property_name || b.propertyInfo?.propertyName || b.name || "—",
-      tenantName:   b.tenantName   || b.tenant_name   || b.userName || b.applicantName || b.name || "—",
+      propertyName: b.propertyName || b.property_name || b.propertyInfo?.propertyName || b.loc || "Roomhy Residence",
+      tenantName:   b.tenantName   || b.tenant_name   || b.userName || b.applicantName || b.studentName || b.name || "Applicant",
       amount:       b.amount || b.bidAmount || b.rent || b.monthlyRent || b.rentAmount || 0,
       status:       b.status || b.enquiryStatus || b.bookingStatus || "Pending",
-      createdAt:    b.createdAt || b.created_at || b.timestamp,
+      createdAt:    b.createdAt || b.created_at || b.timestamp || b.time,
     }));
   })();
 
@@ -295,9 +309,45 @@ export default function SuperadminDashboard() {
         title="Dashboard"
         subtitle={`Welcome back, ${userName}! Here's what's happening with Roomhy.`}
         actions={
-          <div className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-xl shadow-sm cursor-pointer hover:bg-slate-50 transition-all text-xs font-bold text-slate-600">
-            <Calendar className="w-4 h-4 text-slate-400" />
-            <span>May 25 – May 30, 2024</span>
+          <div className="flex items-center gap-2 relative flex-wrap">
+            <div className="relative">
+              <select
+                value={dateRange}
+                onChange={(e) => {
+                  setDateRange(e.target.value);
+                  if (e.target.value === "custom") setShowCustomPopover(true);
+                  else setShowCustomPopover(false);
+                }}
+                className="appearance-none bg-white border border-slate-200 pl-9 pr-8 py-2 rounded-xl shadow-sm hover:bg-slate-50 transition-all text-xs font-bold text-slate-700 outline-none cursor-pointer"
+              >
+                <option value="7days">Last 7 Days ({label7Days})</option>
+                <option value="30days">Last 30 Days ({label30Days})</option>
+                <option value="month">This Month</option>
+                <option value="today">Today</option>
+                <option value="all">All Time</option>
+                <option value="custom">Custom Date Range...</option>
+              </select>
+              <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-3 pointer-events-none" />
+            </div>
+
+            {(dateRange === "custom" || showCustomPopover) && (
+              <div className="flex items-center gap-2 bg-white border border-slate-200 p-1.5 rounded-xl shadow-md">
+                <input
+                  type="date"
+                  value={customStart}
+                  onChange={(e) => setCustomStart(e.target.value)}
+                  className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-semibold text-slate-700 outline-none"
+                />
+                <span className="text-xs font-bold text-slate-400">to</span>
+                <input
+                  type="date"
+                  value={customEnd}
+                  onChange={(e) => setCustomEnd(e.target.value)}
+                  className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-semibold text-slate-700 outline-none"
+                />
+              </div>
+            )}
           </div>
         }
       />
@@ -380,8 +430,8 @@ export default function SuperadminDashboard() {
                       <Home className="w-5 h-5 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-slate-900 truncate">{b.propertyName}</p>
-                      <p className="text-xs text-slate-400 truncate">{b.tenantName}</p>
+                      <p className="text-sm font-bold text-slate-900 truncate">{b.tenantName}</p>
+                      <p className="text-xs text-slate-400 truncate">{b.propertyName ? `Property: ${b.propertyName}` : "Roomhy Residence"}</p>
                     </div>
                     <div className="text-right flex-shrink-0">
                       <p className="text-sm font-black text-slate-900">₹{fmt(b.amount)}</p>
@@ -598,10 +648,10 @@ export default function SuperadminDashboard() {
                         <Icon className="w-4 h-4" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-slate-900">{a.title}</p>
-                        <p className="text-xs text-slate-400 truncate">{a.sub}</p>
+                        <p className="text-sm font-black text-slate-900">{a.title}</p>
+                        <p className="text-xs font-bold text-slate-700 truncate">{a.sub}</p>
                       </div>
-                      <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider flex-shrink-0 whitespace-nowrap">{a.time}</span>
+                      <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider flex-shrink-0 whitespace-nowrap">{a.time}</span>
                     </div>
                   );
                 })

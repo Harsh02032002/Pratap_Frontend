@@ -93,11 +93,14 @@ export default function HomeOverview() {
     loadStats();
   }, [selectedCity]);
 
+  const userObj = JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user") || "{}");
+  const userName = userObj.name || userObj.fullName || "Admin";
+
   return (
     <div className="space-y-6">
       <PageHeader 
         title="Overview"
-        subtitle="Welcome back, Aman! Here's an overview of your platform."
+        subtitle={`Welcome back, ${userName}! Here's an overview of your platform.`}
         breadcrumbs={[
           { label: "Home" },
           { label: "Overview", active: true }

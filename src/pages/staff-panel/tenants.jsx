@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import StaffLayout from "../../components/StaffLayout";
 import {
   Search, Home, ShieldCheck, AlertCircle, Phone, Mail,
-  Loader2, Users, RefreshCw, Calendar
+  Loader2, Users, RefreshCw, Calendar, Trash2
 } from "lucide-react";
 import { getApiBase, getAuthHeader } from "../../utils/api";
 
@@ -56,6 +56,26 @@ export default function StaffTenants() {
       (t.loginId || "").toLowerCase().includes(q) ||
       (t.phone || "").includes(q);
   });
+
+  const handleDeleteTenant = async (tenant) => {
+    if (!window.confirm(`Are you sure you want to delete tenant ${tenant.name}? This action cannot be undone.`)) {
+      return;
+    }
+    try {
+      const res = await fetch(`${getApiBase()}/api/tenants/${tenant._id}`, {
+        method: 'DELETE',
+        headers: getAuthHeader()
+      });
+      if (res.ok) {
+        setAllTenants(prev => prev.filter(t => t._id !== tenant._id));
+      } else {
+        const data = await res.json();
+        alert(data.message || 'Failed to delete tenant');
+      }
+    } catch (e) {
+      alert('Failed to delete tenant: ' + e.message);
+    }
+  };
 
   return (
     <StaffLayout title="Tenants" subtitle="All residents assigned to your property">
@@ -164,9 +184,14 @@ export default function StaffTenants() {
                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Rent</p>
                       <p className="text-[10px] font-black text-slate-700">₹{t.agreedRent || "—"}</p>
                     </div>
-                    <div>
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Move In</p>
-                      <p className="text-[10px] font-black text-slate-700">{moveIn}</p>
+                    <div className="flex items-end justify-end">
+                      <button
+                        onClick={() => handleDeleteTenant(t)}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Delete Tenant"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   </div>
                 </div>

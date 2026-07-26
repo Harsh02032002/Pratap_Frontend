@@ -192,6 +192,9 @@ const routeEntries = [
   ["/tenant/tenantdashboard", "./pages/tenant/tenantdashboard.jsx"],
   ["/tenant/tenantlogin", "./pages/tenant/tenantlogin.jsx"],
 
+  // Onboarding Tokenized Payment Gateway Route
+  ["/payment/gateway", "./pages/tenant/PaymentGateway.jsx"],
+
   // Public visitor pass verification (opened when a pass QR is scanned).
   // Clean path form `/visitor-verify/<token>`; the bare path keeps the old
   // `?token=` query form working for any previously generated codes.

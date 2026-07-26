@@ -4,7 +4,7 @@ import { getOwnerRuntimeSession, clearOwnerRuntimeSession } from "../../utils/pr
 import { apiFetch } from "../../utils/api";
 import { 
   Inbox, Search, MessageSquare, Phone, Calendar, 
-  CheckCircle2, XCircle, Clock, AlertCircle, ArrowRight, Loader2, X, User
+  CheckCircle2, XCircle, Clock, AlertCircle, ArrowRight, Loader2, X, User, MapPin, Building2, Wallet, Check
 } from "lucide-react";
 
 export default function NewEnquiriesPage() {
@@ -17,12 +17,7 @@ export default function NewEnquiriesPage() {
   const [search, setSearch] = useState("");
   const [enquiries, setEnquiries] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // Visit Scheduling Modal
-  const [selectedEnquiry, setSelectedEnquiry] = useState(null);
-  const [visitTime, setVisitTime] = useState("");
-  const [repName, setRepName] = useState("");
-  const [scheduling, setScheduling] = useState(false);
+  const [acceptingBid, setAcceptingBid] = useState(null);
 
   const fetchEnquiries = async () => {
     try {
@@ -57,50 +52,34 @@ export default function NewEnquiriesPage() {
     fetchEnquiries();
   }, [owner.loginId]);
 
-  const handleAction = async (id, action) => {
+  const handleAcceptBid = async (id) => {
     try {
-      if (action === "followup") {
-        await apiFetch(`/api/owners/enquiries/${id}`, {
-          method: "PATCH",
-          body: JSON.stringify({ status: "follow-up" })
-        });
-        setEnquiries(prev => prev.filter(e => e._id !== id));
-      } else if (action === "reject") {
-        if (!window.confirm("Are you sure you want to reject this enquiry?")) return;
-        await apiFetch(`/api/owners/enquiries/${id}`, {
-          method: "PATCH",
-          body: JSON.stringify({ status: "rejected" })
-        });
-        setEnquiries(prev => prev.filter(e => e._id !== id));
-      }
+      setAcceptingBid(id);
+      await apiFetch(`/api/owners/enquiries/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: "accepted", chatEnabled: true })
+      });
+      setEnquiries(prev => prev.filter(e => e._id !== id));
+      alert("Bid accepted! Chat has been enabled. You can now communicate with the tenant.");
     } catch (err) {
-      console.error(`Error performing action ${action}:`, err);
-      alert(`Action failed: ${err.message}`);
+      console.error("Error accepting bid:", err);
+      alert(`Failed to accept bid: ${err.message}`);
+    } finally {
+      setAcceptingBid(null);
     }
   };
 
-  const handleScheduleVisitSubmit = async (e) => {
-    e.preventDefault();
-    if (!selectedEnquiry) return;
+  const handleReject = async (id) => {
     try {
-      setScheduling(true);
-      await apiFetch(`/api/owners/enquiries/${selectedEnquiry._id}`, {
+      if (!window.confirm("Are you sure you want to reject this enquiry?")) return;
+      await apiFetch(`/api/owners/enquiries/${id}`, {
         method: "PATCH",
-        body: JSON.stringify({
-          status: "site-visit",
-          visitTime: visitTime,
-          assignedStaff: repName
-        })
+        body: JSON.stringify({ status: "rejected" })
       });
-      setEnquiries(prev => prev.filter(e => e._id !== selectedEnquiry._id));
-      setSelectedEnquiry(null);
-      setVisitTime("");
-      setRepName("");
+      setEnquiries(prev => prev.filter(e => e._id !== id));
     } catch (err) {
-      console.error("Error scheduling visit:", err);
-      alert(`Scheduling failed: ${err.message}`);
-    } finally {
-      setScheduling(false);
+      console.error("Error rejecting enquiry:", err);
+      alert(`Failed to reject: ${err.message}`);
     }
   };
 
@@ -171,26 +150,47 @@ export default function NewEnquiriesPage() {
 
                 <div className="border-t border-border/60 pt-4 space-y-2 text-xs">
                   <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Preference:</span>
-                    <span className="font-bold text-foreground">{item.interest || "—"}</span>
+                    <span className="text-muted-foreground">Preferred City:</span>
+                    <span className="font-bold text-foreground">{item.preferredCity || "—"}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Target Budget:</span>
-                    <span className="font-bold text-slate-900">{item.budget || "—"}</span>
+                    <span className="text-muted-foreground">Preferred Area:</span>
+                    <span className="font-bold text-foreground">{item.preferredArea || "—"}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Mobile:</span>
-                    <span className="font-medium text-foreground">{item.studentPhone || "—"}</span>
+                    <span className="text-muted-foreground">Property Type:</span>
+                    <span className="font-bold text-foreground">{item.propertyType || item.interest || "—"}</span>
                   </div>
-                  {item.propertyName && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Property:</span>
-                      <span className="font-medium text-foreground truncate max-w-[150px]">{item.propertyName}</span>
-                    </div>
-                  )}
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Budget:</span>
+                    <span className="font-bold text-slate-900 flex items-center gap-1"><Wallet size={12} /> {item.budget || "—"}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Gender Preference:</span>
+                    <span className="font-bold text-foreground">{item.genderPreference || "—"}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Preferred Location:</span>
+                    <span className="font-bold text-foreground truncate max-w-[150px]">{item.preferredLocation || "—"}</span>
+                  </div>
+                  
+                  {/* Verification Badges */}
+                  <div className="flex gap-2 pt-2">
+                    {item.mobileVerified && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-full">
+                        <Check size={10} /> Mobile Verified
+                      </span>
+                    )}
+                    {item.emailVerified && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-full">
+                        <Check size={10} /> Email Verified
+                      </span>
+                    )}
+                  </div>
+
                   {item.notes && (
                     <div className="pt-1.5">
-                      <p className="text-muted-foreground text-[11px] uppercase tracking-wide font-semibold mb-0.5">Notes:</p>
+                      <p className="text-muted-foreground text-[11px] uppercase tracking-wide font-semibold mb-0.5">Notes / Requirement:</p>
                       <p className="text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-900 p-2 rounded border border-border/40 text-[11px] leading-relaxed line-clamp-2 italic">
                         "{item.notes}"
                       </p>
@@ -201,13 +201,22 @@ export default function NewEnquiriesPage() {
 
               <div className="border-t border-border/60 mt-6 pt-4 flex gap-2">
                 <button 
-                  onClick={() => setSelectedEnquiry(item)}
-                  className="flex-1 h-10 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold inline-flex items-center justify-center transition"
+                  onClick={() => handleAcceptBid(item._id)}
+                  disabled={acceptingBid === item._id}
+                  className="flex-1 h-10 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold inline-flex items-center justify-center transition disabled:opacity-50"
                 >
-                  <Calendar size={14} className="mr-1" /> Schedule Visit
+                  {acceptingBid === item._id ? (
+                    <>
+                      <Loader2 size={14} className="mr-1 animate-spin" /> Processing...
+                    </>
+                  ) : (
+                    <>
+                      <MessageSquare size={14} className="mr-1" /> Accept Bid & Enable Chat
+                    </>
+                  )}
                 </button>
                 <button 
-                  onClick={() => handleAction(item._id, "reject")}
+                  onClick={() => handleReject(item._id)}
                   className="px-4 h-10 border border-border rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 inline-flex items-center justify-center transition gap-1"
                 >
                   <XCircle size={15} /> Reject
@@ -215,71 +224,6 @@ export default function NewEnquiriesPage() {
               </div>
             </div>
           ))}
-        </div>
-      )}
-
-      {/* Schedule Visit Modal */}
-      {selectedEnquiry && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-card border border-border rounded-2xl w-full max-w-md p-6 relative shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-            <button 
-              onClick={() => setSelectedEnquiry(null)}
-              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition p-1 hover:bg-muted rounded-full"
-            >
-              <X className="size-5" />
-            </button>
-
-            <h3 className="font-serif text-[22px] font-bold text-foreground mb-1">Schedule Visit</h3>
-            <p className="text-[13px] text-muted-foreground mb-4">Set up a physical site visit appointment for <strong className="text-foreground">{selectedEnquiry.studentName}</strong>.</p>
-
-            <form onSubmit={handleScheduleVisitSubmit} className="space-y-4">
-              <div>
-                <label className="block text-[11px] font-bold text-muted-foreground uppercase mb-1">Visit Date &amp; Time *</label>
-                <input 
-                  required
-                  type="datetime-local"
-                  value={visitTime}
-                  onChange={e => setVisitTime(e.target.value)}
-                  className="w-full h-10 px-3 rounded-lg bg-muted/40 border border-border text-[13px] focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-muted-foreground uppercase mb-1">Assigned Representative / Manager *</label>
-                <input 
-                  required
-                  value={repName}
-                  onChange={e => setRepName(e.target.value)}
-                  placeholder="e.g. Suresh Kumar (Warden)"
-                  className="w-full h-10 px-3 rounded-lg bg-muted/40 border border-border text-[13px] focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-              </div>
-
-              <div className="pt-4 flex gap-3 border-t border-border mt-6">
-                <button 
-                  type="button" 
-                  onClick={() => setSelectedEnquiry(null)}
-                  className="flex-1 h-10 border border-border rounded-lg text-[13px] font-bold text-muted-foreground hover:bg-muted transition"
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit" 
-                  disabled={scheduling}
-                  className="flex-1 h-10 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-[13px] font-bold transition flex items-center justify-center gap-1.5"
-                >
-                  {scheduling ? (
-                    <>
-                      <Loader2 className="size-4 animate-spin" />
-                      Scheduling...
-                    </>
-                  ) : (
-                    "Schedule"
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
         </div>
       )}
     </PropertyOwnerLayout>

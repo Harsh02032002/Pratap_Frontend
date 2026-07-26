@@ -109,7 +109,7 @@ export default function UserOverview() {
         actions={
           <div className="flex items-center gap-3 bg-white border border-border/60 px-4 py-2 rounded-xl shadow-sm text-xs font-bold text-slate-600">
             <Calendar className="w-4 h-4 text-slate-400" />
-            <span>May 2025</span>
+            <span>Live Database Metrics</span>
           </div>
         }
       />
