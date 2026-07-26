@@ -25,6 +25,14 @@ const PaymentGateway = () => {
         if (!token) {
             setError('Invalid link. Token is missing.');
         }
+
+        // Dynamically load Razorpay script if not already present
+        if (typeof window !== 'undefined' && !window.Razorpay) {
+            const script = document.createElement('script');
+            script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+            script.async = true;
+            document.body.appendChild(script);
+        }
     }, [token]);
 
     const handleVerifyIdentity = async (e) => {
