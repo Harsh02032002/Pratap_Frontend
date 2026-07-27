@@ -859,8 +859,11 @@ export default function Owner() {
                         )}
                      </div>
                  </section>
-              </div>
-           </div>
+               </div>
+            </div>
+         </div>
+       )}
+
        {/* Owner Agreement Modal */}
        {agreementModalOwner && (
           <OwnerAgreementModal 
