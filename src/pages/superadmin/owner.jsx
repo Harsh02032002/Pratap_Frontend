@@ -12,6 +12,7 @@ import {
 import { fetchJson, getAuthHeader } from "../../utils/api";
 import { PageHeader } from "../../components/superadmin/PageHeader";
 import { StatCard } from "../../components/superadmin/StatCard";
+import OwnerAgreementModal from "../../components/superadmin/OwnerAgreementModal";
 import * as XLSX from 'xlsx';
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
@@ -25,6 +26,7 @@ export default function Owner() {
   const [search, setSearch] = useState("");
   const [areaFilter, setAreaFilter] = useState("all");
   const [selectedOwner, setSelectedOwner] = useState(null);
+  const [agreementModalOwner, setAgreementModalOwner] = useState(null);
   const [isUpdatingKyc, setIsUpdatingKyc] = useState(false);
   const [isEditingOwner, setIsEditingOwner] = useState(false);
   const [editOwnerForm, setEditOwnerForm] = useState({});
@@ -292,12 +294,14 @@ export default function Owner() {
           currentView === "add" ? "Add Property Owner" : 
           currentView === "pending" ? "Approved / Pending Owners" : 
           currentView === "kyc" ? "KYC & Documents Verification" : 
+          currentView === "agreements" ? "Property Owner Licensing Agreements" :
           "Property Owners"
         }
         subtitle={
           currentView === "add" ? "Create a new property owner account and generate credentials." : 
           currentView === "pending" ? "Review property owner onboarding and approval requests." : 
           currentView === "kyc" ? "Audit document integrity and KYC compliance." : 
+          currentView === "agreements" ? "View digital Asset Partner Contracts, Terms & Conditions, and signed agreements." :
           "Manage all registered property owners, properties, and banking details."
         }
         actions={
@@ -535,8 +539,14 @@ export default function Owner() {
                     <tr className="bg-slate-50/80 text-slate-500 text-xs font-bold uppercase tracking-wider border-b border-slate-100">
                        <th className="px-6 py-4">Owner Profile</th>
                        <th className="px-6 py-4">Location / Area</th>
-                       <th className="px-6 py-4 text-center">{currentView === "kyc" ? "Document Status" : "Banking Status"}</th>
-                       <th className="px-6 py-4 text-center">KYC Status</th>
+                       <th className="px-6 py-4 text-center">
+                          {currentView === "kyc" ? "Document Status" : 
+                           currentView === "agreements" ? "Agreement Date" : 
+                           "Banking Status"}
+                        </th>
+                       <th className="px-6 py-4 text-center">
+                          {currentView === "agreements" ? "Agreement Status" : "KYC Status"}
+                        </th>
                        <th className="px-6 py-4 text-right">Actions</th>
                     </tr>
                  </thead>
@@ -602,7 +612,14 @@ export default function Owner() {
                               </div>
                            </td>
                            <td className="px-6 py-4 text-center">
-                              {currentView === "kyc" ? (() => {
+                              {currentView === "agreements" ? (
+                                  <div className="inline-flex flex-col items-center">
+                                     <p className="text-xs font-bold text-slate-800">
+                                       {o.checkinTermsAcceptedAt || o.checkinSubmittedAt ? new Date(o.checkinTermsAcceptedAt || o.checkinSubmittedAt).toLocaleDateString("en-IN") : "Signed on Onboarding"}
+                                     </p>
+                                     <span className="text-[10px] text-slate-400 font-medium">Digital Acceptance</span>
+                                  </div>
+                               ) : currentView === "kyc" ? (() => {
                                  const hasDoc = o.checkinAadhaarImage || o.checkinOwnerPhoto || o.checkinBankProof || o.checkinCancelledCheque || o.checkinAadhaarNumber || o.documentImage || o.kyc?.documentImage || o.aadharNumber || o.kycStatus === "verified" || o.kycStatus === "submitted";
                                  return (
                                  <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-50 rounded-lg border border-slate-200">
@@ -618,15 +635,29 @@ export default function Owner() {
                               )}
                            </td>
                            <td className="px-6 py-4 text-center">
-                              <span className={cn(
-                                 "text-xs font-bold px-2.5 py-1 rounded-lg uppercase inline-block",
-                                 status === "verified" ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-amber-50 text-amber-600 border border-amber-100"
-                              )}>
-                                 {status}
-                              </span>
+                              {currentView === "agreements" ? (
+                                  <span className="text-xs font-bold px-2.5 py-1 rounded-lg uppercase inline-block bg-emerald-50 text-emerald-600 border border-emerald-100">
+                                     Signed &amp; Accepted
+                                  </span>
+                               ) : (
+                                  <span className={cn(
+                                     "text-xs font-bold px-2.5 py-1 rounded-lg uppercase inline-block",
+                                     status === "verified" ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-amber-50 text-amber-600 border border-amber-100"
+                                  )}>
+                                     {status}
+                                  </span>
+                               )}
                            </td>
                            <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                               <div className="flex items-center justify-end gap-2">
+                                 <button 
+                                     onClick={() => setAgreementModalOwner(o)}
+                                     title="View Signed Asset Agreement"
+                                     className="px-2.5 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all border border-blue-200 shadow-sm active:scale-95 flex items-center gap-1 text-xs font-bold shrink-0"
+                                  >
+                                     <FileText size={15} />
+                                     <span>View Agreement</span>
+                                  </button>
                                  <button 
                                    onClick={() => handleToggleDeactivate(o)}
                                    title={o.isActive === false ? "Reactivate Owner" : "Deactivate Owner"}
@@ -830,8 +861,13 @@ export default function Owner() {
                  </section>
               </div>
            </div>
-        </div>
-      )}
+       {/* Owner Agreement Modal */}
+       {agreementModalOwner && (
+          <OwnerAgreementModal 
+             owner={agreementModalOwner} 
+             onClose={() => setAgreementModalOwner(null)} 
+          />
+       )}
     </div>
   );
 }
