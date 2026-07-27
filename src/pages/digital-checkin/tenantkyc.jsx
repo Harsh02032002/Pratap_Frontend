@@ -485,22 +485,29 @@ export default function DigitalCheckinTenantkyc() {
         {/* Status / error messages */}
         {otpMsg && (
           <div style={{ marginTop: "14px" }}>
-            <p
-              className="muted"
-              style={{
-                color: otpMsg.startsWith("Failed") || otpMsg.startsWith("Verification failed")
-                  ? "#b71c1c"
-                  : otpMsg.startsWith("KYC verification completed")
-                  ? "#2e7d32"
-                  : "#546e7a",
-                fontWeight: 600,
-                margin: "0 0 6px"
-              }}
-            >
-              {otpMsg}
-            </p>
-            {mismatchDetails && (
-              <div style={{ background: "#fff3cd", border: "1px solid #ffc107", borderRadius: "8px", padding: "10px 14px", fontSize: "12px", color: "#856404", fontWeight: 500 }}>
+            {otpMsg.startsWith("Data mismatch detected") ? (
+              <div style={{ background: "#fef2f2", border: "1.5px solid #ef4444", borderRadius: "10px", padding: "14px 16px", color: "#991b1b", fontSize: "13px", fontWeight: 600, lineHeight: "1.5" }}>
+                <div style={{ fontSize: "15px", fontWeight: 700, marginBottom: "4px" }}>⚠️ Data Mismatch Detected</div>
+                {otpMsg}
+              </div>
+            ) : (
+              <p
+                className="muted"
+                style={{
+                  color: otpMsg.startsWith("Failed") || otpMsg.startsWith("Verification failed")
+                    ? "#b71c1c"
+                    : otpMsg.startsWith("KYC verification completed")
+                    ? "#2e7d32"
+                    : "#546e7a",
+                  fontWeight: 600,
+                  margin: "0 0 6px"
+                }}
+              >
+                {otpMsg}
+              </p>
+            )}
+            {mismatchDetails && !otpMsg.startsWith("Data mismatch detected") && (
+              <div style={{ background: "#fff3cd", border: "1px solid #ffc107", borderRadius: "8px", padding: "10px 14px", fontSize: "12px", color: "#856404", fontWeight: 500, marginTop: "8px" }}>
                 <strong>⚠️ Mismatch Reason:</strong> {mismatchDetails}
               </div>
             )}

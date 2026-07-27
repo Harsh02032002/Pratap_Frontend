@@ -153,13 +153,32 @@ export default function DigitalCheckinTenantagreement() {
   }, []);
 
   const td = tenantData || {};
+  const isKycMismatch = td?.kycStatus === "mismatch_review" || Boolean(td?.kyc?.mismatchReasons || td?.mismatchReasons);
 
   return (
     <div className="html-page">
       <div className="wrap">
         <h2>RoomHy Licence &amp; Subscription Agreement</h2>
 
-        {error && (
+        {isKycMismatch && (
+          <div style={{ background: "#fef2f2", border: "2px solid #ef4444", color: "#991b1b", padding: "16px 20px", borderRadius: 10, marginBottom: 20, boxShadow: "0 4px 6px -1px rgba(239,68,68,0.1)" }}>
+            <div style={{ fontSize: "16px", fontWeight: 700, marginBottom: "6px", display: "flex", alignItems: "center", gap: "8px" }}>
+              ⚠️ Data Mismatch Detected — Agreement Locked
+            </div>
+            <p style={{ margin: "0 0 12px", fontSize: "14px", lineHeight: 1.5, color: "#7f1d1d" }}>
+              Data mismatch detected. Please check if you have uploaded the correct Aadhaar Card. If you are still facing a data mismatch issue, please contact your property owner.
+            </p>
+            <button
+              type="button"
+              onClick={() => window.location.href = `/digital-checkin/tenantkyc?loginId=${encodeURIComponent(loginId.trim())}`}
+              style={{ background: "#dc2626", color: "#fff", border: "none", padding: "8px 16px", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer" }}
+            >
+              ← Back to KYC Verification to Re-upload
+            </button>
+          </div>
+        )}
+
+        {error && !isKycMismatch && (
           <div style={{ background: "#fff0f0", border: "1px solid #f88", color: "#900", padding: "10px 14px", borderRadius: 6, marginBottom: 14 }}>
             {error}
           </div>
@@ -401,16 +420,16 @@ export default function DigitalCheckinTenantagreement() {
 
           <button
             onClick={() => handleSubmit(signatureDataUrl)}
-            disabled={submitting || !signatureDataUrl || !accepted || !eSignName.trim()}
+            disabled={submitting || !signatureDataUrl || !accepted || !eSignName.trim() || isKycMismatch}
             type="button"
             style={{
-              width: "100%", padding: "12px 0", background: "#1a237e", color: "#fff",
+              width: "100%", padding: "12px 0", background: isKycMismatch ? "#9ca3af" : "#1a237e", color: "#fff",
               border: "none", borderRadius: 7, fontSize: 15, fontWeight: 700,
-              cursor: (submitting || !signatureDataUrl || !accepted || !eSignName.trim()) ? "not-allowed" : "pointer",
-              opacity: (submitting || !signatureDataUrl || !accepted || !eSignName.trim()) ? 0.65 : 1
+              cursor: (submitting || !signatureDataUrl || !accepted || !eSignName.trim() || isKycMismatch) ? "not-allowed" : "pointer",
+              opacity: (submitting || !signatureDataUrl || !accepted || !eSignName.trim() || isKycMismatch) ? 0.65 : 1
             }}
           >
-            {submitting ? "Submitting..." : "Submit & E-sign Agreement"}
+            {submitting ? "Submitting..." : isKycMismatch ? "Agreement Locked (Data Mismatch)" : "Submit & E-sign Agreement"}
           </button>
         </div>
       </div>

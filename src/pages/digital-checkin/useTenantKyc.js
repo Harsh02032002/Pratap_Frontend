@@ -323,11 +323,12 @@ export const useTenantKyc = () => {
         } catch (_) {}
 
         if (isMismatch) {
-          setOtpMsg("KYC Submitted! Mismatch detected between entered details and Aadhaar image. Owner will review and verify your onboarding.");
+          setOtpMsg("Data mismatch detected. Please check if you have uploaded the correct Aadhaar Card. If you are still facing a data mismatch issue, please contact your property owner.");
+          setNextVisible(false);
         } else {
           setOtpMsg("KYC verification completed successfully!");
+          setNextVisible(true);
         }
-        setNextVisible(true);
       } catch (err) {
         setOtpMsg(`Verification failed: ${err.message}`);
       }
