@@ -185,9 +185,19 @@ export default function BookingRequestPage() {
                   <div className="size-10 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center">
                     <CreditCard size={20} />
                   </div>
-                  <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-100">
-                    Token Paid: ₹{(item.payment_amount || item.rent_amount || item.total_amount || 0).toLocaleString("en-IN")}
-                  </span>
+                  {(() => {
+                    const isPaid = item.payment_status === 'paid' || item.payment_status === 'completed' || item.is_paid === true || (item.payment_amount && item.payment_amount > 0) || (item.token_paid && item.token_paid > 0);
+                    const amount = isPaid ? (item.payment_amount || item.token_paid || item.rent_amount || 0) : 0;
+                    return isPaid ? (
+                      <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-100">
+                        Token Paid: ₹{amount.toLocaleString("en-IN")}
+                      </span>
+                    ) : (
+                      <span className="text-[11px] font-bold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
+                        Unpaid / Payment Pending
+                      </span>
+                    );
+                  })()}
                 </div>
 
                 <div>

@@ -118,7 +118,9 @@ export default function CancelledBookingsPage() {
                 <div className="border-t border-border/60 pt-4 grid grid-cols-2 gap-4 text-xs">
                   <div>
                     <span className="text-muted-foreground font-medium block">Token Amount Paid</span>
-                    <strong className="text-[14px] text-foreground">₹{(item.payment_amount || item.rent_amount || item.total_amount || 0).toLocaleString("en-IN")}</strong>
+                    <strong className="text-[14px] text-foreground">
+                      ₹{((item.payment_status === 'paid' || item.is_paid || item.payment_amount > 0 || item.token_paid > 0) ? (item.payment_amount || item.token_paid || item.rent_amount || 0) : 0).toLocaleString("en-IN")}
+                    </strong>
                   </div>
                   <div>
                     <span className="text-muted-foreground font-medium block font-bold text-rose-600">Refund Settlement</span>
@@ -162,7 +164,9 @@ export default function CancelledBookingsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-[12px] font-bold text-slate-700 mb-1">Token Paid</p>
-                  <p className="text-[16px] font-bold text-emerald-600">₹{(selectedSettlement.payment_amount || selectedSettlement.rent_amount || selectedSettlement.total_amount || 0).toLocaleString("en-IN")}</p>
+                  <p className="text-[16px] font-bold text-emerald-600">
+                    ₹{((selectedSettlement.payment_status === 'paid' || selectedSettlement.is_paid || selectedSettlement.payment_amount > 0 || selectedSettlement.token_paid > 0) ? (selectedSettlement.payment_amount || selectedSettlement.token_paid || selectedSettlement.rent_amount || 0) : 0).toLocaleString("en-IN")}
+                  </p>
                 </div>
                 <div>
                   <p className="text-[12px] font-bold text-slate-700 mb-1">Status</p>

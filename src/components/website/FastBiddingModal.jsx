@@ -220,8 +220,22 @@ export default function FastBiddingModal({ isOpen, onClose, initialData = {} }) 
     showToast(`Sending bids to ${filteredProperties.length} matching properties!`, 'success');
     onClose();
 
+    const parsePriceRange = (rangeStr) => {
+      if (!rangeStr) return { min: null, max: null, amount: 7000 };
+      const numbers = rangeStr.replace(/,/g, '').match(/\d+/g);
+      if (!numbers || numbers.length === 0) return { min: null, max: null, amount: 7000 };
+      if (numbers.length === 1) {
+        const val = parseInt(numbers[0], 10);
+        return { min: val, max: val, amount: val };
+      }
+      const min = parseInt(numbers[0], 10);
+      const max = parseInt(numbers[1], 10);
+      return { min, max, amount: max || min || 7000 };
+    };
+
     const userId = user.loginId || user._id || user.id || '';
     const range = parsePriceRange(form.priceRange);
+    const targetBudget = range.amount || range.max || range.min || 7000;
 
     const bidRequests = filteredProperties
       .map((prop, index) => {
@@ -237,13 +251,18 @@ export default function FastBiddingModal({ isOpen, onClose, initialData = {} }) 
 
         if (!ownerId) return null;
 
+        const resolvedCity = form.city || prop.city || propInfo.city || '';
+        const resolvedArea = form.area || form.locationName || prop.locality || propInfo.area || '';
+        const formattedNote = `Tenant Budget: ₹${targetBudget.toLocaleString('en-IN')} | Flexible Bid: Looking for property around ₹${targetBudget.toLocaleString('en-IN')}. Preferred City: ${resolvedCity || 'N/A'}, Area: ${resolvedArea || 'Nearby'}, Gender: ${form.gender || 'Any'}`;
+
         return fetch(`${apiUrl}/api/booking/create`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             property_id: propertyId,
-            property_name: prop.property_name || propInfo.name || 'Property',
-            area: prop.locality || propInfo.area || '',
+            property_name: prop.property_name || propInfo.name || prop.title || 'Property',
+            area: resolvedArea,
+            city: resolvedCity,
             property_type: prop.propertyType || propInfo.propertyType || 'PG',
             rent_amount: parseInt(prop.monthlyRent || prop.rent || propInfo.rent || 0, 10),
             user_id: userId,
@@ -252,16 +271,18 @@ export default function FastBiddingModal({ isOpen, onClose, initialData = {} }) 
             email: form.email,
             phone: form.phone,
             request_type: 'bid',
+            bid_amount: targetBudget,
             bid_min: range.min || null,
             bid_max: range.max || null,
-            message: `Flexible Bid: ${form.priceRange}. Preferred Location: ${form.locationName || 'Nearby'}. Gender: ${form.gender}`,
+            message: formattedNote,
             latitude: form.latitude,
             longitude: form.longitude,
             filter_criteria: {
               priceRange: form.priceRange,
+              budget: targetBudget,
               location: form.locationName,
-              city: form.city,
-              area: form.area,
+              city: resolvedCity,
+              area: resolvedArea,
               gender: form.gender
             }
           })

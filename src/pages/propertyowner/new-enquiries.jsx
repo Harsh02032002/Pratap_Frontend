@@ -151,11 +151,11 @@ export default function NewEnquiriesPage() {
                 <div className="border-t border-border/60 pt-4 space-y-2 text-xs">
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Preferred City:</span>
-                    <span className="font-bold text-foreground">{item.preferredCity || "—"}</span>
+                    <span className="font-bold text-foreground">{item.preferredCity || item.city || item.filter_criteria?.city || "—"}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Preferred Area:</span>
-                    <span className="font-bold text-foreground">{item.preferredArea || "—"}</span>
+                    <span className="font-bold text-foreground">{item.preferredArea || item.area || item.filter_criteria?.area || item.filter_criteria?.location || "—"}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Property Type:</span>
@@ -163,7 +163,9 @@ export default function NewEnquiriesPage() {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Budget:</span>
-                    <span className="font-bold text-slate-900 flex items-center gap-1"><Wallet size={12} /> {item.budget || "—"}</span>
+                    <span className="font-bold text-slate-900 flex items-center gap-1">
+                      <Wallet size={12} /> {item.bidAmount ? `₹${item.bidAmount.toLocaleString("en-IN")}` : item.bid_amount ? `₹${item.bid_amount.toLocaleString("en-IN")}` : item.budget ? (typeof item.budget === 'number' ? `₹${item.budget.toLocaleString("en-IN")}` : item.budget) : "—"}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Gender Preference:</span>

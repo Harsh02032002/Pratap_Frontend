@@ -165,7 +165,7 @@ export default function ConfirmedBookingsPage() {
                         )}
                       </td>
                       <td className="px-6 py-4 font-bold text-emerald-600">
-                        ₹{(b.payment_amount || b.rent_amount || b.total_amount || 0).toLocaleString("en-IN")}
+                        {((b.payment_status === 'paid' || b.payment_status === 'completed' || b.is_paid || b.payment_amount > 0 || b.token_paid > 0) ? `₹${(b.payment_amount || b.token_paid || b.rent_amount || 0).toLocaleString("en-IN")}` : "₹0 (Unpaid)")}
                       </td>
                       <td className="px-6 py-4 text-muted-foreground">
                         {b.created_at ? new Date(b.created_at).toLocaleDateString("en-IN") : "Today"}
@@ -241,7 +241,7 @@ export default function ConfirmedBookingsPage() {
                   <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
                     <p className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest mb-1">Token Amt</p>
                     <p className="text-[16px] font-black text-emerald-700">
-                      ₹{(b.payment_amount || b.rent_amount || b.total_amount || 0).toLocaleString("en-IN")}
+                      {((b.payment_status === 'paid' || b.payment_status === 'completed' || b.is_paid || b.payment_amount > 0 || b.token_paid > 0) ? `₹${(b.payment_amount || b.token_paid || b.rent_amount || 0).toLocaleString("en-IN")}` : "₹0 (Unpaid)")}
                     </p>
                   </div>
                 </div>
