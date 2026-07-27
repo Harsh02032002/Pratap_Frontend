@@ -253,7 +253,14 @@ export default function FastBiddingModal({ isOpen, onClose, initialData = {} }) 
 
         const resolvedCity = form.city || prop.city || propInfo.city || '';
         const resolvedArea = form.area || form.locationName || prop.locality || propInfo.area || '';
-        const formattedNote = `Tenant Budget: ₹${targetBudget.toLocaleString('en-IN')} | Flexible Bid: Looking for property around ₹${targetBudget.toLocaleString('en-IN')}. Preferred City: ${resolvedCity || 'N/A'}, Area: ${resolvedArea || 'Nearby'}, Gender: ${form.gender || 'Any'}`;
+        const propRent = parseInt(prop.monthlyRent || prop.rent || propInfo.rent || 0, 10);
+
+        let formattedNote = '';
+        if (propRent > targetBudget) {
+          formattedNote = `Tenant Max Budget: ₹${targetBudget.toLocaleString('en-IN')} (Listed Rent: ₹${propRent.toLocaleString('en-IN')}). Requirement Note: "My maximum budget is ₹${targetBudget.toLocaleString('en-IN')}/month. If you can offer this property within ₹${targetBudget.toLocaleString('en-IN')}, please accept the bid and enable chat." | Preferred City: ${resolvedCity || 'N/A'}, Area: ${resolvedArea || 'Nearby'}, Gender: ${form.gender || 'Any'}`;
+        } else {
+          formattedNote = `Tenant Budget: ₹${targetBudget.toLocaleString('en-IN')} | Flexible Bid: Looking for property around ₹${targetBudget.toLocaleString('en-IN')}/month. Preferred City: ${resolvedCity || 'N/A'}, Area: ${resolvedArea || 'Nearby'}, Gender: ${form.gender || 'Any'}`;
+        }
 
         return fetch(`${apiUrl}/api/booking/create`, {
           method: 'POST',
