@@ -1043,6 +1043,8 @@ export default function OurPropertyPage() {
           priceRange: (minPrice || maxPrice) ? (maxPrice ? `Less than ${maxPrice}` : `More than ${minPrice}`) : '',
           gender: selectedGender || 'Any'
         }}
+      />
+
       {/* Direct Quick Booking Confirmation Modal */}
       <QuickBookingModal 
         property={selectedPropertyForDirectBook}
