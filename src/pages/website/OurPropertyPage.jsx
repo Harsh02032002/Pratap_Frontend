@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams, Link, useNavigate, useParams, useLocation } from "react-router-dom";
 import { fetchProperties, searchPropertiesByLocation, getNearbyAreas, getInstitutions, getPriceRangeByType, trackPropertyClick, getApiBase, fetchJson } from "../../utils/api";
 import FastBiddingModal from "../../components/website/FastBiddingModal";
+import QuickBookingModal from "../../components/website/QuickBookingModal";
 import { useAuth } from "../../contexts/AuthContext";
 import { useHtmlPage } from "../../utils/htmlPage";
 import axios from "axios";
@@ -136,7 +137,52 @@ export default function OurPropertyPage() {
   const [showSort, setShowSort] = useState(false);
   const [showBidModal, setShowBidModal] = useState(false);
   const [selectedPropertyForBid, setSelectedPropertyForBid] = useState(null);
+  const [showDirectBookingModal, setShowDirectBookingModal] = useState(false);
+  const [selectedPropertyForDirectBook, setSelectedPropertyForDirectBook] = useState(null);
   const { user, isAuthenticated } = useAuth();
+
+  const handleDirectBookingSubmit = async (bookingData) => {
+    let userId = bookingData.email;
+    try {
+      const raw = sessionStorage.getItem("website_user") || localStorage.getItem("website_user") ||
+                  sessionStorage.getItem("user") || localStorage.getItem("user");
+      if (raw) {
+        const u = JSON.parse(raw);
+        if (u?._id || u?.id) userId = u._id || u.id;
+      }
+    } catch (_) {}
+
+    const targetProp = selectedPropertyForDirectBook || {};
+    const ownerId = targetProp.ownerLoginId || targetProp.owner_id || targetProp.generatedCredentials?.loginId || targetProp.owner || 'OWN001';
+
+    const payload = {
+      property_id: targetProp._id || targetProp.id || bookingData.propertyId,
+      property_name: targetProp.name || targetProp.title || bookingData.propertyName,
+      owner_id: ownerId,
+      rent_amount: parseInt(targetProp.price || targetProp.monthlyRent || bookingData.propertyPrice || 0, 10),
+      area: targetProp.area || targetProp.location || '',
+      city: targetProp.location || targetProp.city || '',
+      property_type: targetProp.type || targetProp.propertyType || 'PG',
+      request_type: 'direct',
+      user_id: userId,
+      name: bookingData.name,
+      email: bookingData.email,
+      phone: bookingData.phone,
+      message: bookingData.message || 'Direct booking request from website',
+    };
+
+    const res = await fetch(`${getApiBase()}/api/booking/create`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to submit booking request');
+    alert('Direct Booking Request Sent Successfully to Property Owner!');
+    setShowDirectBookingModal(false);
+  };
 
   const [seoData, setSeoData] = useState({
     title: "Our Properties | Roomhy",
@@ -846,9 +892,9 @@ export default function OurPropertyPage() {
                           key={property.id} 
                           property={property} 
                           nearbyColleges={propertyNearbyColleges[property.id]} 
-                          onBidNow={() => {
-                            setSelectedPropertyForBid(property);
-                            setShowBidModal(true);
+                          onBookNow={() => {
+                            setSelectedPropertyForDirectBook(property);
+                            setShowDirectBookingModal(true);
                           }}
                         />
                       ))}
@@ -997,6 +1043,12 @@ export default function OurPropertyPage() {
           priceRange: (minPrice || maxPrice) ? (maxPrice ? `Less than ${maxPrice}` : `More than ${minPrice}`) : '',
           gender: selectedGender || 'Any'
         }}
+      {/* Direct Quick Booking Confirmation Modal */}
+      <QuickBookingModal 
+        property={selectedPropertyForDirectBook}
+        isOpen={showDirectBookingModal}
+        onClose={() => setShowDirectBookingModal(false)}
+        onSubmit={handleDirectBookingSubmit}
       />
     </div>
   );
@@ -1010,7 +1062,7 @@ function getOptimizedImageUrl(url, width = 800) {
 }
 
 // Property Card Component - OYO Style
-function PropertyCard({ property, onBidNow }) {
+function PropertyCard({ property, onBookNow }) {
   const navigate = useNavigate();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
@@ -1233,7 +1285,7 @@ function PropertyCard({ property, onBidNow }) {
                 onClick={(e) => { 
                   e.preventDefault(); 
                   e.stopPropagation(); 
-                  if (onBidNow) onBidNow();
+                  if (onBookNow) onBookNow();
                 }}
                 className="flex-1 py-2 bg-[#EE4266] text-white font-bold rounded text-[10px] hover:bg-[#d63a5b] transition-all shadow-sm whitespace-nowrap"
               >
