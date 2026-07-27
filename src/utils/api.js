@@ -152,14 +152,22 @@ export const fetchJson = (path, options = {}) => {
   return promise;
 };
 
+const DEFAULT_CITIES = [
+  { name: "Kota" }, { name: "Indore" }, { name: "Jaipur" }, { name: "Delhi" },
+  { name: "Bhopal" }, { name: "Nagpur" }, { name: "Jodhpur" }, { name: "Mumbai" },
+  { name: "Bangalore" }, { name: "Chennai" }, { name: "Pune" }, { name: "Ahmedabad" }
+];
+
 // Fetch cities from backend — cached 10 minutes (cities rarely change)
 export const fetchCities = async () => {
   try {
     const data = await _fetchCached('/api/locations/cities', 10 * 60 * 1000);
-    return data.data || data || [];
+    const list = data.data || data || [];
+    if (Array.isArray(list) && list.length > 0) return list;
+    return DEFAULT_CITIES;
   } catch (error) {
     console.error('Error fetching cities:', error);
-    return [];
+    return DEFAULT_CITIES;
   }
 };
 

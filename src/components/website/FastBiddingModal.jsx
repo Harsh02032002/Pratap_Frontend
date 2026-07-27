@@ -130,8 +130,21 @@ export default function FastBiddingModal({ isOpen, onClose, initialData = {} }) 
 
   // Load cities once
   useEffect(() => {
-    fetchCities().then(setCities).catch(() => {});
+    fetchCities().then(res => {
+      const list = Array.isArray(res) ? res : res?.data || [];
+      if (list.length > 0) setCities(list);
+    }).catch(() => {});
   }, []);
+
+  // Dynamic fallback: extract cities from loaded properties if cities array is empty
+  useEffect(() => {
+    if (allProperties.length > 0 && cities.length === 0) {
+      const extracted = [...new Set(allProperties.map(p => p.city || p.propertyInfo?.city).filter(Boolean))];
+      if (extracted.length > 0) {
+        setCities(extracted.map(name => ({ name })));
+      }
+    }
+  }, [allProperties, cities.length]);
 
   // Load areas when city changes
   useEffect(() => {
