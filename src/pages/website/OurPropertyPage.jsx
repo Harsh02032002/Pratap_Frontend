@@ -153,16 +153,16 @@ export default function OurPropertyPage() {
     } catch (_) {}
 
     const targetProp = selectedPropertyForDirectBook || {};
-    const ownerId = targetProp.ownerLoginId || targetProp.owner_id || targetProp.generatedCredentials?.loginId || targetProp.owner || 'OWN001';
+    const ownerId = targetProp.generatedCredentials?.loginId || targetProp.ownerLoginId || targetProp.owner_id || targetProp.owner || targetProp.createdBy || targetProp.propertyOwnerId || '';
 
     const payload = {
       property_id: targetProp._id || targetProp.id || bookingData.propertyId,
-      property_name: targetProp.name || targetProp.title || bookingData.propertyName,
+      property_name: targetProp.name || targetProp.title || bookingData.propertyName || 'Property',
       owner_id: ownerId,
-      rent_amount: parseInt(targetProp.price || targetProp.monthlyRent || bookingData.propertyPrice || 0, 10),
-      area: targetProp.area || targetProp.location || '',
-      city: targetProp.location || targetProp.city || '',
-      property_type: targetProp.type || targetProp.propertyType || 'PG',
+      rent_amount: parseInt(targetProp.price || targetProp.monthlyRent || targetProp.rent || bookingData.propertyPrice || 0, 10),
+      area: targetProp.area || targetProp.locality || targetProp.propertyInfo?.area || targetProp.location || 'Nearby',
+      city: targetProp.city || targetProp.propertyInfo?.city || targetProp.location || 'Chandigarh',
+      property_type: targetProp.type || targetProp.propertyType || targetProp.propertyInfo?.propertyType || 'PG',
       request_type: 'direct',
       user_id: userId,
       name: bookingData.name,
