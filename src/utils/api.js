@@ -153,9 +153,9 @@ export const fetchJson = (path, options = {}) => {
 };
 
 const DEFAULT_CITIES = [
-  { name: "Kota" }, { name: "Indore" }, { name: "Jaipur" }, { name: "Delhi" },
+  { name: "Chandigarh" }, { name: "Kota" }, { name: "Indore" }, { name: "Jaipur" }, { name: "Delhi" },
   { name: "Bhopal" }, { name: "Nagpur" }, { name: "Jodhpur" }, { name: "Mumbai" },
-  { name: "Bangalore" }, { name: "Chennai" }, { name: "Pune" }, { name: "Ahmedabad" }
+  { name: "Bangalore" }, { name: "Chennai" }, { name: "Pune" }, { name: "Ahmedabad" }, { name: "Sikar" }
 ];
 
 // Fetch cities from backend — cached 10 minutes (cities rarely change)
