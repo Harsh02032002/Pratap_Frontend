@@ -143,8 +143,9 @@ export default function Enquiry() {
     if (!notes) return "";
     const str = String(notes);
     if (str.includes("Tenant Budget:") || str.includes("Tenant Max Budget:") || str.includes("Flexible Bid:") || str.includes("Agar aap")) {
+      const cleanBudget = String(budgetStr).replace(/[^\d]/g, "");
       const match = str.match(/₹([\d,]+)/);
-      const amount = match ? match[1] : (String(budgetStr).replace(/[^\d]/g, "") || "7,000");
+      const amount = cleanBudget && cleanBudget !== "0" ? Number(cleanBudget).toLocaleString("en-IN") : (match ? match[1] : "7,000");
       return `Tenant Max Budget: ₹${amount}. If you can offer this property for ₹${amount}/month, please accept the bid.`;
     }
     return str;

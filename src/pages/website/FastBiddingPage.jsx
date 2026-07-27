@@ -243,6 +243,7 @@ export default function FastBiddingPage() {
           email: form.gmail,
           phone: '',
           request_type: 'bid',
+          bid_amount: Number.isFinite(parsedMax) && parsedMax > 0 ? parsedMax : (Number.isFinite(parsedMin) && parsedMin > 0 ? parsedMin : 7000),
           bid_min: Number.isFinite(parsedMin) && parsedMin > 0 ? parsedMin : null,
           bid_max: Number.isFinite(parsedMax) && parsedMax > 0 ? parsedMax : null,
           filter_criteria: {
