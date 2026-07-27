@@ -205,7 +205,7 @@ export default function NewEnquiriesPage() {
                 <button 
                   onClick={() => handleAcceptBid(item._id)}
                   disabled={acceptingBid === item._id}
-                  className="flex-1 h-10 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold inline-flex items-center justify-center transition disabled:opacity-50"
+                  className="flex-1 h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold inline-flex items-center justify-center transition shadow-sm disabled:opacity-50"
                 >
                   {acceptingBid === item._id ? (
                     <>

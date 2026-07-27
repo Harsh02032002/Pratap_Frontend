@@ -176,23 +176,24 @@ export default function Enquiry() {
         </div>
         <button 
           onClick={() => setShowModal(true)}
-          className="inline-flex items-center gap-2 h-11 px-5 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition shadow-sm md:mt-2"
+          className="inline-flex items-center gap-2 h-11 px-5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-sm md:mt-2"
         >
           <Plus className="size-4"/> Add Manual Lead
         </button>
       </div>
 
       {/* Stats Bar */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         {[
-          { l: "Total Leads", v: totalCount, bg: "bg-blue-50/70 border-blue-100 text-blue-600", valColor: "text-blue-900" },
-          { l: "New Enquiries", v: newCount, bg: "bg-indigo-50/70 border-indigo-100 text-indigo-600", valColor: "text-indigo-900" },
-          { l: "Site Visit", v: visitCount, bg: "bg-emerald-50/70 border-emerald-100 text-emerald-600", valColor: "text-emerald-900" },
-          { l: "Bookings", v: bookingsCount, bg: "bg-purple-50/70 border-purple-100 text-purple-600", valColor: "text-purple-900" }
-        ].map(({ l, v, bg, valColor }) => (
-          <div key={l} className={`rounded-2xl border p-4 shadow-sm ${bg} transition-all`}>
-            <div className={`text-2xl font-black ${valColor}`}>{v}</div>
-            <div className="text-[11px] font-bold uppercase tracking-wider mt-1 opacity-80">{l}</div>
+          { label: "Total Leads", value: totalCount, sub: "Leads", color: "text-blue-600" },
+          { label: "New Enquiries", value: newCount, sub: "Enquiries", color: "text-indigo-600" },
+          { label: "Bookings", value: bookingsCount, sub: "Confirmed", color: "text-purple-600" }
+        ].map(({ label, value, sub, color }) => (
+          <div key={label} className="rounded-2xl border border-border bg-card p-5 shadow-soft hover:shadow-md transition-all">
+            <span className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider">{label}</span>
+            <h3 className={`text-[28px] font-bold mt-1 ${color}`}>
+              {value} <span className="text-[14px] font-semibold text-muted-foreground">{sub}</span>
+            </h3>
           </div>
         ))}
       </div>
@@ -204,7 +205,6 @@ export default function Enquiry() {
           {[
             { k: "all", l: `All (${totalCount})` },
             { k: "new", l: `New (${newCount})` },
-            { k: "site-visit", l: `Site Visit (${visitCount})` },
             { k: "bookings", l: `Bookings (${bookingsCount})` }
           ].map(({ k, l }) => (
             <button 
@@ -332,22 +332,12 @@ export default function Enquiry() {
                   </button>
 
                   <div className="flex gap-2">
-                    {phoneClean && (
-                      <a 
-                        href={`https://wa.me/${phoneClean}?text=Hi%20${encodeURIComponent(l.studentName || '')},%20regards%20Roomhy`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-1 h-10 border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5"
-                      >
-                        <MessageSquare size={14} /> WhatsApp Chat
-                      </a>
-                    )}
                     <button 
                       onClick={() => handleDelete(l._id)}
-                      className="px-4 h-10 border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1"
+                      className="w-full h-10 border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5"
                       title="Delete Lead"
                     >
-                      <Trash2 size={14} /> Drop
+                      <Trash2 size={14} /> Drop Lead
                     </button>
                   </div>
                 </div>
@@ -480,7 +470,7 @@ export default function Enquiry() {
                 <button 
                   type="submit" 
                   disabled={saving}
-                  className="flex-1 h-11 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition flex items-center justify-center gap-2"
+                  className="flex-1 h-11 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2"
                 >
                   {saving ? (
                     <>

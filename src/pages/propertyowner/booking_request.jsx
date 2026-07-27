@@ -9,7 +9,7 @@ const BOOKING_TTL = 2 * 60 * 1000; // 2 minutes
 import { 
   Inbox, Search, MessageSquare, Phone, Calendar, 
   CheckCircle2, XCircle, Clock, CreditCard, ArrowRight, Loader2,
-  Eye, X, User, Mail, MapPin
+  Eye, X, User, Mail, MapPin, Check
 } from "lucide-react";
 
 export default function BookingRequestPage() {
@@ -206,7 +206,14 @@ export default function BookingRequestPage() {
                   {item.request_type && (
                     <p className="text-[11.5px] text-muted-foreground mt-0.5">Type: <span className="uppercase text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.2 rounded font-bold">{item.request_type}</span></p>
                   )}
-                  <p className="text-[12px] text-muted-foreground font-mono mt-1">{item.phone || "No phone"} • {item.email}</p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200/80">
+                      <Check size={11} className="text-emerald-600 stroke-[3]" /> OTP Verified Phone
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200/80">
+                      <Check size={11} className="text-emerald-600 stroke-[3]" /> OTP Verified Email
+                    </span>
+                  </div>
                 </div>
 
                 <div className="border-t border-border/60 pt-4 grid grid-cols-2 gap-4 text-xs">
@@ -246,7 +253,7 @@ export default function BookingRequestPage() {
                     <button 
                       onClick={() => handleAction(item._id, "approve")}
                       disabled={processingId !== null}
-                      className="flex-1 h-11 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                      className="flex-1 h-11 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                     >
                       {processingId === item._id ? (
                         <>
@@ -358,17 +365,13 @@ function ViewDetailsModal({ item, onClose }) {
             <div>
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">Tenant Profile</span>
               <h3 className="font-serif text-lg font-bold text-foreground">{item.name}</h3>
-              <div className="mt-2 space-y-1 text-xs text-muted-foreground font-mono">
-                <div className="flex items-center gap-1.5 font-sans">
-                  <Mail size={12} className="text-muted-foreground" />
-                  <span>{item.email}</span>
-                </div>
-                {item.phone && (
-                  <div className="flex items-center gap-1.5">
-                    <Phone size={12} className="text-muted-foreground" />
-                    <span>{item.phone}</span>
-                  </div>
-                )}
+              <div className="mt-2.5 flex flex-wrap gap-1.5">
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200/80">
+                  <Check size={11} className="text-emerald-600 stroke-[3]" /> OTP Verified Phone
+                </span>
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200/80">
+                  <Check size={11} className="text-emerald-600 stroke-[3]" /> OTP Verified Email
+                </span>
               </div>
             </div>
             <div className="flex flex-col md:items-end md:justify-center">
@@ -419,20 +422,30 @@ function ViewDetailsModal({ item, onClose }) {
                   <span className="text-indigo-600 font-extrabold text-sm">₹{(item.bid_amount || 0).toLocaleString("en-IN")}/mo</span>
                 </div>
               )}
-              {item.request_type !== "bid" && (
-                <>
-                  <div>
-                    <span className="text-muted-foreground block font-medium">Token Paid</span>
-                    <span className="text-emerald-600 font-extrabold text-sm">₹{(item.payment_amount || item.rent_amount || item.total_amount || 0).toLocaleString("en-IN")}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground block font-medium">Payment ID</span>
-                    <span className="text-foreground font-mono font-medium truncate block max-w-[120px]" title={item.payment_id || item.paymentId || "N/A"}>
-                      {item.payment_id || item.paymentId || "N/A"}
-                    </span>
-                  </div>
-                </>
-              )}
+              {item.request_type !== "bid" && (() => {
+                const isPaid = item.payment_status === 'paid' || item.payment_status === 'completed' || item.is_paid === true || (item.payment_amount && item.payment_amount > 0) || (item.token_paid && item.token_paid > 0);
+                const paidAmt = isPaid ? (item.payment_amount || item.token_paid || 0) : 0;
+                const payId = item.payment_id || item.paymentId;
+
+                return (
+                  <>
+                    <div>
+                      <span className="text-muted-foreground block font-medium">Payment Status</span>
+                      <span className={`font-bold text-xs ${isPaid ? 'text-emerald-600' : 'text-amber-600'}`}>
+                        {isPaid ? `Token Paid (₹${paidAmt.toLocaleString("en-IN")})` : 'Unpaid / Pending'}
+                      </span>
+                    </div>
+                    {isPaid && payId && (
+                      <div>
+                        <span className="text-muted-foreground block font-medium">Payment ID</span>
+                        <span className="text-foreground font-mono font-medium truncate block max-w-[120px]" title={payId}>
+                          {payId}
+                        </span>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           </div>
 
