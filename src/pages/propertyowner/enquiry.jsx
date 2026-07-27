@@ -139,6 +139,17 @@ export default function Enquiry() {
     }
   };
 
+  const formatNoteSimple = (notes, budgetStr = "") => {
+    if (!notes) return "";
+    const str = String(notes);
+    if (str.includes("Tenant Budget:") || str.includes("Tenant Max Budget:") || str.includes("Flexible Bid:") || str.includes("Agar aap")) {
+      const match = str.match(/₹([\d,]+)/);
+      const amount = match ? match[1] : (String(budgetStr).replace(/[^\d]/g, "") || "7,000");
+      return `Tenant Max Budget: ₹${amount}. If you can offer this property for ₹${amount}/month, please accept the bid.`;
+    }
+    return str;
+  };
+
   const getEnquiryStatusGroup = (status = "") => {
     const s = String(status).toLowerCase();
     if (s === "new" || s === "pending" || s === "request to connect" || s === "follow-up" || s === "") return "new";
@@ -315,7 +326,7 @@ export default function Enquiry() {
                       <div className="pt-2">
                         <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1">Requirement / Notes:</p>
                         <p className="text-[11.5px] text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-900 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 italic leading-relaxed">
-                          "{l.notes}"
+                          "{formatNoteSimple(l.notes, l.budget)}"
                         </p>
                       </div>
                     )}

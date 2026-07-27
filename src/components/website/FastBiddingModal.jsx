@@ -257,9 +257,9 @@ export default function FastBiddingModal({ isOpen, onClose, initialData = {} }) 
 
         let formattedNote = '';
         if (propRent > targetBudget) {
-          formattedNote = `Tenant Max Budget: ₹${targetBudget.toLocaleString('en-IN')} (Listed Rent: ₹${propRent.toLocaleString('en-IN')}). Requirement Note: "My maximum budget is ₹${targetBudget.toLocaleString('en-IN')}/month. If you can offer this property within ₹${targetBudget.toLocaleString('en-IN')}, please accept the bid and enable chat." | Preferred City: ${resolvedCity || 'N/A'}, Area: ${resolvedArea || 'Nearby'}, Gender: ${form.gender || 'Any'}`;
+          formattedNote = `Tenant Max Budget: ₹${targetBudget.toLocaleString('en-IN')}. If you can offer this property for ₹${targetBudget.toLocaleString('en-IN')}/month, please accept the bid.`;
         } else {
-          formattedNote = `Tenant Budget: ₹${targetBudget.toLocaleString('en-IN')} | Flexible Bid: Looking for property around ₹${targetBudget.toLocaleString('en-IN')}/month. Preferred City: ${resolvedCity || 'N/A'}, Area: ${resolvedArea || 'Nearby'}, Gender: ${form.gender || 'Any'}`;
+          formattedNote = `Tenant Budget: ₹${targetBudget.toLocaleString('en-IN')}. Looking for property within ₹${targetBudget.toLocaleString('en-IN')}/month.`;
         }
 
         return fetch(`${apiUrl}/api/booking/create`, {

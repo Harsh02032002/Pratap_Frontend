@@ -194,7 +194,7 @@ export default function NewEnquiriesPage() {
                     <div className="pt-1.5">
                       <p className="text-muted-foreground text-[11px] uppercase tracking-wide font-semibold mb-0.5">Notes / Requirement:</p>
                       <p className="text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-900 p-2 rounded border border-border/40 text-[11px] leading-relaxed line-clamp-2 italic">
-                        "{item.notes}"
+                        "{String(item.notes).includes('Tenant Budget:') || String(item.notes).includes('Tenant Max Budget:') || String(item.notes).includes('Flexible Bid:') || String(item.notes).includes('Agar aap') ? `Tenant Max Budget: ₹${(String(item.notes).match(/₹([\d,]+)/) || [])[1] || '7,000'}. If you can offer this property for ₹${(String(item.notes).match(/₹([\d,]+)/) || [])[1] || '7,000'}/month, please accept the bid.` : item.notes}"
                       </p>
                     </div>
                   )}

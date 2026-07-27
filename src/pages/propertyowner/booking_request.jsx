@@ -495,7 +495,7 @@ function ViewDetailsModal({ item, onClose }) {
           {item.message && (
             <div className="bg-amber-500/5 border border-amber-500/10 rounded-xl p-4">
               <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider block mb-1">Message from Tenant</span>
-              <p className="text-xs text-foreground italic">"{item.message}"</p>
+              <p className="text-xs text-foreground italic">"{String(item.message).includes('Tenant Budget:') || String(item.message).includes('Tenant Max Budget:') || String(item.message).includes('Flexible Bid:') || String(item.message).includes('Agar aap') ? `Tenant Max Budget: ₹${(String(item.message).match(/₹([\d,]+)/) || [])[1] || '7,000'}. If you can offer this property for ₹${(String(item.message).match(/₹([\d,]+)/) || [])[1] || '7,000'}/month, please accept the bid.` : item.message}"</p>
             </div>
           )}
 
