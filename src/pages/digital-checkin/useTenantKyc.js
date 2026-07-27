@@ -279,6 +279,14 @@ export const useTenantKyc = () => {
       if (ownerExpectedAadhaar && aadhaarRaw && !isAadhaarMatch(ownerExpectedAadhaar, aadhaarRaw)) {
         mismatchReasons.push(`Aadhaar Number mismatch: Owner Record (${ownerExpectedAadhaar}) vs Submitted Number (${aadhaarRaw})`);
       }
+      // Check 3: Scanned Card Image vs Entered Aadhaar Number
+      if (scannedCardAadhaar && aadhaarRaw && !isAadhaarMatch(scannedCardAadhaar, aadhaarRaw)) {
+        mismatchReasons.push(`Aadhaar Card image mismatch: Image number (${scannedCardAadhaar}) vs Entered number (${aadhaarRaw})`);
+      }
+      // Check 4: If OCR rejected or unreadable card image
+      if (frontOcr?.status === "rejected" || frontOcr?.status === "unreadable") {
+        mismatchReasons.push(`Uploaded card photo is unreadable or not a valid Aadhaar Card.`);
+      }
 
       const isMismatch = mismatchReasons.length > 0;
       const targetKycStatus = isMismatch ? "mismatch_review" : "audit_pending";
