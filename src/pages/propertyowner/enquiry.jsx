@@ -151,16 +151,15 @@ export default function Enquiry() {
     return str;
   };
 
-  const getEnquiryStatusGroup = (status = "") => {
-    const s = String(status).toLowerCase();
-    if (s === "new" || s === "pending" || s === "request to connect" || s === "follow-up" || s === "") return "new";
-    if (s === "site-visit" || s === "visit" || s === "scheduled") return "site-visit";
-    if (s === "booking" || s === "confirmed" || s === "booked" || s === "active" || s === "closed") return "bookings";
-    return s;
+  const isBookingLead = (l) => {
+    if (!l) return false;
+    const s = String(l.status || "").toLowerCase();
+    return Boolean(l.isBookingRequest || l.request_type || ["booking", "confirmed", "booked", "active", "closed"].includes(s));
   };
 
   const filtered = enquiries.filter(l => {
-    const matchesTab = tab === "all" || getEnquiryStatusGroup(l.status) === tab;
+    const isBook = isBookingLead(l);
+    const matchesTab = tab === "all" || (tab === "bookings" ? isBook : !isBook);
     const matchesSearch = !search || 
       (l.studentName || "").toLowerCase().includes(search.toLowerCase()) ||
       (l.studentPhone || "").toLowerCase().includes(search.toLowerCase()) ||
@@ -170,9 +169,8 @@ export default function Enquiry() {
   });
 
   const totalCount = enquiries.length;
-  const newCount = enquiries.filter(x => getEnquiryStatusGroup(x.status) === "new").length;
-  const visitCount = enquiries.filter(x => getEnquiryStatusGroup(x.status) === "site-visit").length;
-  const bookingsCount = enquiries.filter(x => getEnquiryStatusGroup(x.status) === "bookings").length;
+  const bookingsCount = enquiries.filter(x => isBookingLead(x)).length;
+  const newCount = enquiries.filter(x => !isBookingLead(x)).length;
 
   return (
     <PropertyOwnerLayout 
