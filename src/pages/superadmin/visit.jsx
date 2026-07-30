@@ -90,6 +90,27 @@ export default function Visit() {
   const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [selectedVisit, setSelectedVisit] = useState(null);
+
+  const handleDeleteVisit = async (visitId, e) => {
+    if (e) e.stopPropagation();
+    if (!window.confirm("Are you sure you want to delete this visit report?")) return;
+    try {
+      await fetchJson(`/api/visits/${visitId}`, { method: "DELETE" });
+      setVisits(prev => prev.filter(v => v._id !== visitId && v.visitId !== visitId));
+      if (selectedVisit && (selectedVisit._id === visitId || selectedVisit.visitId === visitId)) {
+        setSelectedVisit(null);
+      }
+    } catch (err) {
+      alert(err?.message || "Failed to delete visit report");
+    }
+  };
+
+  const handleOpenMap = (v, e) => {
+    if (e) e.stopPropagation();
+    const loc = `${v.propertyName || ''} ${v.address || ''} ${v.area || ''} ${v.city || ''}`;
+    window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc.trim())}`, "_blank");
+  };
 
   // ─── Form State ─────────────────────────────────────────────────────────────
   // Owner Identity
@@ -360,22 +381,24 @@ export default function Visit() {
       <div className="flex items-center justify-between">
          <div className="flex flex-col gap-1">
             <h1 className="text-2xl font-bold text-slate-800 tracking-tight leading-none">Visit Reports</h1>
-            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">View and manage property visit reports</p>
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">View and monitor field inspection visit reports submitted by all employees</p>
          </div>
-         <div className="flex items-center gap-3">
-            <button onClick={() => { if (currentView === "addOwner") resetForm(); setCurrentView(currentView === "addOwner" ? "list" : "addOwner"); }} className={cn(
-              "px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-lg transition-all flex items-center gap-2",
-              currentView === "addOwner" ? "bg-white text-slate-600 border border-slate-100 shadow-slate-200" : "bg-slate-800 text-white shadow-slate-800/10 hover:bg-slate-900"
-            )}>
-               {currentView === "addOwner" ? <RefreshCw className="w-3.5 h-3.5" /> : <UserPlus className="w-3.5 h-3.5" />}
-               {currentView === "addOwner" ? "Back to Visits" : "Add Property Owner"}
-            </button>
-            {currentView === "list" && (
-              <button onClick={() => setCurrentView("addOwner")} className="bg-slate-800 text-white px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-lg shadow-slate-800/10 hover:bg-slate-900 transition-all flex items-center gap-2">
-                 <Plus className="w-3.5 h-3.5" /> Add New Visit
+         {typeof window !== "undefined" && window.location.pathname.startsWith("/employee") && (
+           <div className="flex items-center gap-3">
+              <button onClick={() => { if (currentView === "addOwner") resetForm(); setCurrentView(currentView === "addOwner" ? "list" : "addOwner"); }} className={cn(
+                "px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-lg transition-all flex items-center gap-2",
+                currentView === "addOwner" ? "bg-white text-slate-600 border border-slate-100 shadow-slate-200" : "bg-slate-800 text-white shadow-slate-800/10 hover:bg-slate-900"
+              )}>
+                 {currentView === "addOwner" ? <RefreshCw className="w-3.5 h-3.5" /> : <UserPlus className="w-3.5 h-3.5" />}
+                 {currentView === "addOwner" ? "Back to Visits" : "Add Property Owner"}
               </button>
-            )}
-         </div>
+              {currentView === "list" && (
+                <button onClick={() => setCurrentView("addOwner")} className="bg-slate-800 text-white px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-lg shadow-slate-800/10 hover:bg-slate-900 transition-all flex items-center gap-2">
+                   <Plus className="w-3.5 h-3.5" /> Add New Visit
+                </button>
+              )}
+           </div>
+         )}
       </div>
 
       {currentView === "addOwner" ? (
@@ -771,42 +794,8 @@ export default function Visit() {
       <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-lg shadow-slate-200/50 overflow-hidden">
          <div className="flex items-center justify-between mb-8">
             <h3 className="text-[10px] font-bold text-slate-800 uppercase tracking-widest leading-none">All Visit Reports</h3>
-            <div className="flex items-center gap-3">
-               <div className="relative group w-48">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-300" />
-                  <input 
-                    value={search} onChange={e => setSearch(e.target.value)}
-                    placeholder="Search visits..." 
-                    className="w-full bg-slate-50 border border-slate-100 rounded-xl py-2 pl-9 pr-3 text-[10px] font-bold outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all shadow-sm" 
-                  />
-               </div>
-               <button onClick={loadVisits} className="p-2 rounded-lg bg-slate-50 text-slate-400 hover:text-blue-600 transition-all border border-slate-100 shadow-sm">
-                  <RefreshCw className={cn("w-3.5 h-3.5", loading && "animate-spin")} />
-               </button>
-            </div>
-         </div>
-
-         <div className="overflow-x-auto">
-            <table className="w-full text-left">
-               <thead>
-                  <tr className="text-slate-400 text-[8px] font-bold uppercase border-b border-slate-50">
-                     <th className="pb-4">Visit ID</th>
-                     <th className="pb-4">Property Details</th>
-                     <th className="pb-4 text-center">Staff Details</th>
-                     <th className="pb-4 text-center">Cleanliness</th>
-                     <th className="pb-4 text-center">Photos</th>
-                     <th className="pb-4 text-center">Status</th>
-                     <th className="pb-4 text-right">Actions</th>
-                  </tr>
-               </thead>
-               <tbody className="divide-y divide-slate-50">
-                  {loading ? (
-                    <tr><td colSpan="7" className="py-20 text-center">
-                       <div className="w-10 h-10 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin mx-auto mb-4" />
-                       <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Loading Visit Reports...</p>
-                    </td></tr>
-                  ) : filteredVisits.map((v, i) => (
-                    <tr key={i} className="group hover:bg-slate-50 transition-colors cursor-pointer">
+                              ) : filteredVisits.map((v, i) => (
+                    <tr key={i} onClick={() => setSelectedVisit(v)} className="group hover:bg-slate-50 transition-colors cursor-pointer">
                        <td className="py-3">
                           <p className="text-[9px] font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-100 shadow-sm inline-block">#{v._id?.substring(0, 6) || "ERR"}</p>
                           <p className="text-[7px] text-slate-400 font-bold uppercase tracking-widest mt-1 opacity-60 leading-none">{new Date(v.submittedAt || Date.now()).toLocaleDateString()}</p>
@@ -862,8 +851,9 @@ export default function Visit() {
                        </td>
                        <td className="py-3 text-right">
                           <div className="flex items-center justify-end gap-1.5">
-                             <button className="p-1.5 rounded-lg bg-slate-50 text-slate-400 hover:text-blue-600 transition-all border border-slate-100 shadow-sm"><Map className="w-3.5 h-3.5" /></button>
-                             <button className="p-1.5 rounded-lg bg-slate-50 text-slate-400 hover:text-rose-600 transition-all border border-slate-100 shadow-sm"><Trash className="w-3.5 h-3.5" /></button>
+                             <button onClick={(e) => { e.stopPropagation(); setSelectedVisit(v); }} title="View Visit Report Details" className="p-1.5 rounded-lg bg-slate-50 text-slate-500 hover:text-blue-600 transition-all border border-slate-100 shadow-sm"><Eye className="w-3.5 h-3.5" /></button>
+                             <button onClick={(e) => handleOpenMap(v, e)} title="View Map Location" className="p-1.5 rounded-lg bg-slate-50 text-slate-500 hover:text-indigo-600 transition-all border border-slate-100 shadow-sm"><Map className="w-3.5 h-3.5" /></button>
+                             <button onClick={(e) => handleDeleteVisit(v._id || v.visitId, e)} title="Delete Visit Report" className="p-1.5 rounded-lg bg-slate-50 text-slate-500 hover:text-rose-600 transition-all border border-slate-100 shadow-sm"><Trash className="w-3.5 h-3.5" /></button>
                           </div>
                        </td>
                     </tr>
@@ -873,6 +863,66 @@ export default function Visit() {
          </div>
       </div>
       </>
+      )}
+
+      {/* Visit Details Modal */}
+      {selectedVisit && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-6 shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900">{selectedVisit.propertyName || selectedVisit.propertyInfo?.name || "Visit Details"}</h2>
+                <p className="text-xs text-slate-400 font-medium">Submitted by: <strong className="text-slate-700">{selectedVisit.staffName || selectedVisit.submittedBy || "Staff"}</strong> (ID: {selectedVisit.staffId || "STAFF"})</p>
+              </div>
+              <button onClick={() => setSelectedVisit(null)} className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 text-xs font-medium">
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-1">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Owner Details</p>
+                <p className="text-slate-900 font-bold text-sm">{selectedVisit.ownerName || selectedVisit.visitorName || "N/A"}</p>
+                <p className="text-slate-600">{selectedVisit.ownerPhone || selectedVisit.visitorPhone || "N/A"}</p>
+                <p className="text-slate-600">{selectedVisit.ownerEmail || selectedVisit.visitorEmail || "N/A"}</p>
+              </div>
+
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-1">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Property & Rent</p>
+                <p className="text-slate-900 font-bold text-sm">Rent: ₹{selectedVisit.monthlyRent || 0}/mo</p>
+                <p className="text-slate-600">Type: {selectedVisit.propertyType || "N/A"} ({selectedVisit.genderSuitability || "Co-ed"})</p>
+                <p className="text-slate-600">Location: {selectedVisit.area || ""}, {selectedVisit.city || ""}</p>
+              </div>
+            </div>
+
+            {selectedVisit.photos && selectedVisit.photos.length > 0 && (
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Visit Photos ({selectedVisit.photos.length})</p>
+                <div className="grid grid-cols-3 gap-3">
+                  {selectedVisit.photos.map((url, idx) => (
+                    <div key={idx} className="h-28 rounded-2xl overflow-hidden border border-slate-100 shadow-sm">
+                      <img src={url} alt="" className="w-full h-full object-cover" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+              <button onClick={(e) => handleOpenMap(selectedVisit, e)} className="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition-colors flex items-center gap-2">
+                <Map className="w-4 h-4" /> Open in Google Maps
+              </button>
+              <div className="flex items-center gap-2">
+                <button onClick={(e) => handleDeleteVisit(selectedVisit._id || selectedVisit.visitId, e)} className="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-bold transition-colors flex items-center gap-2">
+                  <Trash className="w-4 h-4" /> Delete Report
+                </button>
+                <button onClick={() => setSelectedVisit(null)} className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition-colors">
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

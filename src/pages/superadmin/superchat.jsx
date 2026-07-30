@@ -75,6 +75,7 @@ export default function SuperChat() {
   }, [search]);
 
   const [inbox, setInbox] = useState([]);
+  const [allChatsList, setAllChatsList] = useState([]);
   const [activeChat, setActiveChat] = useState(null);
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState("");
@@ -123,6 +124,13 @@ export default function SuperChat() {
     setLoadingInbox(true);
     setError("");
     try {
+      // Always fetch all chats for overall status stats
+      fetchJson('/api/chat/all-chats').then(data => {
+        if (Array.isArray(data?.conversations)) {
+          setAllChatsList(data.conversations);
+        }
+      }).catch(() => {});
+
       const endpoint = viewMode === "all" 
         ? `/api/chat/all-chats?search=${encodeURIComponent(debouncedSearch)}`
         : `/api/chat/inbox/${encodeURIComponent(superadminLoginId)}?search=${encodeURIComponent(debouncedSearch)}`;
@@ -420,10 +428,6 @@ export default function SuperChat() {
                 <p className="text-[10px] text-emerald-500 font-bold flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Online</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <button className="p-2 text-slate-400 hover:bg-slate-50 rounded-xl transition-all"><Phone size={18} /></button>
-              <button className="p-2 text-slate-400 hover:bg-slate-50 rounded-xl transition-all"><MoreVertical size={18} /></button>
-            </div>
           </div>
           <div className="flex-1 p-6 overflow-y-auto bg-slate-50/30 space-y-6">
             {error ? <p className="text-xs text-red-500 text-center py-4 bg-red-50 rounded-xl border border-red-100">{error}</p> : null}
@@ -553,131 +557,97 @@ export default function SuperChat() {
           )}
         </div>
 
-        <div className="col-span-12 lg:col-span-3 bg-white rounded-3xl border border-slate-100 shadow-sm flex flex-col p-8 overflow-y-auto">
-          <h3 className="text-[14px] font-bold text-slate-900 mb-8 uppercase tracking-widest text-left border-b border-slate-50 pb-4">User Details</h3>
-          <div className="space-y-8">
-            <DetailRow label="Phone" value={activeChat?.participant_phone || "N/A"} icon={Phone} />
-            <DetailRow label="Email" value={activeChat?.participant_email || `${activeChat?.participant_login_id || "N/A"}@roomhy.user`} icon={Mail} />
-            <DetailRow label="Interested Property" value={activeChat?.participant_property || "Property Enquiry"} icon={Building2} />
-            <DetailRow label="Location" value={activeChat?.participant_city || "Website Source"} icon={Globe} />
-            
-            <div className="pt-4 border-t border-slate-50">
-               <div className="flex items-center justify-between mb-4">
-                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Chat ID</span>
-                  <span className="text-[10px] font-mono font-bold text-slate-900 opacity-60">{activeChat?.participant_login_id}</span>
-               </div>
+        <div className="col-span-12 lg:col-span-3 bg-white rounded-3xl border border-slate-100 shadow-sm flex flex-col p-6 overflow-y-auto">
+          <h3 className="text-[13px] font-black text-slate-900 mb-6 uppercase tracking-widest text-left border-b border-slate-50 pb-3">User & Owner Details</h3>
+          
+          <div className="space-y-6">
+            {/* TENANT DETAILS (GREEN - MATCHES TENANT CHAT BUBBLE) */}
+            <div className="bg-emerald-50/60 p-4 rounded-2xl border border-emerald-100/80 space-y-3">
+              <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest block">Tenant Details</span>
+              <DetailRow label="Name" value={activeChat?.tenant_details?.name || activeChat?.participant_name?.split('↔')[0]?.trim() || "Tenant"} icon={User} />
+              <DetailRow label="Phone" value={activeChat?.tenant_details?.phone || activeChat?.participant_phone || "N/A"} icon={Phone} />
+              <DetailRow label="Email" value={activeChat?.tenant_details?.email || activeChat?.participant_email || "N/A"} icon={Mail} />
+            </div>
+
+            {/* OWNER DETAILS (BLUE - MATCHES OWNER CHAT BUBBLE) */}
+            <div className="bg-blue-50/60 p-4 rounded-2xl border border-blue-100/80 space-y-3">
+              <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest block">Owner Details</span>
+              <DetailRow label="Owner Name" value={activeChat?.owner_details?.name || activeChat?.participant_name?.split('↔')[1]?.trim() || "Owner"} icon={UserCheck} />
+              <DetailRow label="Phone" value={activeChat?.owner_details?.phone || "N/A"} icon={Phone} />
+              <DetailRow label="Email" value={activeChat?.owner_details?.email || "N/A"} icon={Mail} />
+              <DetailRow label="Property" value={activeChat?.owner_details?.propertyTitle || activeChat?.participant_property || "Property Enquiry"} icon={Building2} />
+            </div>
+
+            <div className="pt-2 border-t border-slate-50">
                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Status</span>
-                  <span className="px-2.5 py-1 bg-emerald-50 text-emerald-500 rounded-lg text-[10px] font-black uppercase tracking-wider">Active</span>
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Chat Status</span>
+                  <span className={cn("px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider", activeChat?.status === 'closed' ? "bg-rose-50 text-rose-600 border border-rose-100" : "bg-emerald-50 text-emerald-600 border border-emerald-100")}>
+                    {activeChat?.status === 'closed' ? 'Closed' : 'Open / Active'}
+                  </span>
                </div>
+               {activeChat?.close_reason && (
+                 <p className="text-[9px] font-bold text-rose-500 mt-1 text-right">{activeChat.close_reason}</p>
+               )}
             </div>
           </div>
-          
-          <div className="mt-auto pt-8 space-y-3">
-             <button onClick={() => window.open('/superadmin/chat/leads', '_blank')} className="w-full py-4 bg-emerald-600 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-900/10 flex items-center justify-center gap-2">
-                <Building2 size={14} /> Map to Lead
-             </button>
-             <button className="w-full py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-slate-900/10 flex items-center justify-center gap-2">
-                <UserCheck size={14} /> Assign to Manager
-             </button>
-          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <a href="/superadmin/chat/settings" className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3 hover:border-blue-500 hover:shadow-md transition-all text-sm font-bold text-slate-700">
-          <Globe className="text-blue-500" /> Chat Settings
-        </a>
-        <a href="/superadmin/chat/templates" className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3 hover:border-blue-500 hover:shadow-md transition-all text-sm font-bold text-slate-700">
-          <MessageSquare className="text-purple-500" /> Templates
-        </a>
-        <a href="/superadmin/chat/alerts" className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3 hover:border-blue-500 hover:shadow-md transition-all text-sm font-bold text-slate-700">
-          <Shield className="text-red-500" /> Moderation & Alerts
-        </a>
-        <a href="/superadmin/chat/leads" className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3 hover:border-blue-500 hover:shadow-md transition-all text-sm font-bold text-slate-700">
-          <UserCheck className="text-emerald-500" /> Lead Mapping
-        </a>
-      </div>
+      {/* CONVERSATIONS BY STATUS (REAL LIVE DATA - EXACT UI) */}
+      <div className="w-full max-w-2xl mx-auto">
+        {(() => {
+          const listToUse = (allChatsList && allChatsList.length > 0) ? allChatsList : inbox;
+          const openCount = listToUse.filter(c => c.status !== 'closed').length;
+          const closedCount = listToUse.filter(c => c.status === 'closed').length;
+          const totalCount = listToUse.length;
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-        <StatsCard title="Conversations by Status" data={conversationsStatusData} />
-        <StatsCard title="Conversations by Channel" data={conversationsChannelData} />
-        <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm flex flex-col">
-          <h3 className="text-[13px] font-bold text-slate-900 mb-4">Response Time (Avg.)</h3>
-          <div className="mb-auto">
-             <p className="text-2xl font-black text-slate-900 tracking-tight leading-none mb-2">1m 32s</p>
-             <span className="text-[10px] font-bold text-emerald-500 flex items-center gap-1"><ArrowDownRight size={12} />18% faster</span>
-          </div>
-          <div className="h-16 mt-4 border border-slate-100 rounded-lg overflow-hidden">
-             <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                <AreaChart data={responseTimeTrend}>
-                   <Area type="monotone" dataKey="val" stroke="#10B981" fill="#D1FAE5" strokeWidth={2} />
-                </AreaChart>
-             </ResponsiveContainer>
-          </div>
-        </div>
-        <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm flex flex-col">
-          <h3 className="text-[13px] font-bold text-slate-900 mb-4">Satisfaction Score</h3>
-          <div className="flex items-center gap-4 mb-4">
-             <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center">
-                <Star size={24} fill="currentColor" />
-             </div>
-             <div>
-                <p className="text-2xl font-black text-slate-900 leading-none mb-1">4.6 / 5</p>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">This Week</p>
-             </div>
-          </div>
-          <div className="mt-auto">
-             <span className="text-[10px] font-bold text-emerald-500 flex items-center gap-1"><ArrowUpRight size={12} />12% from last week</span>
-          </div>
-        </div>
-        <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm">
-          <h3 className="text-[13px] font-bold text-slate-900 mb-6 uppercase tracking-widest">Top Agents (This Week)</h3>
-          <div className="space-y-4">
-             {topAgents.map((agent) => (
-                <div key={agent.name} className="flex items-center justify-between">
-                   <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full overflow-hidden shadow-sm">
-                         <img src={agent.img} alt={agent.name} className="w-full h-full object-cover" />
-                      </div>
-                      <span className="text-[11px] font-bold text-slate-600">{agent.name}</span>
-                   </div>
-                   <span className="text-[11px] font-black text-slate-900">{agent.count}</span>
-                </div>
-             ))}
-          </div>
-        </div>
+          const openPct = totalCount > 0 ? ((openCount / totalCount) * 100).toFixed(1) : "0.0";
+          const closedPct = totalCount > 0 ? ((closedCount / totalCount) * 100).toFixed(1) : "0.0";
+
+          const dynamicStatusData = [
+            { name: "Open", value: openCount, color: "#3B82F6", percent: `${openPct}%` },
+            { name: "Closed", value: closedCount, color: "#10B981", percent: `${closedPct}%` }
+          ];
+
+          return (
+            <StatsCard 
+              title="Conversations by Status" 
+              data={dynamicStatusData} 
+            />
+          );
+        })()}
       </div>
     </div>
   );
 }
 
 function StatsCard({ title, data }) {
+  const total = data.reduce((a, b) => a + b.value, 0);
   return (
-    <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm">
-      <h3 className="text-[13px] font-bold text-slate-900 mb-6">{title}</h3>
-      <div className="flex items-center gap-6">
-        <div className="relative h-24 w-24 shrink-0">
+    <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-sm flex flex-col items-center">
+      <h3 className="text-sm font-bold text-slate-900 mb-6 uppercase tracking-widest text-center w-full">{title}</h3>
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-10 w-full">
+        <div className="relative h-44 w-44 shrink-0">
           <ResponsiveContainer width="100%" height="100%" minWidth={0}>
              <PieChart>
-                <Pie data={data} innerRadius={32} outerRadius={44} paddingAngle={4} dataKey="value" stroke="none">
+                <Pie data={data} innerRadius={58} outerRadius={80} paddingAngle={4} dataKey="value" stroke="none">
                    {data.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                 </Pie>
              </PieChart>
           </ResponsiveContainer>
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-             <p className="text-sm font-black text-slate-900">{data.reduce((a, b) => a + b.value, 0)}</p>
-             <p className="text-[7px] font-bold text-slate-400 uppercase tracking-tighter">Total</p>
+             <p className="text-2xl font-black text-slate-900">{total}</p>
+             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Total</p>
           </div>
         </div>
-        <div className="flex-1 space-y-1.5">
+        <div className="flex-1 space-y-3 w-full max-w-xs">
            {data.map((item) => (
-              <div key={item.name} className="flex items-center justify-between text-[9px] font-bold">
-                 <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: item.color }} />
-                    <span className="text-slate-400">{item.name}</span>
+              <div key={item.name} className="flex items-center justify-between text-xs font-bold bg-slate-50/60 px-4 py-2.5 rounded-xl border border-slate-100">
+                 <div className="flex items-center gap-2.5">
+                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                    <span className="text-slate-600">{item.name}</span>
                  </div>
-                 <span className="text-slate-900">{item.value} <span className="text-slate-300">({item.percent})</span></span>
+                 <span className="text-slate-900 font-extrabold">{item.value} <span className="text-slate-400 font-semibold text-[10px]">({item.percent})</span></span>
               </div>
            ))}
         </div>

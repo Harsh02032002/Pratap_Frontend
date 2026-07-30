@@ -16,10 +16,12 @@ export default function ChatAlerts() {
     contactSharingAttempts: 0,
     commissionBypassAttempts: 0,
     externalSettlementAttempts: 0,
-    repeatedViolators: 0
+    repeatedViolators: 0,
+    blockedOwnersCount: 0
   });
+  const [blockedOwnersList, setBlockedOwnersList] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("logs"); // "logs" | "flagged"
+  const [activeTab, setActiveTab] = useState("logs"); // "logs" | "flagged" | "blocked"
   const [actionReason, setActionReason] = useState("");
   const [selectedViolation, setSelectedViolation] = useState(null);
   const [showActionModal, setShowActionModal] = useState(false);
@@ -32,6 +34,9 @@ export default function ChatAlerts() {
   const handleFilterChange = (type) => {
     const newType = filterType === type ? null : type;
     setFilterType(newType);
+    if (newType === "blocked_owners") {
+      setActiveTab("blocked");
+    }
     const url = new URL(window.location.href);
     if (newType) {
       url.searchParams.set("filterType", newType);
@@ -39,6 +44,19 @@ export default function ChatAlerts() {
       url.searchParams.delete("filterType");
     }
     window.history.replaceState({}, "", url.toString());
+  };
+
+  const handleUnblockOwner = async (loginId) => {
+    if (!window.confirm(`Are you sure you want to unblock owner ${loginId}?`)) return;
+    try {
+      const res = await fetchJson(`/api/chat/admin/blocked-owners/${loginId}/unblock`, { method: "POST" });
+      if (res.success) {
+        toast.success(`Owner ${loginId} unblocked successfully!`);
+        loadData();
+      }
+    } catch (err) {
+      toast.error(err.message || "Failed to unblock owner");
+    }
   };
 
   const getFilteredViolations = () => {
@@ -50,6 +68,14 @@ export default function ChatAlerts() {
         counts[id] = (counts[id] || 0) + 1;
       });
       return violations.filter(v => counts[v.participantLoginId] > 1);
+    }
+    if (filterType === "blocked_owners") {
+      const counts = {};
+      violations.forEach(v => {
+        const id = v.ownerId || v.participantLoginId;
+        counts[id] = (counts[id] || 0) + 1;
+      });
+      return violations.filter(v => (counts[v.ownerId || v.participantLoginId] >= 2) || (v.actionHistory && v.actionHistory.some(a => String(a.action).toLowerCase().includes('suspend'))));
     }
     return violations.filter(v => v.violationType === filterType);
   };
@@ -64,9 +90,11 @@ export default function ChatAlerts() {
       });
       return flaggedMessages.filter(m => counts[m.sender_login_id] > 1);
     }
+    if (filterType === "blocked_owners") {
+      return flaggedMessages.filter(m => m.violation_type === "commission_bypass");
+    }
     return flaggedMessages.filter(m => m.violation_type === filterType);
   };
-
 
   useEffect(() => {
     loadData();
@@ -75,20 +103,23 @@ export default function ChatAlerts() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [violationsRes, flaggedRes, analyticsRes] = await Promise.all([
+      const [violationsRes, flaggedRes, analyticsRes, blockedRes] = await Promise.all([
         fetchJson("/api/chat/admin/violations"),
         fetchJson("/api/chat/admin/moderation"),
-        fetchJson("/api/chat/admin/analytics")
+        fetchJson("/api/chat/admin/analytics"),
+        fetchJson("/api/chat/admin/blocked-owners").catch(() => ({ success: false }))
       ]);
 
       if (violationsRes.success) setViolations(violationsRes.violations || []);
       if (flaggedRes.success) setFlaggedMessages(flaggedRes.messages || []);
+      if (blockedRes.success) setBlockedOwnersList(blockedRes.blockedOwners || []);
       if (analyticsRes.success && analyticsRes.cards) {
         setAnalytics({
           contactSharingAttempts: analyticsRes.cards.contactSharingAttempts || 0,
           commissionBypassAttempts: analyticsRes.cards.commissionBypassAttempts || 0,
           externalSettlementAttempts: analyticsRes.cards.externalSettlementAttempts || 0,
-          repeatedViolators: analyticsRes.cards.repeatedViolators || 0
+          repeatedViolators: analyticsRes.cards.repeatedViolators || 0,
+          blockedOwnersCount: blockedRes.success ? (blockedRes.blockedOwners || []).length : (analyticsRes.cards.blockedOwnersCount || 0)
         });
       }
     } catch (err) {
@@ -189,7 +220,7 @@ export default function ChatAlerts() {
       </div>
 
       {/* Analytics Metric Bar */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Contact Sharing */}
         <div 
           onClick={() => handleFilterChange("contact_sharing")}
@@ -289,6 +320,31 @@ export default function ChatAlerts() {
             filterType === "repeated_violators" ? "w-full bg-rose-600" : "w-12 bg-rose-500 group-hover:w-full"
           }`}></div>
         </div>
+
+        {/* Blocked Owners */}
+        <div 
+          onClick={() => handleFilterChange("blocked_owners")}
+          className={`relative overflow-hidden bg-white p-6 rounded-3xl border shadow-md cursor-pointer hover:scale-[1.02] transition-all duration-300 group ${
+            filterType === "blocked_owners" 
+              ? "border-red-600 ring-2 ring-red-600/20 shadow-red-100/50" 
+              : "border-slate-100/80 shadow-slate-100/30 hover:shadow-xl hover:shadow-slate-200/40"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400 group-hover:text-slate-500 transition-colors">Blocked Owners</p>
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center border transition-all duration-300 group-hover:scale-110 ${
+              filterType === "blocked_owners"
+                ? "bg-red-600 text-white border-red-600"
+                : "bg-red-50 text-red-600 border-red-100/50 group-hover:bg-red-600 group-hover:text-white group-hover:animate-bounce"
+            }`}>
+              <Lock size={16} />
+            </div>
+          </div>
+          <p className="text-3xl font-black text-red-600 mt-4 tracking-tight group-hover:translate-x-1 transition-transform duration-300">{analytics.blockedOwnersCount}</p>
+          <div className={`h-1 rounded-full mt-4 transition-all duration-300 ${
+            filterType === "blocked_owners" ? "w-full bg-red-600" : "w-12 bg-red-500 group-hover:w-full"
+          }`}></div>
+        </div>
       </div>
 
       {filterType && (
@@ -351,10 +407,26 @@ export default function ChatAlerts() {
             {getFilteredFlagged().length}
           </span>
         </button>
+        <button 
+          onClick={() => setActiveTab("blocked")}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 ${
+            activeTab === "blocked" 
+              ? "bg-white text-slate-900 shadow-md shadow-slate-200/50" 
+              : "text-slate-500 hover:text-slate-800"
+          }`}
+        >
+          <Lock size={14} className={activeTab === "blocked" ? "text-rose-600 animate-pulse" : "text-slate-400"} />
+          <span>Blocked Owners</span>
+          <span className={`ml-1 px-1.5 py-0.5 rounded-md text-[9px] font-black ${
+            activeTab === "blocked" ? "bg-rose-50 text-rose-600" : "bg-slate-200 text-slate-600"
+          }`}>
+            {blockedOwnersList.length}
+          </span>
+        </button>
       </div>
 
       <div className="transition-all duration-300">
-        {activeTab === "logs" ? (
+        {activeTab === "logs" && (
           <div className="overflow-x-auto pb-4">
             <table className="w-full border-separate border-spacing-y-3.5 text-left text-sm">
               <thead className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
@@ -521,7 +593,9 @@ export default function ChatAlerts() {
               </tbody>
             </table>
           </div>
-        ) : (
+        )}
+
+        {activeTab === "flagged" && (
           <div className="overflow-x-auto pb-4">
             <table className="w-full border-separate border-spacing-y-3.5 text-left text-sm">
               <thead className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
@@ -658,6 +732,114 @@ export default function ChatAlerts() {
                         >
                           Dismiss
                         </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {activeTab === "blocked" && (
+          <div className="overflow-x-auto pb-4">
+            <table className="w-full border-separate border-spacing-y-3.5 text-left text-sm">
+              <thead className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                <tr>
+                  <th className="px-6 pb-1">Owner Profile</th>
+                  <th className="px-6 pb-1">Contact Info</th>
+                  <th className="px-6 pb-1">Block Reason / Violations</th>
+                  <th className="px-6 pb-1">Blocked Date</th>
+                  <th className="px-6 py-1">Status</th>
+                  <th className="pl-6 pr-24 pb-1 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan={6} className="bg-white border border-slate-200/60 rounded-3xl px-6 py-12 text-center text-slate-400 shadow-sm">
+                      <div className="flex flex-col items-center gap-2">
+                        <RefreshCw size={24} className="animate-spin text-blue-500" />
+                        <span className="text-xs font-bold text-slate-400">Loading blocked owners...</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : blockedOwnersList.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="bg-white border border-slate-200/60 rounded-3xl px-6 py-16 text-center text-slate-400 shadow-sm">
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-300">
+                          <UserCheck size={24} />
+                        </div>
+                        <div>
+                          <p className="text-sm font-black text-slate-700">No blocked owners found</p>
+                          <p className="text-xs text-slate-400 mt-0.5">No owner accounts are currently suspended or blocked.</p>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                ) : blockedOwnersList.map((owner) => (
+                  <tr key={owner._id} className="group/row transition-all duration-300 hover:-translate-y-0.5">
+                    {/* Owner Profile */}
+                    <td className="bg-white border-y border-l border-slate-200/50 rounded-l-3xl px-6 py-5 shadow-sm shadow-slate-100/20 group-hover/row:border-red-200 group-hover/row:bg-red-50/10 transition-all">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-red-50 to-rose-100 flex items-center justify-center text-rose-700 font-black text-xs uppercase border border-rose-200/50 shrink-0 shadow-sm">
+                          {(owner.name || owner.loginId || "O").slice(0, 2)}
+                        </div>
+                        <div>
+                          <div className="font-extrabold text-slate-800 text-sm tracking-tight">{owner.name}</div>
+                          <div className="text-[10px] text-slate-500 font-mono font-bold mt-0.5">{owner.loginId}</div>
+                        </div>
+                      </div>
+                    </td>
+                    {/* Contact Info */}
+                    <td className="bg-white border-y border-slate-200/50 px-6 py-5 shadow-sm shadow-slate-100/20 group-hover/row:border-red-200 group-hover/row:bg-red-50/10 transition-all text-xs">
+                      <div className="font-bold text-slate-800">{owner.phone}</div>
+                      <div className="text-[10px] text-slate-400 font-medium mt-0.5">{owner.email}</div>
+                    </td>
+                    {/* Block Reason */}
+                    <td className="bg-white border-y border-slate-200/50 px-6 py-5 shadow-sm shadow-slate-100/20 group-hover/row:border-red-200 group-hover/row:bg-red-50/10 transition-all">
+                      <div className="max-w-xs">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-100 text-[9px] font-black uppercase tracking-wider shadow-sm mb-1.5">
+                          <Lock size={9} />
+                          {owner.violationsCount} Violation{owner.violationsCount !== 1 ? 's' : ''}
+                        </span>
+                        <p className="text-xs text-slate-600 italic line-clamp-2" title={owner.violationsSnippet}>
+                          "{owner.violationsSnippet}"
+                        </p>
+                      </div>
+                    </td>
+                    {/* Timestamp */}
+                    <td className="bg-white border-y border-slate-200/50 px-6 py-5 shadow-sm shadow-slate-100/20 group-hover/row:border-red-200 group-hover/row:bg-red-50/10 transition-all text-xs">
+                      <div className="flex items-center gap-1.5 text-slate-700 font-bold">
+                        <Clock size={12} className="text-slate-400" />
+                        <span>{new Date(owner.blockedAt).toLocaleDateString()}</span>
+                      </div>
+                    </td>
+                    {/* Status */}
+                    <td className="bg-white border-y border-slate-200/50 px-6 py-5 shadow-sm shadow-slate-100/20 group-hover/row:border-red-200 group-hover/row:bg-red-50/10 transition-all">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border shadow-sm bg-rose-50 text-rose-700 border-rose-200 animate-pulse">
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-600" />
+                        ACCOUNT BLOCKED
+                      </span>
+                    </td>
+                    {/* Actions */}
+                    <td className="bg-white border-y border-r border-slate-200/50 rounded-r-3xl px-6 py-5 shadow-sm shadow-slate-100/20 group-hover/row:border-red-200 group-hover/row:bg-red-50/10 transition-all">
+                      <div className="flex items-center justify-end gap-2 shrink-0">
+                        <button
+                          onClick={() => handleUnblockOwner(owner.loginId)}
+                          className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black inline-flex items-center gap-1.5 shadow-md shadow-emerald-500/20 active:scale-95 transition-all"
+                        >
+                          <UserCheck size={14} />
+                          <span>Unblock Account</span>
+                        </button>
+                        <a 
+                          href={`/superadmin/superchat?search=${owner.loginId}&fromAlerts=blocked_owners`}
+                          className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold inline-flex items-center gap-1 transition-all"
+                        >
+                          <Eye size={12} />
+                          <span>View Chat</span>
+                        </a>
                       </div>
                     </td>
                   </tr>
