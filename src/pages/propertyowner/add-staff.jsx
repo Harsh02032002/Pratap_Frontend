@@ -124,7 +124,8 @@ const OWNER_SUBMODULE_GROUPS = [
     ],
   },
 ];
-
+// Default restricted sub-modules (all items selected / red / blocked by default)
+const DEFAULT_OWNER_RESTRICTED_SUBMODULES = OWNER_SUBMODULE_GROUPS.flatMap(g => g.items.map(i => i.key));
 
 const DEFAULT_ROLES = ["Warden", "Reception", "Accountant", "Housekeeping", "Maintenance", "Property Manager", "+ Add Custom Role"];
 const SHIFTS = [
@@ -160,7 +161,7 @@ export default function AddStaffPage() {
     status: "Active",
     photoDataUrl: "",
     permissions: [], // Empty by default! Owner manually selects permissions
-    restrictedModules: [], // Sub-module block list (Checked = Blocked)
+    restrictedModules: [...DEFAULT_OWNER_RESTRICTED_SUBMODULES], // Default sensitive items blocked; all rest present & unselected
   });
   const [customRoles, setCustomRoles] = useState(() => {
     try {

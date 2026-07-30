@@ -155,7 +155,7 @@ export const RESTRICTED_MODULE_GROUPS = [
     moduleLabel: 'User Management',
     items: [
       { key: RESTRICTED_KEYS.UM_TEAM_MANAGEMENT,     label: 'Team Management' },
-      { key: RESTRICTED_KEYS.UM_ROLES_PERMISSIONS,   label: 'Roles & Permissions' },
+      { key: RESTRICTED_KEYS.UM_ROLES_PERMISSIONS,   label: 'Roles & Permission' },
       { key: RESTRICTED_KEYS.UM_ATTENDANCE,          label: 'Attendance' },
       { key: RESTRICTED_KEYS.UM_PROPERTY_OWNERS,     label: 'Property Owners' },
       { key: RESTRICTED_KEYS.UM_OWNER_SUBSCRIPTIONS, label: 'Owner Subscriptions' },
@@ -163,31 +163,26 @@ export const RESTRICTED_MODULE_GROUPS = [
       { key: RESTRICTED_KEYS.UM_ADD_TENANT,          label: 'Add Tenant' },
       { key: RESTRICTED_KEYS.UM_KYC,                 label: 'KYC / Documents' },
       { key: RESTRICTED_KEYS.UM_RENT_HISTORY,        label: 'Rent History' },
-      { key: RESTRICTED_KEYS.UM_CREATE_USER,         label: 'Create User' },
-      { key: RESTRICTED_KEYS.UM_EDIT_USER,           label: 'Edit User' },
-      { key: RESTRICTED_KEYS.UM_DELETE_USER,         label: 'Delete User' },
     ],
   },
   {
     moduleLabel: 'Property Management',
     items: [
-      { key: RESTRICTED_KEYS.PM_OVERVIEW,         label: 'Property Overview' },
+      { key: RESTRICTED_KEYS.PM_OVERVIEW,         label: 'Overview' },
       { key: RESTRICTED_KEYS.PM_TOTAL_PROPERTIES, label: 'Total Properties' },
       { key: RESTRICTED_KEYS.PM_ADD_PROPERTY,     label: 'Add Property' },
-      { key: RESTRICTED_KEYS.PM_APPROVE,          label: 'Approve Property' },
-      { key: RESTRICTED_KEYS.PM_REJECT,           label: 'Reject Property' },
-      { key: RESTRICTED_KEYS.PM_EMP_APPROVAL,     label: 'Employee Property Approval' },
+      { key: RESTRICTED_KEYS.PM_APPROVE,          label: 'Approve / Reject Properties' },
+      { key: RESTRICTED_KEYS.PM_EMP_APPROVAL,     label: 'Employee Property Approvals' },
       { key: RESTRICTED_KEYS.PM_PENDING,          label: 'Pending Properties' },
       { key: RESTRICTED_KEYS.PM_ROOMS,            label: 'Rooms Management' },
       { key: RESTRICTED_KEYS.PM_LEADS,            label: 'Online Leads' },
       { key: RESTRICTED_KEYS.PM_CATEGORIES,       label: 'Property Categories' },
-      { key: RESTRICTED_KEYS.PM_DELETE,           label: 'Delete Property' },
     ],
   },
   {
     moduleLabel: 'Accounting',
     items: [
-      { key: RESTRICTED_KEYS.ACC_OVERVIEW,         label: 'Accounting Overview' },
+      { key: RESTRICTED_KEYS.ACC_OVERVIEW,         label: 'Overview' },
       { key: RESTRICTED_KEYS.ACC_REVENUE_OVERVIEW, label: 'Revenue Overview' },
       { key: RESTRICTED_KEYS.ACC_PAYMENT_HISTORY,  label: 'Payment History' },
       { key: RESTRICTED_KEYS.ACC_OWNER_PAYOUTS,    label: 'Owner Payouts' },
@@ -202,8 +197,7 @@ export const RESTRICTED_MODULE_GROUPS = [
     moduleLabel: 'Chat Management',
     items: [
       { key: RESTRICTED_KEYS.CHAT_LIVE,       label: 'Live Conversations' },
-      { key: RESTRICTED_KEYS.CHAT_ALERTS,     label: 'Alerts' },
-      { key: RESTRICTED_KEYS.CHAT_VIOLATIONS, label: 'Violations' },
+      { key: RESTRICTED_KEYS.CHAT_ALERTS,     label: 'Alerts & Violations' },
     ],
   },
   {
@@ -216,21 +210,21 @@ export const RESTRICTED_MODULE_GROUPS = [
   {
     moduleLabel: 'Reports',
     items: [
-      { key: RESTRICTED_KEYS.RPT_OVERVIEW,    label: 'Reports Overview' },
+      { key: RESTRICTED_KEYS.RPT_OVERVIEW,    label: 'Overview' },
       { key: RESTRICTED_KEYS.RPT_PERFORMANCE, label: 'Property Performance' },
       { key: RESTRICTED_KEYS.RPT_LOCATIONS,   label: 'Location Wise Data' },
-      { key: RESTRICTED_KEYS.RPT_OCCUPANCY,   label: 'Occupancy Rate Report' },
-      { key: RESTRICTED_KEYS.RPT_REVENUE,     label: 'Revenue Report' },
+      { key: RESTRICTED_KEYS.RPT_OCCUPANCY,   label: 'Occupancy Rate' },
       { key: RESTRICTED_KEYS.RPT_GROWTH,      label: 'Growth Analytics' },
-      { key: RESTRICTED_KEYS.RPT_STAFF,       label: 'Staff Performance' },
+      { key: RESTRICTED_KEYS.RPT_STAFF,       label: 'Staff Performance Reports' },
+      { key: RESTRICTED_KEYS.RPT_REVENUE,     label: 'Revenue Report' },
     ],
   },
   {
     moduleLabel: 'Bookings',
     items: [
-      { key: RESTRICTED_KEYS.BK_OVERVIEW,   label: 'Bookings Overview' },
+      { key: RESTRICTED_KEYS.BK_OVERVIEW,   label: 'Overview' },
       { key: RESTRICTED_KEYS.BK_LEADS,      label: 'Total Leads' },
-      { key: RESTRICTED_KEYS.BK_DIRECT,     label: 'Direct Bookings' },
+      { key: RESTRICTED_KEYS.BK_DIRECT,     label: 'Bookings' },
       { key: RESTRICTED_KEYS.BK_CONVERSION, label: 'Conversion Rate' },
       { key: RESTRICTED_KEYS.BK_LOCATIONS,  label: 'Top Performing Locations' },
     ],
@@ -238,17 +232,16 @@ export const RESTRICTED_MODULE_GROUPS = [
   {
     moduleLabel: 'Reviews',
     items: [
-      { key: RESTRICTED_KEYS.RV_OVERVIEW,   label: 'Reviews Overview' },
+      { key: RESTRICTED_KEYS.RV_OVERVIEW,   label: 'Overview' },
       { key: RESTRICTED_KEYS.RV_ALL,        label: 'All Reviews' },
-      { key: RESTRICTED_KEYS.RV_MODERATION, label: 'Review Moderation' },
-      { key: RESTRICTED_KEYS.RV_ANALYTICS,  label: 'Review Analytics' },
-      { key: RESTRICTED_KEYS.RV_FEED,       label: 'New Review Feed' },
+      { key: RESTRICTED_KEYS.RV_MODERATION, label: 'Moderation' },
+      { key: RESTRICTED_KEYS.RV_ANALYTICS,  label: 'Analytics' },
     ],
   },
   {
     moduleLabel: 'Support',
     items: [
-      { key: RESTRICTED_KEYS.SP_OVERVIEW,          label: 'Support Overview' },
+      { key: RESTRICTED_KEYS.SP_OVERVIEW,          label: 'Overview' },
       { key: RESTRICTED_KEYS.SP_TENANT_COMPLAINTS, label: 'Tenants Complaints' },
       { key: RESTRICTED_KEYS.SP_OWNER_COMPLAINTS,  label: 'Owners Complaints' },
       { key: RESTRICTED_KEYS.SP_WEBSITE_QUERIES,   label: 'Website Queries' },
@@ -258,8 +251,52 @@ export const RESTRICTED_MODULE_GROUPS = [
   },
 ];
 
-// ─── Default: all restricted sub-modules are BLOCKED for new employees ────────
-export const DEFAULT_RESTRICTED_MODULES = Object.values(RESTRICTED_KEYS);
+// ─── Default Restricted Modules for Area Operations / Field Verification Employee ───
+export const FIELD_VERIFICATION_RESTRICTED_MODULES = [
+  // Dashboard & Home
+  RESTRICTED_KEYS.DASHBOARD_REVENUE,
+  RESTRICTED_KEYS.DASHBOARD_ANALYTICS,
+  RESTRICTED_KEYS.HOME_REVENUE,
+  RESTRICTED_KEYS.HOME_PENDING_RENT,
+
+  // User Management
+  RESTRICTED_KEYS.UM_TEAM_MANAGEMENT,
+  RESTRICTED_KEYS.UM_ROLES_PERMISSIONS,
+  RESTRICTED_KEYS.UM_OWNER_SUBSCRIPTIONS,
+  RESTRICTED_KEYS.UM_KYC,
+
+  // Property Management
+  RESTRICTED_KEYS.PM_ADD_PROPERTY,
+  RESTRICTED_KEYS.PM_APPROVE,
+  RESTRICTED_KEYS.PM_LEADS,
+  RESTRICTED_KEYS.PM_CATEGORIES,
+
+  // Accounting (All)
+  RESTRICTED_KEYS.ACC_OVERVIEW,
+  RESTRICTED_KEYS.ACC_REVENUE_OVERVIEW,
+  RESTRICTED_KEYS.ACC_PAYMENT_HISTORY,
+  RESTRICTED_KEYS.ACC_OWNER_PAYOUTS,
+  RESTRICTED_KEYS.ACC_REFUNDS,
+  RESTRICTED_KEYS.ACC_ROOMHY_REVENUE,
+  RESTRICTED_KEYS.ACC_OWNER_REVENUE,
+  RESTRICTED_KEYS.ACC_PROFIT_LOSS,
+  RESTRICTED_KEYS.ACC_CASHFLOW,
+
+  // Chat Management
+  RESTRICTED_KEYS.CHAT_ALERTS,
+
+  // Reports
+  RESTRICTED_KEYS.RPT_LOCATIONS,
+  RESTRICTED_KEYS.RPT_OCCUPANCY,
+  RESTRICTED_KEYS.RPT_GROWTH,
+  RESTRICTED_KEYS.RPT_STAFF,
+  RESTRICTED_KEYS.RPT_REVENUE,
+
+  // Reviews
+  RESTRICTED_KEYS.RV_ANALYTICS,
+];
+
+export const DEFAULT_RESTRICTED_MODULES = FIELD_VERIFICATION_RESTRICTED_MODULES;
 
 // ─── Employee types ───────────────────────────────────────────────────────────
 export const EMPLOYEE_TYPES = [
@@ -267,10 +304,13 @@ export const EMPLOYEE_TYPES = [
   'Area Manager',
   'Marketing Executive',
   'Verification Officer',
+  'Area Operations / Field Verification Employee',
 ];
 
 // ─── Roles requiring assignedProperties to be non-empty ──────────────────────
 export const ROLES_REQUIRING_ASSIGNED_PROPERTIES = [
   'Field Executive',
   'Verification Officer',
+  'Area Manager',
+  'Area Operations / Field Verification Employee',
 ];
