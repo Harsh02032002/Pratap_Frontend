@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { fetchJson } from "../../utils/api";
+import { fetchJson, getAuthHeader } from "../../utils/api";
 import {
   Check, X, Eye, UserCheck, Search, Filter, RefreshCw,
   Building2, Calendar, User, FileText, Image as ImageIcon,
@@ -81,12 +81,11 @@ export default function VerificationCenter() {
   // Quick Action Handlers
   const handleApproveNewProperty = async (id) => {
     try {
-      const token = sessionStorage.getItem("token") || localStorage.getItem("token");
       const res = await fetch(`${getApiUrl()}/api/properties/${id}/publish`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
+          ...getAuthHeader()
         }
       });
       const data = await res.json();
@@ -105,12 +104,11 @@ export default function VerificationCenter() {
 
   const handleRejectNewProperty = async (id) => {
     try {
-      const token = sessionStorage.getItem("token") || localStorage.getItem("token");
       const res = await fetch(`${getApiUrl()}/api/properties/${id}`, {
         method: "PUT",
         headers: { 
           "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
+          ...getAuthHeader()
         },
         body: JSON.stringify({ status: "blocked", isPublished: false, isLiveOnWebsite: false })
       });
@@ -130,12 +128,11 @@ export default function VerificationCenter() {
 
   const handleApprovePropertyEdit = async (id) => {
     try {
-      const token = sessionStorage.getItem("token") || localStorage.getItem("token");
       const res = await fetch(`${getApiUrl()}/api/properties/${id}/approve-changes`, {
         method: "PUT",
         headers: { 
           "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
+          ...getAuthHeader()
         }
       });
       const data = await res.json();
@@ -154,12 +151,11 @@ export default function VerificationCenter() {
 
   const handleRejectPropertyEdit = async (id, reason = "Rejected by admin") => {
     try {
-      const token = sessionStorage.getItem("token") || localStorage.getItem("token");
       const res = await fetch(`${getApiUrl()}/api/properties/${id}/reject-changes`, {
         method: "PUT",
         headers: { 
           "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
+          ...getAuthHeader()
         },
         body: JSON.stringify({ rejectReason: reason })
       });
@@ -179,12 +175,11 @@ export default function VerificationCenter() {
 
   const handleApproveRoomEdit = async (id) => {
     try {
-      const token = sessionStorage.getItem("token") || localStorage.getItem("token");
       const res = await fetch(`${getApiUrl()}/api/rooms/${id}/approve-changes`, {
         method: "PUT",
         headers: { 
           "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
+          ...getAuthHeader()
         }
       });
       const data = await res.json();
@@ -203,12 +198,11 @@ export default function VerificationCenter() {
 
   const handleRejectRoomEdit = async (id) => {
     try {
-      const token = sessionStorage.getItem("token") || localStorage.getItem("token");
       const res = await fetch(`${getApiUrl()}/api/rooms/${id}/reject-changes`, {
         method: "PUT",
         headers: { 
           "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
+          ...getAuthHeader()
         }
       });
       const data = await res.json();
@@ -236,7 +230,7 @@ export default function VerificationCenter() {
 
       const res = await fetch(endpoint, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeader() },
         body: JSON.stringify({ employeeId, employeeName })
       });
       const data = await res.json();

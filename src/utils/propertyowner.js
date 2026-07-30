@@ -1,4 +1,5 @@
 import { fetchJson, getApiBase } from "./api";
+import { cacheGet, cacheSet, cacheInvalidate } from "./cache";
 import { getOwnerSession } from "./ownerSession";
 import { getStaffSession } from "./staffAccess";
 
@@ -44,6 +45,44 @@ export const clearOwnerFetchCache = (loginId) => {
       delete _fetchCache[k];
     }
   });
+};
+
+const EMPLOYEE_CACHE_TTL = 3 * 60 * 1000;
+
+export const ownerEmployeesCacheKey = (ownerLoginId, { isActive = false } = {}) =>
+  isActive ? `employees:active:${ownerLoginId}` : `employees:${ownerLoginId}`;
+
+/** Clear both employee list caches used by maintenance vs all-staff pages. */
+export const invalidateOwnerEmployeeCaches = (ownerLoginId) => {
+  if (!ownerLoginId) return;
+  cacheInvalidate(`employees:${ownerLoginId}`);
+  cacheInvalidate(`employees:active:${ownerLoginId}`);
+  cacheInvalidate(`staff:${ownerLoginId}`);
+};
+
+/**
+ * Fetch owner staff/employees. Never caches empty lists (avoids stale empty dropdowns).
+ * @param {string} ownerLoginId
+ * @param {{ force?: boolean, isActive?: boolean }} opts
+ */
+export const fetchOwnerEmployees = async (ownerLoginId, { force = false, isActive = false } = {}) => {
+  const key = ownerEmployeesCacheKey(ownerLoginId, { isActive });
+  if (!force) {
+    const cached = cacheGet(key);
+    if (Array.isArray(cached) && cached.length > 0) return cached;
+  }
+  try {
+    const qs = new URLSearchParams({ parentLoginId: String(ownerLoginId) });
+    if (isActive) qs.set("isActive", "true");
+    const res = await fetchJson(`/api/employees?${qs.toString()}`);
+    const staff = res?.data || [];
+    if (staff.length > 0) cacheSet(key, staff, EMPLOYEE_CACHE_TTL);
+    else cacheInvalidate(key);
+    return staff;
+  } catch (err) {
+    console.error("fetchOwnerEmployees error:", err);
+    return [];
+  }
 };
 
 export const clearTenantDocCache = (tenantId) => {

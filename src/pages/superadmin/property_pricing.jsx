@@ -9,6 +9,8 @@ import {
   ArrowUpRight, ArrowDownRight, Layers
 } from "lucide-react";
 
+import { fetchJson, getAuthHeader } from "../../utils/api";
+
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
 const getApiUrl = () =>
@@ -42,7 +44,7 @@ export default function PricingPlans() {
 
   const fetchPlans = async () => {
     try {
-      const res = await fetch(`${getApiUrl()}/api/pricing`);
+      const res = await fetch(`${getApiUrl()}/api/pricing`, { headers: getAuthHeader() });
       const data = await res.json();
       if (data.success) setPlans(data.data);
     } catch (err) { console.error("Error:", err); }
@@ -56,7 +58,7 @@ export default function PricingPlans() {
       const payload = { ...formData, price: Number(formData.price), maxProperties: Number(formData.maxProperties), maxPhotos: Number(formData.maxPhotos) };
       const url = editingId ? `${getApiUrl()}/api/pricing/${editingId}` : `${getApiUrl()}/api/pricing`;
       const method = editingId ? "PUT" : "POST";
-      const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const res = await fetch(url, { method, headers: { "Content-Type": "application/json", ...getAuthHeader() }, body: JSON.stringify(payload) });
       const data = await res.json();
       if (data.success) { fetchPlans(); closeModal(); }
     } catch (err) { console.error(err); }
@@ -66,7 +68,7 @@ export default function PricingPlans() {
   const handleDelete = async (id) => {
     if (!confirm("Delete this pricing plan?")) return;
     try {
-      const res = await fetch(`${getApiUrl()}/api/pricing/${id}`, { method: "DELETE" });
+      const res = await fetch(`${getApiUrl()}/api/pricing/${id}`, { method: "DELETE", headers: getAuthHeader() });
       const data = await res.json();
       if (data.success) fetchPlans();
     } catch (err) { console.error(err); }

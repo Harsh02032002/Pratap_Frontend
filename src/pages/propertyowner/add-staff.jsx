@@ -1,19 +1,132 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerProperties } from "../../utils/propertyowner";
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerProperties, invalidateOwnerEmployeeCaches } from "../../utils/propertyowner";
 import {
   UserPlus, CheckCircle2, AlertCircle, Camera, Building2,
-  Clock, IndianRupee, Phone, Mail, Shield, Briefcase, Calendar, MapPin, User
+  Clock, IndianRupee, Phone, Mail, Shield, Briefcase, Calendar, MapPin, User, Plus, X
 } from "lucide-react";
 import { apiFetch } from "../../utils/api";
-import {
-  DEFAULT_STAFF_PERMISSIONS as DEFAULT_PERMISSIONS,
-  ALL_STAFF_PERMISSION_KEYS,
-  STAFF_MODULE_GROUPS,
-  getDefaultPermissionsForRole,
-} from "../../utils/staffAccess";
+// All Owner Panel modules — same as sidebar
+const OWNER_PANEL_MODULES = [
+  { key: "Dashboard",               label: "Dashboard" },
+  { key: "Properties",              label: "Properties" },
+  { key: "Tenants",                 label: "Tenants" },
+  { key: "Leads & Bookings",        label: "Leads & Bookings" },
+  { key: "Rent & Payments",         label: "Rent & Payments" },
+  { key: "Complaints & Maintenance",label: "Complaints & Maintenance" },
+  { key: "Staff Management",        label: "Staff Management" },
+  { key: "Attendance & Entry",      label: "Attendance & Entry" },
+  { key: "Communication",           label: "Communication" },
+  { key: "Reports",                 label: "Reports" },
+  { key: "Settings",                label: "Settings" },
+];
 
-const ROLES = ["Warden", "Reception", "Accountant", "Housekeeping", "Maintenance", "Property Manager", "Custom"];
+// Sub-module restrictions — exactly matching sidebar sub-items, grouped by parent module
+const OWNER_SUBMODULE_GROUPS = [
+  {
+    module: "Properties",
+    items: [
+      { key: "sm_all_properties",  label: "All Properties" },
+      { key: "sm_add_property",    label: "Add Property" },
+      { key: "sm_rooms",           label: "Rooms" },
+      { key: "sm_add_room",        label: "Add Room" },
+    ],
+  },
+  {
+    module: "Tenants",
+    items: [
+      { key: "sm_all_tenants",        label: "All Tenants" },
+      { key: "sm_add_tenant",         label: "Add Tenant" },
+      { key: "sm_active_tenants",     label: "Active Tenants" },
+      { key: "sm_upcoming_moveins",   label: "Upcoming Move-ins" },
+      { key: "sm_moveout_requests",   label: "Move-out Requests" },
+      { key: "sm_ex_tenants",         label: "Ex-Tenants" },
+      { key: "sm_tenant_documents",   label: "Tenant Documents" },
+      { key: "sm_police_verification",label: "Police Verification" },
+      { key: "sm_tenant_feedback",    label: "Tenant Feedback" },
+    ],
+  },
+  {
+    module: "Leads & Bookings",
+    items: [
+      { key: "sm_all_leads",          label: "All Leads" },
+      { key: "sm_new_enquiries",      label: "New Enquiries" },
+      { key: "sm_booking_requests",   label: "Booking Requests" },
+      { key: "sm_confirmed_bookings", label: "Confirmed Bookings" },
+      { key: "sm_cancelled_bookings", label: "Cancelled Bookings" },
+    ],
+  },
+  {
+    module: "Rent & Payments",
+    items: [
+      { key: "sm_revenue_overview",   label: "Revenue Overview" },
+      { key: "sm_revenue_analytics",  label: "Revenue Analytics" },
+      { key: "sm_rent_collection",    label: "Rent Collection" },
+      { key: "sm_pending_dues",       label: "Pending Dues" },
+      { key: "sm_late_payments",      label: "Late Payments" },
+      { key: "sm_payment_history",    label: "Payment History" },
+      { key: "sm_online_payments",    label: "Online Payments" },
+      { key: "sm_receipts",           label: "Receipts" },
+      { key: "sm_electricity",        label: "Electricity Readings" },
+      { key: "sm_security_deposits",  label: "Security Deposits" },
+      { key: "sm_refunds",            label: "Refunds" },
+      { key: "sm_penalty_settings",   label: "Penalty Settings" },
+    ],
+  },
+  {
+    module: "Complaints & Maintenance",
+    items: [
+      { key: "sm_all_complaints",     label: "All Complaints" },
+      { key: "sm_open_tickets",       label: "Open Tickets" },
+      { key: "sm_in_progress",        label: "In Progress" },
+      { key: "sm_resolved",           label: "Resolved Complaints" },
+      { key: "sm_maintenance_req",    label: "Maintenance Requests" },
+      { key: "sm_assigned_staff",     label: "Assigned Staff" },
+      { key: "sm_service_history",    label: "Service History" },
+      { key: "sm_maintenance_cal",    label: "Maintenance Calendar" },
+    ],
+  },
+  {
+    module: "Staff Management",
+    items: [
+      { key: "sm_all_staff",         label: "All Staff" },
+      { key: "sm_add_staff",         label: "Add Staff" },
+      { key: "sm_staff_tasks",       label: "Staff Tasks" },
+      { key: "sm_staff_attendance",  label: "Attendance" },
+      { key: "sm_staff_performance", label: "Staff Performance" },
+    ],
+  },
+  {
+    module: "Attendance & Entry",
+    items: [
+      { key: "sm_tenant_attendance", label: "Tenant Attendance" },
+      { key: "sm_visitor_entry",     label: "Visitor Entry" },
+      { key: "sm_visitor_passes",    label: "Visitor Passes" },
+      { key: "sm_entry_logs",        label: "Entry Logs" },
+      { key: "sm_exit_logs",         label: "Exit Logs" },
+      { key: "sm_leave_requests",    label: "Leave Requests" },
+      { key: "sm_gate_management",   label: "Gate Management" },
+    ],
+  },
+  {
+    module: "Communication",
+    items: [
+      { key: "sm_chat",      label: "Chat" },
+      { key: "sm_whatsapp",  label: "WhatsApp Broadcast" },
+    ],
+  },
+  {
+    module: "Settings",
+    items: [
+      { key: "sm_profile_settings", label: "Profile Settings" },
+      { key: "sm_bank_accounts",    label: "Bank Accounts" },
+      { key: "sm_data_backup",      label: "Data Backup" },
+    ],
+  },
+];
+
+
+const DEFAULT_ROLES = ["Warden", "Reception", "Accountant", "Housekeeping", "Maintenance", "Property Manager", "+ Add Custom Role"];
 const SHIFTS = [
   { label: "Morning Shift (06:00 AM – 02:00 PM)", start: "06:00 AM", end: "02:00 PM" },
   { label: "Day Shift (09:00 AM – 06:00 PM)", start: "09:00 AM", end: "06:00 PM" },
@@ -46,8 +159,43 @@ export default function AddStaffPage() {
     assignedProperty: "", assignedPropertyName: "",
     status: "Active",
     photoDataUrl: "",
-    permissions: DEFAULT_PERMISSIONS,
+    permissions: [], // Empty by default! Owner manually selects permissions
+    restrictedModules: [], // Sub-module block list (Checked = Blocked)
   });
+  const [customRoles, setCustomRoles] = useState(() => {
+    try {
+      const stored = localStorage.getItem(`owner_custom_roles_${owner?.loginId}`);
+      return stored ? JSON.parse(stored) : [];
+    } catch { return []; }
+  });
+  const [customSubModules, setCustomSubModules] = useState(() => {
+    try {
+      const stored = localStorage.getItem("owner_custom_submodules");
+      return stored ? JSON.parse(stored) : [];
+    } catch { return []; }
+  });
+  const [showAddCustomSubModal, setShowAddCustomSubModal] = useState(false);
+  const [newSubModuleGroup, setNewSubModuleGroup] = useState("Staff Panel");
+  const [newSubModuleName, setNewSubModuleName] = useState("");
+
+  const handleCreateCustomSubModule = () => {
+    if (!newSubModuleName.trim()) return;
+    const cleanKey = `custom_${newSubModuleName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_')}`;
+    const newItem = { key: cleanKey, label: newSubModuleName.trim(), group: newSubModuleGroup };
+
+    const updated = [...customSubModules, newItem];
+    setCustomSubModules(updated);
+    try {
+      localStorage.setItem("owner_custom_submodules", JSON.stringify(updated));
+    } catch (_) {}
+
+    setFormData(prev => ({
+      ...prev,
+      restrictedModules: Array.from(new Set([...prev.restrictedModules, cleanKey]))
+    }));
+    setNewSubModuleName("");
+    setShowAddCustomSubModal(false);
+  };
   const [properties, setProperties] = useState([]);
   const [successData, setSuccessData] = useState(null);
   const [error, setError] = useState("");
@@ -119,7 +267,17 @@ export default function AddStaffPage() {
       } catch (_) {}
 
       const shiftObj = SHIFTS.find(s => s.label === formData.shift) || SHIFTS[1];
-      const roleFinal = formData.role === "Custom" ? (formData.customRole || "Custom") : formData.role;
+      const roleFinal = (formData.role === "Custom" || formData.role === "+ Add Custom Role") 
+        ? (formData.customRole || "Custom") 
+        : formData.role;
+
+      if (formData.customRole.trim() && !customRoles.includes(formData.customRole.trim())) {
+        const updatedRoles = [...customRoles, formData.customRole.trim()];
+        setCustomRoles(updatedRoles);
+        try {
+          localStorage.setItem(`owner_custom_roles_${owner?.loginId}`, JSON.stringify(updatedRoles));
+        } catch (_) {}
+      }
 
       // Create employee
       const empData = await apiFetch("/api/employees", {
@@ -133,7 +291,8 @@ export default function AddStaffPage() {
           role: roleFinal,
           parentLoginId: owner.loginId,
           photoDataUrl: formData.photoDataUrl,
-          permissions: formData.role === "Warden" ? getDefaultPermissionsForRole("Warden") : formData.permissions,
+          permissions: formData.permissions,
+          restrictedModules: formData.restrictedModules || [],
           isActive: formData.status === "Active",
           requirePasswordReset: true,
           joiningDate: formData.joiningDate,
@@ -175,6 +334,7 @@ export default function AddStaffPage() {
       });
 
       setSuccessData({ staffId, password, name: formData.name, role: roleFinal, email: formData.email });
+      invalidateOwnerEmployeeCaches(owner.loginId);
       setStep(1);
       setFormData({
         name: "", role: "Warden", customRole: "", phone: "", email: "", salary: "",
@@ -218,7 +378,7 @@ export default function AddStaffPage() {
 
         {/* Step Tabs */}
         <div className="flex gap-1 mb-8 bg-slate-100 p-1 rounded-2xl w-fit">
-          {[{ n: 1, label: "Profile" }, { n: 2, label: "Work Details" }, ...(formData.role === "Warden" ? [] : [{ n: 3, label: "Permissions" }])].map(s => (
+          {[{ n: 1, label: "Profile" }, { n: 2, label: "Work Details" }, { n: 3, label: "Permissions" }].map(s => (
             <button
               key={s.n}
               onClick={() => setStep(s.n)}
@@ -300,14 +460,29 @@ export default function AddStaffPage() {
                     placeholder="e.g. Ramesh Kumar" className={inputCls} required />
                 </Field>
                 <Field label="Job Role / Designation" required>
-                  <select value={formData.role} onChange={e => handleChange("role", e.target.value)} className={inputCls}>
-                    {ROLES.map(r => <option key={r}>{r}</option>)}
+                  <select
+                    value={formData.role}
+                    onChange={e => {
+                      const newRole = e.target.value;
+                      handleChange("role", newRole);
+                    }}
+                    className={inputCls}
+                  >
+                    {DEFAULT_ROLES.filter(r => r !== "+ Add Custom Role").map(r => <option key={r} value={r}>{r}</option>)}
+                    {customRoles.map(cr => <option key={cr} value={cr}>{cr}</option>)}
+                    <option value="+ Add Custom Role">+ Add Custom Role / Designation</option>
                   </select>
                 </Field>
-                {formData.role === "Custom" && (
-                  <Field label="Custom Role Name" required>
-                    <input type="text" value={formData.customRole} onChange={e => handleChange("customRole", e.target.value)}
-                      placeholder="e.g. Security Guard" className={inputCls} required />
+                {(formData.role === "Custom" || formData.role === "+ Add Custom Role" || customRoles.includes(formData.role)) && (
+                  <Field label="Custom Role / Designation Name" required>
+                    <input
+                      type="text"
+                      value={formData.customRole || (customRoles.includes(formData.role) ? formData.role : "")}
+                      onChange={e => handleChange("customRole", e.target.value)}
+                      placeholder="e.g. Kitchen Supervisor, Security Guard..."
+                      className={inputCls}
+                      required
+                    />
                   </Field>
                 )}
                 <Field label="Email Address" required>
@@ -401,78 +576,136 @@ export default function AddStaffPage() {
                   className="px-6 h-11 border border-slate-200 text-slate-600 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-slate-50 transition-all">
                   ← Back
                 </button>
-                {formData.role === "Warden" ? (
-                  <button type="submit" disabled={loading}
-                    className="px-10 h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-blue-600/20 disabled:opacity-60 flex items-center gap-2">
-                    {loading ? (
-                      <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Creating...</>
-                    ) : (
-                      <><UserPlus size={15} />Create Staff Member</>
-                    )}
-                  </button>
-                ) : (
-                  <button type="button" onClick={() => setStep(3)}
-                    className="px-8 h-11 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-blue-600/20">
-                    Next: Permissions →
-                  </button>
-                )}
+                <button type="button" onClick={() => setStep(3)}
+                  className="px-8 h-11 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-blue-600/20">
+                  Next: Permissions →
+                </button>
               </div>
             </div>
           )}
 
-          {/* STEP 3 – Permissions */}
+          {/* STEP 3 – Owner Panel Access */}
           {step === 3 && (
-            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-8 space-y-6">
-              <h2 className="text-base font-black text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-4 flex items-center gap-2">
-                <Shield size={16} className="text-blue-500" /> Module Permissions
-              </h2>
-              <p className="text-xs text-slate-500 font-medium -mt-2">
-                Select which modules this staff member can access — both Staff Panel screens and
-                Owner Panel features. Just like Super Admin grants modules to employees, these can be changed later.
-              </p>
+            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-8 space-y-8">
+              <div className="border-b border-slate-100 pb-5">
+                <h2 className="text-base font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                  <Shield size={16} className="text-blue-500" /> Owner Panel Access
+                </h2>
+                <p className="text-xs text-slate-400 font-medium mt-1">
+                  Select which Owner Panel modules this staff member can access. These can be changed later.
+                </p>
+              </div>
 
-              <div className="space-y-6">
-                {Object.entries(STAFF_MODULE_GROUPS).map(([groupName, mods]) => (
-                  <div key={groupName}>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2.5">{groupName}</p>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {mods.map(mod => {
-                        const active = formData.permissions.includes(mod.key);
-                        const Icon = mod.icon;
-                        return (
-                          <button
-                            key={mod.key}
-                            type="button"
-                            onClick={() => togglePermission(mod.key)}
-                            className={`flex items-center gap-2.5 p-3 rounded-xl border text-left transition-all ${active
-                              ? "bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-600/20"
-                              : "border-slate-200 hover:border-blue-300 hover:bg-blue-50 text-slate-600"}`}
-                          >
-                            <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all ${active ? "border-white" : "border-slate-300"}`}>
-                              {active && <CheckCircle2 size={10} className="text-white" />}
-                            </div>
-                            {Icon && <Icon size={14} className={active ? "text-white" : "text-slate-400"} />}
-                            <span className="text-xs font-bold">{mod.label}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
+              {/* Owner Panel Module Selection */}
+              <div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Allow Access To</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {OWNER_PANEL_MODULES.map(mod => {
+                    const active = formData.permissions.includes(mod.key);
+                    const Icon = mod.icon;
+                    return (
+                      <button
+                        key={mod.key}
+                        type="button"
+                        onClick={() => togglePermission(mod.key)}
+                        className={`flex items-center gap-2.5 p-3 rounded-xl border text-left transition-all ${active
+                          ? "bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-600/20"
+                          : "border-slate-200 hover:border-blue-300 hover:bg-blue-50 text-slate-600"}`}
+                      >
+                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${active ? "border-white" : "border-slate-300"}`}>
+                          {active && <CheckCircle2 size={10} className="text-white" />}
+                        </div>
+                        {Icon && <Icon size={14} className={active ? "text-white" : "text-slate-400"} />}
+                        <span className="text-xs font-bold">{mod.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="flex gap-2 mt-3">
+                  <button type="button"
+                    onClick={() => setFormData(f => ({ ...f, permissions: OWNER_PANEL_MODULES.map(m => m.key) }))}
+                    className="px-4 py-1.5 text-xs font-black text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-all">
+                    Select All
+                  </button>
+                  <button type="button"
+                    onClick={() => setFormData(f => ({ ...f, permissions: [] }))}
+                    className="px-4 py-1.5 text-xs font-black text-slate-400 border border-slate-200 rounded-lg hover:bg-slate-50 transition-all">
+                    Clear
+                  </button>
+                </div>
+              </div>
+
+              {/* Sub-Module Restrictions — grouped by parent module */}
+              <div className="pt-2 border-t border-slate-100 space-y-5">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div>
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                      <Shield size={13} className="text-rose-400" /> Sub-Module Restrictions <span className="text-rose-400 normal-case font-bold">(Checked = Blocked)</span>
+                    </h3>
+                    <p className="text-[10px] text-slate-400 font-medium mt-0.5">Block specific sub-features within Owner Panel modules</p>
                   </div>
-                ))}
+                  <button type="button"
+                    onClick={() => setFormData(f => ({ ...f, restrictedModules: [] }))}
+                    className="px-3 py-1 text-[10px] font-bold text-slate-400 border border-slate-200 rounded-lg hover:bg-slate-50 transition-all uppercase">
+                    Clear All
+                  </button>
+                </div>
+
+                <div className="space-y-5">
+                  {[
+                    ...OWNER_SUBMODULE_GROUPS,
+                    // Custom sub-modules added by owner (shown under a "Custom" group)
+                    ...(customSubModules.length > 0 ? [{ module: "Custom", items: customSubModules.map(c => ({ key: c.key, label: c.label })) }] : []),
+                  ].map(group => (
+                    <div key={group.module}>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">{group.module}</p>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {group.items.map(item => {
+                          const isBlocked = (formData.restrictedModules || []).includes(item.key);
+                          return (
+                            <button
+                              key={item.key}
+                              type="button"
+                              onClick={() => setFormData(prev => {
+                                const list = prev.restrictedModules || [];
+                                const next = list.includes(item.key) ? list.filter(k => k !== item.key) : [...list, item.key];
+                                return { ...prev, restrictedModules: next };
+                              })}
+                              className={`flex items-center gap-2 p-2.5 rounded-xl border text-left transition-all ${isBlocked
+                                ? "bg-rose-50 border-rose-200 text-rose-700"
+                                : "bg-white border-slate-200 hover:border-rose-200 text-slate-600"}`}
+                            >
+                              <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${isBlocked ? "bg-rose-600 border-rose-600" : "border-slate-300 bg-white"}`}>
+                                {isBlocked && <X size={9} className="text-white" />}
+                              </div>
+                              <span className="text-xs font-bold leading-tight">{item.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Add custom restriction inline */}
+                <div className="flex items-center gap-2 pt-1">
+                  <input
+                    type="text"
+                    value={newSubModuleName}
+                    onChange={e => setNewSubModuleName(e.target.value)}
+                    onKeyDown={e => e.key === "Enter" && (e.preventDefault(), handleCreateCustomSubModule())}
+                    placeholder="Add custom blocked feature (e.g. View Rent Reports)..."
+                    className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-emerald-400 transition-all"
+                  />
+                  <button type="button" onClick={handleCreateCustomSubModule}
+                    className="px-4 h-9 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shrink-0 flex items-center gap-1.5">
+                    <Plus size={13} /> Add
+                  </button>
+                </div>
+
               </div>
 
-              <div className="flex items-center gap-2 mt-4">
-                <button type="button" onClick={() => setFormData(f => ({ ...f, permissions: [...ALL_STAFF_PERMISSION_KEYS] }))}
-                  className="px-4 py-1.5 text-xs font-black text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-all">
-                  Select All
-                </button>
-                <button type="button" onClick={() => handleChange("permissions", [...DEFAULT_PERMISSIONS])}
-                  className="px-4 py-1.5 text-xs font-black text-slate-500 border border-slate-200 rounded-lg hover:bg-slate-50 transition-all">
-                  Reset to Default
-                </button>
-              </div>
-
-              <div className="flex justify-between pt-4 border-t border-slate-50">
+              <div className="flex justify-between pt-2 border-t border-slate-100">
                 <button type="button" onClick={() => setStep(2)}
                   className="px-6 h-11 border border-slate-200 text-slate-600 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-slate-50 transition-all">
                   ← Back
@@ -493,3 +726,6 @@ export default function AddStaffPage() {
     </PropertyOwnerLayout>
   );
 }
+
+
+

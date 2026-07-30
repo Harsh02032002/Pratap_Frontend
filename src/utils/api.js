@@ -1071,7 +1071,30 @@ export const getUserProfile = async () => {
     const data = await fetchJson('/api/user/profile');
     return data;
   } catch (error) {
-    console.error('Error fetching user profile:', error);
+    console.warn('Fallback to local profile:', error.message);
+    const localUserStr = localStorage.getItem('user') || localStorage.getItem('userInfo') || localStorage.getItem('tenant');
+    if (localUserStr) {
+      try {
+        const parsed = JSON.parse(localUserStr);
+        const userObj = parsed.user || parsed;
+        if (userObj && (userObj.name || userObj.email || userObj.phone)) {
+          return {
+            success: true,
+            user: {
+              name: userObj.name || userObj.fullName || `${userObj.firstName || ''} ${userObj.lastName || ''}`.trim() || 'User',
+              firstName: userObj.firstName || '',
+              lastName: userObj.lastName || '',
+              email: userObj.email || '',
+              phone: userObj.phone || userObj.phoneNumber || '',
+              address: userObj.address || '',
+              city: userObj.city || '',
+              bio: userObj.bio || '',
+              stats: { bookings: 0, favourites: 0, reviews: 0 }
+            }
+          };
+        }
+      } catch (_) {}
+    }
     throw error;
   }
 };

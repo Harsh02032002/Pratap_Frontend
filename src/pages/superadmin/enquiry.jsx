@@ -86,7 +86,7 @@ export default function SuperadminEnquiry() {
   const fetchEnquiries = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${getApiUrl()}/api/website-enquiries?t=${Date.now()}`);
+      const res = await fetch(`${getApiUrl()}/api/website-enquiries?t=${Date.now()}`, { headers: getAuthHeader() });
       const data = await res.json();
       if (data.enquiries) {
         setEnquiries(data.enquiries.map(enq => ({

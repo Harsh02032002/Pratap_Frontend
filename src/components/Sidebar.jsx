@@ -13,11 +13,19 @@ import {
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { LogoutDialog } from "./superadmin/LogoutDialog";
-
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
 const NAV = [
-  { label: "Dashboard", id: "dashboard", icon: LayoutDashboard, path: "/superadmin/superadmin" },
+  { 
+    label: "Dashboard", 
+    id: "dashboard", 
+    icon: LayoutDashboard, 
+    path: "/superadmin/areaadmin",
+    children: [
+      { label: "Operations Hub", path: "/superadmin/areaadmin" },
+      { label: "Platform Overview", path: "/superadmin/superadmin" }
+    ]
+  },
   { 
     label: "Home", 
     id: "home",
@@ -27,8 +35,8 @@ const NAV = [
       { label: "Overview", path: "/superadmin/home-overview" },
       { label: "Total Properties", path: "/superadmin/total-properties" },
       { label: "Total Tenants", path: "/superadmin/tenant" },
-      { label: "Revenue Overview", path: "/superadmin/home/revenue-overview" },
-      { label: "Alerts (Pending Rent)", path: "/superadmin/rentcollection" },
+      { label: "Revenue Overview", path: "/superadmin/home/revenue-overview", restrictedKey: "home_revenue" },
+      { label: "Alerts (Pending Rent)", path: "/superadmin/rentcollection", restrictedKey: "home_pending_rent" },
     ]
   },
   { 
@@ -40,6 +48,7 @@ const NAV = [
         { label: "Overview", path: "/superadmin/user-overview" },
         { 
           label: "Team Management", 
+          restrictedKey: "um_team_management",
           children: [
             { 
               label: "All Staff", 
@@ -50,9 +59,10 @@ const NAV = [
             }
           ]
         },
-        { label: "Roles & Permission", path: "/superadmin/roles-permissions" },
+        { label: "Roles & Permission", path: "/superadmin/roles-permissions", restrictedKey: "um_roles_permissions" },
         { 
           label: "Attendance", 
+          restrictedKey: "um_attendance",
           children: [
             { label: "Daily Logs", path: "/superadmin/log" },
             { label: "Leave", path: "/superadmin/log" },
@@ -62,21 +72,21 @@ const NAV = [
         { 
           label: "Property Owners", 
           children: [
-            { label: "View All Property Owners", path: "/superadmin/owner" },
-            { label: "Add", path: "/superadmin/owner?view=add" },
+            { label: "View All Property Owners", path: "/superadmin/owner", restrictedKey: "um_property_owners" },
+            { label: "Add", path: "/superadmin/owner?view=add", restrictedKey: "um_create_user" },
             { label: "Approved / Pending", path: "/superadmin/owner?view=pending" },
             { label: "KYC / Documents", path: "/superadmin/owner?view=kyc" },
             { label: "Agreements", path: "/superadmin/owner?view=agreements" },
-            { label: "🔐 Owner Subscriptions", path: "/superadmin/owner-subscriptions" },
+            { label: "🔐 Owner Subscriptions", path: "/superadmin/owner-subscriptions", restrictedKey: "um_owner_subscriptions" },
           ]
         },
         { 
           label: "Tenants", 
           children: [
-            { label: "View All Tenants", path: "/superadmin/tenant" },
-            { label: "Add Tenant", path: "/superadmin/add-tenant" },
-            { label: "KYC / Documents", path: "/superadmin/kyc_verification" },
-            { label: "Rent History", path: "/superadmin/rentcollection" },
+            { label: "View All Tenants", path: "/superadmin/tenant", restrictedKey: "um_tenants" },
+            { label: "Add Tenant", path: "/superadmin/add-tenant", restrictedKey: "um_add_tenant" },
+            { label: "KYC / Documents", path: "/superadmin/kyc_verification", restrictedKey: "um_kyc" },
+            { label: "Rent History", path: "/superadmin/rentcollection", restrictedKey: "um_rent_history" },
             { label: "Agreements", path: "/superadmin/tenant" },
           ]
         },
@@ -88,15 +98,15 @@ const NAV = [
     icon: Building2, 
     path: "/superadmin/property-overview", 
     children: [
-        { label: "Overview", path: "/superadmin/property-overview" },
-        { label: "Total Properties", path: "/superadmin/total-properties" },
-        { label: "Add Property", path: "/superadmin/add-property" },
-        { label: "Approve / Reject Properties", path: "/superadmin/property/approvals" },
-        { label: "Employee Property Approvals", path: "/superadmin/employee-properties" },
-        { label: "Pending Properties", path: "/superadmin/property/pending" },
-        { label: "Rooms Management", path: "/superadmin/rooms" },
-        { label: "Online Leads", path: "/superadmin/enquiry" },
-        { label: "Property Categories", path: "/superadmin/property/categories" },
+        { label: "Overview", path: "/superadmin/property-overview", restrictedKey: "pm_overview" },
+        { label: "Total Properties", path: "/superadmin/total-properties", restrictedKey: "pm_total_properties" },
+        { label: "Add Property", path: "/superadmin/add-property", restrictedKey: "pm_add_property" },
+        { label: "Approve / Reject Properties", path: "/superadmin/property/approvals", restrictedKey: "pm_approve" },
+        { label: "Employee Property Approvals", path: "/superadmin/employee-properties", restrictedKey: "pm_emp_approval" },
+        { label: "Pending Properties", path: "/superadmin/property/pending", restrictedKey: "pm_pending" },
+        { label: "Rooms Management", path: "/superadmin/rooms", restrictedKey: "pm_rooms" },
+        { label: "Online Leads", path: "/superadmin/enquiry", restrictedKey: "pm_leads" },
+        { label: "Property Categories", path: "/superadmin/property/categories", restrictedKey: "pm_categories" },
     ]
   },
   { 
@@ -105,21 +115,20 @@ const NAV = [
     icon: Wallet, 
     path: "/superadmin/accounting", 
     children: [
-        { label: "Overview", path: "/superadmin/accounting" },
-        { label: "Revenue Overview", path: "/superadmin/home/revenue-overview" },
+        { label: "Overview", path: "/superadmin/accounting", restrictedKey: "acc_overview" },
+        { label: "Revenue Overview", path: "/superadmin/home/revenue-overview", restrictedKey: "acc_revenue_overview" },
         { 
           label: "Tenant Accounts", 
           children: [
-            { label: "Payment History", path: "/superadmin/accounting/transactions" },
+            { label: "Payment History", path: "/superadmin/accounting/transactions", restrictedKey: "acc_payment_history" },
             { label: "Other Charges", path: "/superadmin/accounting/other-charges" },
             { label: "Payment Tracking", path: "/superadmin/accounting/tracking" },
           ]
         },
-
         { 
           label: "Owner Payout", 
           children: [
-            { label: "Owner Payouts", path: "/superadmin/accounting/payouts" },
+            { label: "Owner Payouts", path: "/superadmin/accounting/payouts", restrictedKey: "acc_owner_payouts" },
             { label: "Pending Payouts", path: "/superadmin/accounting/payouts/pending" },
             { label: "Cash Received Details", path: "/superadmin/accounting/payouts/cash-received" },
             { label: "Failed Payout Alerts", path: "/superadmin/accounting/payouts/failed" },
@@ -128,7 +137,7 @@ const NAV = [
         { 
           label: "Refunds", 
           children: [
-            { label: "Booking Amount Refund", path: "/superadmin/refund" },
+            { label: "Booking Amount Refund", path: "/superadmin/refund", restrictedKey: "acc_refunds" },
             { label: "Partial Refund", path: "/superadmin/refund" },
             { label: "Refund Approval System", path: "/superadmin/refund" },
             { label: "Refund History", path: "/superadmin/refund" },
@@ -145,11 +154,11 @@ const NAV = [
         { 
           label: "Analytics", 
           children: [
-            { label: "Roomhy Monthly Revenue", path: "/superadmin/accounting/reports/roomhy-revenue" },
-            { label: "Owners Monthly Revenue", path: "/superadmin/accounting/reports/owner-revenue" },
+            { label: "Roomhy Monthly Revenue", path: "/superadmin/accounting/reports/roomhy-revenue", restrictedKey: "acc_roomhy_revenue" },
+            { label: "Owners Monthly Revenue", path: "/superadmin/accounting/reports/owner-revenue", restrictedKey: "acc_owner_revenue" },
             { label: "Due Rents", path: "/superadmin/accounting/reports/due-rents" },
-            { label: "Profit / Loss Report", path: "/superadmin/accounting/reports/profit-loss" },
-            { label: "Cashflow Dashboard", path: "/superadmin/accounting/reports/cashflow" },
+            { label: "Profit / Loss Report", path: "/superadmin/accounting/reports/profit-loss", restrictedKey: "acc_profit_loss" },
+            { label: "Cashflow Dashboard", path: "/superadmin/accounting/reports/cashflow", restrictedKey: "acc_cashflow" },
             { label: "Transaction Reports", path: "/superadmin/accounting/reports/transactions" },
           ]
         },
@@ -161,8 +170,8 @@ const NAV = [
     icon: MessageSquare, 
     path: "/superadmin/superchat",
     children: [
-        { label: "Live Conversations", path: "/superadmin/superchat" },
-        { label: "Alerts & Violations", path: "/superadmin/chat/alerts" },
+        { label: "Live Conversations", path: "/superadmin/superchat", restrictedKey: "chat_live" },
+        { label: "Alerts & Violations", path: "/superadmin/chat/alerts", restrictedKey: "chat_alerts" },
     ]
   },
   { 
@@ -177,13 +186,13 @@ const NAV = [
     icon: BarChart3, 
     path: "/superadmin/reports",
     children: [
-        { label: "Overview", path: "/superadmin/reports" },
-        { label: "Property Performance", path: "/superadmin/reports/performance" },
-        { label: "Location Wise Data", path: "/superadmin/reports/locations" },
-        { label: "Occupancy Rate", path: "/superadmin/reports/occupancy" },
-        { label: "Growth Analytics", path: "/superadmin/reports/growth" },
-        { label: "Staff Performance Reports", path: "/superadmin/reports/staff" },
-        { label: "Revenue Report", path: "/superadmin/reports/revenue" },
+        { label: "Overview", path: "/superadmin/reports", restrictedKey: "rpt_overview" },
+        { label: "Property Performance", path: "/superadmin/reports/performance", restrictedKey: "rpt_performance" },
+        { label: "Location Wise Data", path: "/superadmin/reports/locations", restrictedKey: "rpt_locations" },
+        { label: "Occupancy Rate", path: "/superadmin/reports/occupancy", restrictedKey: "rpt_occupancy" },
+        { label: "Growth Analytics", path: "/superadmin/reports/growth", restrictedKey: "rpt_growth" },
+        { label: "Staff Performance Reports", path: "/superadmin/reports/staff", restrictedKey: "rpt_staff" },
+        { label: "Revenue Report", path: "/superadmin/reports/revenue", restrictedKey: "rpt_revenue" },
     ]
   },
   { 
@@ -192,11 +201,11 @@ const NAV = [
     icon: Calendar, 
     path: "/superadmin/booking",
     children: [
-        { label: "Overview", path: "/superadmin/booking" },
-        { label: "Total Leads", path: "/superadmin/booking/leads" },
-        { label: "Bookings", path: "/superadmin/direct-bookings" },
-        { label: "Conversion Rate", path: "/superadmin/booking/conversion" },
-        { label: "Top Performing Locations", path: "/superadmin/booking/locations" },
+        { label: "Overview", path: "/superadmin/booking", restrictedKey: "bk_overview" },
+        { label: "Total Leads", path: "/superadmin/booking/leads", restrictedKey: "bk_leads" },
+        { label: "Bookings", path: "/superadmin/direct-bookings", restrictedKey: "bk_direct" },
+        { label: "Conversion Rate", path: "/superadmin/booking/conversion", restrictedKey: "bk_conversion" },
+        { label: "Top Performing Locations", path: "/superadmin/booking/locations", restrictedKey: "bk_locations" },
     ]
   },
   { 
@@ -205,11 +214,11 @@ const NAV = [
     icon: Star, 
     path: "/superadmin/reviews",
     children: [
-        { label: "Overview", path: "/superadmin/reviews" },
-        { label: "All Reviews", path: "/superadmin/reviews/all" },
-        { label: "Moderation", path: "/superadmin/reviews/moderation" },
-        { label: "Analytics", path: "/superadmin/reviews/analytics" },
-        { label: "New Review Feed", path: "/superadmin/reviews/new" },
+        { label: "Overview", path: "/superadmin/reviews", restrictedKey: "rv_overview" },
+        { label: "All Reviews", path: "/superadmin/reviews/all", restrictedKey: "rv_all" },
+        { label: "Moderation", path: "/superadmin/reviews/moderation", restrictedKey: "rv_moderation" },
+        { label: "Analytics", path: "/superadmin/reviews/analytics", restrictedKey: "rv_analytics" },
+        { label: "New Review Feed", path: "/superadmin/reviews/new", restrictedKey: "rv_feed" },
     ]
   },
   { 
@@ -218,16 +227,42 @@ const NAV = [
     icon: Headphones, 
     path: "/superadmin/complaint-history",
     children: [
-        { label: "Overview", path: "/superadmin/complaint-history" },
-        { label: "Tenants Complaints", path: "/superadmin/complaints/tenants" },
-        { label: "Owners Complaints", path: "/superadmin/complaints/owners" },
-        { label: "Website Queries", path: "/superadmin/support/website-queries" },
-        { label: "Verification System", path: "/superadmin/support/tickets" },
-        { label: "Issues Resolution Tracking", path: "/superadmin/support/resolution" },
+        { label: "Overview", path: "/superadmin/complaint-history", restrictedKey: "sp_overview" },
+        { label: "Tenants Complaints", path: "/superadmin/complaints/tenants", restrictedKey: "sp_tenant_complaints" },
+        { label: "Owners Complaints", path: "/superadmin/complaints/owners", restrictedKey: "sp_owner_complaints" },
+        { label: "Website Queries", path: "/superadmin/support/website-queries", restrictedKey: "sp_website_queries" },
+        { label: "Verification System", path: "/superadmin/support/tickets", restrictedKey: "sp_verification" },
+        { label: "Issues Resolution Tracking", path: "/superadmin/support/resolution", restrictedKey: "sp_resolution" },
     ]
   },
   { label: "Settings", id: "settings", icon: Settings, path: "/superadmin/settings" },
 ];
+
+const filterRestrictedChildren = (items, restrictedModules = []) => {
+  if (!Array.isArray(restrictedModules) || restrictedModules.length === 0) return items;
+  return items
+    .filter(item => {
+      if (item.restrictedKey && restrictedModules.includes(item.restrictedKey)) {
+        return false;
+      }
+      return true;
+    })
+    .map(item => {
+      if (item.children && item.children.length > 0) {
+        return {
+          ...item,
+          children: filterRestrictedChildren(item.children, restrictedModules)
+        };
+      }
+      return item;
+    })
+    .filter(item => {
+      if (item.children && item.children.length === 0 && !item.path) {
+        return false;
+      }
+      return true;
+    });
+};
 
 const getFilteredNav = () => {
   try {
@@ -236,19 +271,30 @@ const getFilteredNav = () => {
       rawUser = sessionStorage.getItem("manager_user") ||
                 sessionStorage.getItem("user") ||
                 localStorage.getItem("staff_user") ||
+                localStorage.getItem("staff_session") ||
                 localStorage.getItem("manager_user") ||
                 localStorage.getItem("user") ||
                 "null";
     } catch (e) {}
     const user = JSON.parse(rawUser);
     const role = String(user?.role || "").toLowerCase();
-    if (role === "employee" || role === "areamanager" || role === "manager") {
+    if (role === "employee" || role === "areamanager" || role === "manager" || role === "staff") {
       let perms = user.permissions || [];
+      let restrictedModules = user.restrictedModules || [];
+
       // Normalize permissions to an array of strings
       if (typeof perms === "string") {
         perms = perms.split(",").map(p => p.trim());
       } else if (Array.isArray(perms)) {
         perms = perms.map(p => (typeof p === "object" ? p.id || p.value || p.key : p));
+      }
+
+      if (typeof restrictedModules === "string") {
+        try {
+          restrictedModules = JSON.parse(restrictedModules);
+        } catch (_) {
+          restrictedModules = restrictedModules.split(",").map(r => r.trim());
+        }
       }
       
       const allowedNav = NAV.filter(item => {
@@ -256,8 +302,10 @@ const getFilteredNav = () => {
         if (!id) {
           id = item.label.toLowerCase().replace(/ & /g, '_').replace(/ /g, '_');
         }
-        return id === "visits" || perms.length === 0 || perms.includes(id);
+        return id === "dashboard" || id === "visits" || perms.includes(id);
       });
+
+      const restrictedNav = filterRestrictedChildren(allowedNav, restrictedModules);
 
       // Rewrite paths to /employee/ for employees
       const rewritePaths = (items) => items.map(item => {
@@ -278,7 +326,7 @@ const getFilteredNav = () => {
         };
       });
 
-      return rewritePaths(allowedNav);
+      return rewritePaths(restrictedNav);
     }
   } catch (e) {
     console.error("Failed to parse user for sidebar filtering", e);

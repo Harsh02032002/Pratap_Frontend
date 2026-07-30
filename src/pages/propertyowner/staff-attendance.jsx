@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useCallback } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession } from "../../utils/propertyowner";
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerEmployees, ownerEmployeesCacheKey } from "../../utils/propertyowner";
 import {
   CheckCircle2, Search, X, ChevronLeft, ChevronRight, ChevronDown,
   ArrowUpDown, SlidersHorizontal, MoreVertical, Calendar, Pencil, Clock,
@@ -134,7 +134,7 @@ export default function StaffAttendancePage() {
   const [menuOpen, setMenuOpen]     = useState(null);
 
   const fetchData = useCallback(async () => {
-    const EMP_KEY = `employees:${owner.loginId}`;
+    const EMP_KEY = ownerEmployeesCacheKey(owner.loginId, { isActive: true });
     const ATT_KEY = `attendance:${owner.loginId}`;
     const cachedEmp = cacheGet(EMP_KEY);
     const cachedAtt = cacheGet(ATT_KEY);
@@ -146,17 +146,14 @@ export default function StaffAttendancePage() {
     }
     setLoading(true);
     try {
-      const [staffRes, attRes] = await Promise.allSettled([
-        cachedEmp ? Promise.resolve({ data: cachedEmp }) : apiFetch(`/api/employees?parentLoginId=${owner.loginId}&isActive=true`),
-        cachedAtt ? Promise.resolve({ data: cachedAtt }) : apiFetch(`/api/hr/attendance/${owner.loginId}`),
+      const [allStaff, allAtt] = await Promise.all([
+        cachedEmp ? Promise.resolve(cachedEmp) : fetchOwnerEmployees(owner.loginId, { isActive: true }),
+        cachedAtt ? Promise.resolve(cachedAtt) : apiFetch(`/api/hr/attendance/${owner.loginId}`).then(r => r?.data || []),
       ]);
 
-      const allStaff = staffRes.status === "fulfilled" ? staffRes.value?.data || [] : [];
-      const allAtt = attRes.status === "fulfilled" ? attRes.value?.data || [] : [];
       setStaff(allStaff);
       setAttendance(allAtt);
-      if (!cachedEmp) cacheSet(EMP_KEY, allStaff, 3 * 60 * 1000);
-      if (!cachedAtt) cacheSet(ATT_KEY, allAtt, 2 * 60 * 1000);
+      if (!cachedAtt && Array.isArray(allAtt)) cacheSet(ATT_KEY, allAtt, 2 * 60 * 1000);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   }, [owner.loginId]);

@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
 import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerTenants } from "../../utils/propertyowner";
 import { apiFetch } from "../../utils/api";
-import { Search, Send, User, MoreVertical, Loader2, MessageSquare, Wallet, Paperclip, FileText } from "lucide-react";
+import { Search, Send, User, MoreVertical, Loader2, MessageSquare, Wallet, Paperclip, FileText, AlertTriangle } from "lucide-react";
 
 export default function OwnerChat() {
   const owner = getOwnerRuntimeSession();
@@ -257,9 +257,35 @@ export default function OwnerChat() {
     scrollToBottom();
   }, [messages]);
 
+  const [showBypassWarning, setShowBypassWarning] = useState(false);
+  const [blockedMsgSnippet, setBlockedMsgSnippet] = useState("");
+
+  const checkBypassAttempt = (text) => {
+    if (!text) return false;
+    const cleanDigits = String(text).replace(/[\s\-().,_/*]/g, '');
+    const hasTenDigits = /\d{10}/.test(cleanDigits);
+    const spacedDigits = /(\d[\s\-.,_*/]*){10,12}/g.test(text);
+    const bypassKeywords = [
+      /\b(whatsapp|watsapp|watsp|wtsp|wa|wp)\b/i,
+      /\b(call|phone|phn|mobile|contact|number|no|num)\s+([a-zA-Z]*\s+){0,2}(de|bhej|share|kar|kr|karo|kro|lena|le)\b/i,
+      /\b(offline|cash|direct|bypass|commission|brokerage)\b/i,
+      /\b(pay|payment|rent|deposit|advance)\s+([a-zA-Z]*\s+){0,2}(offline|cash|direct|account)\b/i,
+      /\b(booking\s+cancel|cancel\s+booking)\b/i
+    ];
+    return hasTenDigits || spacedDigits || bypassKeywords.some(rx => rx.test(text));
+  };
+
   const handleSend = async (e) => {
     e.preventDefault();
     if (!message.trim() || !activeChat) return;
+
+    if (checkBypassAttempt(message)) {
+      setBlockedMsgSnippet(message);
+      setShowBypassWarning(true);
+      setMessage("");
+      return;
+    }
+
     setIsSending(true);
     
     // Optimistic UI update
@@ -304,6 +330,53 @@ export default function OwnerChat() {
         <h1 className="font-serif text-[38px] md:text-[44px] leading-[1.05] text-foreground">Messages</h1>
         <p className="mt-1.5 text-[13.5px] text-muted-foreground">Chat with tenants and staff.</p>
       </div>
+
+      {/* Commission Bypass Violation Danger Modal */}
+      {showBypassWarning && (
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-6 border-2 border-rose-500 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 text-rose-600">
+              <div className="size-12 rounded-2xl bg-rose-100 flex items-center justify-center shrink-0">
+                <AlertTriangle size={28} className="stroke-[2.5]" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-rose-700 bg-rose-50 px-2.5 py-0.5 rounded-full border border-rose-200">
+                  CRITICAL VIOLATION DETECTED
+                </span>
+                <h3 className="text-lg font-black text-slate-900 dark:text-white mt-1">Commission Bypass Attempt Logged!</h3>
+              </div>
+            </div>
+
+            <div className="bg-rose-50 dark:bg-rose-950/40 p-4 rounded-2xl border border-rose-200 dark:border-rose-900/50 space-y-2">
+              <p className="text-xs text-rose-900 dark:text-rose-200 font-semibold leading-relaxed">
+                You attempted to send a message containing direct contact info or offline deal instructions:
+              </p>
+              <p className="text-xs font-mono bg-white dark:bg-slate-950 p-2.5 rounded-xl border border-rose-200 text-rose-700 dark:text-rose-300 italic">
+                "{blockedMsgSnippet}"
+              </p>
+            </div>
+
+            <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-slate-200 text-xs text-slate-700 dark:text-slate-300 font-medium space-y-1.5">
+              <p className="font-bold text-rose-600">⚠️ WARNING: IMMEDIATE PERMANENT BLOCK RISK</p>
+              <p>
+                Attempting to bypass Roomhy platform commission or dealing offline with tenants will result in <strong className="text-rose-600 underline">IMMEDIATE PERMANENT ACCOUNT BLOCK & SYSTEM-WIDE BLACKLISTING</strong>.
+              </p>
+              <p className="text-[11px] text-muted-foreground font-semibold">
+                Once your account is blocked, <span className="underline font-bold text-foreground">it CANNOT be reactivated by anyone (including Roomhy Admins) under any circumstances</span>.
+              </p>
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <button
+                onClick={() => setShowBypassWarning(false)}
+                className="w-full h-11 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all shadow-md"
+              >
+                I Understand & Agree to Comply with Platform Terms
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       
       <div className="flex h-[70vh] rounded-2xl border border-border bg-card shadow-soft overflow-hidden">
         {/* Sidebar / Contact List */}

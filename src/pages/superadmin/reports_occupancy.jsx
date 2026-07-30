@@ -73,7 +73,7 @@ export default function ReportsOccupancy() {
           </div>
           <div>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Rooms Active</p>
-            <h4 className="text-xl font-black text-slate-900 mt-1">148 Rooms</h4>
+            <h4 className="text-xl font-black text-slate-900 mt-1">{summary.totalRooms || 0} Rooms</h4>
           </div>
         </div>
         <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4">

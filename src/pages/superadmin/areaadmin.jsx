@@ -85,11 +85,38 @@ export default function SuperadminAreaadminPage() {
     const loadDashboardData = async () => {
         setLoading(true);
         try {
-            const [props, tenants, complaints, visits] = await Promise.all([
+            const stored = JSON.parse(
+                sessionStorage.getItem('manager_user') || 
+                sessionStorage.getItem('user') || 
+                localStorage.getItem('manager_user') || 
+                localStorage.getItem('user') || 
+                '{}'
+            );
+            const isEmp = stored?.role === 'employee' || stored?.role === 'manager' || stored?.role === 'areamanager';
+            
+            if (isEmp) {
+                const empData = await fetchJson('/api/dashboard/employee').catch(() => null);
+                if (empData && empData.success) {
+                    setStats({
+                        properties: empData.assignedPropertiesCount || 0,
+                        tenants: empData.assignedComplaintsCount || 0,
+                        complaints: empData.assignedComplaintsCount || 0,
+                        visits: empData.pendingVisitsCount || 0,
+                        pendingApprovals: empData.assignedLeadsCount || 0, 
+                        activeOwners: empData.assignedOwnersCount || 0      
+                    });
+                    setLoading(false);
+                    return;
+                }
+            }
+
+            const [props, tenants, complaints, visits, pendingProps, owners] = await Promise.all([
                 fetchJson('/api/properties').catch(() => ({ count: 0 })),
                 fetchJson('/api/tenants').catch(() => ({ count: 0 })),
                 fetchJson('/api/complaints').catch(() => ({ count: 0 })),
-                fetchJson('/api/visits').catch(() => ({ count: 0 }))
+                fetchJson('/api/visits').catch(() => ({ count: 0 })),
+                fetchJson('/api/properties?status=Pending').catch(() => ({ count: 0 })),
+                fetchJson('/api/owners').catch(() => ({ count: 0 }))
             ]);
 
             const parseCount = (payload) => {
@@ -106,8 +133,8 @@ export default function SuperadminAreaadminPage() {
                 tenants: parseCount(tenants),
                 complaints: parseCount(complaints),
                 visits: parseCount(visits),
-                pendingApprovals: 12, 
-                activeOwners: 45      
+                pendingApprovals: parseCount(pendingProps), 
+                activeOwners: parseCount(owners)      
             });
         } catch (error) {
             console.error("Failed to load dashboard stats", error);
@@ -118,18 +145,44 @@ export default function SuperadminAreaadminPage() {
 
     const allowedModules = useMemo(() => {
         if (!user) return [];
-        if (user.role === 'superadmin' || user.role === 'areamanager') {
+        if (user.role === 'superadmin') {
             return Object.keys(sidebarConfig);
         }
-        const assigned = user.permissions || [];
-        return [...new Set([...assigned, 'dashboard'])];
+        let perms = user.permissions || [];
+        if (typeof perms === 'string') perms = perms.split(',').map(p => p.trim());
+        else if (Array.isArray(perms)) perms = perms.map(p => (typeof p === 'object' ? p.id || p.value || p.key : p));
+
+        let resModules = user.restrictedModules || [];
+        if (typeof resModules === 'string') {
+            try { resModules = JSON.parse(resModules); } catch (_) { resModules = resModules.split(',').map(r => r.trim()); }
+        }
+
+        const permMap = {
+            'properties': 'property_management',
+            'tenants': 'user_management',
+            'complaint_history': 'support',
+            'visits': 'visits',
+            'teams': 'user_management',
+            'owners': 'user_management',
+            'bookings': 'booking_leads',
+            'reviews': 'review'
+        };
+
+        return Object.keys(sidebarConfig).filter(modKey => {
+            const reqPerm = permMap[modKey] || 'dashboard';
+            if (reqPerm !== 'dashboard' && reqPerm !== 'visits' && perms.length > 0 && !perms.includes(reqPerm)) {
+                return false;
+            }
+            if (modKey === 'teams' && resModules.includes('um_team_management')) return false;
+            return true;
+        });
     }, [user]);
 
     const widgets = [
-        { id: 'properties', label: 'Assets', desc: 'Manage Listings', icon: Home, color: 'blue', count: stats.properties },
-        { id: 'tenants', label: 'Residents', desc: 'Active Directory', icon: Users, color: 'emerald', count: stats.tenants },
-        { id: 'complaint_history', label: 'Resolution', desc: 'Operations Hub', icon: AlertCircle, color: 'amber', count: stats.complaints },
-        { id: 'visits', label: 'Field Audits', desc: 'Visit Logs', icon: ClipboardList, color: 'indigo', count: stats.visits }
+        { id: 'properties', label: 'Properties', desc: 'Manage Property Listings', icon: Home, color: 'blue', count: stats.properties },
+        { id: 'tenants', label: 'Tenants & Residents', desc: 'Active Directory', icon: Users, color: 'emerald', count: stats.tenants },
+        { id: 'complaint_history', label: 'Support & Issues', desc: 'Complaints & Help', icon: AlertCircle, color: 'amber', count: stats.complaints },
+        { id: 'visits', label: 'Visit Reports', desc: 'Field Inspection Logs', icon: ClipboardList, color: 'indigo', count: stats.visits }
     ].filter(w => allowedModules.includes(w.id));
 
     if (!user) return null;
@@ -140,30 +193,30 @@ export default function SuperadminAreaadminPage() {
             <div className="flex items-center justify-between">
                 <div className="flex flex-col gap-1">
                     <h1 className="text-2xl font-bold text-slate-800 tracking-tight leading-none">
-                        Welcome, <span className="text-blue-600">{user.name.split(' ')[0]}</span>
+                        Welcome, <span className="text-blue-600">{user.name ? user.name.split(' ')[0] : 'User'}</span>
                     </h1>
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Territorial Governance Hub • {user.area || 'HQ'}</p>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Staff Operations Hub • {user.area || 'HQ'}</p>
                 </div>
                 <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-xl border border-slate-100 shadow-sm">
                     <MapPin className="w-4 h-4 text-blue-600" />
-                    <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">{user.city || 'National'}</span>
+                    <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">{user.city || 'All Cities'}</span>
                 </div>
             </div>
 
             {/* Top Stat Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <StatCardHorizontal label="Regional Assets" value={stats.properties} trend="Territorial Load" up icon={Home} color="blue" />
-                <StatCardHorizontal label="Awaiting Audit" value={stats.pendingApprovals} trend="Action Queue" up={false} icon={ShieldCheck} color="amber" />
-                <StatCardHorizontal label="Active Owners" value={stats.activeOwners} trend="Growth Matrix" up icon={Briefcase} color="emerald" />
+                <StatCardHorizontal label="Total Properties" value={stats.properties} trend="Managed Properties" up icon={Home} color="blue" />
+                <StatCardHorizontal label="Pending Approvals" value={stats.pendingApprovals} trend="Needs Review" up={false} icon={ShieldCheck} color="amber" />
+                <StatCardHorizontal label="Total Property Owners" value={stats.activeOwners} trend="Active Owners" up icon={Briefcase} color="emerald" />
             </div>
 
             {/* Modules Grid */}
             <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-slate-800 uppercase tracking-tight">Command Suite</h3>
+                    <h3 className="text-sm font-bold text-slate-800 uppercase tracking-tight">Management Dashboard</h3>
                     <div className="flex items-center gap-2 text-[8px] font-bold text-emerald-500 uppercase tracking-widest">
                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        Live Hub
+                        Live Data
                     </div>
                 </div>
                 
@@ -180,7 +233,7 @@ export default function SuperadminAreaadminPage() {
                             <div 
                                 key={widget.id}
                                 onClick={() => {
-                                    const targetPath = sidebarConfig[widget.id].to;
+                                    const targetPath = sidebarConfig[widget.id]?.to || '/employee/superadmin';
                                     const isEmp = window.location.pathname.startsWith('/employee/');
                                     navigate(isEmp ? targetPath.replace('/superadmin/', '/employee/') : targetPath);
                                 }}
@@ -208,16 +261,16 @@ export default function SuperadminAreaadminPage() {
                     <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mx-auto mb-6 shadow-sm border border-blue-100">
                         <LayoutDashboard className="w-6 h-6" />
                     </div>
-                    <h3 className="text-xl font-bold text-slate-800 tracking-tight mb-2">Operational Governance</h3>
+                    <h3 className="text-xl font-bold text-slate-800 tracking-tight mb-2">Account & Region Summary</h3>
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest max-w-md mx-auto leading-relaxed">
-                        Region: <span className="text-blue-600">{user.area || 'Direct HQ'}</span> • Access Level: <span className="text-slate-800">{user.role}</span>
+                        Assigned Area: <span className="text-blue-600">{user.area || 'HQ'}</span> • Role Level: <span className="text-slate-800">{user.role}</span>
                     </p>
                     <div className="mt-8 flex justify-center gap-4">
-                        <button className="px-5 py-2.5 bg-slate-800 text-white rounded-xl text-[9px] font-bold uppercase tracking-widest hover:bg-slate-900 transition-all shadow-lg shadow-slate-800/10">
-                           Audit Logs
+                        <button onClick={() => navigate('/employee/visit')} className="px-5 py-2.5 bg-slate-800 text-white rounded-xl text-[9px] font-bold uppercase tracking-widest hover:bg-slate-900 transition-all shadow-lg shadow-slate-800/10">
+                           Visit Reports
                         </button>
-                        <button className="px-5 py-2.5 bg-white text-slate-400 rounded-xl text-[9px] font-bold uppercase tracking-widest border border-slate-100 hover:bg-slate-50 transition-all">
-                           Resource Suite
+                        <button onClick={() => navigate('/employee/complaint-history')} className="px-5 py-2.5 bg-white text-slate-400 rounded-xl text-[9px] font-bold uppercase tracking-widest border border-slate-100 hover:bg-slate-50 transition-all">
+                           Support Tickets
                         </button>
                     </div>
                 </div>

@@ -51,6 +51,15 @@ const resolveWebsiteUserId = (user) => {
 
 const SUPERADMIN_LOGIN_ID = "SUPER_ADMIN";
 
+const cleanDisplayName = (name) => {
+  if (!name) return "Hostel Owner";
+  const clean = String(name).trim();
+  if (clean === "VERIFIED OWNER" || clean === "Verified Owner" || clean === "OWN001" || clean === "OWNER") {
+    return "Hostel Owner";
+  }
+  return clean;
+};
+
 const normalizeMessage = (message) => ({
   ...message,
   _id: message?._id || `${message?.sender_login_id || "msg"}-${message?.created_at || Date.now()}`,
@@ -110,15 +119,23 @@ export default function WebsiteChat() {
     try {
       const data = await fetchJson(`/api/chat/inbox/${encodeURIComponent(websiteUserId)}`);
       const conversationRows = Array.isArray(data?.conversations) ? data.conversations : [];
-      const normalized = conversationRows
-        .map((row, idx) => ({
-          id: row.participant_login_id || `chat-${idx}`,
-          participant_login_id: row.participant_login_id,
-          participant_name: row.participant_name || row.participant_login_id || "Roomhy User",
-          last_message: row.last_message || "Start your chat",
-          timestamp: row.last_message_at || new Date().toISOString(),
-          unread: Number(row.unread_count || 0)
-        }));
+      const getCleanName = (name) => {
+        if (!name) return "Hostel Owner";
+        const clean = String(name).trim();
+        if (clean === "VERIFIED OWNER" || clean === "Verified Owner" || clean === "OWN001" || clean === "OWNER") {
+          return "Hostel Owner";
+        }
+        return clean;
+      };
+
+      const normalized = conversationRows.map((row, idx) => ({
+        id: row.participant_login_id || `chat-${idx}`,
+        participant_login_id: row.participant_login_id,
+        participant_name: getCleanName(row.participant_name || row.participant_login_id),
+        last_message: row.last_message || "Start your chat",
+        timestamp: row.last_message_at || new Date().toISOString(),
+        unread: Number(row.unread_count || 0)
+      }));
 
       const fallbackChat = {
         id: SUPERADMIN_LOGIN_ID,
@@ -392,10 +409,10 @@ export default function WebsiteChat() {
                       <ArrowLeft className="w-6 h-6 text-white" />
                     </button>
                     <div className="w-10 h-10 rounded-full bg-teal-500 text-white flex items-center justify-center font-bold mr-3 text-base flex-shrink-0">
-                      {(activeChat.participant_name || "A").charAt(0).toUpperCase()}
+                      {(cleanDisplayName(activeChat.participant_name)).charAt(0).toUpperCase()}
                     </div>
                     <div className="chat-header-info">
-                      <h3>{activeChat.participant_name || "Roomhy Admin"}</h3>
+                      <h3>{cleanDisplayName(activeChat.participant_name)}</h3>
                       <p>Online Support</p>
                     </div>
                   </div>

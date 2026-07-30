@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useRef } from "react";
+import React, { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { 
   Users, Shield, Clock, Search, ArrowUpRight, 
   ArrowDownRight, MoreVertical, Filter, Globe, 
@@ -7,34 +7,27 @@ import {
   Headset, Star, ShieldCheck, Key, LogOut, RefreshCw,
   Activity, LayoutGrid, FileText, Sparkles,
   Layers, Box, Globe2, Loader2, Save, Plus, X,
-  CheckCircle2, AlertCircle, Camera, Fingerprint, Lock, Unlock, UserPlus
+  CheckCircle2, AlertCircle, Camera, Fingerprint, Lock, Unlock, UserPlus,
+  Building2, UserCog, ChevronDown
 } from "lucide-react";
 import { fetchJson, getApiBase, getAuthHeader } from "../../utils/api";
 import { PageHeader } from "../../components/superadmin/PageHeader";
+import {
+  EMPLOYEE_MODULE_OPTIONS,
+  RESTRICTED_MODULE_GROUPS,
+  DEFAULT_RESTRICTED_MODULES,
+  EMPLOYEE_TYPES,
+  ROLES_REQUIRING_ASSIGNED_PROPERTIES,
+} from "../../utils/permissionKeys";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
+// Kept for backwards-compat with existing role filter chips
 const standardTeams = [
   "Marketing Team",
   "Accounts Department",
   "Maintenance Team",
   "Customer Support"
-];
-
-const allPermissions = [
-  { id: "dashboard", label: "Dashboard" },
-  { id: "home", label: "Home" },
-  { id: "user_management", label: "User Management" },
-  { id: "property_management", label: "Property Management" },
-  { id: "accounting", label: "Accounting" },
-  { id: "chat_management", label: "Chat Management" },
-  { id: "report_analytics", label: "Report & Analytics" },
-  { id: "booking_leads", label: "Booking & Leads" },
-  { id: "review", label: "Review" },
-  { id: "support", label: "Support" },
-  { id: "crm", label: "CRM" },
-  { id: "subscription_control", label: "Subscription Control" },
-  { id: "settings", label: "Settings" }
 ];
 
 const buildInitials = (name) =>
@@ -69,9 +62,20 @@ export default function Manager() {
   const [formPassword, setFormPassword] = useState("");
   const [formPhoto, setFormPhoto] = useState("");
   const [selectedPerms, setSelectedPerms] = useState(new Set());
-  
-  
-  const [saving, setSaving] = useState(false);
+
+  // ── New scope state ───────────────────────────────────────────────────────
+  const [formEmployeeType, setFormEmployeeType]       = useState("Field Executive");
+  const [assignedProperties, setAssignedProperties]   = useState([]);   // array of {_id, title}
+  const [assignedOwners, setAssignedOwners]           = useState([]);   // array of {_id, name}
+  const [restrictedModules, setRestrictedModules]     = useState(new Set(DEFAULT_RESTRICTED_MODULES));
+  const [allProperties, setAllProperties]             = useState([]);   // dropdown options
+  const [allOwners, setAllOwners]                     = useState([]);   // dropdown options
+  const [propSearch, setPropSearch]                   = useState("");
+  const [ownerSearch, setOwnerSearch]                 = useState("");
+  const [propDropOpen, setPropDropOpen]               = useState(false);
+  const [ownerDropOpen, setOwnerDropOpen]             = useState(false);
+  const [fieldErrors, setFieldErrors]                 = useState({});
+  const [saving, setSaving]                           = useState(false);
   const [toast, setToast] = useState(null);
   const uploadRef = useRef(null);
 
@@ -84,15 +88,19 @@ export default function Manager() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [empData, cityData, areaData] = await Promise.all([
-        fetchJson("/api/employees"),
+      const [empData, cityData, areaData, propData, ownerData] = await Promise.all([
+        fetchJson(`/api/employees?_t=${Date.now()}`),
         fetchJson("/api/locations/cities").catch(() => ({ data: [] })),
-        fetchJson("/api/locations/areas").catch(() => ({ data: [] }))
+        fetchJson("/api/locations/areas").catch(() => ({ data: [] })),
+        fetchJson("/api/properties?limit=300&status=Active").catch(() => ({ data: [] })),
+        fetchJson("/api/owners?limit=300").catch(() => ({ data: [] })),
       ]);
 
       setEmployees(empData.data || empData.employees || empData || []);
       setCities(cityData.data || cityData || []);
       setAreas(areaData.data || areaData || []);
+      setAllProperties(propData.data || propData.properties || []);
+      setAllOwners(ownerData.data || ownerData.owners || []);
     } catch (err) {
       console.error("Load failed:", err);
       showNotification("Failed to synchronize personnel data", "error");
@@ -190,6 +198,7 @@ export default function Manager() {
   };
 
   const openModal = (emp = null, parentId = "") => {
+    setFieldErrors({});
     if (emp) {
       setEditingId(emp.id || emp.loginId);
       setParentLoginId(emp.parentLoginId || "");
@@ -204,6 +213,11 @@ export default function Manager() {
       setFormPassword(emp.password || "");
       setFormPhoto(emp.photoDataUrl || emp.photoUrl || "");
       setSelectedPerms(new Set(emp.permissions || []));
+      // ── New scope fields ──────────────────────────────────────────
+      setFormEmployeeType(emp.employeeType || "Field Executive");
+      setAssignedProperties(emp.assignedProperties || []);
+      setAssignedOwners(emp.assignedOwners || []);
+      setRestrictedModules(new Set(emp.restrictedModules || DEFAULT_RESTRICTED_MODULES));
     } else {
       setEditingId(null);
       setParentLoginId(parentId);
@@ -216,6 +230,11 @@ export default function Manager() {
       setFormEmail("");
       setFormPhoto("");
       setSelectedPerms(new Set());
+      // ── New scope fields (defaults) ───────────────────────────────
+      setFormEmployeeType("Field Executive");
+      setAssignedProperties([]);
+      setAssignedOwners([]);
+      setRestrictedModules(new Set(DEFAULT_RESTRICTED_MODULES));
       generateCreds("", "");
     }
     setShowModal(true);
@@ -223,53 +242,78 @@ export default function Manager() {
 
   const saveEmployee = async () => {
     if (saving) return;
+
+    setFieldErrors({});
+
     setSaving(true);
     const finalRole = formRole === "Custom" ? customRole : formRole;
     const areaCode = getLocalCode(formCity, formArea);
     
     const payload = {
-      name: formName,
-      email: formEmail,
-      phone: formPhone,
-      password: formPassword,
-      role: finalRole,
-      loginId: formLoginId,
-      city: formCity,
-      area: formArea,
-      areaCode: areaCode,
-      permissions: Array.from(selectedPerms),
-      photoDataUrl: formPhoto,
-      parentLoginId: parentLoginId || undefined
+      name:              formName,
+      email:             formEmail,
+      phone:             formPhone,
+      password:          formPassword,
+      role:              finalRole,
+      loginId:           formLoginId,
+      city:              formCity,
+      area:              formArea,
+      areaCode:          areaCode,
+      permissions:       Array.from(selectedPerms),
+      photoDataUrl:      formPhoto,
+      parentLoginId:     parentLoginId || undefined,
+      // ── New scope fields ─────────────────────────────────────────
+      employeeType:      formEmployeeType,
+      assignedProperties: assignedProperties.map(p => p._id || p),
+      assignedOwners:     assignedOwners.map(o => o._id || o),
+      restrictedModules:  Array.from(restrictedModules),
     };
 
     try {
       if (editingId) {
-        await fetchJson(`/api/employees/${encodeURIComponent(formLoginId)}`, {
+        const res = await fetchJson(`/api/employees/${encodeURIComponent(formLoginId)}`, {
           method: "PATCH",
           body: JSON.stringify(payload)
         });
-        showNotification("Personnel records updated");
+        showNotification("Staff details updated successfully");
+        if (res?.data) {
+          setEmployees(prev => prev.map(e => (e.loginId === formLoginId || e.id === formLoginId) ? res.data : e));
+        }
       } else {
         const res = await fetchJson("/api/employees", {
           method: "POST",
           body: JSON.stringify(payload)
         });
-        showNotification("New personnel provisioned & credentials emailed");
+        showNotification("New employee created & login credentials sent");
+        if (res?.data) {
+          setEmployees(prev => [res.data, ...prev.filter(e => e.loginId !== res.data.loginId)]);
+        }
       }
+      // Reset directory filters so newly added staff member is instantly visible
+      setCurrentTeam("All");
+      setFilterCity("");
+      setFilterArea("");
+      setSearch("");
       setShowModal(false);
       loadData();
     } catch (err) {
-      showNotification(err.message || "Operation failed", "error");
+      const msg = err.message || "Operation failed";
+      if (msg.toLowerCase().includes("assigned properties")) {
+        setFieldErrors({ assignedProperties: msg });
+      }
+      showNotification(msg, "error");
     } finally {
       setSaving(false);
     }
   };
 
-  const deleteEmployee = async (loginId) => {
+  const deleteEmployee = async (emp) => {
+    const targetId = typeof emp === 'object' ? (emp.loginId || emp.id || emp._id || emp.email) : emp;
     if (!confirm("Permanently purge this personnel record?")) return;
     try {
-      await fetchJson(`/api/employees/${encodeURIComponent(loginId)}`, { method: "DELETE" });
+      await fetchJson(`/api/employees/${encodeURIComponent(targetId)}`, { method: "DELETE" });
       showNotification("Personnel purged from system");
+      setEmployees(prev => prev.filter(e => e.loginId !== targetId && e.id !== targetId && e._id !== targetId && e.email !== targetId));
       loadData();
     } catch (err) {
       showNotification(`Purge failed: ${err.message}`, "error");
@@ -321,10 +365,10 @@ export default function Manager() {
 
       {/* Stats Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCardSmall label="Total Employees" value={stats.total} icon={Users} color="blue" trend="+3.2% Flux" up />
-        <StatCardSmall label="Active Now" value={stats.active} icon={Activity} color="emerald" trend="Optimal" up />
-        <StatCardSmall label="Marketing Team" value={stats.marketing} icon={Megaphone} color="indigo" trend="Growth Core" up />
-        <StatCardSmall label="Locked Access" value={stats.locked} icon={Lock} color="rose" trend="Restricted" up={false} />
+        <StatCardSmall label="Total Employees" value={stats.total} icon={Users} color="blue" trend="Staff Count" up />
+        <StatCardSmall label="Active Now" value={stats.active} icon={Activity} color="emerald" trend="Currently Active" up />
+        <StatCardSmall label="Marketing Team" value={stats.marketing} icon={Megaphone} color="indigo" trend="Department Staff" up />
+        <StatCardSmall label="Locked Access" value={stats.locked} icon={Lock} color="rose" trend="Disabled Accounts" up={false} />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
@@ -365,7 +409,7 @@ export default function Manager() {
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
                     <input 
                       value={search} onChange={e => setSearch(e.target.value)}
-                      placeholder="Search personnel ID or name..." 
+                      placeholder="Search employee ID or name..." 
                       className="bg-slate-50 border border-slate-100 rounded-2xl py-2.5 pl-11 pr-4 text-[10px] font-bold outline-none focus:bg-white focus:ring-4 focus:ring-blue-100/50 transition-all w-full md:w-64" 
                     />
                  </div>
@@ -390,7 +434,7 @@ export default function Manager() {
                     {loading ? (
                       <tr><td colSpan="5" className="py-24 text-center">
                          <div className="w-12 h-12 border-4 border-blue-600/10 border-t-blue-600 rounded-full animate-spin mx-auto mb-6" />
-                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Accessing Revenue Vault Intelligence...</p>
+                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Loading staff directory...</p>
                       </td></tr>
                     ) : filteredEmployees.length === 0 ? (
                       <tr><td colSpan="5" className="py-24 text-center">
@@ -468,12 +512,13 @@ export default function Manager() {
                                  >
                                     <UserPlus size={14} />
                                  </button>
-                                 <button 
-                                   onClick={() => deleteEmployee(e.loginId)}
-                                   className="p-2.5 rounded-xl bg-slate-50 text-slate-400 hover:text-rose-600 hover:bg-white transition-all border border-slate-100 shadow-sm"
-                                 >
-                                    <Trash2 size={14} />
-                                 </button>
+                                  <button 
+                                    onClick={() => deleteEmployee(e)}
+                                    className="p-2.5 rounded-xl bg-slate-50 text-slate-400 hover:text-rose-600 hover:bg-white transition-all border border-slate-100 shadow-sm"
+                                    title="Delete Staff Member"
+                                  >
+                                     <Trash2 size={14} />
+                                  </button>
                               </div>
                            </td>
                         </tr>
@@ -545,6 +590,22 @@ export default function Manager() {
                        </div>
 
                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Employee Type</label>
+                          <select
+                            value={formEmployeeType}
+                            onChange={e => setFormEmployeeType(e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all outline-none shadow-sm appearance-none"
+                          >
+                            {EMPLOYEE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                          </select>
+                          {ROLES_REQUIRING_ASSIGNED_PROPERTIES.includes(formEmployeeType) && (
+                            <p className="text-[10px] text-amber-600 font-semibold px-1 flex items-center gap-1">
+                              <Shield size={10} /> This type requires at least one Assigned Property
+                            </p>
+                          )}
+                       </div>
+
+                       <div className="space-y-2">
                           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">City</label>
                           <select value={formCity} onChange={e => { setFormCity(e.target.value); setFormArea(""); }} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all outline-none shadow-sm appearance-none">
                              <option value="">Select City</option>
@@ -596,21 +657,24 @@ export default function Manager() {
                     </div>
                  </section>
 
-                 {/* Section 3: Permissions */}
+                 {/* Section 3: Module Access Permissions */}
                  <section>
                     <div className="flex items-center justify-between mb-8">
                        <div className="flex items-center gap-4">
                           <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-bold shadow-lg shadow-emerald-200">3</div>
-                          <h4 className="text-lg font-bold text-slate-800 tracking-tight">Module Access Permissions</h4>
+                          <div>
+                            <h4 className="text-lg font-bold text-slate-800 tracking-tight">Module Access Permissions</h4>
+                            <p className="text-[10px] text-slate-400 font-medium mt-0.5">Select which top-level modules this employee can access</p>
+                          </div>
                        </div>
                        <div className="flex gap-4">
-                          <button onClick={() => setSelectedPerms(new Set(allPermissions.map(p => p.id)))} className="text-[10px] font-bold text-emerald-600 uppercase hover:underline">Select All</button>
+                          <button onClick={() => setSelectedPerms(new Set(EMPLOYEE_MODULE_OPTIONS.map(p => p.id)))} className="text-[10px] font-bold text-emerald-600 uppercase hover:underline">Select All</button>
                           <button onClick={() => setSelectedPerms(new Set())} className="text-[10px] font-bold text-slate-400 uppercase hover:underline">Clear All</button>
                        </div>
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                       {allPermissions.map(perm => {
+                       {EMPLOYEE_MODULE_OPTIONS.map(perm => {
                          const selected = selectedPerms.has(perm.id);
                          return (
                            <div 
@@ -632,20 +696,90 @@ export default function Manager() {
                          );
                        })}
                     </div>
-                 </section>
-              </div>
+                  </section>
 
-              <div className="px-10 py-8 border-t border-slate-50 bg-slate-50/50 flex justify-end gap-4">
-                 <button onClick={() => setShowModal(false)} disabled={saving} className="px-8 py-3.5 rounded-2xl text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-600 hover:bg-white transition-all disabled:opacity-50">Cancel</button>
-                 <button 
-                   onClick={saveEmployee}
-                   disabled={saving}
-                   className="px-10 py-3.5 bg-blue-600 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest shadow-xl shadow-blue-600/20 hover:bg-blue-700 transition-all flex items-center gap-3 disabled:opacity-50"
-                 >
+
+
+
+
+
+                  {/* ─── Section 4: Restricted Modules ───────────────────────────── */}
+                  <section>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-2xl bg-rose-600 text-white flex items-center justify-center font-bold shadow-lg shadow-rose-200">4</div>
+                        <div>
+                          <h4 className="text-lg font-bold text-slate-800 tracking-tight">Restricted Modules</h4>
+                          <p className="text-[10px] text-rose-400 font-bold uppercase tracking-widest mt-0.5">Default Recommended</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 flex-wrap justify-end">
+                        <button type="button" onClick={() => setRestrictedModules(new Set(DEFAULT_RESTRICTED_MODULES))}
+                          className="px-3 py-1.5 text-[10px] font-bold text-rose-600 border border-rose-200 rounded-xl hover:bg-rose-50 transition-all uppercase">
+                          Select All
+                        </button>
+                        <button type="button" onClick={() => setRestrictedModules(new Set())}
+                          className="px-3 py-1.5 text-[10px] font-bold text-slate-400 border border-slate-200 rounded-xl hover:bg-slate-50 transition-all uppercase">
+                          Clear All
+                        </button>
+                        <button type="button" onClick={() => setRestrictedModules(new Set(DEFAULT_RESTRICTED_MODULES))}
+                          className="px-3 py-1.5 text-[10px] font-bold text-indigo-600 border border-indigo-200 rounded-xl hover:bg-indigo-50 transition-all uppercase">
+                          Reset Recommended
+                        </button>
+                      </div>
+                    </div>
+
+                    <p className="text-[11px] text-slate-400 font-medium mb-8 ml-14 leading-relaxed">
+                      These permissions are sensitive. <strong className="text-slate-600">Checked (red) = Blocked.</strong>{" "}
+                      Uncheck only to grant access.
+                    </p>
+
+                    <div className="space-y-5">
+                      {RESTRICTED_MODULE_GROUPS.map(group => (
+                        <div key={group.moduleLabel} className="bg-slate-50/60 rounded-[2rem] p-6 border border-slate-100">
+                          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">{group.moduleLabel}</p>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            {group.items.map(item => {
+                              const isBlocked = restrictedModules.has(item.key);
+                              return (
+                                <div key={item.key}
+                                  onClick={() => setRestrictedModules(prev => {
+                                    const next = new Set(prev);
+                                    if (next.has(item.key)) next.delete(item.key); else next.add(item.key);
+                                    return next;
+                                  })}
+                                  className={cn(
+                                    "flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer select-none",
+                                    isBlocked ? "bg-rose-50 border-rose-200" : "bg-white border-slate-100 hover:border-rose-100"
+                                  )}
+                                >
+                                  <div className={cn(
+                                    "w-5 h-5 rounded-md flex items-center justify-center border transition-all flex-shrink-0",
+                                    isBlocked ? "bg-rose-600 border-rose-600 text-white" : "bg-white border-slate-200"
+                                  )}>
+                                    {isBlocked && <X size={10} />}
+                                  </div>
+                                  <span className={cn("text-[10px] font-bold leading-tight", isBlocked ? "text-rose-700" : "text-slate-500")}>{item.label}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+
+               </div>
+
+               <div className="px-10 py-8 border-t border-slate-50 bg-slate-50/50 flex justify-end gap-4">
+                  <button onClick={() => setShowModal(false)} disabled={saving} className="px-8 py-3.5 rounded-2xl text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-600 hover:bg-white transition-all disabled:opacity-50">Cancel</button>
+                  <button
+                    onClick={saveEmployee}
+                    disabled={saving}
+                    className="px-10 py-3.5 bg-blue-600 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest shadow-xl shadow-blue-600/20 hover:bg-blue-700 transition-all flex items-center gap-3 disabled:opacity-50"
+                  >
                     {saving ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" /> Saving...
-                      </>
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</>
                     ) : (
                       <>
                         <Save size={16} /> Save Staff

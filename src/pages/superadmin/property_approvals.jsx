@@ -9,6 +9,8 @@ import * as XLSX from 'xlsx';
 import { toast } from "react-hot-toast";
 import AddPropertyWizard from "./AddPropertyWizard";
 
+import { getAuthHeader } from "../../utils/api";
+
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 const getApiUrl = () =>
   import.meta.env?.VITE_API_URL ||
@@ -41,7 +43,7 @@ export default function SuperadminPropertyApprovals() {
   const fetchProperties = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${getApiUrl()}/api/properties?t=${Date.now()}`);
+      const res = await fetch(`${getApiUrl()}/api/properties?t=${Date.now()}`, { headers: getAuthHeader() });
       const data = await res.json();
       if (data.success && data.properties) {
         setProperties(data.properties.map(p => ({
@@ -71,14 +73,14 @@ export default function SuperadminPropertyApprovals() {
   const handleApprove = async (id) => {
     try {
       // Try publish endpoint first, then fallback to PUT
-      const res = await fetch(`${getApiUrl()}/api/properties/${id}/publish`, { method: "POST", headers: { "Content-Type": "application/json" } });
+      const res = await fetch(`${getApiUrl()}/api/properties/${id}/publish`, { method: "POST", headers: { "Content-Type": "application/json", ...getAuthHeader() } });
       const data = await res.json();
       if (data.success || res.ok) {
         // Also try to update status to approved
         try {
           await fetch(`${getApiUrl()}/api/properties/${id}`, {
             method: "PUT",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", ...getAuthHeader() },
             body: JSON.stringify({ status: "approved", isPublished: true })
           });
         } catch (_) {}
@@ -100,7 +102,7 @@ export default function SuperadminPropertyApprovals() {
     try {
       const res = await fetch(`${getApiUrl()}/api/properties/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeader() },
         body: JSON.stringify({ status: "blocked", isPublished: false, isLiveOnWebsite: false })
       });
       const data = await res.json();
@@ -133,7 +135,7 @@ export default function SuperadminPropertyApprovals() {
       for (const id of pendingSelected) {
         const res = await fetch(`${getApiUrl()}/api/properties/${id}/publish`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" }
+          headers: { "Content-Type": "application/json", ...getAuthHeader() }
         });
         const data = await res.json();
         if (data.success || res.ok) {
@@ -169,7 +171,7 @@ export default function SuperadminPropertyApprovals() {
       for (const id of pendingSelected) {
         const res = await fetch(`${getApiUrl()}/api/properties/${id}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...getAuthHeader() },
           body: JSON.stringify({ status: "blocked", isPublished: false, isLiveOnWebsite: false })
         });
         const data = await res.json();

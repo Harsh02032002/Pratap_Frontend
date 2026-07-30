@@ -69,7 +69,7 @@ export default function SuperadminProperties() {
   const fetchPropertyDetail = async (id) => {
     try {
       setViewLoading(true);
-      const res = await fetch(`${getApiUrl()}/api/properties/${id}`);
+      const res = await fetch(`${getApiUrl()}/api/properties/${id}`, { headers: getAuthHeader() });
       const data = await res.json();
       if (data.success && data.property) {
         setViewProperty(data.property);
@@ -87,7 +87,7 @@ export default function SuperadminProperties() {
   const fetchProperties = async (pNum = 1) => {
     try {
       setLoading(true);
-      const res = await fetch(`${getApiUrl()}/api/properties?page=${pNum}&limit=100&t=${Date.now()}`);
+      const res = await fetch(`${getApiUrl()}/api/properties?page=${pNum}&limit=100&t=${Date.now()}`, { headers: getAuthHeader() });
       const data = await res.json();
       if (data.success && data.properties) {
           setProperties(data.properties.map(p => ({
@@ -113,7 +113,7 @@ export default function SuperadminProperties() {
   const handleDeleteProperty = async (id) => {
     if (!window.confirm("Are you sure you want to delete this property? This action cannot be undone.")) return;
     try {
-      const res = await fetch(`${getApiUrl()}/api/properties/${id}`, { method: "DELETE" });
+      const res = await fetch(`${getApiUrl()}/api/properties/${id}`, { method: "DELETE", headers: getAuthHeader() });
       const data = await res.json();
       if (data.success) {
         toast.success("Property deleted successfully");
@@ -275,7 +275,7 @@ export default function SuperadminProperties() {
                                 onClick={async () => {
                                   setPreviewLoading(true);
                                   try {
-                                    const res = await fetch(`${getApiUrl()}/api/properties/${p.id}`);
+                                    const res = await fetch(`${getApiUrl()}/api/properties/${p.id}`, { headers: getAuthHeader() });
                                     const data = await res.json();
                                     if (data.success && data.property) setPreviewProperty(data.property);
                                     else toast.error("Failed to load preview");

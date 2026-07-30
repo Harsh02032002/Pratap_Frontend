@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession } from "../../utils/propertyowner";
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerEmployees } from "../../utils/propertyowner";
 import { fetchJson } from "../../utils/api";
 import { cacheGet, cacheSet, cacheInvalidate } from "../../utils/cache";
 import { AlertCircle, Search, Loader2 } from "lucide-react";
@@ -47,15 +47,13 @@ export default function Complaints() {
   useEffect(() => {
     const fetchData = async () => {
       const compKey = `complaints:${owner.loginId}`;
-      const empKey  = `employees:${owner.loginId}`;
 
       // Serve cached complaints immediately
       const cachedComp = cacheGet(compKey);
-      const cachedEmp  = cacheGet(empKey);
       if (cachedComp) {
         setComplaints(cachedComp);
         setLoading(false);
-        if (cachedEmp) setStaffList(cachedEmp);
+        fetchOwnerEmployees(owner.loginId).then(setStaffList).catch(() => {});
         return;
       }
 
@@ -73,15 +71,8 @@ export default function Complaints() {
       }
       // Staff list is optional — fetch separately so failure doesn't block complaints
       try {
-        if (cachedEmp) {
-          setStaffList(cachedEmp);
-        } else {
-          const empData = await fetchJson(`/api/employees?parentLoginId=${encodeURIComponent(owner.loginId)}`);
-          if (empData?.data) {
-            cacheSet(empKey, empData.data, COMPLAINTS_TTL);
-            setStaffList(empData.data);
-          }
-        }
+        const staff = await fetchOwnerEmployees(owner.loginId);
+        setStaffList(staff);
       } catch {
         // Staff list unavailable — assign dropdown will be empty, not a blocker
       }

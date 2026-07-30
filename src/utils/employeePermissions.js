@@ -1,3 +1,5 @@
+import { RESTRICTED_KEYS } from './permissionKeys';
+
 export const getPermissionForPath = (path) => {
   const cleanPath = (path || "").replace(/^\/employee\//, "/superadmin/");
   if (cleanPath === "/superadmin/superadmin" || cleanPath === "/superadmin/areaadmin") return "dashboard";
@@ -65,6 +67,11 @@ export const hasEmployeePermission = (userObj, path) => {
 
   if (perms.length === 0) return true;
 
+  const cleanPath = (path || "").replace(/^\/employee\//, "/superadmin/");
+  if (cleanPath.startsWith("/superadmin/rentcollection")) {
+    return perms.includes("accounting") || perms.includes("home") || perms.includes("user_management");
+  }
+
   const reqPerm = getPermissionForPath(path);
   if (!reqPerm) return true;
 
@@ -97,4 +104,35 @@ export const getFirstAllowedEmployeeRoute = (userObj) => {
     if (permToRoute[perm]) return permToRoute[perm];
   }
   return "/employee/superadmin";
+};
+
+/**
+ * isRestrictedModule(userObj, subModuleKey)
+ * Returns true if the sub-module key is in the employee's restrictedModules[].
+ * Superadmins and admins are never restricted.
+ *
+ * @param {object} userObj       — The logged-in user object (from session/context)
+ * @param {string} subModuleKey  — A key from RESTRICTED_KEYS, e.g. 'rpt_revenue'
+ */
+export const isRestrictedModule = (userObj, subModuleKey) => {
+  if (!userObj) return false;
+  const role = String(userObj.role || '').toLowerCase();
+  if (role === 'superadmin' || role === 'admin') return false;
+  return (userObj.restrictedModules || []).includes(subModuleKey);
+};
+
+/**
+ * canAccessSubModule(userObj, moduleKey, subModuleKey)
+ * Returns true if:
+ *   1. Employee has top-level module access (hasEmployeePermission)
+ *   AND
+ *   2. The sub-module is NOT in their restrictedModules[]
+ *
+ * Use this for fine-grained UI gating of sub-features.
+ */
+export const canAccessSubModule = (userObj, path, subModuleKey) => {
+  return (
+    hasEmployeePermission(userObj, path) &&
+    !isRestrictedModule(userObj, subModuleKey)
+  );
 };

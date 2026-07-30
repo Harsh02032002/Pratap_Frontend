@@ -55,6 +55,10 @@ export default function ReportsOverview() {
   const [topPropertiesList, setTopPropertiesList] = useState([]);
   const [locationRevenueList, setLocationRevenueList] = useState([]);
 
+  const userObj = (() => { try { return JSON.parse(sessionStorage.getItem("manager_user") || sessionStorage.getItem("user") || localStorage.getItem("staff_user") || localStorage.getItem("user") || "{}"); } catch { return {}; } })();
+  const userRole = String(userObj.role || "").toLowerCase();
+  const isSuperadmin = userRole === "superadmin" || userRole === "admin";
+
   useEffect(() => {
     const loadStats = async () => {
       setLoading(true);
@@ -100,8 +104,8 @@ export default function ReportsOverview() {
          <ReportStatCard label="Total Properties" value={stats.totalProperties.toLocaleString()} trend="+ 12.5%" icon={Building2} color="blue" loading={loading} />
          <ReportStatCard label="Total Tenants" value={stats.totalTenants.toLocaleString()} trend="+ 9.8%" icon={Users} color="purple" loading={loading} />
          <ReportStatCard label="Occupancy Rate" value={`${stats.occupancyRate}%`} trend="+ 4.2%" icon={Target} color="emerald" loading={loading} />
-         <ReportStatCard label="Monthly Revenue" value={`₹ ${stats.monthlyRevenue.toLocaleString()}`} trend="+ 16.7%" icon={DollarSign} color="amber" loading={loading} />
-         <ReportStatCard label="Net Profit" value={`₹ ${stats.netProfit.toLocaleString()}`} trend="+ 12.1%" icon={Zap} color="rose" loading={loading} />
+         {isSuperadmin && <ReportStatCard label="Monthly Revenue" value={`₹ ${stats.monthlyRevenue.toLocaleString()}`} trend="+ 16.7%" icon={DollarSign} color="amber" loading={loading} />}
+         {isSuperadmin && <ReportStatCard label="Net Profit" value={`₹ ${stats.netProfit.toLocaleString()}`} trend="+ 12.1%" icon={Zap} color="rose" loading={loading} />}
          <ReportStatCard label="Conversion Rate" value={`${stats.growthRate}%`} trend="Steady" icon={TrendingUp} color="blue" loading={loading} />
       </div>
 

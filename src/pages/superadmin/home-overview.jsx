@@ -93,8 +93,10 @@ export default function HomeOverview() {
     loadStats();
   }, [selectedCity]);
 
-  const userObj = JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user") || "{}");
+  const userObj = (() => { try { return JSON.parse(sessionStorage.getItem("manager_user") || sessionStorage.getItem("user") || localStorage.getItem("staff_user") || localStorage.getItem("user") || "{}"); } catch { return {}; } })();
   const userName = userObj.name || userObj.fullName || "Admin";
+  const userRole = String(userObj.role || "").toLowerCase();
+  const isSuperadmin = userRole === "superadmin" || userRole === "admin";
 
   return (
     <div className="space-y-6">
@@ -131,12 +133,15 @@ export default function HomeOverview() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
          <HomeStatCard label="Total Properties" value={loading ? "..." : stats.properties.toLocaleString()} trend="+8.3% from last week" icon={Building2} color="blue" up loading={loading} onClick={() => navigate('/superadmin/total-properties')} viewAllLabel="View All Properties" viewAllPath="/superadmin/total-properties" />
          <HomeStatCard label="Total Tenants" value={loading ? "..." : stats.tenants.toLocaleString()} trend="+12.5% from last week" icon={Users} color="emerald" up loading={loading} onClick={() => navigate('/superadmin/tenant')} viewAllLabel="View All Tenants" viewAllPath="/superadmin/tenant" />
-         <HomeStatCard label="Revenue Overview" value={loading ? "..." : `₹${stats.revenue.toLocaleString('en-IN')}`} trend="+18.6% from last week" icon={IndianRupee} color="purple" up loading={loading} onClick={() => navigate('/superadmin/home/revenue-overview')} viewAllLabel="View Detailed Report" viewAllPath="/superadmin/home/revenue-overview" />
+         {isSuperadmin && (
+           <HomeStatCard label="Revenue Overview" value={loading ? "..." : `₹${stats.revenue.toLocaleString('en-IN')}`} trend="+18.6% from last week" icon={IndianRupee} color="purple" up loading={loading} onClick={() => navigate('/superadmin/home/revenue-overview')} viewAllLabel="View Detailed Report" viewAllPath="/superadmin/home/revenue-overview" />
+         )}
          <HomeStatCard label="Alerts (Pending Rent)" value={loading ? "..." : stats.alerts.toString()} trend="Tenants with pending rent" icon={Bell} color="amber" up loading={loading} onClick={() => navigate('/superadmin/rentcollection')} viewAllLabel="View All Alerts" viewAllPath="/superadmin/rentcollection" />
       </div>
 
       <div className="grid grid-cols-12 gap-6 mb-8">
-         {/* Revenue Overview Chart */}
+         {/* Revenue Overview Chart — superadmin only */}
+         {isSuperadmin && (
           <div className="col-span-12 lg:col-span-8 bg-white rounded-3xl p-8 border border-slate-100 shadow-sm flex flex-col">
             <div className="flex items-center justify-between mb-8">
                <h3 className="text-lg font-bold text-slate-900">Earnings</h3>
@@ -168,6 +173,7 @@ export default function HomeOverview() {
                <MiniMetric label="Growth" value="+18.6%" color="text-emerald-500" />
             </div>
          </div>
+         )}
 
          {/* Pending Rent Alerts Sidebar */}
          <div className="col-span-12 lg:col-span-4 bg-white rounded-3xl p-8 border border-slate-100 shadow-sm flex flex-col">

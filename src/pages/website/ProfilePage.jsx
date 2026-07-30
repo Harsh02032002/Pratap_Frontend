@@ -58,8 +58,20 @@ export default function ProfilePage() {
           setStats(user.stats || { bookings: 0, favourites: 0, reviews: 0 });
         }
       } catch (error) {
-        console.error('Failed to load profile:', error);
-        setMessage({ type: 'error', text: 'Failed to load profile' });
+        console.warn('Profile API error, using auth context fallback:', error.message);
+        if (authUser) {
+          setFormData({
+            name: authUser.name || authUser.fullName || '',
+            firstName: authUser.firstName || '',
+            lastName: authUser.lastName || '',
+            email: authUser.email || '',
+            phone: authUser.phone || authUser.phoneNumber || '',
+            address: authUser.address || '',
+            city: authUser.city || '',
+            bio: authUser.bio || '',
+            profileImage: authUser.profileImage || null
+          });
+        }
       } finally {
         setLoading(false);
       }

@@ -69,7 +69,7 @@ const resolveHostHome = () => {
         !!localStorage.getItem("managerData");
       if (hasManagerSession) return "/propertyowner/admin";
     }
-    if (role === "areamanager" || role === "employee") return "/employee/superadmin";
+    if (role === "areamanager" || role === "employee") return "/employee/areaadmin";
     return "/superadmin/index";
   }
   if (host === "app.roomhy.com" || host === "www.app.roomhy.com") {
@@ -86,7 +86,7 @@ const resolveHostHome = () => {
         !!localStorage.getItem("managerData");
       if (hasManagerSession) return "/propertyowner/admin";
     }
-    if (role === "areamanager" || role === "employee") return "/employee/superadmin";
+    if (role === "areamanager" || role === "employee") return "/employee/areaadmin";
     if (owner?.loginId) return "/propertyowner/admin";
     // On localhost — default to website homepage for normal users/visitors
     return "/website/index";
@@ -458,8 +458,7 @@ export default function App() {
 
                 <Route path="/" element={<Navigate to={resolveHostHome()} replace />} />
                 <Route path="/superadmin" element={<Navigate to="/superadmin/index" replace />} />
-                <Route path="/employee" element={<Navigate to="/employee/superadmin" replace />} />
-                <Route path="/employee/areaadmin" element={<Navigate to="/employee/superadmin" replace />} />
+                <Route path="/employee" element={<Navigate to="/employee/areaadmin" replace />} />
                 <Route path="/propertyowner" element={<Navigate to="/propertyowner/index" replace />} />
                 {/* The standalone Staff Panel is gone — old links fold into the one panel */}
                 <Route path="/staff/login" element={<Navigate to={UNIFIED_LOGIN_PATH} replace />} />

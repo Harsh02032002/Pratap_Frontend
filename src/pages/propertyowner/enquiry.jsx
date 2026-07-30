@@ -5,7 +5,7 @@ import { apiFetch } from "../../utils/api";
 import { cacheGet, cacheSet, cacheInvalidate } from "../../utils/cache";
 import { 
   Search, Plus, Phone, MessageCircle, X, Mail, MapPin, Loader2, Trash2, Users, 
-  TrendingUp, CalendarCheck, BookOpen, Check, MessageSquare, Wallet, Building2
+  TrendingUp, CalendarCheck, BookOpen, Check, MessageSquare, Wallet, Building2, AlertTriangle
 } from "lucide-react";
 
 export default function Enquiry() {
@@ -179,7 +179,7 @@ export default function Enquiry() {
       onLogout={() => { clearOwnerRuntimeSession(); window.location.href = "/propertyowner/ownerlogin"; }}
     >
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-8">
+      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
         <div>
           <h1 className="font-serif text-[38px] md:text-[44px] leading-[1.05] text-foreground">Leads & Enquiries</h1>
           <p className="mt-1.5 text-[13.5px] text-muted-foreground">Track every lead, view budget preferences, and convert prospects to tenants.</p>
@@ -191,6 +191,8 @@ export default function Enquiry() {
           <Plus className="size-4"/> Add Manual Lead
         </button>
       </div>
+
+
 
       {/* Stats Bar */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">

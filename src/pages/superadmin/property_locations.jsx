@@ -6,6 +6,8 @@ import {
   ArrowDownRight, Layers, Activity
 } from "lucide-react";
 
+import { fetchJson, getAuthHeader } from "../../utils/api";
+
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
 const getApiUrl = () =>
@@ -36,7 +38,7 @@ export default function Locations() {
 
   const fetchLocations = async () => {
     try {
-      const res = await fetch(`${getApiUrl()}/api/locations/cities`);
+      const res = await fetch(`${getApiUrl()}/api/locations/cities`, { headers: getAuthHeader() });
       const data = await res.json();
       if (data.success) setLocations(data.data);
     } catch (err) { console.error("Error:", err); }
@@ -49,7 +51,7 @@ export default function Locations() {
     try {
       const url = editingId ? `${getApiUrl()}/api/locations/cities/${editingId}` : `${getApiUrl()}/api/locations/cities`;
       const method = editingId ? "PUT" : "POST";
-      const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(formData) });
+      const res = await fetch(url, { method, headers: { "Content-Type": "application/json", ...getAuthHeader() }, body: JSON.stringify(formData) });
       const data = await res.json();
       if (data.success) { fetchLocations(); closeModal(); }
     } catch (err) { console.error(err); }
@@ -59,7 +61,7 @@ export default function Locations() {
   const handleDelete = async (id) => {
     if (!confirm("Delete this location?")) return;
     try {
-      const res = await fetch(`${getApiUrl()}/api/locations/cities/${id}`, { method: "DELETE" });
+      const res = await fetch(`${getApiUrl()}/api/locations/cities/${id}`, { method: "DELETE", headers: getAuthHeader() });
       const data = await res.json();
       if (data.success) fetchLocations();
     } catch (err) { console.error(err); }

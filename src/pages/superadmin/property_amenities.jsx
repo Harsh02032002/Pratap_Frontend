@@ -8,6 +8,8 @@ import {
   Layers, ArrowUpRight, ArrowDownRight
 } from "lucide-react";
 
+import { fetchJson, getAuthHeader } from "../../utils/api";
+
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
 const getApiUrl = () =>
@@ -66,7 +68,7 @@ export default function Amenities() {
 
   const fetchAmenities = async () => {
     try {
-      const res = await fetch(`${getApiUrl()}/api/amenities`);
+      const res = await fetch(`${getApiUrl()}/api/amenities`, { headers: getAuthHeader() });
       const data = await res.json();
       if (data.success) setAmenities(data.data);
     } catch (err) {
@@ -84,7 +86,7 @@ export default function Amenities() {
       const method = editingId ? "PUT" : "POST";
       const res = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeader() },
         body: JSON.stringify(formData)
       });
       const data = await res.json();
@@ -102,7 +104,7 @@ export default function Amenities() {
   const handleDelete = async (id) => {
     if (!confirm("Delete this amenity?")) return;
     try {
-      const res = await fetch(`${getApiUrl()}/api/amenities/${id}`, { method: "DELETE" });
+      const res = await fetch(`${getApiUrl()}/api/amenities/${id}`, { method: "DELETE", headers: getAuthHeader() });
       const data = await res.json();
       if (data.success) fetchAmenities();
     } catch (err) {

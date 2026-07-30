@@ -140,6 +140,8 @@ export function canAccessOwnerPathAsStaff(session, pathname) {
     return h && h !== "#" && (path === h || path.startsWith(`${h}/`));
   };
 
+  const restrictedList = Array.isArray(session?.restrictedModules) ? session.restrictedModules : [];
+
   for (const m of STAFF_SELF_SERVICE_NAV) {
     if ((m.always || hasStaffPermission(session, m.key)) && matches(m.href)) return true;
   }
@@ -148,7 +150,17 @@ export function canAccessOwnerPathAsStaff(session, pathname) {
     const perms = OWNER_SECTION_PERMISSIONS[section.label];
     if (!perms || !staffHasAnyPermission(session, perms)) continue;
     if (matches(section.href)) return true;
-    if (section.submenus && section.submenus.some((s) => matches(s.href))) return true;
+    if (section.submenus) {
+      for (const s of section.submenus) {
+        if (matches(s.href)) {
+          const subKey = s.key || `sm_${s.label.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`;
+          if (restrictedList.includes(subKey) || restrictedList.includes(s.label)) {
+            return false;
+          }
+          return true;
+        }
+      }
+    }
   }
   return false;
 }
@@ -237,23 +249,42 @@ export const STAFF_SELF_SERVICE_NAV = [
 // staff-panel grant (e.g. "Room Inventory") would leak an owner section
 // (Properties → Add Property).
 export const OWNER_SECTION_PERMISSIONS = {
+  "Dashboard": ["Dashboard"],
   "Properties": ["Properties"],
   "Tenants": ["Tenants"],
-  "Leads & Bookings": ["Leads", "Bookings"],
-  "Rent & Payments": ["Rent Collection", "Payments"],
+  "Leads & Bookings": ["Leads & Bookings", "Leads", "Bookings"],
+  "Rent & Payments": ["Rent & Payments", "Rent Collection", "Payments"],
+  "Complaints & Maintenance": ["Complaints & Maintenance", "Complaints", "Maintenance"],
+  "Staff Management": ["Staff Management"],
+  "Attendance & Entry": ["Attendance & Entry"],
+  "Communication": ["Communication"],
   "Reports": ["Reports"],
+  "Settings": ["Settings"],
 };
 
 const staffHasAnyPermission = (session, keys) =>
   Array.isArray(keys) && keys.some((k) => hasStaffPermission(session, k));
 
 // Filtered owner-panel sidebar for a staff member (self-service items + granted
-// owner sections, submenus preserved). Same shape as PROPERTY_OWNER_NAV.
+// owner sections, submenus preserved and filtered by restrictedModules).
 export function getStaffPanelNav(session) {
+  const restrictedList = Array.isArray(session?.restrictedModules) ? session.restrictedModules : [];
   const nav = STAFF_SELF_SERVICE_NAV.filter((m) => m.always || hasStaffPermission(session, m.key));
+
   PROPERTY_OWNER_NAV.forEach((section) => {
     const perms = OWNER_SECTION_PERMISSIONS[section.label];
-    if (perms && staffHasAnyPermission(session, perms)) nav.push(section);
+    if (perms && staffHasAnyPermission(session, perms)) {
+      const clonedSection = { ...section };
+      if (Array.isArray(section.submenus)) {
+        clonedSection.submenus = section.submenus.filter((sub) => {
+          const subKey = sub.key || `sm_${sub.label.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`;
+          return !restrictedList.includes(subKey) &&
+                 !restrictedList.includes(sub.label) &&
+                 !restrictedList.includes(`custom_${sub.label.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`);
+        });
+      }
+      nav.push(clonedSection);
+    }
   });
   return nav;
 }

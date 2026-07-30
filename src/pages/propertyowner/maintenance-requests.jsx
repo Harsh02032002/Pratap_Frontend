@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession } from "../../utils/propertyowner";
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerEmployees } from "../../utils/propertyowner";
 import { apiFetch } from "../../utils/api";
 import { cacheGet, cacheSet, cacheInvalidate } from "../../utils/cache";
 import {
@@ -29,29 +29,28 @@ export default function MaintenanceRequestsPage() {
   const [assignedStaffId, setAssignedStaffId] = useState("");
   const [formBusy, setFormBusy] = useState(false);
 
+  const fetchStaffList = async ({ force = false } = {}) => {
+    const staff = await fetchOwnerEmployees(owner.loginId, { force });
+    setStaffList(staff);
+    return staff;
+  };
+
   const fetchTasksAndStaff = async () => {
     const MAINT_KEY = `maintenance:${owner.loginId}`;
-    const EMP_KEY = `employees:${owner.loginId}`;
     const cachedTasks = cacheGet(MAINT_KEY);
-    const cachedEmp = cacheGet(EMP_KEY);
-    if (cachedTasks && cachedEmp) {
+    if (cachedTasks) {
       setTasks(cachedTasks);
-      setStaffList(cachedEmp);
       setLoading(false);
+      fetchStaffList();
       return;
     }
     try {
       setLoading(true);
-      const [tasksData, empData] = await Promise.all([
-        cachedTasks ? Promise.resolve({ tasks: cachedTasks }) : apiFetch(`/api/maintenance/owner/${owner.loginId}`),
-        cachedEmp ? Promise.resolve({ data: cachedEmp }) : apiFetch(`/api/employees?parentLoginId=${owner.loginId}`),
-      ]);
+      const tasksData = await apiFetch(`/api/maintenance/owner/${owner.loginId}`);
       const tasks = tasksData?.tasks || [];
-      const staff = empData?.data || [];
       setTasks(tasks);
-      setStaffList(staff);
-      if (!cachedTasks) cacheSet(MAINT_KEY, tasks, 2 * 60 * 1000);
-      if (!cachedEmp) cacheSet(EMP_KEY, staff, 3 * 60 * 1000);
+      cacheSet(MAINT_KEY, tasks, 2 * 60 * 1000);
+      await fetchStaffList({ force: true });
     } catch (err) {
       console.error("Error fetching data:", err);
     } finally {
@@ -142,9 +141,11 @@ export default function MaintenanceRequestsPage() {
   };
 
   const staffOptions = useMemo(
-    () => staffList
-      .filter(s => (s.role || "").toLowerCase() !== "warden")
-      .map(s => <option key={s._id} value={s._id}>{s.name} ({s.role})</option>),
+    () => staffList.map(s => (
+      <option key={s._id} value={s._id}>
+        {s.name || s.loginId} {s.role ? `(${s.role})` : ""}
+      </option>
+    )),
     [staffList]
   );
 
@@ -166,7 +167,7 @@ export default function MaintenanceRequestsPage() {
           <p className="mt-1.5 text-[13.5px] text-muted-foreground">Manage periodic property operations, water tank cleaning schedules, and elevator lift services.</p>
         </div>
         <button
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => { fetchStaffList({ force: true }); setIsModalOpen(true); }}
           className="inline-flex items-center gap-1.5 h-10 px-4 rounded-lg bg-foreground text-background text-[13px] font-medium hover:opacity-90 md:mt-2"
         >
           <Plus className="size-4" /> Schedule Maintenance

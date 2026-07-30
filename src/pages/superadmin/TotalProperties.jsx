@@ -6,7 +6,7 @@ import {
   MapPin, Phone, Home, Layers, Users, MoreVertical,
   RefreshCw, Image as ImageIcon, Plus, Eye, Pencil, SlidersHorizontal, X, Trash2, Globe
 } from "lucide-react";
-import { getApiBase } from "../../utils/api";
+import { getApiBase, getAuthHeader } from "../../utils/api";
 import WebsitePropertyPreviewModal from "../../components/shared/WebsitePropertyPreviewModal";
 import { toast } from "react-hot-toast";
 import AddPropertyWizard from "./AddPropertyWizard";
@@ -103,7 +103,7 @@ export default function TotalProperties() {
     setViewModalOpen(true);
     setDetailsLoading(true);
     try {
-      const res = await fetch(`${apiUrl}/api/properties/${p.id}`);
+      const res = await fetch(`${apiUrl}/api/properties/${p.id}`, { headers: getAuthHeader() });
       const data = await res.json();
       if (data.success) setFullDetails(data.property);
     } catch (e) { console.error(e); }
@@ -113,7 +113,7 @@ export default function TotalProperties() {
   const fetchProps = async () => {
     setLoading(true);
     try {
-      const res  = await fetch(`${apiUrl}/api/properties?limit=5000&t=${Date.now()}`);
+      const res  = await fetch(`${apiUrl}/api/properties?limit=5000&t=${Date.now()}`, { headers: getAuthHeader() });
       const data = await res.json();
       if (data.success && data.properties) {
         setAllProperties(data.properties.map(p => ({
@@ -188,7 +188,7 @@ export default function TotalProperties() {
       onConfirm: async () => {
         const toastId = toast.loading("Deleting property...");
         try {
-          const res = await fetch(`${apiUrl}/api/properties/${id}`, { method: "DELETE" });
+          const res = await fetch(`${apiUrl}/api/properties/${id}`, { method: "DELETE", headers: getAuthHeader() });
           const data = await res.json();
           if (data.success || res.ok) {
             toast.success("Property deleted successfully", { id: toastId });
@@ -219,7 +219,7 @@ export default function TotalProperties() {
           for (const id of selectedIds) {
             const res = await fetch(`${apiUrl}/api/properties/${id}/publish`, {
               method: "POST",
-              headers: { "Content-Type": "application/json" }
+              headers: { "Content-Type": "application/json", ...getAuthHeader() }
             });
             const data = await res.json();
             if (data.success || res.ok) {
@@ -252,7 +252,7 @@ export default function TotalProperties() {
         try {
           let successCount = 0;
           for (const id of selectedIds) {
-            const res = await fetch(`${apiUrl}/api/properties/${id}`, { method: "DELETE" });
+            const res = await fetch(`${apiUrl}/api/properties/${id}`, { method: "DELETE", headers: getAuthHeader() });
             const data = await res.json();
             if (data.success || res.ok) {
               successCount++;
@@ -557,7 +557,7 @@ export default function TotalProperties() {
                           onClick={async () => {
                             setPreviewLoading(true);
                             try {
-                              const res = await fetch(`${apiUrl}/api/properties/${p.id}`);
+                              const res = await fetch(`${apiUrl}/api/properties/${p.id}`, { headers: getAuthHeader() });
                               const data = await res.json();
                               if (data.success && data.property) setPreviewProperty(data.property);
                               else toast.error("Failed to load preview");

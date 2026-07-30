@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession } from "../../utils/propertyowner";
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerEmployees } from "../../utils/propertyowner";
 import { fetchJson } from "../../utils/api";
 import { cacheGet, cacheSet, cacheInvalidate } from "../../utils/cache";
 import toast from "react-hot-toast";
@@ -27,11 +27,12 @@ export default function MaintenanceCalendarPage() {
   const today = new Date();
   const [viewDate, setViewDate] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
   const [tasks, setTasks] = useState([]);
+  const [staffList, setStaffList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState(null);
 
   const [modalOpen, setModalOpen] = useState(false);
-  const [form, setForm] = useState({ title: "", scheduledDate: "", frequency: "One-time", staff: "" });
+  const [form, setForm] = useState({ title: "", scheduledDate: "", frequency: "One-time", assignedStaffId: "" });
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(null);
 
@@ -64,7 +65,13 @@ export default function MaintenanceCalendarPage() {
     }
   };
 
-  useEffect(() => { fetchTasks(); }, [owner.loginId]);
+  const fetchStaffList = async ({ force = false } = {}) => {
+    const staff = await fetchOwnerEmployees(owner.loginId, { force });
+    setStaffList(staff);
+    return staff;
+  };
+
+  useEffect(() => { fetchTasks(); fetchStaffList(); }, [owner.loginId]);
 
   // Calendar helpers
   const year = viewDate.getFullYear();
@@ -110,7 +117,8 @@ export default function MaintenanceCalendarPage() {
     const prefill = selectedDay
       ? `${year}-${String(month + 1).padStart(2, "0")}-${String(selectedDay).padStart(2, "0")}`
       : "";
-    setForm({ title: "", scheduledDate: prefill, frequency: "One-time", staff: "" });
+    fetchStaffList({ force: true });
+    setForm({ title: "", scheduledDate: prefill, frequency: "One-time", assignedStaffId: "" });
     setModalOpen(true);
   };
 
@@ -120,6 +128,7 @@ export default function MaintenanceCalendarPage() {
     if (!form.scheduledDate) { toast.error("Date is required."); return; }
     setSaving(true);
     try {
+      const selectedStaff = staffList.find(s => s._id === form.assignedStaffId);
       await fetchJson("/api/maintenance", {
         method: "POST",
         body: JSON.stringify({
@@ -127,7 +136,9 @@ export default function MaintenanceCalendarPage() {
           title: form.title.trim(),
           scheduledDate: form.scheduledDate,
           frequency: form.frequency,
-          staff: form.staff.trim() || "TBD",
+          assignedStaffId: selectedStaff ? selectedStaff._id : null,
+          assignedStaffName: selectedStaff ? selectedStaff.name : null,
+          staff: selectedStaff ? selectedStaff.name : "Unassigned",
           createdByRole: isStaffProxy ? staffRole : "owner",
           createdById: isStaffProxy ? owner.staffLoginId : owner.loginId
         }),
@@ -334,12 +345,18 @@ export default function MaintenanceCalendarPage() {
               </div>
               <div>
                 <label className="block text-[12px] font-semibold text-slate-500 mb-1.5">Assigned Staff <span className="text-slate-400 font-normal">(optional)</span></label>
-                <input
-                  value={form.staff}
-                  onChange={e => setForm(p => ({ ...p, staff: e.target.value }))}
-                  placeholder="e.g. Ramesh Kumar"
-                  className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-blue-200"
-                />
+                <select
+                  value={form.assignedStaffId}
+                  onChange={e => setForm(p => ({ ...p, assignedStaffId: e.target.value }))}
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white"
+                >
+                  <option value="">-- Select Staff Member --</option>
+                  {staffList.map(s => (
+                    <option key={s._id} value={s._id}>
+                      {s.name || s.loginId}{s.role ? ` (${s.role})` : ""}
+                    </option>
+                  ))}
+                </select>
               </div>
               <button
                 type="submit"

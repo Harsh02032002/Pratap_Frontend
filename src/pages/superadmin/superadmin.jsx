@@ -299,6 +299,8 @@ export default function SuperadminDashboard() {
   };
   const user = resolveUser();
   const userName = user?.name || "Admin";
+  const userRole = String(user?.role || "").toLowerCase();
+  const isSuperadmin = userRole === "superadmin" || userRole === "admin";
 
   // ── JSX ─────────────────────────────────────────────────────────────────
   return (
@@ -357,7 +359,9 @@ export default function SuperadminDashboard() {
         <MiniStatCard label="Total Users"      value={fmt(totalUsers)}    sub="+10.5% from last week" icon={Users}      color="blue"   loading={loading} />
         <MiniStatCard label="Total Properties" value={fmt(totalProps)}    sub="+8.0% from last week"  icon={Building2}  color="green"  loading={loading} />
         <MiniStatCard label="Total Bookings"   value={fmt(totalBookings)} sub="+15.5% from last week" icon={ShoppingBag} color="purple" loading={loading} />
-        <MiniStatCard label="Admin Revenue"    value={fmtRevenue(totalRevenue)} sub="Commission Earned" icon={Wallet} color="amber" loading={loading} />
+        {isSuperadmin && (
+          <MiniStatCard label="Admin Revenue"    value={fmtRevenue(totalRevenue)} sub="Commission Earned" icon={Wallet} color="amber" loading={loading} />
+        )}
       </div>
 
       {/* ── Row 2: Overview Chart + Recent Bookings ── */}
@@ -549,77 +553,79 @@ export default function SuperadminDashboard() {
           }
         </ChartCard>
 
-        {/* Revenue Overview – Accounting Summary */}
-        <ChartCard
-          title="Revenue Overview"
-          className="lg:col-span-1"
-          rightSlot={
-            <button
-              onClick={() => navigate("/superadmin/home/revenue-overview")}
-              className="text-[10px] font-bold text-blue-600 hover:underline uppercase tracking-wide"
-            >
-              View All
-            </button>
-          }
-        >
-          {loading
-            ? <div className="h-52 bg-slate-50 rounded-xl animate-pulse" />
-            : (
-              <>
-                {/* 4 mini accounting stats */}
-                <div className="space-y-2.5 mb-4">
-                  {[
-                    { label: "Collections",  value: acctData?.summary?.totalCollection || 0, color: "text-blue-600",   bg: "bg-blue-50",   dot: "#3B82F6", sub: "Total" },
-                    { label: "Payouts",      value: acctData?.summary?.totalPayout     || 0, color: "text-rose-500",   bg: "bg-rose-50",   dot: "#EF4444", sub: "Settled" },
-                    { label: "Commission",   value: acctData?.summary?.revenue          || 0, color: "text-emerald-600",bg: "bg-emerald-50", dot: "#10B981", sub: "Admin Earnings" },
-                    { label: "Due Rent",     value: acctData?.summary?.dueRent          || 0, color: "text-amber-600", bg: "bg-amber-50",   dot: "#F59E0B", sub: "Pending" },
-                  ].map((s, i) => (
-                    <div key={i} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: s.dot }} />
-                        <div>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none">{s.label}</p>
-                          <p className="text-[9px] text-slate-300">{s.sub}</p>
+        {/* Revenue Overview – Accounting Summary (Superadmin only) */}
+        {isSuperadmin && (
+          <ChartCard
+            title="Revenue Overview"
+            className="lg:col-span-1"
+            rightSlot={
+              <button
+                onClick={() => navigate("/superadmin/home/revenue-overview")}
+                className="text-[10px] font-bold text-blue-600 hover:underline uppercase tracking-wide"
+              >
+                View All
+              </button>
+            }
+          >
+            {loading
+              ? <div className="h-52 bg-slate-50 rounded-xl animate-pulse" />
+              : (
+                <>
+                  {/* 4 mini accounting stats */}
+                  <div className="space-y-2.5 mb-4">
+                    {[
+                      { label: "Collections",  value: acctData?.summary?.totalCollection || 0, color: "text-blue-600",   bg: "bg-blue-50",   dot: "#3B82F6", sub: "Total" },
+                      { label: "Payouts",      value: acctData?.summary?.totalPayout     || 0, color: "text-rose-500",   bg: "bg-rose-50",   dot: "#EF4444", sub: "Settled" },
+                      { label: "Commission",   value: acctData?.summary?.revenue          || 0, color: "text-emerald-600",bg: "bg-emerald-50", dot: "#10B981", sub: "Admin Earnings" },
+                      { label: "Due Rent",     value: acctData?.summary?.dueRent          || 0, color: "text-amber-600", bg: "bg-amber-50",   dot: "#F59E0B", sub: "Pending" },
+                    ].map((s, i) => (
+                      <div key={i} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: s.dot }} />
+                          <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none">{s.label}</p>
+                            <p className="text-[9px] text-slate-300">{s.sub}</p>
+                          </div>
                         </div>
+                        <span className={`text-sm font-black ${s.color}`}>{fmtRevenue(s.value)}</span>
                       </div>
-                      <span className={`text-sm font-black ${s.color}`}>{fmtRevenue(s.value)}</span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Trend sparkline: collection vs payout */}
-                <div className="border-t border-slate-50 pt-3">
-                  <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest mb-2">Collection vs Payout Trend</p>
-                  {revenueBarData.length > 0 && revenueBarData.some(d => d.revenue > 0 || d.payout > 0)
-                    ? (
-                      <ResponsiveContainer width="100%" height={80}>
-                        <LineChart data={revenueBarData} margin={{ top: 2, right: 4, left: -30, bottom: 0 }}>
-                          <XAxis dataKey="name" hide />
-                          <YAxis hide />
-                          <Tooltip
-                            formatter={(v, n) => [fmtRevenue(v), n === "revenue" ? "Collection" : "Payout"]}
-                            contentStyle={{ borderRadius: 8, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", fontSize: 10 }}
-                          />
-                          <Line type="monotone" dataKey="revenue" stroke="#3B82F6" strokeWidth={2} dot={false} />
-                          <Line type="monotone" dataKey="payout"  stroke="#EF4444" strokeWidth={2} dot={false} />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    )
-                    : (
-                      <div className="h-16 flex items-center justify-center">
-                        <p className="text-[10px] text-slate-300 font-semibold">No trend data yet</p>
-                      </div>
-                    )
-                  }
-                  <div className="flex gap-4 mt-1">
-                    <div className="flex items-center gap-1"><span className="w-2 h-0.5 bg-blue-500 inline-block rounded" /><span className="text-[9px] text-slate-400 font-semibold">Collection</span></div>
-                    <div className="flex items-center gap-1"><span className="w-2 h-0.5 bg-rose-400 inline-block rounded" /><span className="text-[9px] text-slate-400 font-semibold">Payout</span></div>
+                    ))}
                   </div>
-                </div>
-              </>
-            )
-          }
-        </ChartCard>
+
+                  {/* Trend sparkline: collection vs payout */}
+                  <div className="border-t border-slate-50 pt-3">
+                    <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest mb-2">Collection vs Payout Trend</p>
+                    {revenueBarData.length > 0 && revenueBarData.some(d => d.revenue > 0 || d.payout > 0)
+                      ? (
+                        <ResponsiveContainer width="100%" height={80}>
+                          <LineChart data={revenueBarData} margin={{ top: 2, right: 4, left: -30, bottom: 0 }}>
+                            <XAxis dataKey="name" hide />
+                            <YAxis hide />
+                            <Tooltip
+                              formatter={(v, n) => [fmtRevenue(v), n === "revenue" ? "Collection" : "Payout"]}
+                              contentStyle={{ borderRadius: 8, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", fontSize: 10 }}
+                            />
+                            <Line type="monotone" dataKey="revenue" stroke="#3B82F6" strokeWidth={2} dot={false} />
+                            <Line type="monotone" dataKey="payout"  stroke="#EF4444" strokeWidth={2} dot={false} />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      )
+                      : (
+                        <div className="h-16 flex items-center justify-center">
+                          <p className="text-[10px] text-slate-300 font-semibold">No trend data yet</p>
+                        </div>
+                      )
+                    }
+                    <div className="flex gap-4 mt-1">
+                      <div className="flex items-center gap-1"><span className="w-2 h-0.5 bg-blue-500 inline-block rounded" /><span className="text-[9px] text-slate-400 font-semibold">Collection</span></div>
+                      <div className="flex items-center gap-1"><span className="w-2 h-0.5 bg-rose-400 inline-block rounded" /><span className="text-[9px] text-slate-400 font-semibold">Payout</span></div>
+                    </div>
+                  </div>
+                </>
+              )
+            }
+          </ChartCard>
+        )}
       </div>
 
 

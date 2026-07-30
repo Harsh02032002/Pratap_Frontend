@@ -10,6 +10,8 @@ import {
   Box, Globe2, IndianRupee, Inbox
 } from "lucide-react";
 
+import { getAuthHeader } from "../../utils/api";
+
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
 const getApiUrl = () =>
@@ -26,7 +28,7 @@ export default function PendingProperties() {
   const fetchPendingProperties = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${getApiUrl()}/api/properties?t=${Date.now()}`);
+      const res = await fetch(`${getApiUrl()}/api/properties?t=${Date.now()}`, { headers: getAuthHeader() });
       const data = await res.json();
       if (data.success && data.properties) {
         // Filter for properties that are NOT published OR NOT active
@@ -59,7 +61,7 @@ export default function PendingProperties() {
     try {
       const res = await fetch(`${getApiUrl()}/api/properties/${id}/publish`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" }
+        headers: { "Content-Type": "application/json", ...getAuthHeader() }
       });
       const data = await res.json();
       if (data.success || res.ok) {

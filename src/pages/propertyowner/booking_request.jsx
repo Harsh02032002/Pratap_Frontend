@@ -9,7 +9,7 @@ const BOOKING_TTL = 2 * 60 * 1000; // 2 minutes
 import { 
   Inbox, Search, MessageSquare, Phone, Calendar, 
   CheckCircle2, XCircle, Clock, CreditCard, ArrowRight, Loader2,
-  Eye, X, User, Mail, MapPin, Check
+  Eye, X, User, Mail, MapPin, Check, AlertTriangle
 } from "lucide-react";
 
 export default function BookingRequestPage() {
@@ -116,7 +116,7 @@ export default function BookingRequestPage() {
       title="Booking Requests" 
       onLogout={() => { clearOwnerRuntimeSession(); window.location.href = "/propertyowner/ownerlogin"; }}
     >
-      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-8">
+      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
         <div>
           <h1 className="font-serif text-[38px] md:text-[44px] leading-[1.05] text-foreground">Booking Requests</h1>
           <p className="mt-1.5 text-[13.5px] text-muted-foreground">Approve incoming reservation requests, verify online token receipts, and allocate rooms.</p>
@@ -130,6 +130,8 @@ export default function BookingRequestPage() {
           Refresh
         </button>
       </div>
+
+
       {/* Toolbar & Search */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1">

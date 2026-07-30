@@ -4,7 +4,7 @@ import { getOwnerRuntimeSession, clearOwnerRuntimeSession } from "../../utils/pr
 import { apiFetch } from "../../utils/api";
 import { 
   Inbox, Search, MessageSquare, Phone, Calendar, 
-  CheckCircle2, XCircle, Clock, AlertCircle, ArrowRight, Loader2, X, User, MapPin, Building2, Wallet, Check
+  CheckCircle2, XCircle, Clock, AlertCircle, ArrowRight, Loader2, X, User, MapPin, Building2, Wallet, Check, AlertTriangle
 } from "lucide-react";
 
 export default function NewEnquiriesPage() {
@@ -95,12 +95,14 @@ export default function NewEnquiriesPage() {
       title="New Enquiries" 
       onLogout={() => { clearOwnerRuntimeSession(); window.location.href = "/propertyowner/ownerlogin"; }}
     >
-      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-8">
+      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
         <div>
           <h1 className="font-serif text-[38px] md:text-[44px] leading-[1.05] text-foreground">New Enquiries</h1>
           <p className="mt-1.5 text-[13.5px] text-muted-foreground">Review inbound tenant prospects, budget limits, and immediately trigger replies.</p>
         </div>
       </div>
+
+
 
       {/* Toolbar */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
