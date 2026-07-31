@@ -94,8 +94,10 @@ export default function Visit() {
   const [search, setSearch] = useState("");
   const [selectedVisit, setSelectedVisit] = useState(null);
 
-  // Modal State for Add Property Owner
+  // Modal States
   const [isAddOwnerModalOpen, setIsAddOwnerModalOpen] = useState(false);
+  const [isAddPropertyModalOpen, setIsAddPropertyModalOpen] = useState(false);
+
 
   const handleDeleteVisit = async (visitId, e) => {
     if (e) e.stopPropagation();
@@ -466,7 +468,7 @@ export default function Visit() {
                    <UserPlus className="w-4 h-4" /> Add Property Owner
                 </button>
                 <button 
-                  onClick={() => { resetForm(); generateCreds(); setIsAddOwnerModalOpen(true); }} 
+                  onClick={() => { resetForm(); setIsAddPropertyModalOpen(true); }} 
                   className="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-slate-900/20 transition-all flex items-center gap-2 active:scale-95"
                 >
                    <Plus className="w-4 h-4" /> Add Property
@@ -476,19 +478,94 @@ export default function Visit() {
          </div>
       </div>
 
-      {/* ─── ADD PROPERTY WIZARD MODAL (SAME TO SAME AS SUPERADMIN) ────── */}
+      {/* ─── ADD PROPERTY OWNER MODAL (SAME TO SAME AS SUPERADMIN OWNER.JSX) ─── */}
       {isAddOwnerModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-[2rem] border border-slate-100 shadow-2xl w-full max-w-3xl overflow-hidden animate-in fade-in zoom-in-95 duration-300 my-8">
+            {/* Modal Header */}
+            <div className="p-6 bg-gradient-to-br from-slate-900 to-slate-800 text-white flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center border border-white/10 shadow-inner">
+                  <UserPlus className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold tracking-tight">Add Property Owner</h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Register owner credentials &amp; banking details</p>
+                </div>
+              </div>
+              <button onClick={() => setIsAddOwnerModalOpen(false)} className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleDirectAddOwner} className="p-8 space-y-6 max-h-[80vh] overflow-y-auto custom-scrollbar">
+              {/* Section 1: Basic Information */}
+              <div>
+                <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4">Basic Information</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField label="Owner Name" value={formName} onChange={e => setFormName(e.target.value)} placeholder="e.g. Rahul Sharma" required />
+                  <FormField label="Email Address" value={formEmail} onChange={e => setFormEmail(e.target.value)} type="email" placeholder="rahul@example.com" required />
+                  <FormField label="Phone Number" value={formPhone} onChange={e => setFormPhone(e.target.value)} placeholder="+91 XXXX XXXXXX" prefix="+91" required />
+                  <FormField label="Operating Area / City" value={formCity} onChange={e => setFormCity(e.target.value)} placeholder="e.g. Koramangala, Bangalore" required />
+                </div>
+              </div>
+
+              {/* Section 2: Banking Details */}
+              <div>
+                <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4">Banking &amp; Settlement Details (Optional)</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField label="Bank Name" value={formBankName} onChange={e => setFormBankName(e.target.value)} placeholder="HDFC Bank" />
+                  <FormField label="Branch Name" value={formBranchName} onChange={e => setFormBranchName(e.target.value)} placeholder="Koramangala Branch" />
+                  <FormField label="Account Number" value={formBankAccountNumber} onChange={e => setFormBankAccountNumber(e.target.value)} placeholder="50100012345678" />
+                  <FormField label="IFSC Code" value={formIfscCode} onChange={e => setFormIfscCode(e.target.value)} placeholder="HDFC0001234" />
+                  <FormField label="Account Holder Name" value={formAccountHolderName} onChange={e => setFormAccountHolderName(e.target.value)} placeholder="Rahul Sharma" />
+                  <FormField label="UPI ID" value={formUpiId} onChange={e => setFormUpiId(e.target.value)} placeholder="rahul@upi" />
+                </div>
+              </div>
+
+              {/* Section 3: Generated Credentials */}
+              <div className="bg-slate-900 rounded-2xl p-6 text-white flex flex-col md:flex-row items-center justify-between gap-4">
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Generated Credentials</p>
+                  <div className="flex items-center gap-4">
+                    <code className="text-lg font-black text-white tracking-widest">{formLoginId}</code>
+                    <span className="w-1 h-1 rounded-full bg-white/20" />
+                    <code className="text-base font-bold text-blue-400">{formPassword}</code>
+                  </div>
+                </div>
+                <button type="button" onClick={generateCreds} className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-[9px] font-bold uppercase tracking-widest border border-white/10 transition-colors">
+                  Re-generate
+                </button>
+              </div>
+
+              {/* Form Actions */}
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                <button type="button" onClick={() => setIsAddOwnerModalOpen(false)} className="px-6 py-3 rounded-xl text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-wider">
+                  Cancel
+                </button>
+                <button type="submit" disabled={saving} className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold uppercase tracking-wider shadow-lg shadow-indigo-200 transition-all flex items-center gap-2 disabled:opacity-50">
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+                  Save Owner
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─── ADD PROPERTY WIZARD MODAL (SAME TO SAME AS SUPERADMIN ADD PROPERTY) ─── */}
+      {isAddPropertyModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
           <div className="bg-white rounded-[2rem] border border-slate-100 shadow-2xl w-full max-w-6xl overflow-hidden animate-in fade-in zoom-in-95 duration-300 my-4 relative">
             <button 
-              onClick={() => { setIsAddOwnerModalOpen(false); loadVisits(); }}
+              onClick={() => { setIsAddPropertyModalOpen(false); loadVisits(); }}
               className="absolute top-5 right-5 z-50 p-2.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors shadow-sm"
               title="Close Modal"
             >
               <X className="w-5 h-5" />
             </button>
             <div className="max-h-[88vh] overflow-y-auto custom-scrollbar p-2">
-              <AddPropertyWizard isModal={true} onClose={() => { setIsAddOwnerModalOpen(false); loadVisits(); }} />
+              <AddPropertyWizard isModal={true} onClose={() => { setIsAddPropertyModalOpen(false); loadVisits(); }} />
             </div>
           </div>
         </div>
