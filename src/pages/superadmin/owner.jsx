@@ -31,6 +31,9 @@ export default function Owner() {
   const [isEditingOwner, setIsEditingOwner] = useState(false);
   const [editOwnerForm, setEditOwnerForm] = useState({});
   const [savingEdit, setSavingEdit] = useState(false);
+  
+  // Add Owner Modal State
+  const [isAddOwnerModalOpen, setIsAddOwnerModalOpen] = useState(false);
 
   // Add Form State
   const [formName, setFormName] = useState("");
@@ -100,9 +103,11 @@ export default function Owner() {
 
   useEffect(() => { loadOwners(); }, []);
 
+  useEffect(() => { loadOwners(); }, []);
+
   useEffect(() => {
-    if (currentView === "add") generateCreds();
-  }, [currentView]);
+    if (isAddOwnerModalOpen) generateCreds();
+  }, [isAddOwnerModalOpen]);
 
   const generateCreds = () => {
     const genId = `ROOMHY${Math.floor(1000 + Math.random() * 9000)}`;
@@ -135,8 +140,8 @@ export default function Owner() {
           checkinUpiId: formUpiId
         })
       });
-      alert("Property Owner added successfully! Account credentials have been generated.");
-      setSearchParams({ view: "list" });
+      alert("Property Owner added successfully! Digital KYC ka link gaya hai.");
+      setIsAddOwnerModalOpen(false);
       loadOwners();
     } catch (err) { alert(err.message || "Failed to add property owner."); }
     finally { setSaving(false); }
@@ -307,14 +312,11 @@ export default function Owner() {
         actions={
           <div className="flex items-center gap-3">
              <button 
-               onClick={() => setSearchParams({ view: currentView === "add" ? "list" : "add" })}
-               className={cn(
-                 "px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-sm active:scale-95",
-                 currentView === "add" ? "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50" : "bg-blue-600 hover:bg-blue-700 text-white"
-               )}
+               onClick={() => setIsAddOwnerModalOpen(true)}
+               className="px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-sm active:scale-95 bg-blue-600 hover:bg-blue-700 text-white"
              >
-                {currentView === "add" ? <RefreshCw className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-                {currentView === "add" ? "Back to Owners List" : "Add Property Owner"}
+                <Plus className="w-4 h-4" />
+                Add Property Owner
              </button>
              {currentView !== "add" && (
                <button 
@@ -338,150 +340,8 @@ export default function Owner() {
         </div>
       )}
 
-      {currentView === "add" ? (
-        /* Standard Add Form Card */
-        <div className="max-w-4xl mx-auto bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden animate-in fade-in zoom-in-95 duration-300">
-           <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold shadow-md shadow-blue-500/20 shrink-0">
-                 <UserPlus size={22} />
-              </div>
-              <div>
-                 <h3 className="text-lg font-bold text-slate-900">Property Owner Information</h3>
-                 <p className="text-xs text-slate-500">Fill in owner details and banking info to create account.</p>
-              </div>
-           </div>
-
-           <form onSubmit={handleAddOwner} className="p-6 sm:p-8 space-y-6">
-              {/* Basic Identity Section */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                 <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700">Owner Name *</label>
-                    <input 
-                      required
-                      value={formName} 
-                      onChange={e => setFormName(e.target.value)} 
-                      placeholder="e.g. Rahul Sharma" 
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" 
-                    />
-                 </div>
-                 <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700">Email Address *</label>
-                    <input 
-                      required
-                      value={formEmail} 
-                      onChange={e => setFormEmail(e.target.value)} 
-                      type="email" 
-                      placeholder="rahul@example.com" 
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" 
-                    />
-                 </div>
-                 <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700">Phone Number *</label>
-                    <input 
-                      required
-                      value={formPhone} 
-                      onChange={e => setFormPhone(e.target.value)} 
-                      placeholder="9876543210" 
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" 
-                    />
-                 </div>
-                 <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700">Operating Area / City</label>
-                    <input 
-                      value={formArea} 
-                      onChange={e => setFormArea(e.target.value)} 
-                      placeholder="e.g. Koramangala, Bangalore" 
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" 
-                    />
-                 </div>
-              </div>
-
-              {/* Banking Details */}
-              <div className="pt-4 border-t border-slate-100 space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                    <Banknote size={18} />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-900">Banking & Settlement Details</h4>
-                    <p className="text-xs text-slate-400">Used for rent payouts — owner can also edit in their panel</p>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700">Bank Name</label>
-                    <input value={formBankName} onChange={e => setFormBankName(e.target.value)} placeholder="e.g. State Bank of India" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700">Branch Name</label>
-                    <input value={formBranchName} onChange={e => setFormBranchName(e.target.value)} placeholder="e.g. MG Road Branch" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700">Bank Account Number</label>
-                    <input value={formBankAccountNumber} onChange={e => setFormBankAccountNumber(e.target.value)} placeholder="e.g. 1234567890" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700">IFSC Code</label>
-                    <input value={formIfscCode} onChange={e => setFormIfscCode(e.target.value.toUpperCase())} placeholder="e.g. SBIN0001234" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700">Account Holder Name</label>
-                    <input value={formAccountHolderName} onChange={e => setFormAccountHolderName(e.target.value)} placeholder="e.g. Rahul Sharma" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700">UPI ID <span className="text-slate-400 font-normal">(Optional)</span></label>
-                    <input value={formUpiId} onChange={e => setFormUpiId(e.target.value)} placeholder="e.g. rahul@upi" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Generated Credentials Banner */}
-              <div className="bg-slate-900 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-white">
-                 <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white border border-white/10 shrink-0">
-                       <Lock size={20} />
-                    </div>
-                    <div>
-                       <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Generated Owner Credentials</p>
-                       <div className="flex items-center gap-3">
-                          <span className="text-xs font-semibold text-slate-400">ID:</span>
-                          <code className="text-sm font-mono font-bold text-white bg-slate-800 px-2.5 py-1 rounded-lg">{formLoginId}</code>
-                          <span className="text-xs font-semibold text-slate-400 ml-2">Password:</span>
-                          <code className="text-sm font-mono font-bold text-blue-400 bg-slate-800 px-2.5 py-1 rounded-lg">{formPassword}</code>
-                       </div>
-                    </div>
-                 </div>
-                 <button 
-                   type="button" 
-                   onClick={generateCreds} 
-                   className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 transition-colors flex items-center gap-2 shrink-0"
-                 >
-                    <RefreshCw size={14} /> Re-generate
-                 </button>
-              </div>
-
-              {/* Form Actions */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-                 <button 
-                   type="button" 
-                   onClick={() => setSearchParams({ view: "list" })} 
-                   className="px-5 py-2.5 bg-white hover:bg-slate-50 text-slate-700 font-bold rounded-xl text-xs border border-slate-200 transition-all"
-                 >
-                   Cancel
-                 </button>
-                 <button 
-                   type="submit"
-                   disabled={saving}
-                   className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-all shadow-sm flex items-center gap-2 disabled:opacity-50 active:scale-95"
-                 >
-                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                    {saving ? "Creating Account..." : "Add Property Owner"}
-                 </button>
-              </div>
-           </form>
-        </div>
-      ) : (
+      {/* Main Table View */}
+      {currentView !== "add" && (
         /* Standard List View Table Card */
         <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
            <div className="p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -824,7 +684,7 @@ export default function Owner() {
                         {selectedOwner.checkinOwnerPhoto && (
                            <a href={selectedOwner.checkinOwnerPhoto} target="_blank" rel="noreferrer" className="group relative rounded-xl border border-slate-200 p-2 text-center bg-slate-50 hover:bg-blue-50/50 hover:border-blue-300 transition-all">
                               <div className="aspect-square w-full rounded-lg overflow-hidden bg-slate-200 mb-1.5">
-                                 <img src={selectedOwner.checkinOwnerPhoto} alt="Owner Photo" className="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement && (e.currentTarget.parentElement.innerHTML = '<div class=\'flex items-center justify-center h-full text-slate-400 text-xs\'>No Preview</div>'); }} />
+                                 <img src={selectedOwner.checkinOwnerPhoto} alt="Owner Photo" className="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                               </div>
                               <span className="text-[11px] font-bold text-slate-700 group-hover:text-blue-600">Owner Photo ↗</span>
                            </a>
@@ -832,7 +692,7 @@ export default function Owner() {
                         {(selectedOwner.checkinAadhaarImage || selectedOwner.kyc?.documentImage || selectedOwner.documentImage) && (
                            <a href={selectedOwner.checkinAadhaarImage || selectedOwner.kyc?.documentImage || selectedOwner.documentImage} target="_blank" rel="noreferrer" className="group relative rounded-xl border border-slate-200 p-2 text-center bg-slate-50 hover:bg-blue-50/50 hover:border-blue-300 transition-all">
                               <div className="aspect-square w-full rounded-lg overflow-hidden bg-slate-200 mb-1.5 flex items-center justify-center">
-                                 <img src={selectedOwner.checkinAadhaarImage || selectedOwner.kyc?.documentImage || selectedOwner.documentImage} alt="Aadhaar Card" className="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement && (e.currentTarget.parentElement.innerHTML = '<div class=\'flex items-center justify-center h-full text-slate-400 text-xs\'>No Preview</div>'); }} />
+                                 <img src={selectedOwner.checkinAadhaarImage || selectedOwner.kyc?.documentImage || selectedOwner.documentImage} alt="Aadhaar Card" className="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                               </div>
                               <span className="text-[11px] font-bold text-slate-700 group-hover:text-blue-600">Aadhaar Card ↗</span>
                            </a>
@@ -841,7 +701,7 @@ export default function Owner() {
                            <a href={typeof selectedOwner.checkinBankProof === 'string' ? selectedOwner.checkinBankProof : (typeof selectedOwner.checkinCancelledCheque === 'string' ? selectedOwner.checkinCancelledCheque : selectedOwner.checkinCancelledCheque?.dataUrl)} target="_blank" rel="noreferrer" className="group relative rounded-xl border border-slate-200 p-2 text-center bg-slate-50 hover:bg-blue-50/50 hover:border-blue-300 transition-all">
                               <div className="aspect-square w-full rounded-lg overflow-hidden bg-slate-200 mb-1.5 flex items-center justify-center text-slate-400">
                                  {String(selectedOwner.checkinBankProof || selectedOwner.checkinCancelledCheque?.dataUrl || '').startsWith("http") ? (
-                                    <img src={selectedOwner.checkinBankProof || selectedOwner.checkinCancelledCheque?.dataUrl} alt="Bank Proof" className="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement && (e.currentTarget.parentElement.innerHTML = '<div class=\'flex items-center justify-center h-full text-slate-400 text-xs\'>No Preview</div>'); }} />
+                                    <img src={selectedOwner.checkinBankProof || selectedOwner.checkinCancelledCheque?.dataUrl} alt="Bank Proof" className="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                                  ) : (
                                     <FileText size={28} />
                                  )}
@@ -852,7 +712,7 @@ export default function Owner() {
                         {selectedOwner.checkinCancelledCheque && typeof selectedOwner.checkinCancelledCheque === 'object' && selectedOwner.checkinCancelledCheque.dataUrl && !selectedOwner.checkinBankProof && (
                            <a href={selectedOwner.checkinCancelledCheque.dataUrl} target="_blank" rel="noreferrer" className="group relative rounded-xl border border-slate-200 p-2 text-center bg-slate-50 hover:bg-blue-50/50 hover:border-blue-300 transition-all">
                               <div className="aspect-square w-full rounded-lg overflow-hidden bg-slate-200 mb-1.5 flex items-center justify-center text-slate-400">
-                                 <img src={selectedOwner.checkinCancelledCheque.dataUrl} alt="Cancelled Cheque" className="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement && (e.currentTarget.parentElement.innerHTML = '<div class=\'flex items-center justify-center h-full text-slate-400 text-xs\'>No Preview</div>'); }} />
+                                 <img src={selectedOwner.checkinCancelledCheque.dataUrl} alt="Cancelled Cheque" className="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                               </div>
                               <span className="text-[11px] font-bold text-slate-700 group-hover:text-blue-600">Cancelled Cheque ↗</span>
                            </a>
@@ -870,6 +730,123 @@ export default function Owner() {
              owner={agreementModalOwner} 
              onClose={() => setAgreementModalOwner(null)} 
           />
+       )}
+
+       {/* Add Owner Modal */}
+       {isAddOwnerModalOpen && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-2xl shadow-2xl relative overflow-hidden flex flex-col animate-in zoom-in-95 duration-300">
+               <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                  <div className="flex items-center gap-4">
+                     <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold shadow-md shadow-blue-500/20 shrink-0">
+                        <UserPlus size={20} />
+                     </div>
+                     <div>
+                        <h3 className="text-lg font-bold text-slate-900">Add Property Owner</h3>
+                        <p className="text-xs text-slate-500">Create owner account and send digital KYC link.</p>
+                     </div>
+                  </div>
+                  <button onClick={() => setIsAddOwnerModalOpen(false)} className="p-2 rounded-xl bg-white text-slate-400 hover:text-slate-700 transition-all border border-slate-200 shadow-sm">
+                     <X size={20} />
+                  </button>
+               </div>
+
+               <div className="flex-1 overflow-y-auto custom-scrollbar">
+                 <form onSubmit={handleAddOwner} className="p-6 space-y-6">
+                    {/* Basic Identity Section */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                       <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-slate-700">Owner Name *</label>
+                          <input required value={formName} onChange={e => setFormName(e.target.value)} placeholder="e.g. Rahul Sharma" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+                       </div>
+                       <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-slate-700">Email Address *</label>
+                          <input required value={formEmail} onChange={e => setFormEmail(e.target.value)} type="email" placeholder="rahul@example.com" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+                       </div>
+                       <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-slate-700">Phone Number *</label>
+                          <input required value={formPhone} onChange={e => setFormPhone(e.target.value)} placeholder="9876543210" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+                       </div>
+                       <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-slate-700">Operating Area / City</label>
+                          <input value={formArea} onChange={e => setFormArea(e.target.value)} placeholder="e.g. Koramangala, Bangalore" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+                       </div>
+                    </div>
+
+                    {/* Banking Details */}
+                    <div className="pt-4 border-t border-slate-100 space-y-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                          <Banknote size={18} />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-bold text-slate-900">Banking & Settlement Details</h4>
+                          <p className="text-xs text-slate-400">Used for rent payouts — owner can also edit in their panel</p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-slate-700">Bank Name</label>
+                          <input value={formBankName} onChange={e => setFormBankName(e.target.value)} placeholder="e.g. State Bank of India" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-slate-700">Branch Name</label>
+                          <input value={formBranchName} onChange={e => setFormBranchName(e.target.value)} placeholder="e.g. MG Road Branch" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-slate-700">Bank Account Number</label>
+                          <input value={formBankAccountNumber} onChange={e => setFormBankAccountNumber(e.target.value)} placeholder="e.g. 1234567890" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-slate-700">IFSC Code</label>
+                          <input value={formIfscCode} onChange={e => setFormIfscCode(e.target.value.toUpperCase())} placeholder="e.g. SBIN0001234" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-slate-700">Account Holder Name</label>
+                          <input value={formAccountHolderName} onChange={e => setFormAccountHolderName(e.target.value)} placeholder="e.g. Rahul Sharma" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-slate-700">UPI ID <span className="text-slate-400 font-normal">(Optional)</span></label>
+                          <input value={formUpiId} onChange={e => setFormUpiId(e.target.value)} placeholder="e.g. rahul@upi" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Generated Credentials Banner */}
+                    <div className="bg-slate-900 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 text-white">
+                       <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white border border-white/10 shrink-0">
+                             <Lock size={20} />
+                          </div>
+                          <div>
+                             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Generated Owner Credentials</p>
+                             <div className="flex items-center gap-3">
+                                <span className="text-xs font-semibold text-slate-400">ID:</span>
+                                <code className="text-sm font-mono font-bold text-white bg-slate-800 px-2.5 py-1 rounded-lg">{formLoginId}</code>
+                                <span className="text-xs font-semibold text-slate-400 ml-2">Password:</span>
+                                <code className="text-sm font-mono font-bold text-blue-400 bg-slate-800 px-2.5 py-1 rounded-lg">{formPassword}</code>
+                             </div>
+                          </div>
+                       </div>
+                       <button type="button" onClick={generateCreds} className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 transition-colors flex items-center gap-2 shrink-0">
+                          <RefreshCw size={14} /> Re-generate
+                       </button>
+                    </div>
+
+                 </form>
+               </div>
+
+               <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+                  <button type="button" onClick={() => setIsAddOwnerModalOpen(false)} className="px-5 py-2.5 bg-white hover:bg-slate-100 text-slate-700 font-bold rounded-xl text-xs border border-slate-200 transition-all">
+                    Cancel
+                  </button>
+                  <button onClick={handleAddOwner} disabled={saving} className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-all shadow-sm flex items-center gap-2 disabled:opacity-50 active:scale-95">
+                     {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                     {saving ? "Creating Account..." : "Add Property Owner"}
+                  </button>
+               </div>
+            </div>
+          </div>
        )}
     </div>
   );

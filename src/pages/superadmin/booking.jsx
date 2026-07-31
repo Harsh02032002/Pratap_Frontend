@@ -31,7 +31,7 @@ export default function BookingOverview() {
 
   useSEO({
     title: "Booking & Leads Overview - Roomhy Super Admin",
-    description: "Track leads, bookings, conversion funnel, locations and lead sources with database-driven analytics.",
+    description: "Track leads, bookings, conversion funnel, and locations with database-driven analytics.",
     canonical: "https://roomhy.com/superadmin/booking"
   });
 
@@ -61,7 +61,6 @@ export default function BookingOverview() {
   const rawConvRate = totalLeads > 0 ? (totalBookings / totalLeads) * 100 : 0;
   const convRateStr = `${rawConvRate.toFixed(2)}%`;
 
-  const sourceData = distributions?.sources || [];
   const statusData = distributions?.status || [];
 
   return (
@@ -308,43 +307,8 @@ export default function BookingOverview() {
         </div>
       </div>
 
-      {/* FOOTER ROW: 5 Columns */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        {/* Lead Sources */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="text-[11px] font-bold text-slate-900">Lead Sources</h4>
-              <span className="text-[9px] text-slate-400 font-bold">All Time</span>
-            </div>
-            {sourceData.length === 0 ? (
-              <div className="h-24 flex items-center justify-center text-[10px] font-bold text-slate-400 bg-slate-50/50 rounded-xl">
-                No Data Available
-              </div>
-            ) : (
-              <div className="flex items-center gap-3">
-                <div style={{width:70,height:70}}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={sourceData} innerRadius={20} outerRadius={32} paddingAngle={3} dataKey="value" stroke="none">
-                        {sourceData.map((e,idx)=><Cell key={idx} fill={e.color}/>)}
-                      </Pie>
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="flex-1 space-y-1.5">
-                  {sourceData.map(s=>(
-                    <div key={s.name} className="flex justify-between text-[9px] font-bold">
-                      <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full" style={{backgroundColor:s.color}}/><span className="text-slate-400 truncate max-w-[40px]">{s.name}</span></div>
-                      <span className="text-slate-900">{s.pct}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-          <div className="text-[9px] font-bold text-blue-500/80 uppercase tracking-widest mt-3">Source: Leads</div>
-        </div>
+      {/* FOOTER ROW: 4 Columns */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 
         {/* Lead Status */}
         <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex flex-col justify-between">

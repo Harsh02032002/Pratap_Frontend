@@ -1,0 +1,15 @@
+[2026-07-22T10:20:38.144Z] SUCCESS: Email to test@example.com via SMTP
+[2026-07-22T10:20:49.412Z] WHATSAPP: Delivered to 1 recipients
+[2026-07-22T10:20:54.631Z] SUCCESS: Email to test@example.com via SMTP
+[2026-07-22T10:20:55.455Z] WHATSAPP: Delivered to 1 recipients
+[2026-07-22T10:30:53.970Z] SUCCESS: Email to test@example.com via SMTP
+[2026-07-22T10:31:00.137Z] WHATSAPP: Delivered to 1 recipients
+[2026-07-22T10:31:04.934Z] SUCCESS: Email to other@example.com via SMTP
+[2026-07-22T10:31:05.703Z] WHATSAPP: Delivered to 1 recipients
+[2026-07-22T10:31:10.213Z] SUCCESS: Email to test@example.com via SMTP
+[2026-07-22T10:31:11.095Z] WHATSAPP: Delivered to 1 recipients
+[2026-07-22T11:05:26.293Z] SUCCESS: Email to test@example.com via SMTP
+[2026-07-22T11:05:32.849Z] WHATSAPP: Delivered to 1 recipients
+[2026-07-22T11:05:39.808Z] SUCCESS: Email to other@example.com via SMTP
+[2026-07-22T11:05:41.038Z] WHATSAPP: Delivered to 1 recipients
+[2026-07-22T11:05:48.205Z] SUCCESS: Email to test@example.com via SMTP

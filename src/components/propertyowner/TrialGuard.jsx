@@ -1,8 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Lock, Clock, Crown, Phone, ChevronRight, AlertTriangle, X, RefreshCw } from 'lucide-react';
 
+import { getApiBase } from '../../utils/api';
+
+import { getOwnerRuntimeSession } from '../../utils/propertyowner';
+
 const CACHE_KEY = 'owner_trial_status';
-const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
 /**
  * TrialGuard — wraps all Owner Panel pages.
@@ -14,37 +17,17 @@ export default function TrialGuard({ owner, children }) {
   const [loading, setLoading] = useState(true);
   const [dismissed, setDismissed] = useState(false); // allow dismiss for 1 session to avoid aggressive blocking
 
-  const loginId = owner?.loginId;
+  const runtimeOwner = getOwnerRuntimeSession();
+  const loginId = owner?.loginId || runtimeOwner?.loginId;
 
   const fetchTrialStatus = useCallback(async () => {
     if (!loginId) { setLoading(false); return; }
 
-    // Check cache first
     try {
-      const cached = sessionStorage.getItem(`${CACHE_KEY}_${loginId}`);
-      if (cached) {
-        const { data, ts } = JSON.parse(cached);
-        if (Date.now() - ts < CACHE_TTL) {
-          setTrialData(data);
-          setLoading(false);
-          return;
-        }
-      }
-    } catch (_) {}
-
-    try {
-      const BASE = import.meta.env?.VITE_API_BASE || '';
-      const res = await fetch(`${BASE}/api/owners/subscription-status?loginId=${encodeURIComponent(loginId)}`);
+      const res = await fetch(`${getApiBase()}/api/owners/subscription-status?loginId=${encodeURIComponent(loginId)}`);
       const data = await res.json();
       if (data.success) {
         setTrialData(data);
-        // Cache it
-        try {
-          sessionStorage.setItem(
-            `${CACHE_KEY}_${loginId}`,
-            JSON.stringify({ data, ts: Date.now() })
-          );
-        } catch (_) {}
       }
     } catch (err) {
       console.warn('[TrialGuard] Could not fetch trial status:', err);

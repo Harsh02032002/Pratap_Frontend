@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import TrialGuard from "./TrialGuard";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { 
   LayoutDashboard, BedDouble, ClipboardList, CalendarCheck, MessageCircle, 
@@ -230,7 +231,9 @@ export default function PropertyOwnerMobileLayout({
           </div>
         )}
         <div className={cn("w-full px-2.5 py-2 mobile-page-container", contentClassName)}>
-          {children}
+          <TrialGuard owner={owner}>
+            {children}
+          </TrialGuard>
         </div>
       </main>
 

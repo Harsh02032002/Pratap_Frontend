@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { 
   Users, Shield, Clock, 
   ArrowUpRight, ArrowDownRight, Building2, Search,
@@ -13,7 +13,7 @@ import {
   Home, Hash, Banknote, Wallet, Briefcase, AlertTriangle,
   CheckCircle, Key, X
 } from "lucide-react";
-import { fetchJson, getAuthHeader } from "../../utils/api";
+import { fetchJson, getAuthHeader, API_URL } from "../../utils/api";
 import { PageHeader } from "../../components/superadmin/PageHeader";
 import * as XLSX from 'xlsx';
 
@@ -72,6 +72,11 @@ function normalizeTenant(tenant, record) {
       emergencyPhone: tenant?.emergencyContact?.phone || "",
       emergencyRelationship: tenant?.emergencyContact?.relationship || "",
       agreementDetails: tenant?.digitalCheckin?.agreementDetails || {},
+      // Agreement fields
+      agreementSigned: tenant?.agreementSigned || Boolean(tenant?.digitalCheckin?.agreement?.acceptedAt) || false,
+      agreementSignedAt: tenant?.agreementSignedAt || tenant?.digitalCheckin?.agreement?.acceptedAt || null,
+      agreementStatus: tenant?.agreementStatus || (tenant?.digitalCheckin?.agreement?.acceptedAt ? "signed" : "pending"),
+      agreementPdfUrl: tenant?.digitalCheckin?.agreement?.pdfUrl || null,
     },
     kyc: {
       status: String(kycStatus || "pending").toLowerCase(),
@@ -110,6 +115,8 @@ function StatCard({ label, value, sub, icon: Icon, color }) {
 
 export default function Tenant() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const currentView = searchParams.get("view") || "list";
   const [tenants, setTenants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -238,8 +245,8 @@ export default function Tenant() {
   return (
     <div className="space-y-6 pb-8">
       <PageHeader 
-        title="View All Tenants"
-        subtitle="Manage and view all tenant records and occupancy."
+        title={currentView === "agreements" ? "Tenant Agreements" : "View All Tenants"}
+        subtitle={currentView === "agreements" ? "View digital agreement status for all tenants." : "Manage and view all tenant records and occupancy."}
         actions={
           <div className="flex items-center gap-3">
             <button 
@@ -306,7 +313,7 @@ export default function Tenant() {
                      <th className="px-5 py-3.5">Tenant Name</th>
                      <th className="px-5 py-3.5">Property Name</th>
                      <th className="px-5 py-3.5 text-center">Contact Details</th>
-                     <th className="px-5 py-3.5 text-center">KYC Status</th>
+                     <th className="px-5 py-3.5 text-center">{currentView === "agreements" ? "Agreement Status" : "KYC Status"}</th>
                      <th className="px-5 py-3.5 text-right">Actions</th>
                   </tr>
                </thead>
@@ -363,17 +370,48 @@ export default function Tenant() {
                           </div>
                        </td>
                        <td className="px-5 py-4 text-center">
-                          <span className={cn(
-                             "text-[10px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider",
-                             t.kyc.status === "verified" ? "bg-emerald-50 text-emerald-600 border border-emerald-100" :
-                             t.kyc.status === "submitted" ? "bg-amber-50 text-amber-600 border border-amber-100" :
-                             "bg-slate-100 text-slate-500 border border-slate-200"
-                          )}>
-                             {t.kyc.status}
-                          </span>
+                          {currentView === "agreements" ? (() => {
+                            const signed = t.profile.agreementSigned || t.profile.agreementStatus === "signed";
+                            return (
+                              <div className="inline-flex flex-col items-center gap-1">
+                                <span className={cn(
+                                  "text-[10px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider",
+                                  signed ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-amber-50 text-amber-600 border border-amber-100"
+                                )}>
+                                  {signed ? "Signed" : "Pending"}
+                                </span>
+                                {t.profile.agreementSignedAt && (
+                                  <span className="text-[9px] text-slate-400">{formatDate(t.profile.agreementSignedAt)}</span>
+                                )}
+                              </div>
+                            );
+                          })() : (
+                            <span className={cn(
+                               "text-[10px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider",
+                               t.kyc.status === "verified" ? "bg-emerald-50 text-emerald-600 border border-emerald-100" :
+                               t.kyc.status === "submitted" ? "bg-amber-50 text-amber-600 border border-amber-100" :
+                               "bg-slate-100 text-slate-500 border border-slate-200"
+                            )}>
+                               {t.kyc.status}
+                            </span>
+                          )}
                        </td>
                         <td className="px-5 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                            <div className="flex items-center justify-end gap-1.5">
+                              {currentView === "agreements" && (
+                                <a
+                                  href={t.profile.agreementPdfUrl
+                                    ? (t.profile.agreementPdfUrl.startsWith("http") ? t.profile.agreementPdfUrl : `${API_URL}${t.profile.agreementPdfUrl}`)
+                                    : `${API_URL}/api/checkin/tenant/agreement/pdf/${encodeURIComponent(t.loginId || "")}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title="View Signed Agreement PDF"
+                                  className="px-2.5 py-1.5 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all border border-blue-200 shadow-sm active:scale-95 flex items-center gap-1 text-xs font-bold shrink-0"
+                                >
+                                  <FileText className="w-3.5 h-3.5" />
+                                  <span>View Agreement</span>
+                                </a>
+                              )}
                               <button 
                                  onClick={() => handleToggleDeactivate(t)} 
                                  title={t.status === "suspended" ? "Reactivate Account" : "Deactivate Account"} 
@@ -552,6 +590,41 @@ export default function Tenant() {
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Aadhaar Back</p>
                         <img src={selectedTenant.kyc.aadhaarBack} className="w-full h-28 object-cover rounded-xl border border-slate-200" alt="Aadhaar Back" />
                       </div>
+                    )}
+                  </div>
+                </SectionCard>
+
+                {/* 6. Digital Agreement */}
+                <SectionCard icon={FileText} title="6. Digital Agreement View" color="indigo">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 border border-slate-200 rounded-xl bg-slate-50">
+                    <div className="flex items-start sm:items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                        {selectedTenant.profile.agreementSigned ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5 text-amber-600" />}
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-800">
+                          {selectedTenant.profile.agreementSigned ? "Agreement Signed & Legally Binding" : "Agreement Pending E-Sign"}
+                        </h4>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          {selectedTenant.profile.agreementSignedAt
+                            ? `Accepted on ${formatDate(selectedTenant.profile.agreementSignedAt)}`
+                            : "Awaiting tenant signature"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {selectedTenant.profile.agreementSigned && (
+                      <a 
+                        href={selectedTenant.profile.agreementPdfUrl 
+                          ? (selectedTenant.profile.agreementPdfUrl.startsWith("http") ? selectedTenant.profile.agreementPdfUrl : `${API_URL}${selectedTenant.profile.agreementPdfUrl}`)
+                          : `${API_URL}/api/checkin/tenant/agreement/pdf/${encodeURIComponent(selectedTenant.loginId || "")}`}
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 shrink-0"
+                      >
+                        <FileText className="w-4 h-4" />
+                        View Signed Agreement
+                      </a>
                     )}
                   </div>
                 </SectionCard>
