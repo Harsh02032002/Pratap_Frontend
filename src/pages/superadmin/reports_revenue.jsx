@@ -42,6 +42,11 @@ export default function ReportsRevenue() {
   // Tab State
   const [activeTab, setActiveTab] = useState("payments");
 
+  // Period / Date filter State
+  const [period, setPeriod] = useState("7days");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
   // Transfer Modal State
   const [showPayoutModal, setShowPayoutModal] = useState(false);
   const [selectedPayout, setSelectedPayout] = useState(null);
@@ -56,8 +61,12 @@ export default function ReportsRevenue() {
   const loadData = async () => {
     try {
       setLoading(true);
+      let query = `/api/superadmin/revenue/stats?period=${period}`;
+      if (period === "custom" && startDate && endDate) {
+        query += `&startDate=${startDate}&endDate=${endDate}`;
+      }
       const [statsRes, txRes, settingsRes] = await Promise.all([
-        fetchJson("/api/superadmin/revenue/stats"),
+        fetchJson(query),
         fetchJson("/api/superadmin/revenue/transactions"),
         fetchJson("/api/superadmin/settings")
       ]);
@@ -84,7 +93,7 @@ export default function ReportsRevenue() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [period, startDate, endDate]);
 
   const handleSaveSettings = async () => {
     try {
@@ -164,7 +173,7 @@ export default function ReportsRevenue() {
     return `${prefix}${val.toLocaleString('en-IN')}`;
   };
 
-  const hasTrendData = trend.length > 0 && trend.some(t => t.revenue > 0);
+  const hasTrendData = Array.isArray(trend) && trend.length > 0;
 
   return (
     <div className="p-8 space-y-10 bg-[#F8FAFC] min-h-full font-inter text-slate-800">
@@ -195,11 +204,39 @@ export default function ReportsRevenue() {
       {/* Recharts Area Chart */}
       <div className="grid grid-cols-1 gap-8">
         <div className="bg-white rounded-[2.5rem] p-10 border border-slate-100 shadow-xl shadow-slate-200/50 flex flex-col">
-           <div className="flex items-center justify-between mb-10">
+           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
               <h3 className="text-2xl font-bold text-slate-800 tracking-tight">Revenue Chart</h3>
-              <div className="flex items-center gap-6">
+              <div className="flex flex-wrap items-center gap-4">
                  <LegendPill color="#3B82F6" label="Booking Revenue" />
-                 <span className="bg-slate-50 border-none rounded-2xl px-5 py-2.5 text-xs font-bold text-slate-500">Last 7 Active Days</span>
+                 <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2 text-xs font-bold text-slate-700 shadow-sm">
+                    <Calendar className="w-4 h-4 text-blue-600" />
+                    <select
+                       value={period}
+                       onChange={(e) => setPeriod(e.target.value)}
+                       className="bg-transparent border-none outline-none font-bold text-xs cursor-pointer text-slate-700 focus:ring-0 p-0"
+                    >
+                       <option value="7days">Last 7 Active Days (Week)</option>
+                       <option value="month">This Month</option>
+                       <option value="custom">Custom Date Range</option>
+                    </select>
+                 </div>
+                 {period === "custom" && (
+                    <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl px-3 py-1.5 shadow-sm">
+                       <input
+                          type="date"
+                          value={startDate}
+                          onChange={(e) => setStartDate(e.target.value)}
+                          className="bg-transparent text-xs font-bold text-slate-700 outline-none"
+                       />
+                       <span className="text-xs text-slate-400 font-bold">to</span>
+                       <input
+                          type="date"
+                          value={endDate}
+                          onChange={(e) => setEndDate(e.target.value)}
+                          className="bg-transparent text-xs font-bold text-slate-700 outline-none"
+                       />
+                    </div>
+                 )}
               </div>
            </div>
            <div className="flex-1 min-h-[350px]">
