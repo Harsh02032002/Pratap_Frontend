@@ -654,6 +654,9 @@ lucide.createIcons();
                 // Show success modal only if at least one bid was successful
                 if (successCount > 0) {
                     showSuccessModal(successCount);
+                } else {
+                    // Show error message if all bids failed
+                    alert('Failed to submit bids. Please try again.');
                 }
 
                 // Store user email and loginId for websitechat
@@ -680,11 +683,12 @@ lucide.createIcons();
         function closeModal() {
             document.getElementById('submissionModal').classList.add('hidden');
             document.getElementById('submissionModal').classList.remove('flex');
-            // Reset form
-            document.getElementById('fastBiddingForm').reset();
-            // Reload to clear selections
-            document.getElementById('propertiesList').innerHTML = '';
-            document.getElementById('noPropertiesMsg').style.display = 'block';
+            // Don't reset form - allow user to submit more bids
+            // Just clear the property selections
+            document.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+                cb.checked = false;
+                cb.closest('.property-item').classList.remove('selected');
+            });
         }
 
         // Show signup modal
