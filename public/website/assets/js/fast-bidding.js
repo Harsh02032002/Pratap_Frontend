@@ -489,6 +489,7 @@ lucide.createIcons();
         // Handle form submission
         document.getElementById('fastBiddingForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            console.log('🚫 Form submission prevented - default behavior stopped');
 
             if (typeof AuthUtils !== 'undefined' && AuthUtils.ensureValidSessionOrPrompt) {
                 const ok = await AuthUtils.ensureValidSessionOrPrompt('Please login/signup to send bids.');
@@ -653,9 +654,11 @@ lucide.createIcons();
 
                 // Show success modal only if at least one bid was successful
                 if (successCount > 0) {
+                    console.log('✅ Showing success modal for', successCount, 'successful bids');
                     showSuccessModal(successCount);
                 } else {
                     // Show error message if all bids failed
+                    console.log('❌ All bids failed, showing error alert');
                     alert('Failed to submit bids. Please try again.');
                 }
 
@@ -669,6 +672,7 @@ lucide.createIcons();
 
                 // Hide spinner after all requests complete
                 document.getElementById('propertiesLoadingSpinner').classList.remove('show');
+                console.log('🏁 All bid processing complete - form should remain open');
             })();
         });
 
@@ -689,6 +693,9 @@ lucide.createIcons();
                 cb.checked = false;
                 cb.closest('.property-item').classList.remove('selected');
             });
+            // Clear property list to force reload
+            document.getElementById('propertiesList').innerHTML = '';
+            document.getElementById('noPropertiesMsg').style.display = 'block';
         }
 
         // Show signup modal

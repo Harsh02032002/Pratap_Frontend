@@ -218,7 +218,7 @@ export default function FastBiddingModal({ isOpen, onClose, initialData = {} }) 
 
     // Show success immediately, send all bids in parallel in background
     showToast(`Sending bids to ${filteredProperties.length} matching properties!`, 'success');
-    onClose();
+    // Don't close modal - allow user to submit more bids
 
     const parsePriceRange = (rangeStr) => {
       if (!rangeStr) return { min: null, max: null, amount: 7000 };
