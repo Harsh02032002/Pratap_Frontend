@@ -10,11 +10,9 @@ import {
   Sparkles, Layers, Box, Globe2, IndianRupee,
   Plus, Loader2, Save, Smartphone, Monitor, Info,
   UserPlus, Send, Lock, ChevronDown, Wifi, ShieldCheck,
-  UtensilsCrossed, Cigarette, PawPrint, BedDouble, DoorOpen, Banknote
+  UtensilsCrossed, Cigarette, PawPrint, BedDouble, DoorOpen
 } from "lucide-react";
 import { fetchJson, getAuthHeader } from "../../utils/api";
-import AddPropertyWizard from "./AddPropertyWizard";
-
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
@@ -92,32 +90,6 @@ export default function Visit() {
   const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [selectedVisit, setSelectedVisit] = useState(null);
-
-  // Modal States
-  const [isAddOwnerModalOpen, setIsAddOwnerModalOpen] = useState(false);
-  const [isAddPropertyModalOpen, setIsAddPropertyModalOpen] = useState(false);
-
-
-  const handleDeleteVisit = async (visitId, e) => {
-    if (e) e.stopPropagation();
-    if (!window.confirm("Are you sure you want to delete this visit report?")) return;
-    try {
-      await fetchJson(`/api/visits/${visitId}`, { method: "DELETE" });
-      setVisits(prev => prev.filter(v => v._id !== visitId && v.visitId !== visitId));
-      if (selectedVisit && (selectedVisit._id === visitId || selectedVisit.visitId === visitId)) {
-        setSelectedVisit(null);
-      }
-    } catch (err) {
-      alert(err?.message || "Failed to delete visit report");
-    }
-  };
-
-  const handleOpenMap = (v, e) => {
-    if (e) e.stopPropagation();
-    const loc = `${v.propertyName || ''} ${v.address || ''} ${v.area || ''} ${v.city || ''}`;
-    window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc.trim())}`, "_blank");
-  };
 
   // ─── Form State ─────────────────────────────────────────────────────────────
   // Owner Identity
@@ -126,17 +98,8 @@ export default function Visit() {
   const [formPhone, setFormPhone] = useState("");
   const [formOwnerCity, setFormOwnerCity] = useState("");
 
-  // Banking Details
-  const [formBankName, setFormBankName] = useState("");
-  const [formBranchName, setFormBranchName] = useState("");
-  const [formBankAccountNumber, setFormBankAccountNumber] = useState("");
-  const [formIfscCode, setFormIfscCode] = useState("");
-  const [formAccountHolderName, setFormAccountHolderName] = useState("");
-  const [formUpiId, setFormUpiId] = useState("");
-
   // Property Details
   const [formPropertyName, setFormPropertyName] = useState("");
-  const [formPropertyCategory, setFormPropertyCategory] = useState("Boys PG");
   const [formPropertyType, setFormPropertyType] = useState("hostel");
   const [formGender, setFormGender] = useState("Co-ed");
   const [formRent, setFormRent] = useState("");
@@ -146,7 +109,6 @@ export default function Visit() {
   // Location
   const [formArea, setFormArea] = useState("");
   const [formCity, setFormCity] = useState("");
-  const [formState, setFormState] = useState("");
   const [formAddress, setFormAddress] = useState("");
   const [formPincode, setFormPincode] = useState("");
   const [formLandmark, setFormLandmark] = useState("");
@@ -187,7 +149,7 @@ export default function Visit() {
   // UI state
   const [saving, setSaving] = useState(false);
   const [openSections, setOpenSections] = useState({
-    owner: true, property: true, banking: false, location: true, occupancy: false,
+    owner: true, property: true, location: true, occupancy: false,
     features: false, roomTypes: false, policies: false, ratings: false, photos: false
   });
 
@@ -216,11 +178,11 @@ export default function Visit() {
   useEffect(() => { loadVisits(); }, []);
 
   useEffect(() => {
-    if (currentView === "addOwner" || isAddOwnerModalOpen) generateCreds();
-  }, [currentView, isAddOwnerModalOpen]);
+    if (currentView === "addOwner") generateCreds();
+  }, [currentView]);
 
   const generateCreds = () => {
-    const prefix = "ROOMHY";
+    const prefix = "OWN";
     const genId = `${prefix}${Math.floor(1000 + Math.random() * 9000)}`;
     const password = Math.random().toString(36).slice(-8).toUpperCase();
     setFormLoginId(genId);
@@ -229,7 +191,6 @@ export default function Visit() {
 
   const resetForm = () => {
     setFormName(""); setFormEmail(""); setFormPhone(""); setFormOwnerCity("");
-    setFormBankName(""); setFormBranchName(""); setFormBankAccountNumber(""); setFormIfscCode(""); setFormAccountHolderName(""); setFormUpiId("");
     setFormPropertyName(""); setFormPropertyType("hostel"); setFormGender("Co-ed");
     setFormRent(""); setFormDeposit(""); setFormDescription("");
     setFormArea(""); setFormCity(""); setFormAddress(""); setFormPincode(""); setFormLandmark("");
@@ -239,52 +200,10 @@ export default function Visit() {
     setFormVisitorsAllowed(true); setFormCookingAllowed(false); setFormSmokingAllowed(false); setFormPetsAllowed(false);
     setFormCleanlinessRating(0); setFormOwnerBehaviour(""); setFormStudentReviews(""); setFormInternalRemarks("");
     setFormPhotoUrl(""); setFormPhotos([]); setFormRoomTypes([]);
-    setOpenSections({ owner: true, property: true, banking: false, location: true, occupancy: false, features: false, roomTypes: false, policies: false, ratings: false, photos: false });
+    setOpenSections({ owner: true, property: true, location: true, occupancy: false, features: false, roomTypes: false, policies: false, ratings: false, photos: false });
   };
 
-  // ─── Direct Add Owner Handler ────────────────────────────────────────────────
-  const handleDirectAddOwner = async (e) => {
-    e.preventDefault();
-    if (!formName || !formPhone || !formEmail) {
-      return alert("Please fill required fields: Owner Name, Email, Phone");
-    }
-    setSaving(true);
-    try {
-      await fetchJson("/api/owners", {
-        method: "POST",
-        headers: { ...getAuthHeader(), "Content-Type": "application/json" },
-        body: JSON.stringify({
-          loginId: formLoginId,
-          name: formName,
-          email: formEmail,
-          phone: formPhone,
-          area: formArea || formCity,
-          city: formOwnerCity || formCity,
-          locationCode: (formArea || formCity || formLoginId).toUpperCase().slice(0, 5),
-          credentials: { password: formPassword, firstTime: true },
-          checkinPassword: formPassword,
-          checkinBankName: formBankName,
-          checkinBranchName: formBranchName,
-          checkinBankAccountNumber: formBankAccountNumber,
-          checkinIfscCode: formIfscCode,
-          checkinAccountHolderName: formAccountHolderName,
-          checkinUpiId: formUpiId,
-          isActive: true,
-          role: "owner"
-        })
-      });
-      alert(`✅ Property Owner registered successfully!\n\nLogin ID: ${formLoginId}\nPassword: ${formPassword}\n\nDigital KYC email link has been generated & sent to ${formEmail}`);
-      setIsAddOwnerModalOpen(false);
-      resetForm();
-      loadVisits();
-    } catch (err) {
-      alert(err?.message || "Failed to register owner");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // ─── Onboarding / Add Property Handler ──────────────────────────────────────
+  // ─── Onboarding Handler ─────────────────────────────────────────────────────
 
   const handleOnboard = async (e) => {
     e.preventDefault();
@@ -341,7 +260,7 @@ export default function Visit() {
         }),
       });
 
-      // Step 2: Create Owner with Banking Details
+      // Step 2: Create Owner (auto-sends KYC email via backend)
       await fetchJson("/api/owners", {
         method: "POST",
         headers: { ...getAuthHeader(), "Content-Type": "application/json" },
@@ -355,12 +274,6 @@ export default function Visit() {
           locationCode: (formArea || formCity || formLoginId).toUpperCase().slice(0, 5),
           credentials: { password: formPassword, firstTime: true },
           checkinPassword: formPassword,
-          checkinBankName: formBankName,
-          checkinBranchName: formBranchName,
-          checkinBankAccountNumber: formBankAccountNumber,
-          checkinIfscCode: formIfscCode,
-          checkinAccountHolderName: formAccountHolderName,
-          checkinUpiId: formUpiId,
           isActive: true,
           role: "owner",
         }),
@@ -380,12 +293,12 @@ export default function Visit() {
         console.warn("Visit auto-approve warning:", approveErr.message);
       }
 
-      alert(`✅ Property Owner & Property onboarded successfully!\n\nLogin ID: ${formLoginId}\nPassword: ${formPassword}\n\nKYC email has been sent to ${formEmail}`);
+      alert(`✅ Property Owner onboarded successfully!\n\nLogin ID: ${formLoginId}\nPassword: ${formPassword}\n\nKYC email has been sent to ${formEmail}`);
       resetForm();
       setCurrentView("list");
       loadVisits();
     } catch (err) {
-      alert(err?.message || "Failed to onboard owner & property");
+      alert(err?.message || "Failed to onboard owner");
       console.error("Onboard error:", err);
     } finally {
       setSaving(false);
@@ -416,15 +329,13 @@ export default function Visit() {
 
   const stats = useMemo(() => {
     const total = visits.length;
-    const approved = visits.filter(v => v.status === "approved" || v.status === "completed").length;
-    return { total, approved };
+    const approved = visits.filter(v => v.status === "approved").length;
+    return { total, approved, pending: total - approved };
   }, [visits]);
 
-  // Toggle Chip Component
-  const PolicyToggle = ({ label, active, onToggle, icon: Icon }) => (
-    <button
-      type="button"
-      onClick={onToggle}
+  // ─── Toggle Pill Component ──────────────────────────────────────────────────
+  const TogglePill = ({ label, icon: Icon, active, onClick }) => (
+    <button type="button" onClick={onClick}
       className={cn(
         "flex items-center gap-2 px-5 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all",
         active
@@ -446,350 +357,492 @@ export default function Visit() {
   return (
     <div className="p-6 space-y-6 bg-[#F8FAFC] min-h-full">
       {/* Header Area */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex items-center justify-between">
          <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-bold text-slate-800 tracking-tight leading-none">Visit Reports &amp; Onboarding</h1>
-            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Manage field inspection visit reports, register property owners &amp; add properties</p>
+            <h1 className="text-2xl font-bold text-slate-800 tracking-tight leading-none">Visit Reports</h1>
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">View and manage property visit reports</p>
          </div>
          <div className="flex items-center gap-3">
-            {currentView === "addOwner" ? (
-              <button 
-                onClick={() => { resetForm(); setCurrentView("list"); }} 
-                className="px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest bg-white text-slate-600 border border-slate-200 shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2"
-              >
-                <RefreshCw className="w-3.5 h-3.5 text-blue-600" /> Back to Visit Reports
+            <button onClick={() => { if (currentView === "addOwner") resetForm(); setCurrentView(currentView === "addOwner" ? "list" : "addOwner"); }} className={cn(
+              "px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-lg transition-all flex items-center gap-2",
+              currentView === "addOwner" ? "bg-white text-slate-600 border border-slate-100 shadow-slate-200" : "bg-slate-800 text-white shadow-slate-800/10 hover:bg-slate-900"
+            )}>
+               {currentView === "addOwner" ? <RefreshCw className="w-3.5 h-3.5" /> : <UserPlus className="w-3.5 h-3.5" />}
+               {currentView === "addOwner" ? "Back to Visits" : "Add Property Owner"}
+            </button>
+            {currentView === "list" && (
+              <button onClick={() => setCurrentView("addOwner")} className="bg-slate-800 text-white px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-lg shadow-slate-800/10 hover:bg-slate-900 transition-all flex items-center gap-2">
+                 <Plus className="w-3.5 h-3.5" /> Add New Visit
               </button>
-            ) : (
-              <>
-                <button 
-                  onClick={() => { resetForm(); generateCreds(); setIsAddOwnerModalOpen(true); }} 
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-indigo-200 transition-all flex items-center gap-2 active:scale-95"
-                >
-                   <UserPlus className="w-4 h-4" /> Add Property Owner
-                </button>
-                <button 
-                  onClick={() => { resetForm(); setIsAddPropertyModalOpen(true); }} 
-                  className="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-slate-900/20 transition-all flex items-center gap-2 active:scale-95"
-                >
-                   <Plus className="w-4 h-4" /> Add Property
-                </button>
-              </>
             )}
          </div>
       </div>
 
-      {/* ─── ADD PROPERTY OWNER MODAL (SAME TO SAME AS SUPERADMIN OWNER.JSX) ─── */}
-      {isAddOwnerModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-[2rem] border border-slate-100 shadow-2xl w-full max-w-3xl overflow-hidden animate-in fade-in zoom-in-95 duration-300 my-8">
-            {/* Modal Header */}
-            <div className="p-6 bg-gradient-to-br from-slate-900 to-slate-800 text-white flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center border border-white/10 shadow-inner">
-                  <UserPlus className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold tracking-tight">Add Property Owner</h3>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Register owner credentials &amp; banking details</p>
-                </div>
+      {currentView === "addOwner" ? (
+        /* ═══ ADD PROPERTY OWNER — COMPREHENSIVE FORM ═══ */
+        <div className="max-w-5xl mx-auto animate-in fade-in zoom-in-95 duration-500 mt-4">
+          {/* Form Header */}
+          <div className="bg-white rounded-t-[2rem] border border-b-0 border-slate-100 shadow-2xl overflow-hidden">
+            <div className="p-8 bg-gradient-to-br from-slate-50 to-white flex items-center gap-6 border-b border-slate-100">
+              <div className="w-16 h-16 rounded-[1.5rem] bg-slate-900 text-white flex items-center justify-center shadow-2xl shadow-slate-900/30">
+                <UserPlus size={28} />
               </div>
-              <button onClick={() => setIsAddOwnerModalOpen(false)} className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors">
-                <X className="w-5 h-5" />
-              </button>
+              <div>
+                <h3 className="text-2xl font-bold text-slate-800 tracking-tight">Onboard Property Owner</h3>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Fill in property visit details and onboard owner with auto KYC</p>
+              </div>
+            </div>
+          </div>
+
+          <form onSubmit={handleOnboard}>
+            <div className="bg-white border-x border-slate-100 shadow-2xl divide-y divide-slate-50">
+
+              {/* ─── Section 1: Owner Identity ──────────────────────────────── */}
+              <div>
+                <SectionHeader icon={User} title="Owner Identity" subtitle="Primary contact information" open={openSections.owner} onToggle={() => toggleSection("owner")} color="blue" />
+                {openSections.owner && (
+                  <div className="px-8 pb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField label="Owner Name" value={formName} onChange={e => setFormName(e.target.value)} placeholder="e.g. Rahul Sharma" required />
+                    <FormField label="Email Address" value={formEmail} onChange={e => setFormEmail(e.target.value)} type="email" placeholder="rahul@example.com" required />
+                    <FormField label="Phone Number" value={formPhone} onChange={e => setFormPhone(e.target.value)} placeholder="+91 XXXX XXXXXX" prefix="+91" required />
+                    <FormField label="Owner City" value={formOwnerCity} onChange={e => setFormOwnerCity(e.target.value)} placeholder="e.g. Indore" />
+                  </div>
+                )}
+              </div>
+
+              {/* ─── Section 2: Property Details ────────────────────────────── */}
+              <div>
+                <SectionHeader icon={Building2} title="Property Details" subtitle="Property name, type, rent & deposit" open={openSections.property} onToggle={() => toggleSection("property")} color="indigo" />
+                {openSections.property && (
+                  <div className="px-8 pb-8 space-y-6">
+                    <FormField label="Property Name" value={formPropertyName} onChange={e => setFormPropertyName(e.target.value)} placeholder="e.g. Sunshine Boys PG" required />
+                    
+                    {/* Property Type Cards */}
+                    <div>
+                      <label className="text-[10px] font-black text-slate-400 uppercase mb-3 block tracking-widest ml-1">Property Type</label>
+                      <div className="grid grid-cols-3 gap-4">
+                        {PROPERTY_TYPES.map(pt => {
+                          const Icon = pt.icon;
+                          const active = formPropertyType === pt.value;
+                          return (
+                            <button key={pt.value} type="button" onClick={() => setFormPropertyType(pt.value)}
+                              className={cn("p-4 rounded-2xl border-2 text-left transition-all relative group",
+                                active ? "border-blue-600 bg-blue-50/50" : "border-slate-100 hover:border-slate-200"
+                              )}>
+                              {active && <div className="absolute top-3 right-3 bg-blue-600 rounded-full p-0.5 shadow-lg"><Check className="w-3 h-3 text-white" /></div>}
+                              <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center mb-3 transition-all", active ? "bg-blue-600 text-white shadow-lg" : "bg-slate-100 text-slate-400")}>
+                                <Icon className="w-4 h-4" />
+                              </div>
+                              <p className="text-[11px] font-bold text-slate-700">{pt.label}</p>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Gender Selector */}
+                    <div>
+                      <label className="text-[10px] font-black text-slate-400 uppercase mb-3 block tracking-widest ml-1">Gender Suitability</label>
+                      <div className="flex gap-3">
+                        {GENDER_OPTIONS.map(g => (
+                          <button key={g} type="button" onClick={() => setFormGender(g)}
+                            className={cn("px-5 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all",
+                              formGender === g ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-200" : "bg-slate-50 text-slate-500 border-slate-100 hover:bg-slate-100"
+                            )}>
+                            {g}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-6">
+                      <FormField label="Monthly Rent" value={formRent} onChange={e => setFormRent(e.target.value)} placeholder="8000" prefix="₹" suffix="/mo" type="number" />
+                      <FormField label="Security Deposit" value={formDeposit} onChange={e => setFormDeposit(e.target.value)} placeholder="10000" prefix="₹" type="number" />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest ml-1">Description</label>
+                      <textarea rows={3} value={formDescription} onChange={e => setFormDescription(e.target.value)} placeholder="Brief property description..."
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none resize-none focus:bg-white focus:ring-4 focus:ring-blue-100 focus:border-blue-200 transition-all placeholder:text-slate-300" />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* ─── Section 3: Location ─────────────────────────────────────── */}
+              <div>
+                <SectionHeader icon={MapPin} title="Location" subtitle="Area, city, address & pincode" open={openSections.location} onToggle={() => toggleSection("location")} color="emerald" />
+                {openSections.location && (
+                  <div className="px-8 pb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField label="Area / Locality" value={formArea} onChange={e => setFormArea(e.target.value)} placeholder="e.g. Koramangala" required />
+                    <FormField label="City" value={formCity} onChange={e => setFormCity(e.target.value)} placeholder="e.g. Bangalore" required />
+                    <FormField label="Full Address" value={formAddress} onChange={e => setFormAddress(e.target.value)} placeholder="House/building, street..." className="md:col-span-2" />
+                    <FormField label="Pincode" value={formPincode} onChange={e => setFormPincode(e.target.value)} placeholder="560034" />
+                    <FormField label="Nearby Landmark" value={formLandmark} onChange={e => setFormLandmark(e.target.value)} placeholder="Near Christ University" />
+                  </div>
+                )}
+              </div>
+
+              {/* ─── Section 4: Occupancy ────────────────────────────────────── */}
+              <div>
+                <SectionHeader icon={BedDouble} title="Occupancy" subtitle="Rooms & beds info" open={openSections.occupancy} onToggle={() => toggleSection("occupancy")} color="amber" />
+                {openSections.occupancy && (
+                  <div className="px-8 pb-8 grid grid-cols-3 gap-6">
+                    <FormField label="Vacant Rooms" value={formVacantRooms} onChange={e => setFormVacantRooms(e.target.value)} placeholder="10" type="number" />
+                    <FormField label="Occupied Rooms" value={formOccupiedRooms} onChange={e => setFormOccupiedRooms(e.target.value)} placeholder="5" type="number" />
+                    <FormField label="Occupied Beds" value={formOccupiedBeds} onChange={e => setFormOccupiedBeds(e.target.value)} placeholder="12" type="number" />
+                  </div>
+                )}
+              </div>
+
+              {/* ─── Section 5: Features & Amenities ─────────────────────────── */}
+              <div>
+                <SectionHeader icon={Zap} title="Features & Amenities" subtitle="Amenities, furnishing, ventilation" open={openSections.features} onToggle={() => toggleSection("features")} color="violet" />
+                {openSections.features && (
+                  <div className="px-8 pb-8 space-y-6">
+                    {/* Amenities Chips */}
+                    <div>
+                      <label className="text-[10px] font-black text-slate-400 uppercase mb-3 block tracking-widest ml-1">Amenities</label>
+                      <div className="flex flex-wrap gap-2">
+                        {AMENITY_LIST.map(a => (
+                          <button key={a} type="button" onClick={() => toggleAmenity(a)}
+                            className={cn(
+                              "px-4 py-2 rounded-xl text-[10px] font-bold border transition-all",
+                              formAmenities.has(a)
+                                ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-200"
+                                : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50 hover:border-slate-300"
+                            )}>
+                            {a}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Furnishing */}
+                    <div>
+                      <label className="text-[10px] font-black text-slate-400 uppercase mb-3 block tracking-widest ml-1">Furnishing</label>
+                      <div className="flex gap-3">
+                        {FURNISHING_OPTIONS.map(f => (
+                          <button key={f} type="button" onClick={() => setFormFurnishing(f)}
+                            className={cn("px-5 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all",
+                              formFurnishing === f ? "bg-violet-600 text-white border-violet-600 shadow-lg shadow-violet-200" : "bg-slate-50 text-slate-500 border-slate-100 hover:bg-slate-100"
+                            )}>
+                            {f}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-6">
+                      <FormField label="Ventilation" value={formVentilation} onChange={e => setFormVentilation(e.target.value)} placeholder="Good / Average" />
+                      <FormField label="Minimum Stay" value={formMinStay} onChange={e => setFormMinStay(e.target.value)} placeholder="e.g. 3 Months" />
+                      <FormField label="Entry / Exit" value={formEntryExit} onChange={e => setFormEntryExit(e.target.value)} placeholder="e.g. 24/7" />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* ─── Section 5.5: Room Configurations ────────────────────────── */}
+              <div>
+                <SectionHeader icon={BedDouble} title="Room Configurations" subtitle="Configure room types and pricing" open={openSections.roomTypes} onToggle={() => toggleSection("roomTypes")} color="violet" />
+                {openSections.roomTypes && (
+                  <div className="px-8 pb-8 space-y-6">
+                    <div className="space-y-4">
+                      {formRoomTypes.map((rt, idx) => (
+                        <div key={idx} className="bg-slate-50 border border-slate-100 rounded-2xl p-5 relative space-y-4">
+                          <button type="button" onClick={() => setFormRoomTypes(prev => prev.filter((_, i) => i !== idx))}
+                            className="absolute top-4 right-4 bg-rose-50 text-rose-600 p-2 rounded-xl border border-rose-100 hover:bg-rose-100 hover:text-rose-700 transition-all">
+                            <Trash className="w-3.5 h-3.5" />
+                          </button>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pr-10">
+                            <div>
+                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Room Type / Sharing</label>
+                              <input type="text" value={rt.type} onChange={e => {
+                                const newTypes = [...formRoomTypes];
+                                newTypes[idx].type = e.target.value;
+                                setFormRoomTypes(newTypes);
+                              }} placeholder="e.g. Double Sharing AC" className="w-full bg-white border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold text-slate-700 outline-none focus:border-blue-200" />
+                            </div>
+                            <div>
+                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Description</label>
+                              <input type="text" value={rt.desc} onChange={e => {
+                                const newTypes = [...formRoomTypes];
+                                newTypes[idx].desc = e.target.value;
+                                setFormRoomTypes(newTypes);
+                              }} placeholder="e.g. Attached washroom, study desk" className="w-full bg-white border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold text-slate-700 outline-none focus:border-blue-200" />
+                            </div>
+                            <div>
+                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Occupancy (Beds per Room)</label>
+                              <input type="number" value={rt.occupancy} onChange={e => {
+                                const newTypes = [...formRoomTypes];
+                                newTypes[idx].occupancy = parseInt(e.target.value) || 1;
+                                setFormRoomTypes(newTypes);
+                              }} placeholder="e.g. 2" className="w-full bg-white border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold text-slate-700 outline-none focus:border-blue-200" />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div>
+                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Total Rooms</label>
+                              <input type="text" value={rt.totalRooms} onChange={e => {
+                                const newTypes = [...formRoomTypes];
+                                newTypes[idx].totalRooms = e.target.value;
+                                setFormRoomTypes(newTypes);
+                              }} placeholder="e.g. 5" className="w-full bg-white border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold text-slate-700 outline-none focus:border-blue-200" />
+                            </div>
+                            <div>
+                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Total Beds</label>
+                              <input type="text" value={rt.totalBeds} onChange={e => {
+                                const newTypes = [...formRoomTypes];
+                                newTypes[idx].totalBeds = e.target.value;
+                                setFormRoomTypes(newTypes);
+                              }} placeholder="e.g. 10" className="w-full bg-white border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold text-slate-700 outline-none focus:border-blue-200" />
+                            </div>
+                            <div>
+                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Price Per Bed (₹/mo)</label>
+                              <input type="text" value={rt.pricePerBed} onChange={e => {
+                                const newTypes = [...formRoomTypes];
+                                newTypes[idx].pricePerBed = e.target.value;
+                                setFormRoomTypes(newTypes);
+                              }} placeholder="e.g. 7500" className="w-full bg-white border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold text-slate-700 outline-none focus:border-blue-200" />
+                            </div>
+                            <div>
+                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Price Per Room (₹/mo)</label>
+                              <input type="text" value={rt.pricePerRoom} onChange={e => {
+                                const newTypes = [...formRoomTypes];
+                                newTypes[idx].pricePerRoom = e.target.value;
+                                setFormRoomTypes(newTypes);
+                              }} placeholder="e.g. 15000" className="w-full bg-white border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold text-slate-700 outline-none focus:border-blue-200" />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <button type="button" onClick={() => setFormRoomTypes(prev => [...prev, { type: "", desc: "", totalRooms: "", totalBeds: "", occupancy: 1, pricePerBed: "", pricePerRoom: "" }])}
+                      className="w-full py-4 border-2 border-dashed border-slate-200 hover:border-blue-300 text-slate-500 hover:text-blue-600 rounded-2xl font-bold text-xs transition-all flex items-center justify-center gap-2 bg-white">
+                      <Plus className="w-4 h-4" /> Add Room Configuration
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* ─── Section 6: Policies ──────────────────────────────────────── */}
+              <div>
+                <SectionHeader icon={ShieldCheck} title="Policies" subtitle="Visitors, cooking, smoking, pets" open={openSections.policies} onToggle={() => toggleSection("policies")} color="cyan" />
+                {openSections.policies && (
+                  <div className="px-8 pb-8">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <TogglePill label="Visitors" icon={Users} active={formVisitorsAllowed} onClick={() => setFormVisitorsAllowed(!formVisitorsAllowed)} />
+                      <TogglePill label="Cooking" icon={UtensilsCrossed} active={formCookingAllowed} onClick={() => setFormCookingAllowed(!formCookingAllowed)} />
+                      <TogglePill label="Smoking" icon={Cigarette} active={formSmokingAllowed} onClick={() => setFormSmokingAllowed(!formSmokingAllowed)} />
+                      <TogglePill label="Pets" icon={PawPrint} active={formPetsAllowed} onClick={() => setFormPetsAllowed(!formPetsAllowed)} />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* ─── Section 7: Ratings & Notes ───────────────────────────────── */}
+              <div>
+                <SectionHeader icon={Star} title="Ratings & Notes" subtitle="Cleanliness, reviews, internal remarks" open={openSections.ratings} onToggle={() => toggleSection("ratings")} color="orange" />
+                {openSections.ratings && (
+                  <div className="px-8 pb-8 space-y-6">
+                    {/* Star Rating */}
+                    <div>
+                      <label className="text-[10px] font-black text-slate-400 uppercase mb-3 block tracking-widest ml-1">Cleanliness Rating</label>
+                      <div className="flex items-center gap-2">
+                        {[1, 2, 3, 4, 5].map(s => (
+                          <button key={s} type="button" onClick={() => setFormCleanlinessRating(s)}
+                            className="transition-all hover:scale-110 active:scale-95">
+                            <Star className={cn("w-8 h-8 transition-colors", s <= formCleanlinessRating ? "text-amber-400 fill-amber-400" : "text-slate-200")} />
+                          </button>
+                        ))}
+                        <span className="ml-3 text-sm font-bold text-slate-500">{formCleanlinessRating}/5</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <FormField label="Owner Behaviour" value={formOwnerBehaviour} onChange={e => setFormOwnerBehaviour(e.target.value)} placeholder="Cooperative, Friendly..." />
+                      <FormField label="Student Reviews" value={formStudentReviews} onChange={e => setFormStudentReviews(e.target.value)} placeholder="What students say..." />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest ml-1">Internal Remarks (Private)</label>
+                      <textarea rows={3} value={formInternalRemarks} onChange={e => setFormInternalRemarks(e.target.value)} placeholder="Internal notes for superadmin only..."
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none resize-none focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all placeholder:text-slate-300" />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* ─── Section 8: Photos ────────────────────────────────────────── */}
+              <div>
+                <SectionHeader icon={Camera} title="Photos" subtitle="Property photos" open={openSections.photos} onToggle={() => toggleSection("photos")} color="rose" />
+                {openSections.photos && (
+                  <div className="px-8 pb-8 space-y-4">
+                    <div className="flex gap-3">
+                      <div className="flex-1">
+                        <FormField label="Photo URL" value={formPhotoUrl} onChange={e => setFormPhotoUrl(e.target.value)} placeholder="https://example.com/photo.jpg" />
+                      </div>
+                      <div className="flex items-end">
+                        <button type="button" onClick={addPhotoUrl}
+                          className="px-5 py-4 bg-blue-600 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg shadow-blue-200">
+                          <Plus className="w-4 h-4" /> Add
+                        </button>
+                      </div>
+                    </div>
+
+                    {formPhotos.length > 0 && (
+                      <div className="flex flex-wrap gap-3 mt-2">
+                        {formPhotos.map((url, idx) => (
+                          <div key={idx} className="relative group w-24 h-24 rounded-xl overflow-hidden border border-slate-100 shadow-sm">
+                            <img src={url} alt="" className="w-full h-full object-cover" onError={e => e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23cbd5e1' viewBox='0 0 24 24'%3E%3Cpath d='M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z'/%3E%3C/svg%3E"} />
+                            <button type="button" onClick={() => removePhoto(idx)}
+                              className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
-            <form onSubmit={handleDirectAddOwner} className="p-8 space-y-6 max-h-[80vh] overflow-y-auto custom-scrollbar">
-              {/* Section 1: Basic Information */}
-              <div>
-                <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4">Basic Information</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField label="Owner Name" value={formName} onChange={e => setFormName(e.target.value)} placeholder="e.g. Rahul Sharma" required />
-                  <FormField label="Email Address" value={formEmail} onChange={e => setFormEmail(e.target.value)} type="email" placeholder="rahul@example.com" required />
-                  <FormField label="Phone Number" value={formPhone} onChange={e => setFormPhone(e.target.value)} placeholder="+91 XXXX XXXXXX" prefix="+91" required />
-                  <FormField label="Operating Area / City" value={formCity} onChange={e => setFormCity(e.target.value)} placeholder="e.g. Koramangala, Bangalore" required />
-                </div>
-              </div>
-
-              {/* Section 2: Banking Details */}
-              <div>
-                <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4">Banking &amp; Settlement Details (Optional)</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField label="Bank Name" value={formBankName} onChange={e => setFormBankName(e.target.value)} placeholder="HDFC Bank" />
-                  <FormField label="Branch Name" value={formBranchName} onChange={e => setFormBranchName(e.target.value)} placeholder="Koramangala Branch" />
-                  <FormField label="Account Number" value={formBankAccountNumber} onChange={e => setFormBankAccountNumber(e.target.value)} placeholder="50100012345678" />
-                  <FormField label="IFSC Code" value={formIfscCode} onChange={e => setFormIfscCode(e.target.value)} placeholder="HDFC0001234" />
-                  <FormField label="Account Holder Name" value={formAccountHolderName} onChange={e => setFormAccountHolderName(e.target.value)} placeholder="Rahul Sharma" />
-                  <FormField label="UPI ID" value={formUpiId} onChange={e => setFormUpiId(e.target.value)} placeholder="rahul@upi" />
-                </div>
-              </div>
-
-              {/* Section 3: Generated Credentials */}
-              <div className="bg-slate-900 rounded-2xl p-6 text-white flex flex-col md:flex-row items-center justify-between gap-4">
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Generated Credentials</p>
-                  <div className="flex items-center gap-4">
-                    <code className="text-lg font-black text-white tracking-widest">{formLoginId}</code>
-                    <span className="w-1 h-1 rounded-full bg-white/20" />
-                    <code className="text-base font-bold text-blue-400">{formPassword}</code>
+            {/* ─── Credentials Card + Actions ───────────────────────────────── */}
+            <div className="bg-white rounded-b-[2rem] border border-t-0 border-slate-100 shadow-2xl p-8 space-y-6">
+              <div className="bg-slate-900 text-white p-6 rounded-2xl flex items-center justify-between shadow-xl shadow-slate-900/10">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-600/30">
+                    <Lock size={22} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Auto Generated Credentials</p>
+                    <p className="text-sm font-bold mt-0.5">Login ID: <span className="font-mono text-blue-400 font-bold">{formLoginId}</span> • Temp Password: <span className="font-mono text-emerald-400 font-bold">{formPassword}</span></p>
                   </div>
                 </div>
-                <button type="button" onClick={generateCreds} className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-[9px] font-bold uppercase tracking-widest border border-white/10 transition-colors">
-                  Re-generate
+                <button type="button" onClick={generateCreds} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-[9px] font-bold uppercase tracking-widest border border-slate-700 transition-all flex items-center gap-2">
+                  <RefreshCw className="w-3 h-3" /> Regenerate
                 </button>
               </div>
 
-              {/* Form Actions */}
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                <button type="button" onClick={() => setIsAddOwnerModalOpen(false)} className="px-6 py-3 rounded-xl text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-wider">
+              <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+                <button type="button" onClick={() => { resetForm(); setCurrentView("list"); }} className="px-6 py-4 rounded-2xl text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all">
                   Cancel
                 </button>
-                <button type="submit" disabled={saving} className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold uppercase tracking-wider shadow-lg shadow-indigo-200 transition-all flex items-center gap-2 disabled:opacity-50">
-                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-                  Save Owner
+                <button type="submit" disabled={saving} className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest shadow-xl shadow-blue-600/20 transition-all flex items-center gap-2">
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  {saving ? "Onboarding Owner..." : "Onboard Property Owner"}
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ─── ADD PROPERTY WIZARD MODAL (SAME TO SAME AS SUPERADMIN ADD PROPERTY) ─── */}
-      {isAddPropertyModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
-          <div className="bg-white rounded-[2rem] border border-slate-100 shadow-2xl w-full max-w-6xl overflow-hidden animate-in fade-in zoom-in-95 duration-300 my-4 relative">
-            <button 
-              onClick={() => { setIsAddPropertyModalOpen(false); loadVisits(); }}
-              className="absolute top-5 right-5 z-50 p-2.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors shadow-sm"
-              title="Close Modal"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <div className="max-h-[88vh] overflow-y-auto custom-scrollbar p-2">
-              <AddPropertyWizard isModal={true} onClose={() => { setIsAddPropertyModalOpen(false); loadVisits(); }} />
             </div>
-          </div>
-        </div>
-      )}
-
-      {currentView === "addOwner" ? (
-        <div className="max-w-6xl mx-auto animate-in fade-in zoom-in-95 duration-500 mt-4 bg-white rounded-3xl p-6 shadow-xl border border-slate-100 relative">
-          <div className="flex justify-between items-center mb-4">
-            <button 
-              onClick={() => { resetForm(); setCurrentView("list"); loadVisits(); }} 
-              className="px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest bg-white text-slate-600 border border-slate-200 shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2"
-            >
-              <RefreshCw className="w-3.5 h-3.5 text-blue-600" /> Back to Visit Reports
-            </button>
-          </div>
-          <AddPropertyWizard isModal={false} onClose={() => { setCurrentView("list"); loadVisits(); }} />
+          </form>
         </div>
       ) : (
-        <>
-          {/* Metrics Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <StatCardHorizontal label="Total Visits" value={stats.total} trend="This Month" up icon={ClipboardCheck} color="blue" />
-            <StatCardHorizontal label="Average Time" value={stats.total > 0 ? `${(stats.total * 7 % 30) + 15}m` : "0m"} trend="Per Visit" up icon={Clock} color="indigo" />
-            <StatCardHorizontal label="Approved Visits" value={stats.approved} trend="Verified" up icon={CheckCircle2} color="emerald" />
-            <StatCardHorizontal label="Photos Uploaded" value="842" trend="Total Media" up icon={Camera} color="amber" />
-          </div>
-
-          {/* Main Ledger Card */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-lg shadow-slate-200/50 overflow-hidden">
-             <div className="flex items-center justify-between mb-8">
-                <h3 className="text-[10px] font-bold text-slate-800 uppercase tracking-widest leading-none">All Visit Reports</h3>
-                <div className="relative w-64">
-                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                   <input 
-                     value={search} onChange={e => setSearch(e.target.value)}
-                     placeholder="Search by property or staff..." 
-                     className="w-full bg-slate-50 border border-slate-100 rounded-xl py-2 pl-9 pr-3 text-xs font-bold text-slate-700 outline-none focus:bg-white focus:ring-2 focus:ring-blue-100" 
-                   />
-                </div>
-             </div>
-             <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                   <thead>
-                      <tr className="text-slate-400 text-[8px] font-bold uppercase border-b border-slate-50">
-                         <th className="pb-4">Report ID</th>
-                         <th className="pb-4">Property</th>
-                         <th className="pb-4 text-center">Submitted By</th>
-                         <th className="pb-4 text-center">Rating</th>
-                         <th className="pb-4 text-center">Photos</th>
-                         <th className="pb-4 text-center">Status</th>
-                         <th className="pb-4 text-right">Actions</th>
-                      </tr>
-                   </thead>
-                   <tbody className="divide-y divide-slate-50">
-                      {filteredVisits.length === 0 ? (
-                         <tr>
-                            <td colSpan={7} className="py-8 text-center text-xs font-bold text-slate-400">No Visit Reports Found</td>
-                         </tr>
-                      ) : filteredVisits.map((v, i) => (
-                        <tr key={i} onClick={() => setSelectedVisit(v)} className="group hover:bg-slate-50 transition-colors cursor-pointer">
-                           <td className="py-3">
-                              <p className="text-[9px] font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-100 shadow-sm inline-block">#{v._id?.substring(0, 6) || "ERR"}</p>
-                              <p className="text-[7px] text-slate-400 font-bold uppercase tracking-widest mt-1 opacity-60 leading-none">{new Date(v.submittedAt || Date.now()).toLocaleDateString()}</p>
-                           </td>
-                           <td className="py-3">
-                              <div className="flex items-center gap-3">
-                                 <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shadow-sm transition-transform group-hover:scale-105 shrink-0">
-                                    <Building2 className="w-4.5 h-4.5" />
-                                 </div>
-                                 <div className="min-w-0">
-                                    <p className="text-[11px] font-bold text-slate-800 leading-none truncate max-w-[150px]">{v.propertyName || v.propertyInfo?.name || "Unknown Property"}</p>
-                                    <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest mt-1.5 opacity-60 leading-none truncate">
-                                       {v.propertyType || v.propertyInfo?.propertyType || "Property"} • {v.area || v.propertyInfo?.area || "Area"}
-                                    </p>
-                                 </div>
-                              </div>
-                           </td>
-                           <td className="py-3 text-center">
-                              <p className="text-[10px] font-bold text-slate-700 leading-none">{v.staffName || v.submittedBy || "System Admin"}</p>
-                              <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest mt-1 opacity-60 leading-none">ID: {v.staffId || v.submittedById || "ADMIN"}</p>
-                           </td>
-                           <td className="py-3 text-center">
-                              <div className="inline-flex flex-col items-center bg-slate-50 border border-slate-100 px-2.5 py-1 rounded-lg shadow-sm">
-                                 <div className="flex text-amber-400 text-[8px] gap-0.5">
-                                    {[...Array(5)].map((_, idx) => (
-                                       <Star key={idx} className={cn("w-2 h-2 fill-current", idx >= (v.cleanlinessRating || 0) && "text-slate-200 fill-slate-200")} />
-                                    ))}
-                                 </div>
-                                 <p className="text-[7px] text-slate-400 font-bold uppercase tracking-widest mt-1 leading-none">{v.cleanlinessRating || 0}/5 Rating</p>
-                              </div>
-                           </td>
-                           <td className="py-3 text-center">
-                              <div className="flex items-center justify-center -space-x-2.5">
-                                 {(v.photos || []).slice(0, 2).map((img, idx) => (
-                                   <div key={idx} className="w-8 h-8 rounded-xl border-2 border-white bg-slate-100 overflow-hidden shadow-sm transition-transform group-hover:scale-105 hover:z-20 relative">
-                                      <img src={img} className="w-full h-full object-cover" alt="" />
-                                   </div>
-                                 ))}
-                                 {(v.photos || []).length > 2 && (
-                                   <div className="w-8 h-8 rounded-xl border-2 border-white bg-slate-800 text-white flex items-center justify-center text-[8px] font-bold shadow-sm z-10 transition-transform group-hover:scale-105">
-                                      +{(v.photos || []).length - 2}
-                                   </div>
-                                 )}
-                              </div>
-                           </td>
-                           <td className="py-3 text-center">
-                              <span className={cn(
-                                 "text-[8px] font-bold px-2.5 py-1 rounded-lg border uppercase tracking-wider",
-                                 v.status === "approved" || v.status === "completed" ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
-                                 v.status === "pending" || v.status === "submitted" ? "bg-amber-50 text-amber-600 border-amber-100" :
-                                 "bg-slate-50 text-slate-500 border-slate-100"
-                              )}>
-                                 {v.status || "submitted"}
-                              </span>
-                           </td>
-                           <td className="py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                              <div className="flex items-center justify-end gap-1.5">
-                                 <button onClick={(e) => handleOpenMap(v, e)} title="View on Map" className="w-8 h-8 rounded-xl bg-slate-50 text-slate-500 hover:bg-emerald-50 hover:text-emerald-600 border border-slate-100 flex items-center justify-center transition-all">
-                                    <Map className="w-3.5 h-3.5" />
-                                 </button>
-                                 <button onClick={() => setSelectedVisit(v)} title="View Inspection Details" className="w-8 h-8 rounded-xl bg-slate-50 text-slate-500 hover:bg-blue-50 hover:text-blue-600 border border-slate-100 flex items-center justify-center transition-all">
-                                    <Eye className="w-3.5 h-3.5" />
-                                 </button>
-                                 <button onClick={(e) => handleDeleteVisit(v._id || v.visitId, e)} title="Delete Report" className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-100 flex items-center justify-center transition-all">
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                 </button>
-                              </div>
-                           </td>
-                        </tr>
-                      ))}
-                   </tbody>
-                </table>
-             </div>
-          </div>
-        </>
-      )}
-
-      {/* ─── SLIDE-OVER DETAIL MODAL FOR INSPECTION VISIT ───────────────────── */}
-      {selectedVisit && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex justify-end">
-          <div className="w-full max-w-2xl bg-white h-full shadow-2xl overflow-y-auto custom-scrollbar p-8 space-y-8 animate-in slide-in-from-right duration-300">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-6">
+        /* ═══ VISITS LIST VIEW ═══ */
+        <div className="space-y-6">
+          {/* Stats Bar */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-bold text-slate-900">{selectedVisit.propertyName || selectedVisit.propertyInfo?.name || "Visit Details"}</h2>
-                <p className="text-xs text-slate-400 font-medium">Submitted by: <strong className="text-slate-700">{selectedVisit.staffName || selectedVisit.submittedBy || "Staff"}</strong> (ID: {selectedVisit.staffId || "STAFF"})</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Visit Reports</p>
+                <h3 className="text-2xl font-bold text-slate-800 mt-1">{stats.total}</h3>
               </div>
-              <button onClick={() => setSelectedVisit(null)} className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors">
-                <X className="w-5 h-5" />
-              </button>
+              <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                <Building2 size={24} />
+              </div>
             </div>
-
-            {/* Visit Details Content */}
-            <div className="space-y-6">
-              {/* Owner Info */}
-              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-2">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Owner Identity</p>
-                <p className="text-sm font-bold text-slate-800">{selectedVisit.ownerName || selectedVisit.visitorName || "N/A"}</p>
-                <p className="text-xs text-slate-600">Email: {selectedVisit.ownerEmail || selectedVisit.visitorEmail || "N/A"}</p>
-                <p className="text-xs text-slate-600">Phone: {selectedVisit.ownerPhone || selectedVisit.visitorPhone || "N/A"}</p>
+            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Approved / Onboarded</p>
+                <h3 className="text-2xl font-bold text-emerald-600 mt-1">{stats.approved}</h3>
               </div>
-
-              {/* Location */}
-              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-2">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Location</p>
-                <p className="text-xs font-bold text-slate-800">{selectedVisit.address || "N/A"}, {selectedVisit.area || "N/A"}, {selectedVisit.city || "N/A"} - {selectedVisit.pincode || ""}</p>
+              <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                <CheckCircle2 size={24} />
               </div>
-
-              {/* Pricing & Occupancy */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
-                  <p className="text-[9px] font-bold text-blue-600 uppercase tracking-widest">Monthly Rent</p>
-                  <p className="text-lg font-black text-blue-900">₹{selectedVisit.monthlyRent || 0}/mo</p>
-                </div>
-                <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
-                  <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest">Vacant Rooms</p>
-                  <p className="text-lg font-black text-emerald-900">{selectedVisit.vacantRooms || 0} Rooms</p>
-                </div>
-              </div>
-
-              {/* Photos Grid */}
-              {selectedVisit.photos && selectedVisit.photos.length > 0 && (
-                <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Inspection Photos</p>
-                  <div className="grid grid-cols-3 gap-3">
-                    {selectedVisit.photos.map((img, idx) => (
-                      <a key={idx} href={img} target="_blank" rel="noopener noreferrer">
-                        <img src={img} alt="" className="w-full h-24 object-cover rounded-xl border border-slate-200 hover:opacity-80 transition-opacity" />
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
+            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Pending Review</p>
+                <h3 className="text-2xl font-bold text-amber-600 mt-1">{stats.pending}</h3>
+              </div>
+              <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                <Clock size={24} />
+              </div>
+            </div>
+          </div>
+
+          {/* Search & Actions */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between gap-4">
+            <div className="flex-1 relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+              <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by property name or staff member..."
+                className="w-full bg-slate-50 border border-slate-100 rounded-xl pl-11 pr-4 py-3 text-xs font-bold text-slate-700 outline-none focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all placeholder:text-slate-300" />
+            </div>
+            <button onClick={loadVisits} className="p-3 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl border border-slate-100 transition-all">
+              <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
+            </button>
+          </div>
+
+          {/* Table */}
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50/50 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  <th className="p-4 pl-6">Property / Owner</th>
+                  <th className="p-4">Location</th>
+                  <th className="p-4">Type / Rent</th>
+                  <th className="p-4">Submitted By</th>
+                  <th className="p-4">Status</th>
+                  <th className="p-4 pr-6 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50 text-xs font-bold text-slate-700">
+                {loading ? (
+                  <tr><td colSpan={6} className="p-8 text-center text-slate-400 font-bold uppercase tracking-widest">Loading visits...</td></tr>
+                ) : filteredVisits.length === 0 ? (
+                  <tr><td colSpan={6} className="p-8 text-center text-slate-400 font-bold uppercase tracking-widest">No visit reports found</td></tr>
+                ) : (
+                  filteredVisits.map((v, i) => (
+                    <tr key={v._id || i} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="p-4 pl-6">
+                        <p className="font-bold text-slate-800">{v.propertyName || v.propertyInfo?.name || "Unnamed Property"}</p>
+                        <p className="text-[10px] text-slate-400 font-normal mt-0.5">{v.ownerName || v.visitorName} • {v.ownerPhone || v.visitorPhone}</p>
+                      </td>
+                      <td className="p-4">
+                        <p className="text-slate-700">{v.area || v.city || "-"}</p>
+                        <p className="text-[10px] text-slate-400 font-normal">{v.city}</p>
+                      </td>
+                      <td className="p-4">
+                        <p className="text-slate-700 uppercase">{v.propertyType || "Hostel"}</p>
+                        <p className="text-[10px] text-blue-600 font-bold">₹{v.monthlyRent || 0}/mo</p>
+                      </td>
+                      <td className="p-4">
+                        <p className="text-slate-700">{v.staffName || v.submittedBy || "Staff"}</p>
+                        <p className="text-[10px] text-slate-400 font-normal">{new Date(v.submittedAt || Date.now()).toLocaleDateString()}</p>
+                      </td>
+                      <td className="p-4">
+                        <span className={cn(
+                          "px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider",
+                          v.status === "approved" ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-amber-50 text-amber-600 border border-amber-100"
+                        )}>
+                          {v.status || "pending"}
+                        </span>
+                      </td>
+                      <td className="p-4 pr-6 text-right">
+                        <button onClick={() => alert(`Visit Details:\n\nProperty: ${v.propertyName}\nOwner: ${v.ownerName}\nPhone: ${v.ownerPhone}\nRent: ₹${v.monthlyRent}\nAddress: ${v.address}`)}
+                          className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold uppercase transition-all">
+                          View Details
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function StatCardHorizontal({ label, value, trend, up, icon: Icon, color }) {
-  const bgColors = { 
-    blue: "bg-blue-50 text-blue-600 border-blue-100", 
-    indigo: "bg-indigo-50 text-indigo-600 border-indigo-100", 
-    emerald: "bg-emerald-50 text-emerald-600 border-emerald-100", 
-    amber: "bg-amber-50 text-amber-600 border-amber-100" 
-  };
-  
-  return (
-    <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-md shadow-slate-200/40 flex items-start gap-5 group hover:translate-y-[-2px] transition-all duration-300">
-      <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border shadow-sm transition-transform group-hover:rotate-6", bgColors[color])}>
-         <Icon className="w-6 h-6" />
-      </div>
-      <div className="min-w-0">
-         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-1 leading-none truncate">{label}</p>
-         <p className="text-2xl font-black text-slate-800 tracking-tight leading-none mb-2">{value}</p>
-         <div className={cn(
-           "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider",
-           up ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
-         )}>
-            {up ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-            {trend}
-         </div>
-      </div>
     </div>
   );
 }
