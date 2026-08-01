@@ -24,6 +24,7 @@ const PaymentGateway = () => {
     useEffect(() => {
         if (!token) {
             setError('Invalid link. Token is missing.');
+            return;
         }
 
         // Dynamically load Razorpay script if not already present
@@ -32,6 +33,37 @@ const PaymentGateway = () => {
             script.src = 'https://checkout.razorpay.com/v1/checkout.js';
             script.async = true;
             document.body.appendChild(script);
+        }
+
+        // Auto-extract loginId from JWT token and skip Step 1
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            if (payload?.loginId) {
+                setLoginId(payload.loginId);
+                // Auto-verify identity
+                setLoading(true);
+                fetch(`${API_URL}/api/rents/payment-page/verify-identity`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token, enteredLoginId: payload.loginId })
+                })
+                    .then(res => res.json().then(data => ({ ok: res.ok, status: res.status, data })))
+                    .then(({ ok, status, data }) => {
+                        if (ok) {
+                            setPropertyData(data);
+                            setStep(2);
+                        } else if (status === 410 || status === 409 || status === 429) {
+                            setError(data.error || data.message);
+                            setStep(0);
+                        } else {
+                            setError(data.error || data.message || 'Verification failed.');
+                        }
+                    })
+                    .catch(() => setError('Could not connect to server.'))
+                    .finally(() => setLoading(false));
+            }
+        } catch (_) {
+            // token decode failed — stay on step 1 for manual entry
         }
     }, [token]);
 
@@ -193,7 +225,16 @@ const PaymentGateway = () => {
     };
 
 
-    // --- RENDERS ---
+    if (loading && step === 1) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+                <div className="text-center">
+                    <div className="w-10 h-10 border-4 border-purple-500/20 border-t-purple-500 rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-slate-500 text-sm">Loading payment details...</p>
+                </div>
+            </div>
+        );
+    }
 
     if (step === 0) {
         // Hard stop error

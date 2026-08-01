@@ -283,8 +283,14 @@ export default function AddTenant() {
   useEffect(() => {
     if (roomAssignment.roomUnit && rooms.length > 0) {
       const selectedRoom = rooms.find(r => r.title === roomAssignment.roomUnit);
-      if (selectedRoom && selectedRoom.price) {
-        setTenancyDetails(prev => ({ ...prev, rentAmount: selectedRoom.price }));
+      console.log('Selected room:', selectedRoom);
+      if (selectedRoom) {
+        // Try multiple possible rent field names
+        const rent = selectedRoom.price || selectedRoom.rent || selectedRoom.rentAmount || selectedRoom.monthlyRent;
+        console.log('Found rent value:', rent);
+        if (rent) {
+          setTenancyDetails(prev => ({ ...prev, rentAmount: rent }));
+        }
       }
     }
   }, [roomAssignment.roomUnit, rooms]);
@@ -417,6 +423,13 @@ export default function AddTenant() {
     const file = e.target.files[0];
     if (!file) return;
     
+    console.log('[PREVIEW DEBUG] File selected:', file.name, file.type, file.size);
+    
+    // Create local preview immediately
+    const localPreviewUrl = URL.createObjectURL(file);
+    console.log('[PREVIEW DEBUG] Local preview URL created:', localPreviewUrl);
+    setBasicDetails({ ...basicDetails, idProofFile: localPreviewUrl });
+    
     const loadingToast = toast.loading("Uploading ID Proof...");
     const data = new FormData();
     data.append("image", file);
@@ -424,12 +437,13 @@ export default function AddTenant() {
     try {
       const res = await fetch(`${apiUrl}/api/upload`, { method: "POST", body: data });
       const json = await res.json();
+      console.log('[PREVIEW DEBUG] Upload response:', json);
       if (json.url) {
-        setBasicDetails({ ...basicDetails, idProofFile: json.url });
+        setBasicDetails(prev => ({ ...prev, idProofFile: json.url }));
         toast.success("ID Proof uploaded!");
       }
     } catch (err) {
-      console.error(err);
+      console.error('[PREVIEW DEBUG] Upload error:', err);
       toast.error("Upload failed");
     } finally {
       toast.dismiss(loadingToast);
@@ -662,6 +676,60 @@ export default function AddTenant() {
                 placeholder="Enter ID proof number"
                 error={errors.idProofNumber}
               />
+              
+              {/* General ID Proof Upload for non-Aadhaar types */}
+              {basicDetails.idProofType !== "Aadhaar Card" && (
+                <div className="md:col-span-3">
+                  <label className="text-[10px] font-black text-slate-800 uppercase mb-3 block tracking-tight">
+                    {basicDetails.idProofType} Upload <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="relative group rounded-2xl">
+                    <input 
+                      type="file" 
+                      id="id-proof-upload"
+                      className="hidden" 
+                      onChange={handlePhotoUpload}
+                      accept="image/*"
+                    />
+                    <label 
+                      htmlFor="id-proof-upload"
+                      className={cn(
+                        "w-full h-40 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer transition-all group-active:scale-[0.98] relative overflow-hidden",
+                        errors.idProofFile ? "border-rose-300 bg-rose-50/30" : "border-slate-200 hover:bg-slate-50 hover:border-blue-200"
+                      )}
+                    >
+                      {basicDetails.idProofFile && (
+                        <img 
+                          src={basicDetails.idProofFile} 
+                          alt={`${basicDetails.idProofType} Preview`}
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
+                      )}
+                      <div className={cn(
+                        "relative z-10 flex flex-col items-center gap-2",
+                        basicDetails.idProofFile && "bg-black/50 w-full h-full items-center justify-center"
+                      )}>
+                        {basicDetails.idProofFile ? (
+                          <div className="flex flex-col items-center gap-2">
+                            <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+                            <span className="text-[10px] font-bold text-white">{basicDetails.idProofType} Uploaded</span>
+                            <span className="text-[8px] font-bold text-emerald-400">Click to change</span>
+                          </div>
+                        ) : (
+                          <>
+                            <Upload className="w-5 h-5 text-slate-400 group-hover:text-blue-500 transition-colors" />
+                            <div className="text-center">
+                              <p className="text-[10px] font-black text-slate-600 uppercase">{basicDetails.idProofType}</p>
+                              <p className="text-[8px] font-bold text-slate-400 mt-1 uppercase">Click to upload</p>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </label>
+                  </div>
+                  {errors.idProofFile && <span className="text-[8px] font-bold text-rose-500 mt-2 uppercase tracking-widest block">{errors.idProofFile}</span>}
+                </div>
+              )}
               
               {/* Aadhaar Card Specific Upload Section */}
               {basicDetails.idProofType === "Aadhaar Card" ? (

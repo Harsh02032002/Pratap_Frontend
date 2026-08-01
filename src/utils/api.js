@@ -60,7 +60,13 @@ export const getApiBase = () => {
 // clobbering the other. Falls back to localStorage for flows that only persist
 // there. Cookie is also set by the backend for httpOnly support.
 export const getAuthHeader = () => {
-  const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+  const token =
+    sessionStorage.getItem("token") ||
+    localStorage.getItem("token") ||
+    sessionStorage.getItem("website_token") ||
+    localStorage.getItem("website_token") ||
+    sessionStorage.getItem("accessToken") ||
+    localStorage.getItem("accessToken");
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 

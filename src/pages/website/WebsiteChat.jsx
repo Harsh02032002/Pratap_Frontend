@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { io } from "socket.io-client";
 import WebsiteNavbar from "../../components/website/WebsiteNavbar";
 import { 
@@ -44,9 +44,17 @@ const normalizeWebsiteUserId = (rawId) => {
 };
 
 const resolveWebsiteUserId = (user) => {
-  const fromEmail = generateWebsiteUserIdFromEmail(user?.email || "");
-  if (fromEmail) return fromEmail;
-  return normalizeWebsiteUserId(user?.loginId || user?.id || "");
+  if (!user) return "";
+  if (user.loginId && String(user.loginId).trim()) {
+    return String(user.loginId).trim();
+  }
+  if (user.email && String(user.email).trim()) {
+    return generateWebsiteUserIdFromEmail(user.email) || String(user.email).trim();
+  }
+  if (user.id || user._id) {
+    return String(user.id || user._id).trim();
+  }
+  return "";
 };
 
 const SUPERADMIN_LOGIN_ID = "SUPER_ADMIN";
@@ -69,6 +77,8 @@ const normalizeMessage = (message) => ({
 
 export default function WebsiteChat() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { user, isAuthenticated } = useAuth();
   const [chats, setChats] = useState([]);
   const [activeChat, setActiveChat] = useState(null);
@@ -128,7 +138,7 @@ export default function WebsiteChat() {
         return clean;
       };
 
-      const normalized = conversationRows.map((row, idx) => ({
+      let normalized = conversationRows.map((row, idx) => ({
         id: row.participant_login_id || `chat-${idx}`,
         participant_login_id: row.participant_login_id,
         participant_name: getCleanName(row.participant_name || row.participant_login_id),
@@ -137,18 +147,46 @@ export default function WebsiteChat() {
         unread: Number(row.unread_count || 0)
       }));
 
-      const fallbackChat = {
-        id: SUPERADMIN_LOGIN_ID,
-        participant_login_id: SUPERADMIN_LOGIN_ID,
-        participant_name: "Roomhy Admin",
-        last_message: "Need help with booking? Chat with admin.",
-        timestamp: new Date().toISOString(),
-        unread: 0
-      };
+      // Ensure Roomhy Admin fallback is always available
+      const hasAdmin = normalized.some(c => String(c.participant_login_id).toUpperCase() === SUPERADMIN_LOGIN_ID);
+      if (!hasAdmin) {
+        normalized.push({
+          id: SUPERADMIN_LOGIN_ID,
+          participant_login_id: SUPERADMIN_LOGIN_ID,
+          participant_name: "Roomhy Admin",
+          last_message: "Need help with booking? Chat with admin.",
+          timestamp: new Date().toISOString(),
+          unread: 0
+        });
+      }
 
-      const chatList = normalized.length > 0 ? normalized : [fallbackChat];
-      setChats(chatList);
-      if (!activeChatRef.current) setActiveChat(chatList[0]);
+      // Check URL query parameters or location state for targeted chat initiation
+      const queryTarget = searchParams.get('target') || searchParams.get('ownerId') || searchParams.get('to') || location.state?.targetId;
+      const queryName = searchParams.get('name') || searchParams.get('ownerName') || location.state?.targetName || "Hostel Owner";
+
+      if (queryTarget && String(queryTarget).trim()) {
+        const cleanTarget = String(queryTarget).trim();
+        let targetChat = normalized.find(c => String(c.participant_login_id).toUpperCase() === cleanTarget.toUpperCase());
+        if (!targetChat) {
+          targetChat = {
+            id: cleanTarget,
+            participant_login_id: cleanTarget,
+            participant_name: getCleanName(queryName),
+            last_message: "Start your chat",
+            timestamp: new Date().toISOString(),
+            unread: 0
+          };
+          normalized.unshift(targetChat);
+        }
+        setChats(normalized);
+        setActiveChat(targetChat);
+        setMobileChatOpen(true);
+      } else {
+        setChats(normalized);
+        if (!activeChatRef.current && normalized.length > 0) {
+          setActiveChat(normalized[0]);
+        }
+      }
     } catch (error) {
       console.error("Error loading chats:", error);
       setChatError("Unable to load chat list.");

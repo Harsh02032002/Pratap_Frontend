@@ -43,9 +43,18 @@ export const useTenantAgreement = () => {
         { loginId: loginId.trim(), eSignName: eSignName.trim(), accepted: true, signatureDataUrl },
         apiBases
       );
-      const nextUrl =
-        agreementResp?.nextUrl ||
+      let nextUrl = agreementResp?.nextUrl ||
         `/digital-checkin/tenant-confirmation?loginId=${encodeURIComponent(loginId.trim())}`;
+      // Convert to digital-checkin payment path
+      try {
+        const u = new URL(nextUrl, window.location.origin);
+        const token = u.searchParams.get("token");
+        if (token && u.pathname.includes("payment/gateway")) {
+          nextUrl = `/digital-checkin/tenantpayment?token=${token}`;
+        } else {
+          nextUrl = u.pathname + u.search;
+        }
+      } catch (_) {}
       window.location.href = nextUrl;
     } catch (err) {
       setError(err.message || "Unable to submit tenant agreement");

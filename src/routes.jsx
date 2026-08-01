@@ -208,6 +208,7 @@ const routeEntries = [
   ["/digital-checkin/owner-success", "./pages/digital-checkin/owner-success.jsx"],
   ["/digital-checkin/ownerterms", "./pages/digital-checkin/ownerterms.jsx"],
   ["/digital-checkin/tenant-confirmation", "./pages/digital-checkin/tenant-confirmation.jsx"],
+  ["/digital-checkin/tenantpayment", "./pages/digital-checkin/tenantpayment.jsx"],
   ["/digital-checkin/tenantagreement", "./pages/digital-checkin/tenantagreement.jsx"],
   ["/digital-checkin/tenantkyc", "./pages/digital-checkin/tenantkyc.jsx"],
   ["/digital-checkin/tenantprofile", "./pages/digital-checkin/tenantprofile.jsx"],

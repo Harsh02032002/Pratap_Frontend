@@ -40,9 +40,13 @@ function normalizeTenant(tenant, record) {
   const modelKyc = tenant?.kyc || {};
   const aadhaarNumber = modelKyc.aadhaarNumber || modelKyc.aadhar || tenantKyc.aadhaarNumber || "";
   const kycStatus = tenant?.kycStatus || tenantKyc?.digilockerStatus || (modelKyc.digilockerVerified || modelKyc.otpVerified ? "verified" : "") || (aadhaarNumber ? "submitted" : "") || "pending";
+  
+  // Force status to be from tenant model, not user model
+  const tenantStatus = tenant?.status || "pending";
 
   return {
     ...tenant,
+    status: tenantStatus, // Ensure tenant status is used
     profile: {
       name: tenant?.name || profile?.name || "Resident",
       email: tenant?.email || profile?.email || "No Email",

@@ -94,7 +94,18 @@ export default function FastBiddingPage() {
         const live = data.filter(p =>
           p.isLiveOnWebsite === true || p.status === 'live' || p.status === 'approved'
         );
-        setAllProperties(live);
+        
+        // Deduplicate properties by visitId, propertyId, or _id
+        const uniqueMap = new Map();
+        live.forEach(p => {
+          const key = p.visitId || p.propertyId || p._id || String(Math.random());
+          if (!uniqueMap.has(key)) {
+            uniqueMap.set(key, p);
+          }
+        });
+        const dedupedProperties = Array.from(uniqueMap.values());
+        
+        setAllProperties(dedupedProperties);
       } catch {
         setAllProperties([]);
       }
