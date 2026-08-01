@@ -18,7 +18,7 @@ import { PageHeader } from "../../components/superadmin/PageHeader";
 const getApiUrl = () =>
   import.meta.env?.VITE_API_URL ||
   (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-    ? "http://localhost:5001" : "https://api.roomhy.com");
+    ? "http://localhost:5001" : window.location.origin);
 
 const toStorageSafeVisit = (visit) => {
   if (!visit || typeof visit !== "object") return visit;

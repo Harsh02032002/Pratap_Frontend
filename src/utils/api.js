@@ -49,8 +49,8 @@ export const getApiBase = () => {
                   host.endsWith(".local");
   if (isLocal) return `http://${host}:5001`;
 
-  // Production — use same server's backend (avoid Vercel rate limits)
-  return "https://roohmy-backend-xwa9.vercel.app";
+  // Production — use current origin (so /api calls map to live backend)
+  return window.location.origin;
 };
 
 // Read JWT for the Authorization: Bearer header on every request.

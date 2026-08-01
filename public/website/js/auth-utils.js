@@ -16,7 +16,7 @@ const TOKEN_KEY = 'token';
 function getApiUrl() {
     if (typeof window !== 'undefined' && window.API_URL) return window.API_URL;
     const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    return isLocal ? 'http://localhost:5001' : 'https://api.roomhy.com';
+    return isLocal ? 'http://localhost:5001' : window.location.origin;
 }
 
 function getStoredToken() {

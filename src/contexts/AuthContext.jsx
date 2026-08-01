@@ -14,7 +14,7 @@ const getAuthApiUrl = () =>
   import.meta.env?.VITE_API_URL ||
   (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
     ? "http://localhost:5001"
-    : "https://api.roomhy.com");
+    : window.location.origin);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);

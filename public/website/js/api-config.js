@@ -2,7 +2,7 @@
 // Keep production URL aligned with superadmin pages to avoid split data across backends.
 const getAPIURL = () => {
     const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    return isDevelopment ? 'http://localhost:5001' : 'https://api.roomhy.com';
+    return isDevelopment ? 'http://localhost:5001' : window.location.origin;
 };
 
 const API_URL = getAPIURL();
