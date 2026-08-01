@@ -550,13 +550,10 @@ lucide.createIcons();
 
             document.getElementById('propertiesLoadingSpinner').classList.add('show');
 
-            // INSTANT FEEDBACK: Show confirmation modal immediately
-            // Don't wait for API calls
+            // Submit bids and wait for completion before showing success
             console.log('📋 Submitting bids for', selectedPropertyIds.length, 'properties');
-            showSuccessModal(selectedPropertyIds.length);
 
-            // Submit bids in background (non-blocking)
-            // Use async/await without blocking the UI
+            // Submit bids and wait for completion
             (async () => {
                 let successCount = 0;
                 let failedCount = 0;
@@ -653,6 +650,11 @@ lucide.createIcons();
 
                 // Background completion logging
                 console.log('🏁 Bid submission batch complete:', successCount, 'successful,', failedCount, 'failed');
+
+                // Show success modal only if at least one bid was successful
+                if (successCount > 0) {
+                    showSuccessModal(successCount);
+                }
 
                 // Store user email and loginId for websitechat
                 if (!localStorage.getItem('user_email')) {
