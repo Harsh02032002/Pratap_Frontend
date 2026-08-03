@@ -333,7 +333,7 @@ export default function TransactionsPage() {
 
     <div class="footer">
       <p>This is a computer generated disbursement advice statement. No signature required.</p>
-      <p style="margin-top: 6px;">Thank you for partnering with RoomHy. For support, reach out to contact@roomhy.com</p>
+      <p style="margin-top: 6px;">Thank you for partnering with RoomHy. For support, reach out to team@roomhy.com</p>
     </div>
   </div>
 </body>
@@ -519,3 +519,4 @@ export default function TransactionsPage() {
     </PropertyOwnerLayout>
   );
 }
+

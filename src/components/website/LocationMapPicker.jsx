@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { MapPin, X, Navigation, Search, Building2 } from 'lucide-react';
 
-// Popular colleges and institutes across India
+// Popular colleges and institutes
 const POPULAR_COLLEGES = [
   // Kota
   { name: 'Allen Institute, Kota', city: 'Kota', lat: 25.1972, lng: 75.8245, type: 'Coaching' },
@@ -9,49 +9,14 @@ const POPULAR_COLLEGES = [
   { name: 'Bansal Classes, Kota', city: 'Kota', lat: 25.1950, lng: 75.8200, type: 'Coaching' },
   { name: 'Resonance Kota', city: 'Kota', lat: 25.2100, lng: 75.8400, type: 'Coaching' },
   
-  // Delhi
-  { name: 'Delhi University', city: 'Delhi', lat: 28.7501, lng: 77.2293, type: 'University' },
-  { name: 'IIT Delhi', city: 'Delhi', lat: 28.5479, lng: 77.1853, type: 'IIT' },
-  { name: 'NSIT Delhi', city: 'Delhi', lat: 28.6431, lng: 77.0704, type: 'Engineering' },
-  { name: 'Delhi Technical University', city: 'Delhi', lat: 28.5921, lng: 77.2784, type: 'University' },
+  // Sikar
+  { name: 'Sikar Coaching Hub', city: 'Sikar', lat: 27.6106, lng: 75.1393, type: 'Coaching' },
+  { name: 'Sikar Study Center', city: 'Sikar', lat: 27.6150, lng: 75.1450, type: 'Coaching' },
   
   // Indore
   { name: 'IIT Indore', city: 'Indore', lat: 22.5181, lng: 75.8945, type: 'IIT' },
   { name: 'Devi Ahilya University', city: 'Indore', lat: 22.7196, lng: 75.8577, type: 'University' },
   { name: 'MITS Indore', city: 'Indore', lat: 22.7147, lng: 75.8676, type: 'Engineering' },
-  
-  // Jaipur
-  { name: 'MNIT Jaipur', city: 'Jaipur', lat: 26.8953, lng: 75.7899, type: 'NIT' },
-  { name: 'Rajasthan Technical University', city: 'Jaipur', lat: 26.9124, lng: 75.7873, type: 'University' },
-  { name: 'Manipal University Jaipur', city: 'Jaipur', lat: 27.1557, lng: 75.7896, type: 'University' },
-  
-  // Mumbai
-  { name: 'IIT Mumbai (Bombay)', city: 'Mumbai', lat: 19.1136, lng: 72.9155, type: 'IIT' },
-  { name: 'Mumbai University', city: 'Mumbai', lat: 19.0176, lng: 72.8288, type: 'University' },
-  { name: 'NMIMS Mumbai', city: 'Mumbai', lat: 19.1136, lng: 72.9155, type: 'University' },
-  
-  // Bangalore
-  { name: 'IIT Bangalore', city: 'Bangalore', lat: 13.0217, lng: 77.6528, type: 'IIT' },
-  { name: 'Bangalore University', city: 'Bangalore', lat: 13.1939, lng: 77.5941, type: 'University' },
-  { name: 'NIT Surathkal', city: 'Mangalore', lat: 13.1889, lng: 74.8421, type: 'NIT' },
-  
-  // Chandigarh
-  { name: 'Punjab University Chandigarh', city: 'Chandigarh', lat: 30.7595, lng: 76.7620, type: 'University' },
-  { name: 'PEC University Chandigarh', city: 'Chandigarh', lat: 30.6500, lng: 76.7900, type: 'Engineering' },
-  { name: 'Chitkara University Chandigarh', city: 'Chandigarh', lat: 30.6414, lng: 76.8049, type: 'University' },
-  
-  // Pune
-  { name: 'Pune University', city: 'Pune', lat: 18.5240, lng: 73.8478, type: 'University' },
-  { name: 'COEP Pune', city: 'Pune', lat: 18.5267, lng: 73.8566, type: 'Engineering' },
-  { name: 'Symbiosis Pune', city: 'Pune', lat: 18.5912, lng: 73.7997, type: 'University' },
-  
-  // Bhopal
-  { name: 'IISER Bhopal', city: 'Bhopal', lat: 23.1815, lng: 77.4730, type: 'Research' },
-  { name: 'Barkatullah University Bhopal', city: 'Bhopal', lat: 23.1815, lng: 77.4730, type: 'University' },
-  
-  // Coaching Centers Chain
-  { name: 'Vedantu Online Classes', city: 'All Cities', lat: 28.6139, lng: 77.2090, type: 'Online Coaching' },
-  { name: 'Unacademy Learning', city: 'All Cities', lat: 28.6139, lng: 77.2090, type: 'Online Coaching' },
 ];
 
 export default function LocationMapPicker({ onLocationSelect, onClose }) {

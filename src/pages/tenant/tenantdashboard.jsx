@@ -197,8 +197,8 @@ function ReceiptTemplate({ receiptRef, tenant, tenantUser, rentItem, loginId, pr
           Room<span style={{ fontWeight: 400, fontStyle: "italic" }}>Hy</span>
         </div>
         <div style={{ textAlign: "right", fontSize: 11.5, color: "#222", lineHeight: 1.65 }}>
-          <p style={{ fontSize: 13.5, fontWeight: 700, marginBottom: 3 }}>RoomHy Technologies India Pvt. Ltd.</p>
-          <p>CIN: U72000MP2024PTC123456 | GSTIN: 23AABCR1234A1Z5 | PAN: AABCR1234A</p>
+          <p style={{ fontSize: 13.5, fontWeight: 700, marginBottom: 3 }}>ROOMHY TECHNOLOGY</p>
+          <p>GSTIN: 08SLWPS2629G1ZZ | PAN: AABCR1234A</p>
           <p>Sector 7, Civil Lines, Indore, Madhya Pradesh - 452001, India</p>
           <p>Contact: care@roomhy.com | Web: www.roomhy.com</p>
         </div>
@@ -2455,11 +2455,11 @@ export default function Tenantdashboard() {
                           onChange={(e) => setFeedbackCategory(e.target.value)}
                           className="w-full h-12 px-4 border border-slate-200 bg-white rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm font-semibold"
                         >
-                          <option value="Amenities">Amenities & Facilities</option>
-                          <option value="Food">Food & Mess Catering</option>
-                          <option value="Cleanliness">Cleanliness & Hygiene</option>
-                          <option value="Staff">Staff & Warden Response</option>
-                          <option value="Other">Other Services</option>
+                          <option value="08SLWPS2629G1ZZ">Amenities & Facilities</option>
+                          <option value="08SLWPS2629G1ZZ">Food & Mess Catering</option>
+                          <option value="08SLWPS2629G1ZZ">Cleanliness & Hygiene</option>
+                          <option value="08SLWPS2629G1ZZ">Staff & Warden Response</option>
+                          <option value="08SLWPS2629G1ZZ">Other Services</option>
                         </select>
                       </div>
 
@@ -3006,3 +3006,6 @@ export default function Tenantdashboard() {
     </div >
   );
 }
+
+
+

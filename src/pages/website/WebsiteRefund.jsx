@@ -42,7 +42,7 @@ export default function WebsiteRefund() {
       icon: Clock,
       title: "Processing Refunds",
       content: [
-        "All refunds are processed within 5-7 business days.",
+        "All refunds are processed within 21 days.",
         "Bank transfers typically appear within 7-10 business days.",
         "Refunds to credit cards may take up to 15 business days depending on your financial institution."
       ]
@@ -81,7 +81,7 @@ export default function WebsiteRefund() {
 
             {/* SUB-HEADING */}
             <p className="text-xs md:text-lg text-stone-500 font-normal opacity-90 max-w-xl mx-auto">
-              Effective Date: 1st Aug 2025 — Understanding your refund rights.
+              — Understanding your refund rights.
             </p>
 
             {/* Bottom Accent Dot */}
@@ -93,7 +93,7 @@ export default function WebsiteRefund() {
         <section className="py-6 md:py-16 px-4 max-w-4xl mx-auto">
           <div className="bg-white md:rounded-3xl p-0 md:p-12 md:shadow-sm md:border md:border-gray-100">
             <p className="text-gray-600 leading-relaxed mb-6 md:mb-8 text-sm md:text-base">
-              This policy outlines the refund terms for the various services and transactions made through the Roomhy platform of <strong>ROOMHY TECHNOLOGY PRIVATE LIMITED</strong>.
+              This policy outlines the refund terms for the various services and transactions made through the Roomhy platform of <strong>ROOMHY TECHNOLOGY</strong>.
             </p>
 
             <div className="space-y-5 md:space-y-8">
@@ -121,17 +121,17 @@ export default function WebsiteRefund() {
             <div className="mt-12 p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border border-green-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
               <div className="space-y-3 flex-1">
                 <h3 className="text-lg font-bold text-gray-900">Corporate & Contact Information</h3>
-                <p className="font-semibold text-gray-900 text-sm">ROOMHY TECHNOLOGY PRIVATE LIMITED</p>
+                <p className="font-semibold text-gray-900 text-sm">ROOMHY TECHNOLOGY</p>
                 <div className="flex items-start gap-3 text-sm text-gray-700">
                   <MapPin size={16} className="text-green-600 shrink-0 mt-0.5" />
                   <span>22, Krishna Nagar, Rangbari Road, Kota, Rajasthan - 324005</span>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-4 pt-1">
-                  <a href="mailto:hello@roomhy.com" className="flex items-center gap-2 text-green-600 hover:text-green-700 font-medium text-xs">
-                    <Mail size={14} /> hello@roomhy.com
+                  <a href="mailto:team@roomhy.com" className="flex items-center gap-2 text-green-600 hover:text-green-700 font-medium text-xs">
+                    <Mail size={14} /> team@roomhy.com
                   </a>
-                  <a href="tel:+919983005030" className="flex items-center gap-2 text-green-600 hover:text-green-700 font-medium text-xs">
-                    <Phone size={14} /> +91-9983005030
+                  <a href="tel:+918764425030" className="flex items-center gap-2 text-green-600 hover:text-green-700 font-medium text-xs">
+                    <Phone size={14} /> +91 8764425030
                   </a>
                 </div>
               </div>
@@ -150,3 +150,7 @@ export default function WebsiteRefund() {
     </div>
   );
 }
+
+
+
+

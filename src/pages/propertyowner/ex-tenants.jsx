@@ -94,8 +94,8 @@ function buildExTenantHtml(t) {
   <div class="hdr">
     <div class="logo">Room<em>Hy</em></div>
     <div class="co">
-      <strong>RoomHy Technologies India Pvt. Ltd.</strong>
-      CIN: U72000MP2024PTC123456 | GSTIN: 23AABCR1234A1Z5 | PAN: AABCR1234A<br/>
+      <strong>ROOMHY TECHNOLOGY</strong>
+      GSTIN: 08SLWPS2629G1ZZ | PAN: AABCR1234A<br/>
       Sector 7, Civil Lines, Indore, Madhya Pradesh - 452001, India<br/>
       Contact: care@roomhy.com | Web: www.roomhy.com
     </div>
@@ -255,8 +255,8 @@ function ExTenantModal({ tenant, onClose }) {
               Room<span style={{ fontWeight: 400, fontStyle: "italic" }}>Hy</span>
             </div>
             <div style={{ textAlign: "right", fontSize: 11.5, color: "#222", lineHeight: 1.65 }}>
-              <p style={{ fontSize: 13.5, fontWeight: 700, marginBottom: 3 }}>RoomHy Technologies India Pvt. Ltd.</p>
-              <p>CIN: U72000MP2024PTC123456 | GSTIN: 23AABCR1234A1Z5 | PAN: AABCR1234A</p>
+              <p style={{ fontSize: 13.5, fontWeight: 700, marginBottom: 3 }}>ROOMHY TECHNOLOGY</p>
+              <p>GSTIN: 08SLWPS2629G1ZZ | PAN: AABCR1234A</p>
               <p>Sector 7, Civil Lines, Indore, Madhya Pradesh - 452001, India</p>
               <p>Contact: care@roomhy.com | Web: www.roomhy.com</p>
             </div>
@@ -557,3 +557,6 @@ export default function ExTenantsPage() {
     </PropertyOwnerLayout>
   );
 }
+
+
+

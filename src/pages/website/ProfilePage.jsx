@@ -230,7 +230,7 @@ export default function ProfilePage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                   <Phone className="w-4 h-4 text-teal-500" />
-                  Phone Number
+                  phone number
                 </label>
                 <input
                   type="tel"
@@ -320,3 +320,5 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+

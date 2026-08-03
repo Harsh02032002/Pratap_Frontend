@@ -179,7 +179,7 @@ export default function WebsiteMystays() {
     const phone = formData.phone.trim();
     const email = formData.email.trim();
     if (!name || !phone) {
-      setFeedback("Please enter name and phone number.");
+      setFeedback("Please enter name and 8764425030.");
       return;
     }
     if (requestType === "refund" && !paymentMethod) {
@@ -638,7 +638,7 @@ export default function WebsiteMystays() {
       
                           
                           <div>
-                              <label className="block text-sm font-semibold text-gray-700 mb-2">Phone Number</label>
+                              <label className="block text-sm font-semibold text-gray-700 mb-2">8764425030</label>
                               <input type="tel" id="refundPhone" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="+91 98765 43210" value={formData.phone} onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))} />
                           </div>
       
@@ -742,3 +742,4 @@ export default function WebsiteMystays() {
     </div>
   );
 }
+

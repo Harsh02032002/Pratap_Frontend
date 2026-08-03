@@ -45,7 +45,7 @@ export default function WebsiteTerms() {
       icon: Users,
       title: "1. Definitions",
       content: [
-        '"Roomhy", "Company", "We", "Us", or "Our" refers to ROOMHY TECHNOLOGY PRIVATE LIMITED, a company incorporated under the laws of India, having its registered office at 22, Krishna Nagar, Rangbari Road, Kota, Rajasthan - 324005.',
+        '"Roomhy", "Company", "We", "Us", or "Our" refers to ROOMHY TECHNOLOGY, a company incorporated under the laws of India, having its registered office at 22, Krishna Nagar, Rangbari Road, Kota, Rajasthan - 324005.',
         '"User", "You", or "Your" refers to any individual or entity using the platform, including students, tenants, property owners, and hosts.',
         '"Platform" refers to Roomhy\'s website, mobile application, and related services.'
       ]
@@ -88,7 +88,7 @@ export default function WebsiteTerms() {
       title: "6. Cancellation & Refund Policy",
       content: [
         "Cancellations and refunds are governed by our dedicated Cancellation and Refund Policies. Please review these policies carefully before making a booking.",
-        "In case of a successful cancellation request eligible for a refund, the amount will be processed back to the original payment source within 5-7 business days.",
+        "In case of a successful cancellation request eligible for a refund, the amount will be processed back to the original payment source within 21 days.",
         "Roomhy reserves the right to charge convenience or transaction fees for processing refunds where applicable."
       ]
     },
@@ -96,7 +96,7 @@ export default function WebsiteTerms() {
       icon: ShieldAlert,
       title: "7. Limitation of Liability",
       content: [
-        "To the maximum extent permitted by law, ROOMHY TECHNOLOGY PRIVATE LIMITED, its directors, employees, and partners shall not be liable for any indirect, incidental, special, consequential, or punitive damages.",
+        "To the maximum extent permitted by law, ROOMHY TECHNOLOGY, its directors, employees, and partners shall not be liable for any indirect, incidental, special, consequential, or punitive damages.",
         "We do not guarantee the quality, safety, suitability, or legality of any listed property. Any lease or rental agreement is solely between the tenant and the property owner; Roomhy is not a party to such agreements.",
         "We are not liable for any behavior, misconduct, or theft by tenants, hosts, or third parties."
       ]
@@ -122,7 +122,7 @@ export default function WebsiteTerms() {
   const renderHero = () => {
     const content = getSectionContent('terms-hero', {
       title: 'Terms & Conditions',
-      subtitle: 'Effective Date: 1st Aug 2025'
+      subtitle: ''
     });
     return (
       <div key="terms-hero" className="relative w-full py-5 md:py-10 px-4 md:px-6 overflow-hidden border-b border-stone-200/50" 
@@ -152,7 +152,7 @@ export default function WebsiteTerms() {
 
   const renderContent = () => {
     const content = getSectionContent('terms-content', {
-      clause: 'Welcome to Roomhy. By using our platform (website or mobile app), you agree to comply with and be bound by these Terms & Conditions of ROOMHY TECHNOLOGY PRIVATE LIMITED. Please read them carefully.'
+      clause: 'Welcome to Roomhy. By using our platform (website or mobile app), you agree to comply with and be bound by these Terms & Conditions of ROOMHY TECHNOLOGY. Please read them carefully.'
     });
     return (
       <section key="terms-content" className="py-6 md:py-16 px-4 max-w-4xl mx-auto">
@@ -185,17 +185,17 @@ export default function WebsiteTerms() {
           <div className="mt-12 p-6 bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl border border-amber-100">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Corporate & Contact Information</h3>
             <div className="space-y-4 text-sm text-gray-700">
-              <p className="font-semibold text-gray-900">ROOMHY TECHNOLOGY PRIVATE LIMITED</p>
+              <p className="font-semibold text-gray-900">ROOMHY TECHNOLOGY</p>
               <div className="flex items-start gap-3">
                 <MapPin size={18} className="text-amber-600 shrink-0 mt-0.5" />
                 <span>22, Krishna Nagar, Rangbari Road, Kota, Rajasthan - 324005</span>
               </div>
               <div className="flex flex-col sm:flex-row gap-4 pt-2">
-                <a href="mailto:hello@roomhy.com" className="flex items-center gap-2 text-amber-600 hover:text-amber-700 font-medium">
-                  <Mail size={16} /> hello@roomhy.com
+                <a href="mailto:team@roomhy.com" className="flex items-center gap-2 text-amber-600 hover:text-amber-700 font-medium">
+                  <Mail size={16} /> team@roomhy.com
                 </a>
-                <a href="tel:+919983005030" className="flex items-center gap-2 text-amber-600 hover:text-amber-700 font-medium">
-                  <Phone size={16} /> +91-9983005030
+                <a href="tel:+918764425030" className="flex items-center gap-2 text-amber-600 hover:text-amber-700 font-medium">
+                  <Phone size={16} /> +91 8764425030
                 </a>
               </div>
             </div>
@@ -235,3 +235,7 @@ export default function WebsiteTerms() {
     </div>
   );
 }
+
+
+
+

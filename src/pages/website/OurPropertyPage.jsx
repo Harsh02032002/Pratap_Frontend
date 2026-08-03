@@ -161,7 +161,7 @@ export default function OurPropertyPage() {
       owner_id: ownerId,
       rent_amount: parseInt(targetProp.price || targetProp.monthlyRent || targetProp.rent || bookingData.propertyPrice || 0, 10),
       area: targetProp.area || targetProp.locality || targetProp.propertyInfo?.area || targetProp.location || 'Nearby',
-      city: targetProp.city || targetProp.propertyInfo?.city || targetProp.location || 'Chandigarh',
+                    city: targetProp.city || targetProp.propertyInfo?.city || targetProp.location || 'Kota',
       property_type: targetProp.type || targetProp.propertyType || targetProp.propertyInfo?.propertyType || 'PG',
       request_type: 'direct',
       user_id: userId,
@@ -675,7 +675,7 @@ export default function OurPropertyPage() {
                   <div className="py-6 border-b border-gray-100">
                     <label className="block text-sm font-bold text-gray-900 mb-4">Location</label>
                     <div className="space-y-4">
-                      {(availableCities.length > 0 ? availableCities : ['Indore', 'Jaipur', 'Mumbai', 'Bhopal', 'Delhi']).map(city => (
+                      {(availableCities.length > 0 ? availableCities : ['Kota', 'Sikar', 'Indore']).map(city => (
                         <label key={city} className="flex items-center gap-3 cursor-pointer group">
                           <div className="relative flex items-center justify-center">
                             <input

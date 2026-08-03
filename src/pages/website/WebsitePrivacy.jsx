@@ -98,7 +98,7 @@ export default function WebsitePrivacy() {
   const renderHero = () => {
     const content = getSectionContent('privacy-hero', {
       title: 'Privacy Policy',
-      subtitle: 'Effective Date: 1st Aug 2025 — We take your privacy seriously.'
+      subtitle: ' — We take your privacy seriously.'
     });
     return (
       <div key="privacy-hero" className="relative w-full py-5 md:py-10 px-4 md:px-6 overflow-hidden border-b border-stone-200/50" 
@@ -128,7 +128,7 @@ export default function WebsitePrivacy() {
 
   const renderContent = () => {
     const content = getSectionContent('privacy-content', {
-      introduction: 'Roomhy is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and protect your information when you use our platform of ROOMHY TECHNOLOGY PRIVATE LIMITED.'
+      introduction: 'Roomhy is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and protect your information when you use our platform of ROOMHY TECHNOLOGY.'
     });
     return (
       <section key="privacy-content" className="py-6 md:py-16 px-4 max-w-4xl mx-auto">
@@ -161,17 +161,17 @@ export default function WebsitePrivacy() {
           <div className="mt-12 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-100">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Corporate & Contact Information</h3>
             <div className="space-y-4 text-sm text-gray-700">
-              <p className="font-semibold text-gray-900">ROOMHY TECHNOLOGY PRIVATE LIMITED</p>
+              <p className="font-semibold text-gray-900">ROOMHY TECHNOLOGY</p>
               <div className="flex items-start gap-3">
                 <MapPin size={18} className="text-blue-600 shrink-0 mt-0.5" />
-                <span>22, Krishna Nagar, Rangbari Road, Kota, Rajasthan - 324005</span>
+                <span>847, Balaji Nagar, Rangbari, Near Pani Ki Tanki, Kota, Rajasthan 324005, India</span>
               </div>
               <div className="flex flex-col sm:flex-row gap-4 pt-2">
-                <a href="mailto:hello@roomhy.com" className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium">
-                  <Mail size={16} /> hello@roomhy.com
+                <a href="mailto:team@roomhy.com" className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium">
+                  <Mail size={16} /> team@roomhy.com
                 </a>
-                <a href="tel:+919983005030" className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium">
-                  <Phone size={16} /> +91-9983005030
+                <a href="tel:+918764425030" className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium">
+                  <Phone size={16} /> +91 8764425030
                 </a>
               </div>
             </div>
@@ -211,3 +211,7 @@ export default function WebsitePrivacy() {
     </div>
   );
 }
+
+
+
+

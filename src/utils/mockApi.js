@@ -6,26 +6,17 @@
 // Mock Data (same as in mockData JSON files)
 const mockCities = [
   { name: 'Kota', state: 'Rajasthan', colleges: ['Allen', 'FIITJEE', 'Bansal', 'Resonance'], population: 1200000 },
+  { name: 'Sikar', state: 'Rajasthan', colleges: ['Sikar Coaching Hub', 'Sikar Study Center'], population: 350000 },
   { name: 'Indore', state: 'Madhya Pradesh', colleges: ['IIT-Indore', 'MITS', 'NRI'], population: 2100000 },
-  { name: 'Jaipur', state: 'Rajasthan', colleges: ['MNIT', 'RTU', 'BITS'], population: 3046000 },
-  { name: 'Delhi', state: 'Delhi', colleges: ['Delhi University', 'IIT-Delhi', 'NSIT'], population: 30927000 },
-  { name: 'Bhopal', state: 'Madhya Pradesh', colleges: ['IISER', 'MATS', 'Barkatullah'], population: 1782000 },
-  { name: 'Nagpur', state: 'Maharashtra', colleges: ['VNIT', 'RCOEM', 'Nagpur Uni'], population: 2405000 },
-  { name: 'Mumbai', state: 'Maharashtra', colleges: ['IIT-Mumbai', 'AISSMS', 'NMIMS'], population: 20411000 },
-  { name: 'Bangalore', state: 'Karnataka', colleges: ['IIT-Bangalore', 'VTU', 'RV Uni'], population: 8400000 }
 ];
 
 const mockAreas = [
   { city: 'Kota', name: 'Dadabari', zone: 'North', landmarks: ['Railway Station'] },
   { city: 'Kota', name: 'Nayapura', zone: 'Central', landmarks: ['Hospital'] },
+  { city: 'Sikar', name: 'Piprali Road', zone: 'North', landmarks: ['Market'] },
+  { city: 'Sikar', name: 'Subhash Chowk', zone: 'Central', landmarks: ['Bus Stand'] },
   { city: 'Indore', name: 'Rajwada', zone: 'Central', landmarks: ['Palace'] },
   { city: 'Indore', name: 'Khajrana', zone: 'North', landmarks: ['Temple'] },
-  { city: 'Jaipur', name: 'C Scheme', zone: 'Central', landmarks: ['Market'] },
-  { city: 'Jaipur', name: 'Tonk Road', zone: 'East', landmarks: ['University'] },
-  { city: 'Delhi', name: 'North Campus', zone: 'North', landmarks: ['Delhi University'] },
-  { city: 'Delhi', name: 'South Delhi', zone: 'South', landmarks: ['Market', 'Metro'] },
-  { city: 'Nagpur', name: 'Sitabuldi', zone: 'Central', landmarks: ['Fort'] },
-  { city: 'Bangalore', name: 'Whitefield', zone: 'East', landmarks: ['Tech Park'] }
 ];
 
 const mockProperties = [
@@ -123,14 +114,14 @@ const mockProperties = [
     ]
   },
   {
-    _id: 'JAIPUR-001',
-    visitId: 'JAIPUR-001',
-    property_name: 'Pink City PG',
-    propertyName: 'Pink City PG',
+    _id: 'SIKAR-001',
+    visitId: 'SIKAR-001',
+    property_name: 'Sikar Coaching PG',
+    propertyName: 'Sikar Coaching PG',
     property_type: 'PG',
     propertyType: 'PG',
-    city: 'Jaipur',
-    area: 'C Scheme',
+    city: 'Sikar',
+    area: 'Piprali Road',
     rent: 9000,
     monthlyRent: 9000,
     owner_name: 'Neha Singh',
@@ -143,8 +134,8 @@ const mockProperties = [
     status: 'approved',
     isVerified: true,
     isLiveOnWebsite: true,
-    nearbyColleges: ['MNIT', 'RTU', 'Manipal'],
-    generatedCredentials: { loginId: 'jaipur_pg_001', ownerName: 'Neha Singh' },
+    nearbyColleges: ['Sikar Coaching Hub', 'Sikar Study Center'],
+    generatedCredentials: { loginId: 'sikar_pg_001', ownerName: 'Neha Singh' },
     image: 'https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=600',
     professionalPhotos: [
       'https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=600',
@@ -154,14 +145,14 @@ const mockProperties = [
     ]
   },
   {
-    _id: 'DELHI-001',
-    visitId: 'DELHI-001',
-    property_name: 'North Campus PG',
-    propertyName: 'North Campus PG',
-    property_type: 'PG',
-    propertyType: 'PG',
-    city: 'Delhi',
-    area: 'North Campus',
+    _id: 'KOTA-002',
+    visitId: 'KOTA-002',
+    property_name: 'Kota Student Hostel',
+    propertyName: 'Kota Student Hostel',
+    property_type: 'Hostel',
+    propertyType: 'Hostel',
+    city: 'Kota',
+    area: 'Vigyan Nagar',
     rent: 10000,
     monthlyRent: 10000,
     owner_name: 'Priya Gupta',

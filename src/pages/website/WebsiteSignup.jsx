@@ -162,7 +162,7 @@ export default function WebsiteSignup() {
       return;
     }
     if (!/^\d{10}$/.test(payload.phone)) {
-      showToast("Enter a valid 10-digit phone number", "error");
+      showToast("Enter a valid 10-digit 8764425030", "error");
       return;
     }
     setLoadingCreate(true);
@@ -358,7 +358,7 @@ export default function WebsiteSignup() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">Phone Number</label>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">8764425030</label>
                   <div className="relative group">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                       <Phone className="h-4 w-4 text-gray-400 group-focus-within:text-teal-500 transition-colors" />
@@ -561,3 +561,4 @@ export default function WebsiteSignup() {
     </div>
   );
 }
+

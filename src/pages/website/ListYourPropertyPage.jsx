@@ -279,7 +279,7 @@ export default function ListYourPropertyPage() {
                     name="phone"
                     value={formData.phone}
                     onChange={handleChange}
-                    placeholder="10-digit mobile number"
+                    placeholder="10-digit phone number"
                     className={`w-full pl-10 pr-4 py-2 md:py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 text-sm md:text-base ${errors.phone ? 'border-red-500' : 'border-gray-300'}`}
                   />
                 </div>
@@ -465,9 +465,9 @@ export default function ListYourPropertyPage() {
                 <Phone className="w-4 h-4" />
                 <span>+91 12345 67890</span>
               </a>
-              <a href="mailto:support@roomhy.com" className="flex items-center gap-2 text-blue-600 hover:text-blue-700">
+              <a href="mailto:team@roomhy.com" className="flex items-center gap-2 text-blue-600 hover:text-blue-700">
                 <Mail className="w-4 h-4" />
-                <span>support@roomhy.com</span>
+                <span>team@roomhy.com</span>
               </a>
             </div>
           </div>
@@ -499,3 +499,6 @@ export default function ListYourPropertyPage() {
     </div>
   );
 }
+
+
+

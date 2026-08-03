@@ -205,7 +205,7 @@ export default function PaymentCheckout() {
               </div>
               <h2 className="text-3xl font-black text-gray-900 mb-2">Payment Failed</h2>
               <p className="text-gray-500 mb-4">{error || "Something went wrong during the transaction."}</p>
-              <p className="text-sm text-gray-400 mb-8">If money was deducted from your account, it will be refunded within 5-7 business days.</p>
+              <p className="text-sm text-gray-400 mb-8">If money was deducted from your account, it will be refunded within 21 days.</p>
               
               <button 
                 onClick={() => setPaymentStatus("pending")}
@@ -230,3 +230,4 @@ export default function PaymentCheckout() {
     </div>
   );
 }
+

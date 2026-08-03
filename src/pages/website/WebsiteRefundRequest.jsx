@@ -147,7 +147,7 @@ export default function WebsiteRefundRequest() {
                     <p className="text-gray-400">Required for refund processing</p>
                   </div>
                   <div className="pt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <p className="text-xs text-blue-900">⏱️ Processing Time: 5-7 business days</p>
+                    <p className="text-xs text-blue-900">⏱️ Processing Time: 21 days</p>
                   </div>
                 </div>
               </div>
@@ -406,3 +406,4 @@ export default function WebsiteRefundRequest() {
     </div>
   );
 }
+

@@ -8,10 +8,8 @@ import { getWebsiteUser, getWebsiteUserId, getWebsiteUserName, getWebsiteUserEma
 
 const defaultCities = [
   { _id: 'kota', name: 'Kota, Rajasthan' },
-  { _id: 'indore', name: 'Indore, Madhya Pradesh' },
   { _id: 'sikar', name: 'Sikar, Rajasthan' },
-  { _id: 'pune', name: 'Pune, Maharashtra' },
-  { _id: 'delhi', name: 'Delhi' }
+  { _id: 'indore', name: 'Indore, Madhya Pradesh' },
 ];
 
 export default function FastBiddingPage() {
@@ -591,3 +589,5 @@ export default function FastBiddingPage() {
     </div>
   );
 }
+
+

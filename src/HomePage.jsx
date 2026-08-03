@@ -15,24 +15,16 @@ import { fetchCities, fetchProperties, trackPropertyClick } from './utils/api';
 import useSEO from './hooks/useSEO';
 
 const cityAreas = {
-  'Indore': ['Vijay Nagar', 'Bhawar Kuan', 'Rajwada', 'Palasia'],
-  'Jaipur': ['Malviya Nagar', 'Mansarovar', 'Vaishali Nagar', 'C-Scheme'],
-  'Mumbai': ['Andheri', 'Bandra', 'Borivali', 'Worli'],
-  'Bhopal': ['MP Nagar', 'Arera Colony', 'Bittan Market', 'Kolar'],
-  'Delhi': ['South Delhi', 'North Delhi', 'Rohini', 'Dwarka'],
-  'Nagpur': ['Civil Lines', 'Dharampeth', 'Manish Nagar', 'Sitabuldi']
+  'Kota': ['Vigyan Nagar', 'Rajeev Gandhi Nagar', 'Indra Vihar', 'Mahaveer Nagar'],
+  'Sikar': ['Piprali Road', 'Subhash Chowk', 'Station Road', 'Nawalgarh Road'],
+  'Indore': ['Vijay Nagar', 'Bhawar Kuan', 'Rajwada', 'Palasia']
 };
 
 // Static fallback data - moved outside to prevent re-renders
 const staticCities = [
   { name: 'Kota', properties: '2,500+', image: 'https://picsum.photos/600/400?random=1' },
+  { name: 'Sikar', properties: '850+', image: 'https://picsum.photos/600/400?random=7' },
   { name: 'Indore', properties: '1,800+', image: 'https://picsum.photos/600/400?random=2' },
-  { name: 'Jaipur', properties: '3,200+', image: 'https://picsum.photos/600/400?random=3' },
-  { name: 'Delhi', properties: '5,000+', image: 'https://picsum.photos/600/400?random=4' },
-  { name: 'Bhopal', properties: '1,200+', image: 'https://picsum.photos/600/400?random=5' },
-  { name: 'Nagpur', properties: '980+', image: 'https://picsum.photos/600/400?random=6' },
-  { name: 'Jodhpur', properties: '850+', image: 'https://picsum.photos/600/400?random=7' },
-  { name: 'Mumbai', properties: '4,500+', image: 'https://picsum.photos/600/400?random=8' },
 ];
 
 const staticOfferings = [
@@ -118,7 +110,7 @@ const featuredProperties = [
   {
     _id: 'static3',
     name: 'Urban Co-Space',
-    location: 'Jaipur, Rajasthan',
+    location: 'Sikar, Rajasthan',
     price: '₹8,900',
     rating: 4.9,
     image: 'https://picsum.photos/600/400?random=31',
@@ -127,7 +119,7 @@ const featuredProperties = [
   {
     _id: 'static4',
     name: 'Campus View PG',
-    location: 'Delhi NCR',
+    location: 'Kota, Rajasthan',
     price: '₹7,800',
     rating: 4.7,
     image: 'https://picsum.photos/600/400?random=32',
@@ -136,7 +128,7 @@ const featuredProperties = [
   {
     _id: 'static8',
     name: 'Royal Residency',
-    location: 'Mumbai, Maharashtra',
+    location: 'Indore, MP',
     price: '₹12,500',
     rating: 4.5,
     image: 'https://picsum.photos/600/400?random=33',
@@ -145,7 +137,7 @@ const featuredProperties = [
   {
     _id: 'static5',
     name: 'Smart Stay PG',
-    location: 'Bhopal, MP',
+    location: 'Kota, Rajasthan',
     price: '₹5,800',
     rating: 4.4,
     image: 'https://picsum.photos/600/400?random=34',
@@ -154,7 +146,7 @@ const featuredProperties = [
   {
     _id: 'static6',
     name: 'Grand Hostel',
-    location: 'Nagpur, Maharashtra',
+    location: 'Sikar, Rajasthan',
     price: '₹4,800',
     rating: 4.3,
     image: 'https://picsum.photos/600/400?random=35',
@@ -163,7 +155,7 @@ const featuredProperties = [
   {
     _id: 'static7',
     name: 'City Center PG',
-    location: 'Jodhpur, Rajasthan',
+    location: 'Indore, MP',
     price: '₹6,200',
     rating: 4.6,
     image: 'https://picsum.photos/600/400?random=36',
@@ -172,7 +164,7 @@ const featuredProperties = [
   {
     _id: 'static9',
     name: 'Premium Co-Living',
-    location: 'Pune, Maharashtra',
+    location: 'Kota, Rajasthan',
     price: '₹10,500',
     rating: 4.8,
     image: 'https://picsum.photos/600/400?random=37',
@@ -181,7 +173,7 @@ const featuredProperties = [
   {
     _id: 'static10',
     name: 'Student Hub',
-    location: 'Lucknow, UP',
+    location: 'Sikar, Rajasthan',
     price: '₹5,500',
     rating: 4.2,
     image: 'https://picsum.photos/600/400?random=38',
@@ -210,7 +202,7 @@ const liveBiddingProperties = [
   },
   {
     name: 'Urban Co-Space',
-    location: 'Jaipur',
+    location: 'Sikar',
     price: '₹8,900',
     currentBid: '₹8,500',
     timeLeft: '1h 30m',
@@ -304,15 +296,8 @@ export default function HomePage() {
   const getCityImage = (cityName) => {
     const cityImages = {
       'Kota': 'https://picsum.photos/600/400?random=1',
-      'Indore': 'https://picsum.photos/600/400?random=2',
-      'Jaipur': 'https://picsum.photos/600/400?random=3',
-      'Delhi': 'https://picsum.photos/600/400?random=4',
-      'Bhopal': 'https://picsum.photos/600/400?random=5',
-      'Nagpur': 'https://picsum.photos/600/400?random=6',
       'Sikar': 'https://picsum.photos/600/400?random=7',
-      'Mumbai': 'https://picsum.photos/600/400?random=8',
-      'Bangalore': 'https://picsum.photos/600/400?random=9',
-      'Pune': 'https://picsum.photos/600/400?random=10'
+      'Indore': 'https://picsum.photos/600/400?random=2'
     };
     return cityImages[cityName] || 'https://picsum.photos/600/400?random=1';
   };
@@ -321,55 +306,35 @@ export default function HomePage() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Fetch cities
-        const citiesData = await fetchCities();
-        if (citiesData && citiesData.length > 0) {
-          // Map API data to component format - use imageUrl from backend
-          const formattedCities = citiesData.map((city, index) => ({
-            name: city.name || city,
-            properties: typeof city.propertyCount === 'number' ? `${city.propertyCount}` : staticCities[index]?.properties || '0',
-            // Use imageUrl from backend, fallback to static images
-            image: city.imageUrl || city.image || staticCities[index]?.image || getCityImage(city.name)
-          }));
-          setCities(formattedCities);
-        } else {
+        // STATIC MODE: using static cities only (Kota, Sikar, Indore)
+        // Dynamic fetch disabled for now
+        // const citiesData = await fetchCities();
+        // if (citiesData && citiesData.length > 0) {
+        //   const formattedCities = citiesData.map((city, index) => ({
+        //     name: city.name || city,
+        //     properties: typeof city.propertyCount === 'number' ? `${city.propertyCount}` : staticCities[index]?.properties || '0',
+        //     image: city.imageUrl || city.image || staticCities[index]?.image || getCityImage(city.name)
+        //   }));
+        //   setCities(formattedCities);
+        // } else {
           setCities(staticCities);
-        }
+        // }
 
         setOfferings(staticOfferings);
 
-        // Fetch trending properties
-        const allProperties = await fetchProperties();
-        if (allProperties && allProperties.length > 0) {
-          // Use first 8-12 properties as trending, filtering out test data
-          const filteredProperties = allProperties.filter(p => {
-            const name = (p.name || p.property_name || '').toLowerCase();
-            return !name.includes('jhvhhjhjv') && !name.includes('test');
-          });
-          setTrendingProperties(filteredProperties);
-
-          // Build city → areas map from real property data
-          const areasMap = {};
-          filteredProperties.forEach(p => {
-            const cityName = p.city || '';
-            const area = p.area || p.locality || p.neighborhood || p.location || '';
-            if (cityName) {
-              if (!areasMap[cityName]) areasMap[cityName] = new Set();
-              if (area && area !== cityName) areasMap[cityName].add(area);
-            }
-          });
-          const builtMap = {};
-          for (const [city, areaSet] of Object.entries(areasMap)) {
-            builtMap[city] = [...areaSet].slice(0, 4);
-          }
-          if (Object.keys(builtMap).length > 0) setCityAreasMap(builtMap);
-        } else {
-          // Fallback to static if API fails
+        // STATIC MODE: using featured properties only
+        // const allProperties = await fetchProperties();
+        // if (allProperties && allProperties.length > 0) {
+        //   const filteredProperties = allProperties.filter(p => {
+        //     const name = (p.name || p.property_name || '').toLowerCase();
+        //     return !name.includes('jhvhhjhjv') && !name.includes('test');
+        //   });
+        //   setTrendingProperties(filteredProperties);
+        // } else {
           setTrendingProperties(featuredProperties);
-        }
+        // }
       } catch (error) {
         console.error('Error loading homepage data:', error);
-        // Fallback to static data on error
         setCities(staticCities);
         setOfferings(staticOfferings);
         setTrendingProperties(featuredProperties);
@@ -748,7 +713,7 @@ export default function HomePage() {
           <div className="max-w-none w-full mx-auto px-4 md:px-8 lg:px-12">
             <div className="flex items-center justify-center h-8 text-[13px] font-medium text-gray-600">
               <div className="flex items-center justify-center space-x-10 w-full">
-                {Object.keys(cityAreasMap).slice(0, 6).map((city) => {
+                {Object.keys(cityAreasMap).filter(city => ['Kota','Sikar','Indore'].includes(city)).map((city) => {
                   const areas = cityAreasMap[city] || [];
                   return (
                   <div key={city} className="relative group h-full flex items-center">
@@ -1347,3 +1312,4 @@ export default function HomePage() {
     </div>
   );
 }
+

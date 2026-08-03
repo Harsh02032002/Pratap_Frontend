@@ -39,12 +39,8 @@ const footerColumns = [
 
 const staticCityLinks = [
   { name: "Kota", count: "2,500+", href: "/website/ourproperty?city=kota", areas: ["Vigyan Nagar", "Rajeev Gandhi Nagar", "Indra Vihar", "Mahaveer Nagar"] },
-  { name: "Indore", count: "1,800+", href: "/website/ourproperty?city=indore", areas: ["Vijay Nagar", "Bhawarkua", "Sapna Sangeeta"] },
-  { name: "Jaipur", count: "3,200+", href: "/website/ourproperty?city=jaipur", areas: ["Malviya Nagar", "Jhotwara", "Vaishali Nagar"] },
-  { name: "Delhi", count: "5,000+", href: "/website/ourproperty?city=delhi", areas: ["Kamla Nagar", "Lajpat Nagar", "Kalkaji"] },
-  { name: "Bhopal", count: "1,200+", href: "/website/ourproperty?city=bhopal", areas: ["MP Nagar", "Arera Colony", "Habib Ganj"] },
-  { name: "Nagpur", count: "980+", href: "/website/ourproperty?city=nagpur", areas: ["Ramdaspeth", "Dharampeth", "Sadar"] },
   { name: "Sikar", count: "850+", href: "/website/ourproperty?city=sikar", areas: ["Piprali Road", "Subhash Chowk", "Station Road"] },
+  { name: "Indore", count: "1,800+", href: "/website/ourproperty?city=indore", areas: ["Vijay Nagar", "Bhawarkua", "Sapna Sangeeta"] },
 ];
 
 export default function WebsiteFooter() {
@@ -53,56 +49,53 @@ export default function WebsiteFooter() {
   const [showAllCities, setShowAllCities] = useState(false);
   const [mobileExpandedCity, setMobileExpandedCity] = useState(null);
 
-  useEffect(() => {
-    const loadCitiesAndAreas = async () => {
-      try {
-        const [cities, areas] = await Promise.all([fetchCities(), fetchAreas()]);
-        
-        if (cities && cities.length > 0) {
-          // Group areas by city name
-          const areasByCity = {};
-          areas.forEach(area => {
-            if (typeof area === 'object') {
-              // Handle both populated and non-populated city refs
-              const cityName = area.cityName || area.city?.name || '';
-              const areaName = area.name || area.areaName || '';
-              if (cityName && areaName) {
-                const key = cityName.toLowerCase();
-                if (!areasByCity[key]) areasByCity[key] = [];
-                areasByCity[key].push(areaName);
-              }
-            }
-          });
-          
-          const transformedCities = cities
-            .map(city => {
-              const cityName = typeof city === 'string' ? city : (city.name || city.city || '');
-              const cityKey = cityName.toLowerCase();
-              const cityAreas = areasByCity[cityKey] || [];
-              const cityCount = typeof city.propertyCount === 'number' ? city.propertyCount : '—';
-              
-              return {
-                name: cityName,
-                count: cityCount,
-                href: `/website/ourproperty?city=${encodeURIComponent(cityName.toLowerCase())}`,
-                areas: cityAreas.slice(0, 5) // Show top 5 areas
-              };
-            })
-            .filter(city => city.name); // Only filter out entries with no name
-          
-          // Use transformed cities if we got them, otherwise keep static fallback
-          if (transformedCities.length > 0) {
-            setCityLinks(transformedCities);
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching cities/areas for footer:", error);
-        // Keep static fallback on error
-      }
-    };
-
-    loadCitiesAndAreas();
-  }, []);
+  // STATIC MODE: cities and areas loaded from static data only
+  // useEffect(() => {
+  //   const loadCitiesAndAreas = async () => {
+  //     try {
+  //       const [cities, areas] = await Promise.all([fetchCities(), fetchAreas()]);
+  //       
+  //       if (cities && cities.length > 0) {
+  //         const areasByCity = {};
+  //         areas.forEach(area => {
+  //           if (typeof area === 'object') {
+  //             const cityName = area.cityName || area.city?.name || '';
+  //             const areaName = area.name || area.areaName || '';
+  //             if (cityName && areaName) {
+  //               const key = cityName.toLowerCase();
+  //               if (!areasByCity[key]) areasByCity[key] = [];
+  //               areasByCity[key].push(areaName);
+  //             }
+  //           }
+  //         });
+  //         
+  //         const transformedCities = cities
+  //           .map(city => {
+  //             const cityName = typeof city === 'string' ? city : (city.name || city.city || '');
+  //             const cityKey = cityName.toLowerCase();
+  //             const cityAreas = areasByCity[cityKey] || [];
+  //             const cityCount = typeof city.propertyCount === 'number' ? city.propertyCount : '—';
+  //             
+  //             return {
+  //               name: cityName,
+  //               count: cityCount,
+  //               href: `/website/ourproperty?city=${encodeURIComponent(cityName.toLowerCase())}`,
+  //               areas: cityAreas.slice(0, 5)
+  //             };
+  //           })
+  //           .filter(city => ['Kota','Sikar','Indore'].includes(city.name));
+  //         
+  //         if (transformedCities.length > 0) {
+  //           setCityLinks(transformedCities);
+  //         }
+  //       }
+  //     } catch (error) {
+  //       console.error("Error fetching cities/areas for footer:", error);
+  //     }
+  //   };
+  //   
+  //   loadCitiesAndAreas();
+  // }, []);
 
   return (
     <footer className="mt-auto bg-gray-50 border-t border-gray-200 text-gray-700">
@@ -186,9 +179,10 @@ export default function WebsiteFooter() {
             </div>
             
             <div className="mt-4 text-xs text-gray-500 flex flex-col items-center md:items-start text-center md:text-left w-full space-y-1">
-              <p className="font-semibold text-gray-800">ROOMHY TECHNOLOGY PRIVATE LIMITED</p>
-              <p>CIN: U72000MP2024PTC123456</p>
-              <p>GSTIN: 23AABCR1234A1Z5</p>
+              <p className="font-semibold text-gray-800">ROOMHY TECHNOLOGY</p>
+              <p>847, Balaji Nagar, Rangbari, Near Pani Ki Tanki, Kota, Rajasthan 324005, India</p>
+              <p>+91 8764425030</p>
+              <p>GSTIN: 08SLWPS2629G1ZZ</p>
             </div>
           </div>
 
@@ -316,9 +310,12 @@ export default function WebsiteFooter() {
         </div>
 
         <div className="mt-4 md:mt-8 pt-3 md:pt-5 border-t border-gray-200 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-          <div className="text-xs text-gray-900 font-medium">© {year} ROOMHY TECHNOLOGY PRIVATE LIMITED. All rights reserved.</div>
+                  <div className="text-xs text-gray-900 font-medium">© {year} ROOMHY TECHNOLOGY. All rights reserved.</div>
         </div>
       </div>
     </footer>
   );
 }
+
+
+

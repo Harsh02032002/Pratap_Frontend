@@ -33,7 +33,7 @@ const PageLoader = () => (
 );
 
 const resolveHostHome = () => {
-  if (typeof window === "undefined") return "/coming-soon";
+  if (typeof window === "undefined") return "/website/index";
   const host = (window.location.hostname || "").toLowerCase();
 
   const readStoredUser = () => {
@@ -77,6 +77,7 @@ const resolveHostHome = () => {
     return "/propertyowner/index";
   }
 
+  // On localhost — default to website homepage for normal users/visitors
   if (isLocalhost) {
     if (role === "superadmin" || role === "admin") return "/superadmin/superadmin";
     if (role === "manager") {
@@ -88,11 +89,10 @@ const resolveHostHome = () => {
     }
     if (role === "areamanager" || role === "employee") return "/employee/areaadmin";
     if (owner?.loginId) return "/propertyowner/admin";
-    // On localhost — default to website homepage for normal users/visitors
     return "/website/index";
   }
 
-  return "/coming-soon";
+  return "/website/index";
 };
 
 const HtmlRedirectOrHome = () => {
@@ -330,7 +330,6 @@ const DomainGuard = () => {
     const allowedWebsiteRoutes = [
       "/website",
       "/website-editor",
-      "/coming-soon",
       "/about-us",
       "/contact-us",
       "/list-property",
@@ -348,7 +347,7 @@ const DomainGuard = () => {
 
     if (!allowedWebsiteRoutes.some(route => path.startsWith(route))) {
       if (path === "/" || path === "") {
-        window.location.replace("/coming-soon");
+        window.location.replace("/website/index");
       }
     }
   }, [location.pathname]);

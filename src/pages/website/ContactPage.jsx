@@ -114,13 +114,13 @@ export default function ContactPage() {
     const content = getSectionContent('contact-cards', {
       email: 'hello@roomhy.com',
       phone: '+91 99830 05030',
-      address: '22, Krishna Nagar, Rangbari Road, Kota, Rajasthan - 324005'
+      address: '847, Balaji Nagar, Rangbari, Near Pani Ki Tanki, Kota, Rajasthan 324005, India'
     });
 
     const contactCards = [
       { icon: Mail, title: 'Email Us', detail: content.email, sub: 'We reply within 24 hours', href: `mailto:${content.email}`, color: 'from-amber-500 to-orange-500' },
       { icon: Phone, title: 'Call Us', detail: content.phone, sub: 'Mon-Sat, 9AM-7PM IST', href: `tel:${content.phone}`, color: 'from-blue-500 to-indigo-500' },
-      { icon: MapPin, title: 'Visit Us', detail: content.address, sub: 'ROOMHY TECHNOLOGY PRIVATE LIMITED', href: '#', color: 'from-emerald-500 to-teal-500' },
+      { icon: MapPin, title: 'Visit Us', detail: content.address, sub: 'ROOMHY TECHNOLOGY', href: '#', color: 'from-emerald-500 to-teal-500' },
     ];
 
     return (
@@ -250,3 +250,7 @@ export default function ContactPage() {
     </div>
   );
 }
+
+
+
+

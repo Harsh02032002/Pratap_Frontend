@@ -159,9 +159,7 @@ export const fetchJson = (path, options = {}) => {
 };
 
 const DEFAULT_CITIES = [
-  { name: "Chandigarh" }, { name: "Kota" }, { name: "Indore" }, { name: "Jaipur" }, { name: "Delhi" },
-  { name: "Bhopal" }, { name: "Nagpur" }, { name: "Jodhpur" }, { name: "Mumbai" },
-  { name: "Bangalore" }, { name: "Chennai" }, { name: "Pune" }, { name: "Ahmedabad" }, { name: "Sikar" }
+  { name: "Kota" }, { name: "Sikar" }, { name: "Indore" }
 ];
 
 // Fetch cities from backend — cached 10 minutes (cities rarely change)
@@ -169,7 +167,9 @@ export const fetchCities = async () => {
   try {
     const data = await _fetchCached('/api/locations/cities', 10 * 60 * 1000);
     const list = data.data || data || [];
-    if (Array.isArray(list) && list.length > 0) return list;
+    const allowed = ['Kota', 'Sikar', 'Indore'];
+    const filtered = Array.isArray(list) ? list.filter(c => allowed.includes((c.name || '').trim())) : [];
+    if (filtered.length > 0) return filtered;
     return DEFAULT_CITIES;
   } catch (error) {
     console.error('Error fetching cities:', error);
@@ -840,13 +840,8 @@ export const searchPropertiesByLocation = async (latitude, longitude, propertyTy
     // Get nearby coordinates (mock data - in real app, fetch from db)
     const coordinatesByCity = {
       'Kota': { lat: 25.2048, lon: 75.8615 },
-      'Indore': { lat: 22.7196, lon: 75.8577 },
-      'Jaipur': { lat: 26.9124, lon: 75.7873 },
-      'Delhi': { lat: 28.6139, lon: 77.2090 },
-      'Bhopal': { lat: 23.1815, lon: 79.9864 },
-      'Nagpur': { lat: 21.1458, lon: 79.0882 },
-      'Mumbai': { lat: 19.0760, lon: 72.8777 },
-      'Bangalore': { lat: 12.9716, lon: 77.5946 }
+      'Sikar': { lat: 27.6106, lon: 75.1393 },
+      'Indore': { lat: 22.7196, lon: 75.8577 }
     };
 
     let filtered = [...properties];
@@ -1026,15 +1021,8 @@ export const fetchNearbyColleges = async (latitude, longitude, city = '', radius
 // Enrich properties with nearby colleges from map API
 const _defaultCollegesByCity = {
   'Kota': ['Allen', 'FIITJEE', 'Bansal Classes', 'Resonance'],
-  'Indore': ['IIT Indore', 'MITS', 'Devi Ahilya University', 'MAWL Institute'],
-  'Jaipur': ['MNIT Jaipur', 'RTU Jaipur', 'Manipal University', 'BITS Pilani'],
-  'Delhi': ['Delhi University', 'IIT Delhi', 'NSIT Delhi', 'DTU Delhi'],
-  'Bhopal': ['IISER Bhopal', 'Barkatullah University', 'MATS University', 'ITM Universe'],
-  'Nagpur': ['VNIT Nagpur', 'RCOEM', 'Rashtrasant Tukdoji Maharaj', 'Nagpur University'],
-  'Mumbai': ['IIT Bombay', 'NMIMS', 'AISSMS', 'Mumbai University'],
-  'Bangalore': ['IIT Bangalore', 'VTU', 'RV University', 'Christ University'],
-  'Chandigarh': ['Punjab University', 'PEC University', 'Chitkara University', 'DAV College'],
-  'Pune': ['Pune University', 'COEP', 'Symbiosis', 'MIT Pune']
+  'Sikar': ['Sikar Coaching Hub', 'Sikar Study Center', 'Sikar Academy'],
+  'Indore': ['IIT Indore', 'MITS', 'Devi Ahilya University', 'MAWL Institute']
 };
 
 export const enrichPropertiesWithColleges = (properties) => {

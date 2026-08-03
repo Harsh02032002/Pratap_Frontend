@@ -23,52 +23,51 @@ export default function WebsiteNavbar() {
 
   const propertyTypes = ['PG', 'Hostel', 'Flat', 'Villa', 'Shared Room', 'Private Room'];
 
-  // Fetch cities on load
-  useEffect(() => {
-    const loadCities = async () => {
-      try {
-        const citiesData = await fetchCities();
-        if (Array.isArray(citiesData)) {
-          setCities(citiesData);
-        }
-      } catch (error) {
-        console.error('Error loading cities:', error);
-        setCities(['Kota', 'Indore', 'Jaipur', 'Delhi', 'Bhopal', 'Nagpur', 'Mumbai', 'Bangalore']);
-      }
-    };
-    loadCities();
-  }, []);
+  // STATIC MODE: cities and areas loaded from static data only
+  // useEffect(() => {
+  //   const loadCities = async () => {
+  //     try {
+  //       const citiesData = await fetchCities();
+  //       if (Array.isArray(citiesData)) {
+  //         setCities(citiesData);
+  //       }
+  //     } catch (error) {
+  //       console.error('Error loading cities:', error);
+  //       setCities(['Kota', 'Sikar', 'Indore']);
+  //     }
+  //   };
+  //   loadCities();
+  // }, []);
 
-  // Fetch areas when city changes
-  useEffect(() => {
-    const loadAreas = async () => {
-      if (selectedCity) {
-        // Find selected city object to get its ID
-        const selectedCityObj = cities.find(c => (typeof c === 'object' ? c.name : c) === selectedCity);
-        const selectedCityId = selectedCityObj?._id || selectedCityObj?.id || '';
-
-        try {
-          const areasData = await fetchAreas();
-          const filteredAreas = areasData.filter(a => {
-            if (typeof a === 'string') return a.split('-')[0] === selectedCity;
-            
-            const cityName = (a.cityName || a.city?.name || '').toLowerCase().trim();
-            const cityIdStr = (a.cityId || a.city?._id || a.city || '').toString();
-            const selectedCityLower = selectedCity.toLowerCase().trim();
-
-            return cityName === selectedCityLower || 
-                   cityName.includes(selectedCityLower) || 
-                   (selectedCityId && cityIdStr === selectedCityId);
-          });
-          setAreas(filteredAreas.map(a => typeof a === 'string' ? a : a.name));
-        } catch (error) {
-          console.error('Error loading areas:', error);
-          setAreas([]);
-        }
-      }
-    };
-    loadAreas();
-  }, [selectedCity, cities]);
+  // STATIC MODE: areas loaded from static data only
+  // useEffect(() => {
+  //   const loadAreas = async () => {
+  //     if (selectedCity) {
+  //       const selectedCityObj = cities.find(c => (typeof c === 'object' ? c.name : c) === selectedCity);
+  //       const selectedCityId = selectedCityObj?._id || selectedCityObj?.id || '';
+  // 
+  //       try {
+  //         const areasData = await fetchAreas();
+  //         const filteredAreas = areasData.filter(a => {
+  //           if (typeof a === 'string') return a.split('-')[0] === selectedCity;
+  //           
+  //           const cityName = (a.cityName || a.city?.name || '').toLowerCase().trim();
+  //           const cityIdStr = (a.cityId || a.city?._id || a.city || '').toString();
+  //           const selectedCityLower = selectedCity.toLowerCase().trim();
+  // 
+  //           return cityName === selectedCityLower || 
+  //                  cityName.includes(selectedCityLower) || 
+  //                  (selectedCityId && cityIdStr === selectedCityId);
+  //         });
+  //         setAreas(filteredAreas.map(a => typeof a === 'string' ? a : a.name));
+  //       } catch (error) {
+  //         console.error('Error loading areas:', error);
+  //         setAreas([]);
+  //       }
+  //     }
+  //   };
+  //   loadAreas();
+  // }, [selectedCity, cities]);
 
   const handleSearch = () => {
     const params = new URLSearchParams();

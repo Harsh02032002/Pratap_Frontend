@@ -181,7 +181,7 @@ export default function SettingsPage() {
       icon: Shield,
       settings: [
         { key: 'profileVisible', label: 'Public Profile', desc: 'Make your profile visible to others' },
-        { key: 'showPhone', label: 'Show Phone Number', desc: 'Display phone on your profile' },
+        { key: 'showPhone', label: 'Show phone number', desc: 'Display phone on your profile' },
         { key: 'showEmail', label: 'Show Email', desc: 'Display email on your profile' }
       ]
     }
@@ -466,3 +466,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+

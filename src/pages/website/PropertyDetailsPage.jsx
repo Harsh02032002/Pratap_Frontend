@@ -44,7 +44,7 @@ const staticPropertiesData = [
     title: "Roomhy Boys PG - Kota",
     name: "Roomhy Boys PG - Kota",
     description: "Premium paying guest accommodation for boys near coaching centers with all modern amenities. Spacious rooms with study tables, high-speed WiFi, and nutritious food.",
-    address: "Talwandi, Kota, Rajasthan 324005",
+    address: "Talwandi, Kota, Rajasthan 324005, India",
     locationCode: "KOT",
     latitude: 25.2138,
     longitude: 75.8648,
@@ -1194,3 +1194,4 @@ export default function PropertyDetailsPage() {
     </div>
   );
 }
+

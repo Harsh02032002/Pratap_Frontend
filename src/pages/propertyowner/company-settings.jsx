@@ -12,8 +12,8 @@ export default function CompanySettingsPage() {
     return null; 
   }
 
-  const [companyName, setCompanyName] = useState("Roomhy Stays Private Limited");
-  const [gstin, setGstin] = useState("07AAAAA1111A1Z1");
+  const [companyName, setCompanyName] = useState("ROOMHY TECHNOLOGY");
+  const [gstin, setGstin] = useState("08SLWPS2629G1ZZ");
   const [success, setSuccess] = useState(false);
 
   const handleSave = (e) => {
@@ -80,3 +80,5 @@ export default function CompanySettingsPage() {
     </PropertyOwnerLayout>
   );
 }
+
+

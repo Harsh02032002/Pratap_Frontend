@@ -8,7 +8,7 @@ export default function WebsiteCancellation() {
       icon: Users,
       title: "Definitions",
       content: [
-        '"Roomhy", "We", "Us", or "Our" refers to ROOMHY TECHNOLOGY PRIVATE LIMITED and its associated services.',
+        '"Roomhy", "We", "Us", or "Our" refers to ROOMHY TECHNOLOGY and its associated services.',
         '"User", "You", or "Your" refers to any individual or entity using the platform.',
         '"Platform" refers to Roomhy\'s website, mobile application, and related services.'
       ]
@@ -81,8 +81,7 @@ export default function WebsiteCancellation() {
 
             {/* SUB-HEADING */}
             <p className="text-xs md:text-lg text-stone-500 font-normal opacity-90 max-w-xl mx-auto">
-              Effective Date: 1st Aug 2025
-            </p>
+              </p>
 
             {/* Bottom Accent Dot */}
             <div className="mt-2 md:mt-4 w-1.5 h-1.5 rounded-full bg-[#C5A059]/30"></div>
@@ -93,7 +92,7 @@ export default function WebsiteCancellation() {
         <section className="py-6 md:py-16 px-4 max-w-4xl mx-auto">
           <div className="bg-white md:rounded-3xl p-0 md:p-12 md:shadow-sm md:border md:border-gray-100">
             <p className="text-gray-600 text-xs md:text-base leading-relaxed mb-6 md:mb-8">
-              At Roomhy, we aim to make the rental process transparent and hassle-free for both students and property owners. This policy outlines our guidelines for cancellations and fair usage of the platform under <strong>ROOMHY TECHNOLOGY PRIVATE LIMITED</strong>.
+              At Roomhy, we aim to make the rental process transparent and hassle-free for both students and property owners. This policy outlines our guidelines for cancellations and fair usage of the platform under <strong>ROOMHY TECHNOLOGY</strong>.
             </p>
 
             <div className="space-y-5 md:space-y-8">
@@ -121,19 +120,19 @@ export default function WebsiteCancellation() {
             <div className="mt-12 p-6 bg-gradient-to-r from-red-50 to-orange-50 rounded-2xl border border-red-100">
               <h3 className="text-lg font-bold text-gray-900 mb-4">Corporate & Contact Information</h3>
               <div className="space-y-4 text-sm text-gray-700">
-                <p className="font-semibold text-gray-900">ROOMHY TECHNOLOGY PRIVATE LIMITED</p>
+                <p className="font-semibold text-gray-900">ROOMHY TECHNOLOGY</p>
                 
                 <div className="flex items-start gap-3">
                   <MapPin size={18} className="text-red-650 shrink-0 mt-0.5" />
-                  <span>22, Krishna Nagar, Rangbari Road, Kota, Rajasthan - 324005</span>
+                  <span>847, Balaji Nagar, Rangbari, Near Pani Ki Tanki, Kota, Rajasthan 324005, India</span>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-4 pt-2">
-                  <a href="mailto:hello@roomhy.com" className="flex items-center gap-2 text-red-600 hover:text-red-700 font-medium">
-                    <Mail size={16} /> hello@roomhy.com
+                  <a href="mailto:team@roomhy.com" className="flex items-center gap-2 text-red-600 hover:text-red-700 font-medium">
+                    <Mail size={16} /> team@roomhy.com
                   </a>
-                  <a href="tel:+919983005030" className="flex items-center gap-2 text-red-600 hover:text-red-700 font-medium">
-                    <Phone size={16} /> +91-9983005030
+                  <a href="tel:+918764425030" className="flex items-center gap-2 text-red-600 hover:text-red-700 font-medium">
+                    <Phone size={16} /> +91 8764425030
                   </a>
                 </div>
               </div>
@@ -146,3 +145,7 @@ export default function WebsiteCancellation() {
     </div>
   );
 }
+
+
+
+

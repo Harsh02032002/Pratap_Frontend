@@ -361,7 +361,7 @@ export default function WebsiteList() {
             </div>
             <div>
               <h4 className="font-semibold text-gray-900 mb-4">Get in Touch</h4>
-              <p className="text-sm text-gray-600"><i data-lucide="mail" className="w-4 h-4 inline mr-2"></i> contact@roomhy.com</p>
+              <p className="text-sm text-gray-600"><i data-lucide="mail" className="w-4 h-4 inline mr-2"></i> team@roomhy.com</p>
             </div>
           </div>
           <div className="border-t border-gray-200 mt-8 pt-8 text-center text-sm text-gray-500">
@@ -372,3 +372,6 @@ export default function WebsiteList() {
     </div>
   );
 }
+
+
+
