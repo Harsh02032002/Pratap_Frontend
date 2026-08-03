@@ -1,22 +1,11 @@
-import { createFileRoute, useParams } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { PageHeader } from "@/components/layout/PageHeader";
+import { useParams } from "react-router-dom";
 
-export const Route = createFileRoute("/website/$slug")({
-  head: () => ({
-    meta: [
-      { title: "Page — Roomhy" },
-      { name: "description", content: "Roomhy page" },
-    ],
-  }),
-  component: DynamicPage,
-});
-
-function DynamicPage() {
-  const { slug } = useParams({ from: "/website/$slug" });
-  const [page, setPage] = useState<any>(null);
+export default function DynamicPage() {
+  const { slug } = useParams();
+  const [page, setPage] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     loadPage();
@@ -28,21 +17,21 @@ function DynamicPage() {
       const res = await fetch(`/api/seo/pages`);
       const data = await res.json();
       const pages = data?.data || data || [];
-      
+
       // Find page by matching slug
       const matched = pages.find((p) => {
         const pageSlug = (p.path || p.slug || '').replace(/^\/+|\/+$/g, '').toLowerCase();
-        const requestSlug = slug.replace(/^\/+|\/+$/g, '').toLowerCase();
-        return pageSlug === requestSlug || 
+        const requestSlug = (slug || '').replace(/^\/+|\/+$/g, '').toLowerCase();
+        return pageSlug === requestSlug ||
                pageSlug === `website/${requestSlug}` ||
                requestSlug === pageSlug;
       });
-      
+
       if (matched) {
         setPage(matched);
-        // Update page meta
         document.title = matched.seo?.title || matched.title || 'Page — Roomhy';
-        document.querySelector('meta[name="description"]')?.setAttribute('content', matched.seo?.description || matched.description || '');
+        const metaDesc = document.querySelector('meta[name="description"]');
+        if (metaDesc) metaDesc.setAttribute('content', matched.seo?.description || matched.description || '');
       } else {
         setError('Page not found');
       }
@@ -56,7 +45,7 @@ function DynamicPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-sm text-muted-foreground">Loading page…</div>
+        <div className="text-sm text-gray-500">Loading page…</div>
       </div>
     );
   }
@@ -64,33 +53,32 @@ function DynamicPage() {
   if (error || !page) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <h1 className="text-4xl font-bold text-foreground">404</h1>
-        <p className="text-muted-foreground">Page not found</p>
+        <h1 className="text-4xl font-bold text-gray-800">404</h1>
+        <p className="text-gray-500">Page not found</p>
+        <a href="/" className="text-blue-600 hover:underline text-sm">Go home</a>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title={page.pageName || page.title || 'Page'}
-        subtitle={page.seo?.description || page.description || ''}
-        crumbs={[{ label: "Home", to: "/website/index" }, { label: page.pageName || 'Page' }]}
-      />
-      
-      <div className="rounded-2xl border border-border bg-card p-6 md:p-8">
-        {page.seo?.description && (
-          <p className="text-sm text-muted-foreground mb-4">{page.seo.description}</p>
+    <div className="max-w-4xl mx-auto px-4 py-10 space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">{page.pageName || page.title || 'Page'}</h1>
+        {(page.seo?.description || page.description) && (
+          <p className="mt-2 text-gray-500">{page.seo?.description || page.description}</p>
         )}
+      </div>
+
+      <div className="rounded-2xl border border-gray-200 bg-white p-6 md:p-8">
         {page.seoContent || page.content ? (
           <div dangerouslySetInnerHTML={{ __html: page.seoContent || page.content }} />
         ) : (
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-gray-500">
               This page is managed from the admin panel. Content will appear here once added.
             </p>
             {page.path && (
-              <p className="text-xs text-muted-foreground font-mono">Path: {page.path}</p>
+              <p className="text-xs text-gray-400 font-mono">Path: {page.path}</p>
             )}
           </div>
         )}
