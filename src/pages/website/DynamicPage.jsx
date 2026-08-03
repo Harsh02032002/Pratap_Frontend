@@ -30,7 +30,7 @@ function DynamicPage() {
       const pages = data?.data || data || [];
       
       // Find page by matching slug
-      const matched = pages.find((p: any) => {
+      const matched = pages.find((p) => {
         const pageSlug = (p.path || p.slug || '').replace(/^\/+|\/+$/g, '').toLowerCase();
         const requestSlug = slug.replace(/^\/+|\/+$/g, '').toLowerCase();
         return pageSlug === requestSlug || 
