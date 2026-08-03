@@ -124,5 +124,13 @@ export default defineConfig({
       'X-Content-Type-Options': 'nosniff',
       'Referrer-Policy': 'strict-origin-when-cross-origin',
     },
+    proxy: {
+      // Dev: /admin/* → admin panel dev server (port 6060)
+      '/admin': {
+        target: 'http://localhost:6060',
+        changeOrigin: true,
+        ws: true,
+      },
+    },
   },
 });

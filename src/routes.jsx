@@ -355,6 +355,7 @@ const routeEntries = [
   ["/website/reviews", "./pages/website/ReviewsPage.jsx"],
   ["/website/faq", "./pages/website/FAQPage.jsx"],
   ["/website/index", "./HomePage.jsx"],
+  ["/website/$slug", "./pages/website/DynamicPage.jsx"],
   ["/index", "./HomePage.jsx"],
   ["/coming-soon", "./pages/ComingSoon.jsx"],
   ["/", "./HomePage.jsx"],
