@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect } from "react";
+import React, { Suspense, lazy, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { TranslationProvider } from './contexts/TranslationContext';
@@ -89,10 +89,10 @@ const resolveHostHome = () => {
     }
     if (role === "areamanager" || role === "employee") return "/employee/areaadmin";
     if (owner?.loginId) return "/propertyowner/admin";
-    return "/website/index";
+    return "/";
   }
 
-  return "/website/index";
+  return "/";
 };
 
 const HtmlRedirectOrHome = () => {
@@ -347,7 +347,8 @@ const DomainGuard = () => {
 
     if (!allowedWebsiteRoutes.some(route => path.startsWith(route))) {
       if (path === "/" || path === "") {
-        window.location.replace("/website/index");
+        // Root — let the router handle it (shows HomePage)
+        return;
       }
     }
   }, [location.pathname]);
@@ -455,7 +456,7 @@ export default function App() {
                   );
                 })}
 
-                <Route path="/" element={<Navigate to={resolveHostHome()} replace />} />
+                <Route path="/" element={<React.Suspense fallback={<PageLoader />}>{React.createElement(lazy(() => import('./HomePage.jsx')))}</React.Suspense>} />
                 <Route path="/superadmin" element={<Navigate to="/superadmin/index" replace />} />
                 <Route path="/employee" element={<Navigate to="/employee/areaadmin" replace />} />
                 <Route path="/propertyowner" element={<Navigate to="/propertyowner/index" replace />} />
