@@ -401,7 +401,14 @@ const RouteChromeCleanup = () => {
 // the dev server (admin.html entry) or Vercel rewrites in production.
 const AdminPanelLoader = () => {
   React.useEffect(() => {
-    window.location.href = window.location.href;
+    // Sirf ek baar redirect — loop rokne ke liye sessionStorage use karo
+    const key = 'admin_redirect_attempted';
+    if (!sessionStorage.getItem(key)) {
+      sessionStorage.setItem(key, '1');
+      window.location.replace(window.location.href);
+    }
+    // Cleanup when admin loads successfully
+    return () => sessionStorage.removeItem(key);
   }, []);
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
@@ -412,6 +419,7 @@ const AdminPanelLoader = () => {
     </div>
   );
 };
+
 
 export default function App() {
   // Categorize routes for nested layout
