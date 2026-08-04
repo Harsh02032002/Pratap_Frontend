@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
-import { useAuth, DEMO_CREDENTIALS } from "@/lib/auth";
+import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,8 +22,8 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState(DEMO_CREDENTIALS.email);
-  const [password, setPassword] = useState(DEMO_CREDENTIALS.password);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(true);
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -114,11 +114,6 @@ function LoginPage() {
             {loading ? "Signing in…" : "Sign in"}
           </Button>
 
-          <div className="rounded-md border border-dashed border-border bg-muted/40 p-3 text-xs text-muted-foreground">
-            <div className="font-medium text-foreground">Demo account</div>
-            <div>Email: <span className="font-mono">{DEMO_CREDENTIALS.email}</span></div>
-            <div>Password: <span className="font-mono">{DEMO_CREDENTIALS.password}</span></div>
-          </div>
         </form>
       </div>
     </div>
