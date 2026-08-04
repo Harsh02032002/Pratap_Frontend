@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  content: ['./index.html', './admin.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
       fontFamily: {
@@ -49,6 +49,13 @@ export default {
           active: 'oklch(var(--sidebar-active) / <alpha-value>)',
           'active-fg': 'oklch(var(--sidebar-active-fg) / <alpha-value>)',
           border: 'oklch(var(--sidebar-border) / <alpha-value>)',
+          // Admin panel sidebar tokens
+          foreground: 'oklch(var(--sidebar-foreground) / <alpha-value>)',
+          primary: 'oklch(var(--sidebar-primary) / <alpha-value>)',
+          'primary-foreground': 'oklch(var(--sidebar-primary-foreground) / <alpha-value>)',
+          accent: 'oklch(var(--sidebar-accent) / <alpha-value>)',
+          'accent-foreground': 'oklch(var(--sidebar-accent-foreground) / <alpha-value>)',
+          ring: 'oklch(var(--sidebar-ring) / <alpha-value>)',
         },
         success: {
           DEFAULT: 'oklch(var(--success) / <alpha-value>)',

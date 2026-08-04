@@ -342,7 +342,8 @@ const DomainGuard = () => {
       "/hostels",
       "/co-living",
       "/apartments",
-      "/property"
+      "/property",
+      "/admin"
     ];
 
     if (!allowedWebsiteRoutes.some(route => path.startsWith(route))) {
@@ -392,6 +393,24 @@ const RouteChromeCleanup = () => {
   }, [location.pathname]);
 
   return null;
+};
+
+// Admin panel loader — when React Router intercepts /admin* routes,
+// force a hard browser navigation so admin.html (TanStack Router app) loads.
+// This only triggers on SPA-link clicks; direct URL navigation is handled by
+// the dev server (admin.html entry) or Vercel rewrites in production.
+const AdminPanelLoader = () => {
+  React.useEffect(() => {
+    window.location.href = window.location.href;
+  }, []);
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ width: 32, height: 32, border: '4px solid #e2e8f0', borderTop: '4px solid #0ea5e9', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
+        <p style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Loading Admin Panel…</p>
+      </div>
+    </div>
+  );
 };
 
 export default function App() {
@@ -465,6 +484,9 @@ export default function App() {
                 <Route path="/staff" element={<Navigate to={STAFF_HOME_PATH} replace />} />
                 <Route path="/staff/*" element={<Navigate to={STAFF_HOME_PATH} replace />} />
                 <Route path="/website" element={<Navigate to="/website/index" replace />} />
+                {/* Admin panel — force hard browser navigation so TanStack Router (admin) takes over */}
+                <Route path="/admin" element={<AdminPanelLoader />} />
+                <Route path="/admin/*" element={<AdminPanelLoader />} />
                 <Route path="*" element={<HtmlRedirectOrHome />} />
               </Routes>
             </Suspense>

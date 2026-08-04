@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_URL || 'https://roohmy-backend-6q6z.vercel.app';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5002';
 
 async function request(path: string, options: RequestInit = {}) {
   const token = typeof window !== 'undefined' ? localStorage.getItem('roomhy_admin_token') : null;
