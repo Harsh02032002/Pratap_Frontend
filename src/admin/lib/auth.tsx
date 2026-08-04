@@ -22,7 +22,7 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5002';
+const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
 async function apiRequest(path: string, options: RequestInit = {}) {
   const res = await fetch(`${API_BASE}${path}`, {

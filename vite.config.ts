@@ -3,16 +3,45 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import { visualizer } from 'rollup-plugin-visualizer';
 import path from 'path';
-import { mkdirSync } from 'fs';
+import { mkdirSync, readFileSync } from 'fs';
 import { tmpdir } from 'os';
 
 // Fix: Windows pe jiti tries to write cache to %TEMP%/node-jiti/ but the
 // directory may not exist, causing ENOENT crash. Create it proactively.
 try { mkdirSync(path.join(tmpdir(), 'node-jiti'), { recursive: true }); } catch {}
 
+const adminHtmlPath = path.resolve(__dirname, 'admin.html');
+
+// Plugin: serve admin.html for all /admin* routes in dev server
+const adminServerPlugin = {
+  name: 'admin-html-server',
+  configureServer(server: any) {
+    server.middlewares.use(async (req: any, res: any, next: any) => {
+      const url = (req.url || '').split('?')[0];
+      const isAdminRoute = url === '/admin' || url.startsWith('/admin/');
+      const isAsset = /\.\w{1,10}$/.test(url) || url.startsWith('/@') || url.startsWith('/__');
+
+      if (isAdminRoute && !isAsset) {
+        try {
+          const rawHtml = readFileSync(adminHtmlPath, 'utf-8');
+          const html = await server.transformIndexHtml(req.url || '/admin', rawHtml);
+          res.setHeader('Content-Type', 'text/html; charset=utf-8');
+          res.statusCode = 200;
+          res.end(html);
+          return;
+        } catch (e) {
+          console.error('[admin] Failed to serve admin.html:', e);
+        }
+      }
+      next();
+    });
+  },
+};
+
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
+    adminServerPlugin,   // ← must be FIRST so it intercepts before Vite's HTML serving
     react(),
     ...(process.env.ANALYZE ? [visualizer({
       open: true,
@@ -113,7 +142,15 @@ export default defineConfig({
   },
 
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom', 'lucide-react'],
+    include: [
+      'react', 'react-dom', 'react-router-dom', 'lucide-react',
+      // Admin panel heavy deps — pre-bundle for fast load
+      '@tanstack/react-router', '@tanstack/react-query',
+      '@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-select', '@radix-ui/react-tooltip',
+      '@radix-ui/react-slot', 'cmdk', 'class-variance-authority',
+      'clsx', 'tailwind-merge', 'sonner',
+    ],
     exclude: ['leaflet'],
   },
 
@@ -123,18 +160,14 @@ export default defineConfig({
       'X-Content-Type-Options': 'nosniff',
       'Referrer-Policy': 'strict-origin-when-cross-origin',
     },
-    // Dev: rewrite /admin* → admin.html so Vite MPA serves the admin sub-app
-    configureServer(server) {
-      server.middlewares.use((req, _res, next) => {
-        const url = req.url || '';
-        if (url === '/admin' || url.startsWith('/admin/') || url.startsWith('/admin?')) {
-          const isAsset = /\.\w{1,6}(\?.*)?$/.test(url) || url.startsWith('/@');
-          if (!isAsset) {
-            req.url = '/admin.html';
-          }
-        }
-        next();
-      });
+    // Forward /api/* to backend in dev
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5002',
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
 });
+
