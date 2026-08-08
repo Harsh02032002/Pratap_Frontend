@@ -46,64 +46,35 @@ export default function PaymentCheckout() {
   }, [bookingId]);
 
   const handlePayNow = async () => {
-    if (!razorpayKey) {
-      alert("Payment gateway not configured correctly.");
-      return;
-    }
-
     try {
-      // Create Razorpay Order
-      const orderRes = await fetchJson("/api/booking/create-order", {
+      // Create Cashfree Order / Link
+      const orderRes = await fetchJson("/api/payments/cashfree/create-order", {
         method: "POST",
         body: JSON.stringify({
+          bookingId,
           amount: Number(amount),
-          currency: "INR",
-          receipt: `pay_${String(bookingId).slice(-8)}_${Date.now()}`,
-          notes: {
-            bookingId: bookingId
+          customerInfo: {
+            name: bookingData?.name || "Guest",
+            email: bookingData?.email || "",
+            phone: bookingData?.phone || ""
           }
         })
       });
 
-      const orderId = orderRes?.orderId || orderRes?.id;
-      if (!orderId) throw new Error("Could not create order");
+      const paymentLink = orderRes?.payment_link || orderRes?.link_url;
+      const paymentSessionId = orderRes?.payment_session_id;
 
-      const options = {
-        key: razorpayKey,
-        amount: Number(amount) * 100,
-        currency: "INR",
-        name: "Roomhy",
-        description: `Booking Payment for ${bookingData?.property_name || "Property"}`,
-        order_id: orderId,
-        handler: async (response) => {
-          // Verify and Confirm Payment
-          try {
-            await fetchJson("/api/booking/payment/confirm", {
-              method: "POST",
-              body: JSON.stringify({
-                bookingId,
-                paymentId: response.razorpay_payment_id,
-                orderId: response.razorpay_order_id,
-                signature: response.razorpay_signature,
-                amount
-              })
-            });
-            setPaymentStatus("success");
-          } catch (err) {
-            setPaymentStatus("failed");
-            setError("Payment verification failed.");
-          }
-        },
-        prefill: {
-          name: bookingData?.name || "",
-          email: bookingData?.email || "",
-          contact: bookingData?.phone || ""
-        },
-        theme: { color: "#0d9488" }
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.open();
+      if (typeof window.Cashfree === 'function' && paymentSessionId) {
+        const cashfree = window.Cashfree({ mode: 'sandbox' });
+        cashfree.checkout({
+          paymentSessionId: paymentSessionId,
+          redirectTarget: '_self'
+        });
+      } else if (paymentLink) {
+        window.location.href = paymentLink;
+      } else {
+        throw new Error(orderRes?.message || "Could not create Cashfree payment session");
+      }
     } catch (err) {
       console.error("Payment initiation error:", err);
       const errorMsg = err?.body?.message || err?.body?.error || err?.message || "Error initiating payment.";
@@ -159,7 +130,7 @@ export default function PaymentCheckout() {
                   <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-xl border border-blue-100">
                     <ShieldCheck className="text-blue-600 shrink-0 mt-0.5" size={18} />
                     <p className="text-[11px] text-blue-700 leading-relaxed font-medium">
-                      Your payment is secured by Razorpay. Roomhy does not store your card or bank details.
+                      Your payment is secured by Cashfree. Roomhy does not store your card or bank details.
                     </p>
                   </div>
 

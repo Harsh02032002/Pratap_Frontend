@@ -27,10 +27,10 @@ const PaymentGateway = () => {
             return;
         }
 
-        // Dynamically load Razorpay script if not already present
-        if (typeof window !== 'undefined' && !window.Razorpay) {
+        // Dynamically load Cashfree JS SDK script if not already present
+        if (typeof window !== 'undefined' && !window.Cashfree) {
             const script = document.createElement('script');
-            script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+            script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
             script.async = true;
             document.body.appendChild(script);
         }
@@ -106,69 +106,41 @@ const PaymentGateway = () => {
         setLoading(true);
 
         try {
-            // 1. Get Razorpay Order
-            const res = await fetch(`${API_URL}/api/rents/checkout?token=${encodeURIComponent(token)}`);
-            if (!res.ok) {
-                const data = await res.json();
-                throw new Error(data.error || data.message || 'Failed to initialize payment');
+            // 1. Get Cashfree Order / Payment Link
+            const res = await fetch(`${API_URL}/api/payments/cashfree/create-order`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    bookingId: propertyData?.bookingId || propertyData?._id || token,
+                    amount: propertyData?.rentAmount || propertyData?.amount || 0,
+                    customerInfo: {
+                        name: propertyData?.tenantName || 'Tenant',
+                        phone: propertyData?.tenantPhone || '',
+                        email: propertyData?.tenantEmail || ''
+                    }
+                })
+            });
+
+            const data = await res.json();
+            if (!res.ok || !data.success) {
+                throw new Error(data.message || data.error || 'Failed to initialize Cashfree payment');
             }
 
-            const { orderId, amount, currency, key, userDetails, notes } = await res.json();
+            const paymentSessionId = data.payment_session_id;
+            const paymentLink = data.payment_link || data.link_url;
 
-            // 2. Open Razorpay
-            const options = {
-                key,
-                amount,
-                currency,
-                name: userDetails?.name || 'RoomHy',
-                description: 'Onboarding Payment',
-                order_id: orderId,
-                notes,
-                handler: async function (response) {
-                    try {
-                        // 3. Verify Payment
-                        const verifyRes = await fetch(`${API_URL}/api/rents/razorpay-onboarding/verify`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                razorpay_order_id: response.razorpay_order_id,
-                                razorpay_payment_id: response.razorpay_payment_id,
-                                razorpay_signature: response.razorpay_signature,
-                                token
-                            })
-                        });
-                        const verifyData = await verifyRes.json();
-
-                        if (verifyRes.ok) {
-                            setStep(4); // Success!
-                        } else {
-                            setError(verifyData.error || verifyData.message || 'Payment verification failed.');
-                        }
-                    } catch (err) {
-                        setError('Failed to securely verify payment.');
-                    }
-                },
-                prefill: {
-                    name: userDetails?.name,
-                    email: userDetails?.email,
-                    contact: userDetails?.contact
-                },
-                theme: {
-                    color: '#7c3aed'
-                },
-                modal: {
-                    ondismiss: function () {
-                        setLoading(false);
-                    }
-                }
-            };
-
-            const rzp = new window.Razorpay(options);
-            rzp.on('payment.failed', function (response) {
-                setError(response.error.description);
-                setLoading(false);
-            });
-            rzp.open();
+            // 2. Open Cashfree SDK or Redirect
+            if (typeof window.Cashfree === 'function' && paymentSessionId) {
+                const cashfree = window.Cashfree({ mode: 'sandbox' });
+                cashfree.checkout({
+                    paymentSessionId: paymentSessionId,
+                    redirectTarget: '_self'
+                });
+            } else if (paymentLink) {
+                window.location.href = paymentLink;
+            } else {
+                throw new Error('Could not initiate Cashfree checkout session.');
+            }
 
         } catch (err) {
             setError(err.message);
@@ -339,7 +311,7 @@ const PaymentGateway = () => {
                                     className="w-full relative flex items-center justify-between p-4 border border-purple-200 bg-purple-50 hover:bg-purple-100 rounded-xl cursor-pointer transition-colors"
                                 >
                                     <div className="flex flex-col text-left">
-                                        <span className="font-bold text-purple-900">Pay Online (Razorpay)</span>
+                                        <span className="font-bold text-purple-900">Pay Online (Cashfree)</span>
                                         <span className="text-purple-700 text-xs mt-1">UPI, Credit/Debit Card, Netbanking</span>
                                     </div>
                                     <span className="text-purple-600">→</span>
@@ -436,9 +408,9 @@ const PaymentGateway = () => {
                 </div>
             </div>
 
-            {/* Script include for Razorpay */}
+            {/* Script include for Cashfree */}
             <div className="hidden">
-                <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+                <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
             </div>
 
         </div>

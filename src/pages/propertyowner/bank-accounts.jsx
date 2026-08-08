@@ -26,6 +26,10 @@ export default function BankAccountsPage() {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
 
+  const [wallet, setWallet]   = useState({ heldBalance: 0, availableBalance: 0, withdrawnBalance: 0 });
+  const [withdrawLoading, setWithdrawLoading] = useState(false);
+  const [withdrawAmount, setWithdrawAmount]   = useState("");
+
   useEffect(() => {
     fetchJson(`/api/owners/${encodeURIComponent(owner.loginId)}`)
       .then(data => {
@@ -39,6 +43,11 @@ export default function BankAccountsPage() {
           locked:        !!data.bankLockedByVisit,
         };
         setBank(bankInfo);
+        setWallet({
+          heldBalance: data.heldBalance || data.pendingBalance || 0,
+          availableBalance: data.availableBalance || data.walletBalance || 0,
+          withdrawnBalance: data.withdrawnBalance || 0
+        });
         setEditData({
           checkinAccountHolderName: bankInfo.accountHolder,
           checkinBankName: bankInfo.bankName,
@@ -51,6 +60,45 @@ export default function BankAccountsPage() {
       .catch(() => setBank(null))
       .finally(() => setLoading(false));
   }, [owner.loginId]);
+
+  const handleWithdraw = async (e) => {
+    e.preventDefault();
+    const amt = parseFloat(withdrawAmount || wallet.availableBalance);
+    if (!amt || amt <= 0) {
+      alert("Please enter a valid withdrawal amount.");
+      return;
+    }
+    if (amt > wallet.availableBalance) {
+      alert("Withdrawal amount cannot exceed Available Balance.");
+      return;
+    }
+    setWithdrawLoading(true);
+    try {
+      const res = await fetchJson("/api/payouts/cashfree/withdraw", {
+        method: "POST",
+        body: JSON.stringify({
+          ownerLoginId: owner.loginId,
+          amount: amt
+        })
+      });
+      if (res.success) {
+        setSuccessMsg(`Withdrawal of ₹${amt} initiated via Cashfree Payout.`);
+        setWallet(prev => ({
+          ...prev,
+          availableBalance: Math.max(0, prev.availableBalance - amt),
+          withdrawnBalance: prev.withdrawnBalance + amt
+        }));
+        setWithdrawAmount("");
+        setTimeout(() => setSuccessMsg(""), 5000);
+      } else {
+        alert(res.message || "Withdrawal failed.");
+      }
+    } catch (err) {
+      alert(err.message || "Withdrawal failed.");
+    } finally {
+      setWithdrawLoading(false);
+    }
+  };
 
   const handleSaveBank = async (e) => {
     e.preventDefault();
@@ -126,6 +174,49 @@ export default function BankAccountsPage() {
         </div>
       ) : (
         <div className="max-w-2xl space-y-4">
+
+          {/* Cashfree Wallet Settlement Card */}
+          <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white rounded-2xl p-6 shadow-xl mb-6 border border-slate-700/50 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-700/60 pb-3">
+              <h3 className="font-serif text-[17px] font-bold tracking-tight text-white">Cashfree Wallet Balance</h3>
+              <span className="text-[10px] uppercase font-mono font-bold tracking-widest px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                Live Payouts Active
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="bg-slate-800/60 p-4 rounded-xl border border-slate-700/50">
+                <p className="text-[10px] font-bold text-amber-400 uppercase tracking-widest mb-1">Held Balance</p>
+                <p className="text-2xl font-black text-white font-mono">₹{(wallet.heldBalance || 0).toLocaleString("en-IN")}</p>
+                <p className="text-[10.5px] text-slate-400 font-medium mt-1">Locked until Move-In Date + 1 day</p>
+              </div>
+
+              <div className="bg-slate-800/60 p-4 rounded-xl border border-emerald-500/30">
+                <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-1">Available Balance</p>
+                <p className="text-2xl font-black text-emerald-300 font-mono">₹{(wallet.availableBalance || 0).toLocaleString("en-IN")}</p>
+                <p className="text-[10.5px] text-slate-400 font-medium mt-1">Withdrawable directly to bank account</p>
+              </div>
+            </div>
+
+            {wallet.availableBalance > 0 && (
+              <form onSubmit={handleWithdraw} className="pt-2 flex flex-col sm:flex-row gap-3">
+                <input
+                  type="number"
+                  value={withdrawAmount}
+                  onChange={(e) => setWithdrawAmount(e.target.value)}
+                  placeholder={`Amount (max ₹${wallet.availableBalance})`}
+                  className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none focus:border-emerald-400"
+                />
+                <button
+                  type="submit"
+                  disabled={withdrawLoading}
+                  className="px-6 h-10 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 shrink-0"
+                >
+                  {withdrawLoading ? "Processing..." : "Withdraw to Bank →"}
+                </button>
+              </form>
+            )}
+          </div>
 
           {/* Bank Account Card */}
           {hasBank && (

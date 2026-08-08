@@ -86,16 +86,36 @@ export default function OwnerChat() {
     const propertyName = associatedBooking.property_name || "property";
     const tenantName = associatedBooking.name || activeChat.participant_name || "Tenant";
     const bookingId = associatedBooking._id;
-    const paymentUrl = `${window.location.origin}/website/pay?bookingId=${bookingId}&amount=${amount}`;
-    
-    let paymentMessage = "";
-    if (depositAmount > 0) {
-      paymentMessage = `Dear ${tenantName}, please complete the onboarding payment of ₹${amount} (includes First Month Rent ₹${rentAmount} + Security Deposit ₹${depositAmount}) to secure your booking for "${propertyName}". 💳 You can pay securely via Razorpay here: ${paymentUrl}`;
-    } else {
-      paymentMessage = `Dear ${tenantName}, please complete the payment of ₹${amount} to secure your booking for "${propertyName}". 💳 You can pay securely via Razorpay here: ${paymentUrl}`;
-    }
 
     setIsSending(true);
+    let paymentUrl = `${window.location.origin}/website/pay?bookingId=${bookingId}&amount=${amount}`;
+
+    try {
+      // Create Cashfree payment order & link
+      const cfRes = await apiFetch("/api/payments/cashfree/create-link", {
+        method: "POST",
+        body: JSON.stringify({
+          bookingId,
+          amount,
+          customerInfo: {
+            name: tenantName,
+            email: associatedBooking.email || "",
+            phone: associatedBooking.phone || ""
+          }
+        })
+      }).catch(() => null);
+
+      if (cfRes?.link_url) {
+        paymentUrl = cfRes.link_url;
+      }
+    } catch (_) {}
+
+    let paymentMessage = "";
+    if (depositAmount > 0) {
+      paymentMessage = `Dear ${tenantName}, please complete the onboarding payment of ₹${amount} (includes First Month Rent ₹${rentAmount} + Security Deposit ₹${depositAmount}) to secure your booking for "${propertyName}". 💳 You can pay securely via Cashfree here: ${paymentUrl}`;
+    } else {
+      paymentMessage = `Dear ${tenantName}, please complete the payment of ₹${amount} to secure your booking for "${propertyName}". 💳 You can pay securely via Cashfree here: ${paymentUrl}`;
+    }
 
     const optimisticMsg = {
       id: Date.now(),

@@ -60,6 +60,10 @@ const resolveHostHome = () => {
   const owner = getOwnerSession();
   const isLocalhost = host.includes("localhost") || host.includes("127.0.0.1") || !host.includes(".");
 
+  if (role === "tenant" || String(staffUser?.loginId || "").toUpperCase().startsWith("ROOMHYTNT")) {
+    return "/tenant/tenantdashboard";
+  }
+
   if (host === "admin.roomhy.com" || host === "www.admin.roomhy.com") {
     if (role === "superadmin" || role === "admin") return "/superadmin/superadmin";
     if (role === "manager") {

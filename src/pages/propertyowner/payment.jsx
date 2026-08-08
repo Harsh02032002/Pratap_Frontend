@@ -552,6 +552,20 @@ export default function Payment() {
       const label = yr && mo
         ? new Date(parseInt(yr), parseInt(mo) - 1).toLocaleString("en", { month: "long" }) + " " + yr
         : data.invoice?.billingMonth || "";
+      const invoicePayments = (Array.isArray(data.payments) && data.payments.length > 0)
+        ? data.payments
+        : (Array.isArray(data.invoice?.payments) && data.invoice.payments.length > 0)
+        ? data.invoice.payments
+        : (data.invoice?.status === "PAID" || (data.invoice?.paidAmount || 0) > 0)
+        ? [{
+            _id: (data.invoice?._id || "pay") + "_synthetic",
+            amount: data.invoice?.paidAmount || data.invoice?.rentAmount || row.paidAmount || 0,
+            paymentDate: data.invoice?.updatedAt || data.invoice?.createdAt || new Date(),
+            paymentMethod: data.invoice?.paymentMethod || row.paymentMethod || "online",
+            notes: "Payment Processed & Confirmed"
+          }]
+        : [];
+
       setHistoryModal({
         tenantName: row.name,
         billingMonth: label,
@@ -563,7 +577,7 @@ export default function Payment() {
         advanceChargeAmount: data.invoice?.advanceChargeAmount || Math.max(0, (data.invoice?.paidAmount || 0) - (data.invoice?.rentAmount || 0) - (data.invoice?.totalPenalty || data.live?.totalPenalty || 0) - (data.invoice?.electricityBill || 0)),
         status: data.invoice?.status,
         paymentMethod: data.invoice?.paymentMethod || data.payments?.[0]?.paymentMethod || "",
-        payments: data.payments || [],
+        payments: invoicePayments,
         row,
       });
     } catch {

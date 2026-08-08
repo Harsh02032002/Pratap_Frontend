@@ -4,11 +4,7 @@ import { fetchJson } from "../../utils/api";
 import { Eye, EyeOff, Home, User, KeyRound, ArrowRight, Lock, X } from "lucide-react";
 
 const resolvePanelPath = (folder, fileName) => {
-  const path = (window.location.pathname || "").toLowerCase();
-  if (path.includes(`/${folder}/`)) {
-    return `/${folder}/${fileName}`;
-  }
-  return `/${fileName}`;
+  return `/${folder}/${fileName}`;
 };
 
 export default function Tenantlogin() {
