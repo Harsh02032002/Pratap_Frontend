@@ -10,10 +10,22 @@
     }
   ],
   "rewrites": [
-    { "source": "/website/(.*)", "destination": "/index.html" },
-    { "source": "/admin", "destination": "/admin.html" },
-    { "source": "/admin/(.*)", "destination": "/admin.html" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/website/(.*)",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/admin",
+      "destination": "/admin.html"
+    },
+    {
+      "source": "/admin/(.*)",
+      "destination": "/admin.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ],
   "headers": [
     {
@@ -73,6 +85,7 @@
     }
   ],
   "env": {
-    "VITE_API_URL": "https://roohmy-backend-6q6z.vercel.app"
+    "VITE_API_URL": "https://roohmy-backend-6q6z.vercel.app",
+    "VITE_FRONTEND_URL": "https://www.roomhy.com"
   }
 }

@@ -344,7 +344,6 @@ const DomainGuard = () => {
     }
 
     // 3. Fallback for main website domain (roomhy.com) and others
-    // Show only coming-soon page on root URL or paths not matching allowed website routes
     const allowedWebsiteRoutes = [
       "/website",
       "/website-editor",
