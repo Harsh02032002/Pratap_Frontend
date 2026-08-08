@@ -205,7 +205,8 @@ export default function AddTenant() {
     rentDueDate: "5th of every month",
     paymentFrequency: "Monthly",
     lateFee: "",
-    electricityUnitCost: ""
+    electricityUnitCost: "",
+    advanceChargeAmount: ""
   });
 
   // Section 4: Additional Details
@@ -365,6 +366,7 @@ export default function AddTenant() {
         baseRoomRent: tenancyDetails.rentAmount,
         agreedRent: tenancyDetails.finalRent ? tenancyDetails.finalRent : tenancyDetails.rentAmount,
         electricityUnitCost: tenancyDetails.electricityUnitCost,
+        advanceChargeAmount: tenancyDetails.advanceChargeAmount,
         securityDepositTotal: tenancyDetails.depositAmount,
         securityDepositPaid: 0,
         dob: basicDetails.dob,
@@ -1072,6 +1074,13 @@ export default function AddTenant() {
                 value={tenancyDetails.electricityUnitCost}
                 onChange={e => setTenancyDetails({...tenancyDetails, electricityUnitCost: e.target.value})}
                 placeholder="e.g. 8"
+                type="number"
+              />
+              <FormField 
+                label="Advance / Move-in Charge (₹)" 
+                value={tenancyDetails.advanceChargeAmount}
+                onChange={e => setTenancyDetails({...tenancyDetails, advanceChargeAmount: e.target.value})}
+                placeholder="0"
                 type="number"
               />
             </div>

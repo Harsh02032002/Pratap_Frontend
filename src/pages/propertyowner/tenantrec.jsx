@@ -446,7 +446,8 @@ export default function TenantRec() {
     moveOutCharges: "0",
     noticePeriodCharges: "0",
     inclusions: "",
-    gstCharges: "0"
+    gstCharges: "0",
+    advanceChargeAmount: ""
   });
 
 
@@ -530,6 +531,7 @@ export default function TenantRec() {
               noticePeriodCharges: String(t.noticePeriodCharges ?? agd.noticePeriodCharges ?? "0"),
               inclusions: t.inclusions || agd.inclusions || "",
               gstCharges: String(t.gstCharges ?? agd.gstCharges ?? "0"),
+              advanceChargeAmount: String(t.advanceChargeAmount ?? agd.advanceChargeAmount ?? ""),
             }));
 
             // ── Emergency Contact: DB stores as emergencyContact.{name,phone,relationship} ──
@@ -852,6 +854,7 @@ export default function TenantRec() {
         noticePeriodCharges: tenancyDetails.noticePeriodCharges,
         inclusions: tenancyDetails.inclusions,
         gstCharges: tenancyDetails.gstCharges,
+        advanceChargeAmount: tenancyDetails.advanceChargeAmount,
         propertyAddress: roomAssignment.propertyAddress,
         permanentAddress: additionalDetails.permanentAddress,
         idProofNumber: basicDetails.idProofNumber,
@@ -1659,6 +1662,13 @@ export default function TenantRec() {
                   label="Notice Period Charges (₹)"
                   value={tenancyDetails.noticePeriodCharges}
                   onChange={e => setTenancyDetails({ ...tenancyDetails, noticePeriodCharges: e.target.value })}
+                  placeholder="0"
+                  type="number"
+                />
+                <FormField
+                  label="Advance / Move-in Charge (₹)"
+                  value={tenancyDetails.advanceChargeAmount}
+                  onChange={e => setTenancyDetails({ ...tenancyDetails, advanceChargeAmount: e.target.value })}
                   placeholder="0"
                   type="number"
                 />
