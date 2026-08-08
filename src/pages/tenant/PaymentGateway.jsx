@@ -314,9 +314,21 @@ const PaymentGateway = () => {
                                     <span className="font-semibold text-slate-800 text-right">{propertyData.ownerName}</span>
                                 </div>
 
-                                <div className="mt-4 pt-4 border-t border-slate-200 flex justify-between items-end">
-                                    <span className="text-slate-600 font-medium">Total Amount Due</span>
-                                    <span className="text-2xl font-black text-green-600">₹{propertyData.rentAmount}</span>
+                                <div className="mt-4 pt-4 border-t border-slate-200 space-y-2">
+                                    <div className="flex justify-between items-center text-sm">
+                                        <span className="text-slate-600">Rent Amount</span>
+                                        <span className="font-semibold text-slate-800">₹{(propertyData.rentAmount - (propertyData.advanceAmount || 0)).toLocaleString('en-IN')}</span>
+                                    </div>
+                                    {propertyData.advanceAmount > 0 && (
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-slate-600">Move In Charges</span>
+                                            <span className="font-semibold text-amber-700">₹{(propertyData.advanceAmount).toLocaleString('en-IN')}</span>
+                                        </div>
+                                    )}
+                                    <div className="flex justify-between items-end pt-2 border-t border-slate-200">
+                                        <span className="text-slate-600 font-medium">Total Payable</span>
+                                        <span className="text-2xl font-black text-green-600">₹{propertyData.rentAmount}</span>
+                                    </div>
                                 </div>
                             </div>
 

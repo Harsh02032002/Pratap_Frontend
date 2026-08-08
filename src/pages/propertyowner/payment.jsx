@@ -560,7 +560,9 @@ export default function Payment() {
         totalPaid: data.invoice?.paidAmount || 0,
         penalty: data.invoice?.totalPenalty || data.live?.totalPenalty || 0,
         electricity: data.invoice?.electricityBill || 0,
+        advanceChargeAmount: data.invoice?.advanceChargeAmount || Math.max(0, (data.invoice?.paidAmount || 0) - (data.invoice?.rentAmount || 0) - (data.invoice?.totalPenalty || data.live?.totalPenalty || 0) - (data.invoice?.electricityBill || 0)),
         status: data.invoice?.status,
+        paymentMethod: data.invoice?.paymentMethod || data.payments?.[0]?.paymentMethod || "",
         payments: data.payments || [],
         row,
       });
@@ -1272,7 +1274,9 @@ export default function Payment() {
                     paid: hm.totalPaid || 0,
                     penalty: hm.penalty || 0,
                     electricity: hm.electricity || 0,
+                    advanceChargeAmount: hm.advanceChargeAmount || 0,
                     invoiceStatus: hm.status || '',
+                    paymentMethod: hm.paymentMethod || '',
                     type: "Rent Only",
                   });
                 }}

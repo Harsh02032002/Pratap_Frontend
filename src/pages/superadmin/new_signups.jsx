@@ -47,7 +47,8 @@ export default function NewSignups() {
     const total = signups.length;
     const pending = signups.filter(s => (s.status || s.kycStatus || "pending") === "pending").length;
     const verified = signups.filter(s => (s.status || s.kycStatus) === "verified").length;
-    return { total, pending, verified, rejected: total - pending - verified };
+    const rejected = signups.filter(s => (s.status || s.kycStatus) === "rejected").length;
+    return { total, pending, verified, rejected };
   }, [signups]);
 
   return (
@@ -69,8 +70,8 @@ export default function NewSignups() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCardHorizontal label="Total Signups" value={stats.total} trend="Total Registered" up icon={UserPlus} color="blue" />
         <StatCardHorizontal label="Pending KYC" value={stats.pending} trend="Action Required" up icon={Hourglass} color="amber" />
-        <StatCardHorizontal label="Verified Users" value={stats.verified} trend="Verified" up icon={ShieldCheck} color="emerald" />
-        <StatCardHorizontal label="Active Tenants" value={stats.total} trend="Live Users" up icon={Users} color="indigo" />
+        <StatCardHorizontal label="Verified Users" value={stats.verified} trend="Passed KYC" up icon={ShieldCheck} color="emerald" />
+        <StatCardHorizontal label="Rejected KYC" value={stats.rejected} trend="Needs Follow-up" up={false} icon={Users} color="indigo" />
       </div>
 
       {/* Main Pulse Ledger */}
@@ -79,7 +80,7 @@ export default function NewSignups() {
             <div className="flex items-center gap-6">
                <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider leading-none">Signups List</h3>
                <div className="hidden xl:flex items-center bg-slate-50 p-1 rounded-xl border border-slate-100 shadow-inner">
-                  {["all", "pending", "verified"].map(f => (
+                  {["all", "pending", "verified", "rejected"].map(f => (
                     <button 
                       key={f} onClick={() => setStatusFilter(f)}
                       className={cn(

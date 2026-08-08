@@ -150,7 +150,8 @@ function ReceiptTemplate({ receiptRef, tenant, tenantUser, rentItem, loginId, pr
   const originalRent = Number(rentItem?.rentAmount || tenant?.agreedRent || 0);
   const penalty = Number(rentItem?.totalPenalty || rentItem?.penalty || 0);
   const electricity = Number(rentItem?.electricityBill || rentItem?.electricity || 0);
-  const totalDue = (originalRent + penalty + electricity) || Number(rentItem?.totalDue || 0);
+  const advanceCharge = Number(rentItem?.advanceChargeAmount || rentItem?.advanceCharge || 0);
+  const totalDue = (originalRent + penalty + electricity + advanceCharge) || Number(rentItem?.totalDue || 0);
 
   const paidAmt = Number(rentItem?.paidAmount ?? rentItem?.paid ?? totalDue); // fallback if fully paid
   const balance = Math.max(0, totalDue - paidAmt);
@@ -236,6 +237,12 @@ function ReceiptTemplate({ receiptRef, tenant, tenantUser, rentItem, loginId, pr
                 {isPaid ? "✓ PAID" : "PARTIAL"}
               </div>
             </div>
+            {rentItem?.paymentMethod && (
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0", gap: 8 }}>
+                <span style={S.label}>Payment Method</span>
+                <span style={{ ...S.value, textTransform: "capitalize" }}>{String(rentItem.paymentMethod).replace('_', ' ')}</span>
+              </div>
+            )}
           </div>
         </div>
         <div style={S.box}>
@@ -276,6 +283,18 @@ function ReceiptTemplate({ receiptRef, tenant, tenantUser, rentItem, loginId, pr
             <td style={{ padding: "12px 14px", textAlign: "right", fontWeight: 600, border: "1px solid #e8e8e8" }}>₹{originalRent.toLocaleString("en-IN")}.00</td>
             <td style={{ padding: "12px 14px", textAlign: "right", fontWeight: 600, border: "1px solid #e8e8e8" }}>₹{originalRent.toLocaleString("en-IN")}.00</td>
           </tr>
+          {advanceCharge > 0 && (
+            <tr>
+              <td style={{ padding: "12px 14px", border: "1px solid #e8e8e8", color: "#666" }}>-</td>
+              <td style={{ padding: "12px 14px", border: "1px solid #e8e8e8" }}>
+                <p style={{ fontWeight: 600 }}>Move In Charges</p>
+                <p style={{ fontSize: 11, color: "#666", marginTop: 3 }}>Initial advance / deposit adjustments</p>
+              </td>
+              <td style={{ padding: "12px 14px", textAlign: "center", border: "1px solid #e8e8e8" }}>1</td>
+              <td style={{ padding: "12px 14px", textAlign: "right", fontWeight: 600, border: "1px solid #e8e8e8" }}>₹{advanceCharge.toLocaleString("en-IN")}.00</td>
+              <td style={{ padding: "12px 14px", textAlign: "right", fontWeight: 600, border: "1px solid #e8e8e8" }}>₹{advanceCharge.toLocaleString("en-IN")}.00</td>
+            </tr>
+          )}
           {penalty > 0 && (
             <tr>
               <td style={{ padding: "12px 14px", border: "1px solid #e8e8e8", color: "#666" }}>2</td>
@@ -313,6 +332,12 @@ function ReceiptTemplate({ receiptRef, tenant, tenantUser, rentItem, loginId, pr
             <span style={{ fontSize: 13 }}>Original Rent</span>
             <span style={{ fontSize: 13, fontWeight: 600 }}>₹{originalRent.toLocaleString("en-IN")}.00</span>
           </div>
+          {advanceCharge > 0 && (
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "5px 16px" }}>
+              <span style={{ fontSize: 13 }}>Move In Charges</span>
+              <span style={{ fontSize: 13, fontWeight: 600 }}>₹{advanceCharge.toLocaleString("en-IN")}.00</span>
+            </div>
+          )}
           {penalty > 0 && (
             <div style={{ display: "flex", justifyContent: "space-between", padding: "5px 16px" }}>
               <span style={{ fontSize: 13 }}>Late Penalty</span>

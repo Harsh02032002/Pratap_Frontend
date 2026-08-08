@@ -47,9 +47,11 @@ export default function ReceiptsPage() {
     period: billingLabel(p.billingMonth),
     amount: p.rentAmount || p.amount,
     penalty: p.totalPenalty || 0,
+    advanceChargeAmount: p.advanceChargeAmount || p.invoiceId?.advanceChargeAmount || 0,
     electricity: p.electricityBill || 0,
     totalDue: (p.rentAmount || 0) + (p.totalPenalty || 0) + (p.electricityBill || 0),
     paid: p.amount,
+    paymentMethod: p.paymentMethod || p.invoiceId?.paymentMethod || '',
     invoiceStatus: p.invoiceStatus || '',   // PAID / PARTIAL / PENDING — from DB
     type: p.electricityBill > 0 ? "Rent & Utility" : p.totalPenalty > 0 ? "Rent + Penalty" : "Rent Only",
     _raw: p,

@@ -28,12 +28,12 @@ interface AreaItem {
 
 function AreasPage() {
   const [items, setItems] = useState<AreaItem[]>([]);
-  const [citiesList, setCitiesList] = useState<string[]>([]);
+  const [citiesList, setCitiesList] = useState<{ _id: string; name: string }[]>([]);
   const [q, setQ] = useState("");
   const [cityFilter, setCityFilter] = useState("All");
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<AreaItem | null>(null);
-  const [form, setForm] = useState({ name: "", city: "", slug: "" });
+  const [form, setForm] = useState({ name: "", cityId: "", city: "", slug: "" });
   const [toast, setToast] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -46,7 +46,9 @@ function AreasPage() {
     try {
       const data = await api.get('/api/locations/cities');
       const list = data.data || data || [];
-      setCitiesList(list.map((c: any) => c.name || c));
+      // Only include cities that have a DB _id (superadmin-added)
+      const mapped = list.filter((c: any) => c._id).map((c: any) => ({ _id: String(c._id), name: c.name || c }));
+      setCitiesList(mapped);
     } catch (err) {
       console.error('Failed to load cities:', err);
     }
@@ -82,18 +84,24 @@ function AreasPage() {
   );
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 2000); };
-  const openAdd = () => { setForm({ name: "", city: citiesList[0] || "", slug: "" }); setEditing(null); setShowForm(true); };
-  const openEdit = (a: AreaItem) => { setForm({ name: a.name, city: a.city, slug: a.slug }); setEditing(a); setShowForm(true); };
+  const openAdd = () => {
+    const firstCity = citiesList[0] || { _id: "", name: "" };
+    setForm({ name: "", cityId: firstCity._id, city: firstCity.name, slug: "" });
+    setEditing(null);
+    setShowForm(true);
+  };
+  const openEdit = (a: AreaItem) => { setForm({ name: a.name, cityId: "", city: a.city, slug: a.slug }); setEditing(a); setShowForm(true); };
   const handleSave = async () => {
     if (!form.name.trim()) return;
     try {
       if (editing) {
-        await api.put(`/api/locations/areas/${editing.id}`, { name: form.name, cityName: form.city, slug: form.slug });
-        setItems((prev) => prev.map((a) => a.id === editing.id ? { ...a, ...form } : a));
+        await api.put(`/api/locations/areas/${editing.id}`, { name: form.name, slug: form.slug });
+        setItems((prev) => prev.map((a) => a.id === editing.id ? { ...a, name: form.name, slug: form.slug } : a));
         showToast(`"${form.name}" updated`);
       } else {
-        const data = await api.post('/api/locations/areas', { name: form.name, cityName: form.city, slug: form.slug });
-        setItems((prev) => [...prev, { id: data._id || `area-${Date.now()}`, name: form.name, city: form.city, slug: form.slug || form.name.toLowerCase().replace(/\s+/g, "-"), count: 0, active: true }]);
+        if (!form.cityId) { showToast('Please select a city'); return; }
+        const data = await api.post('/api/locations/areas', { name: form.name, cityId: form.cityId, slug: form.slug });
+        setItems((prev) => [...prev, { id: data.data?._id || `area-${Date.now()}`, name: form.name, city: form.city, slug: form.slug || form.name.toLowerCase().replace(/\s+/g, "-"), count: 0, active: true }]);
         showToast(`"${form.name}" added`);
       }
       setShowForm(false);
@@ -159,7 +167,7 @@ function AreasPage() {
               <SelectContent>
                 <SelectItem value="All">All cities</SelectItem>
                 {citiesList.map((c) => (
-                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                  <SelectItem key={c._id} value={c.name}>{c.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -227,17 +235,24 @@ function AreasPage() {
                 <Input placeholder="e.g. Vigyan Nagar" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
               </div>
               <div>
-                <label className="mb-1.5 block text-sm font-medium">City</label>
-                <Select value={form.city} onValueChange={(v) => setForm({ ...form, city: v })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select city" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {citiesList.map((c) => (
-                      <SelectItem key={c} value={c}>{c}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <label className="mb-1.5 block text-sm font-medium">City {!editing && <span className="text-destructive">*</span>}</label>
+                {editing ? (
+                  <div className="rounded-md border border-input bg-muted px-3 py-2 text-sm text-muted-foreground">{form.city || "—"}</div>
+                ) : (
+                  <Select value={form.cityId} onValueChange={(v) => {
+                    const selected = citiesList.find(c => c._id === v);
+                    setForm({ ...form, cityId: v, city: selected?.name || "" });
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select city" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {citiesList.map((c) => (
+                        <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium">Slug</label>
@@ -246,7 +261,7 @@ function AreasPage() {
             </div>
             <div className="mt-6 flex justify-end gap-2">
               <Button variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
-              <Button disabled={!form.name.trim() || !form.city} onClick={handleSave}><Check className="mr-2 h-4 w-4" /> {editing ? "Save" : "Add"}</Button>
+              <Button disabled={!form.name.trim() || (!editing && !form.cityId)} onClick={handleSave}><Check className="mr-2 h-4 w-4" /> {editing ? "Save" : "Add"}</Button>
             </div>
           </div>
         </div>

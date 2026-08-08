@@ -19,11 +19,12 @@ export function numberToWords(num) {
 }
 
 export function buildReceiptHtml(r) {
-  const originalRent = r.amount || 0;
+  const originalRent = r.amount || r.rentAmount || 0;
   const penalty = r.penalty || 0;
   const electricity = r.electricity || 0;
-  const totalDue = originalRent + penalty + electricity;
-  const paidAmt = (r.paid && r.paid > 0) ? r.paid : totalDue;
+  const advanceCharge = r.advanceChargeAmount || r.advanceCharge || 0;
+  const totalDue = originalRent + penalty + electricity + advanceCharge;
+  const paidAmt = (r.paid && r.paid > 0) ? r.paid : (r.paidAmount || totalDue);
   const balance = Math.max(0, totalDue - paidAmt);
   // Use actual DB invoice status when available; fall back to balance-based check
   const isPaid = ['PAID', 'WAIVED'].includes(String(r.invoiceStatus || '').toUpperCase()) || balance === 0;
@@ -100,6 +101,7 @@ export function buildReceiptHtml(r) {
         <div class="field-row"><span class="lbl">Due On</span><span class="val">Due on Receipt</span></div>
         <div class="field-row"><span class="lbl">State Code</span><span class="val">MP (23)</span></div>
         <div class="field-row"><span class="lbl">Status</span><span class="val"><span class="${isPaid ? "badge-paid" : "badge-partial"}">${isPaid ? "&#10003; PAID" : "PARTIAL"}</span></span></div>
+        ${r.paymentMethod ? `<div class="field-row"><span class="lbl">Payment Method</span><span class="val" style="text-transform: capitalize;">${String(r.paymentMethod).replace('_', ' ')}</span></div>` : ""}
       </div>
     </div>
     <div class="box">
@@ -134,6 +136,16 @@ export function buildReceiptHtml(r) {
         <td class="right">&#8377;${originalRent.toLocaleString("en-IN")}.00</td>
         <td class="right">&#8377;${originalRent.toLocaleString("en-IN")}.00</td>
       </tr>
+      ${advanceCharge > 0 ? `<tr>
+        <td>-</td>
+        <td>
+          <strong>Move In Charges</strong>
+          <div class="desc-sub">Initial advance / deposit adjustments</div>
+        </td>
+        <td class="center">1</td>
+        <td class="right">&#8377;${advanceCharge.toLocaleString("en-IN")}.00</td>
+        <td class="right">&#8377;${advanceCharge.toLocaleString("en-IN")}.00</td>
+      </tr>` : ""}
       ${penalty > 0 ? `<tr>
         <td>2</td>
         <td>
@@ -160,6 +172,7 @@ export function buildReceiptHtml(r) {
     <div class="totals-inner">
       <div class="totals-head">Payment Breakdown Summary</div>
       <div class="t-row"><span class="tk">Original Rent</span><span class="tv">&#8377;${originalRent.toLocaleString("en-IN")}.00</span></div>
+      ${advanceCharge > 0 ? `<div class="t-row"><span class="tk">Move In Charges</span><span class="tv">&#8377;${advanceCharge.toLocaleString("en-IN")}.00</span></div>` : ""}
       ${penalty > 0 ? `<div class="t-row"><span class="tk">Late Penalty</span><span class="tv" style="color:#dc2626">&#8377;${penalty.toLocaleString("en-IN")}.00</span></div>` : ""}
       ${electricity > 0 ? `<div class="t-row"><span class="tk">Electricity Bill</span><span class="tv">&#8377;${electricity.toLocaleString("en-IN")}.00</span></div>` : ""}
       <div class="t-row" style="border-top:1px dashed #ccc;margin-top:4px;padding-top:6px"><span class="tk" style="font-weight:700">Total Rent Due</span><span class="tv" style="font-weight:700">&#8377;${totalDue.toLocaleString("en-IN")}.00</span></div>
@@ -182,12 +195,13 @@ export function buildReceiptHtml(r) {
 }
 
 export function RentReceiptModal({ receipt, onClose }) {
-  const originalRent = receipt.amount || 0;
+  const originalRent = receipt.amount || receipt.rentAmount || 0;
   const penalty = receipt.penalty || 0;
   const electricity = receipt.electricity || 0;
+  const advanceCharge = receipt.advanceChargeAmount || receipt.advanceCharge || 0;
   // Always compute fresh from components — receipt.totalDue may be stale (saved before electricity was added)
-  const totalDue = (originalRent + penalty + electricity) || receipt.totalDue || 0;
-  const paidAmt = receipt.paid ?? originalRent;
+  const totalDue = (originalRent + penalty + electricity + advanceCharge) || receipt.totalDue || 0;
+  const paidAmt = receipt.paid ?? (receipt.paidAmount ?? originalRent);
   const balance = Math.max(0, totalDue - paidAmt);
   // Use actual DB invoice status when available; fall back to balance-based check
   const isPaid = ['PAID', 'WAIVED'].includes(String(receipt.invoiceStatus || '').toUpperCase()) || balance === 0;
@@ -266,6 +280,12 @@ export function RentReceiptModal({ receipt, onClose }) {
                     {isPaid ? "✓ PAID" : "PARTIAL"}
                   </span>
                 </div>
+                {receipt.paymentMethod && (
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0", gap: 8 }}>
+                    <span style={S.label}>Payment Method</span>
+                    <span style={{ ...S.value, textTransform: "capitalize" }}>{String(receipt.paymentMethod).replace('_', ' ')}</span>
+                  </div>
+                )}
               </div>
             </div>
             <div style={S.box}>
@@ -302,6 +322,18 @@ export function RentReceiptModal({ receipt, onClose }) {
                 <td style={{ padding: "12px 14px", textAlign: "right", fontWeight: 600, border: "1px solid #e8e8e8" }}>₹{originalRent.toLocaleString("en-IN")}.00</td>
                 <td style={{ padding: "12px 14px", textAlign: "right", fontWeight: 600, border: "1px solid #e8e8e8" }}>₹{originalRent.toLocaleString("en-IN")}.00</td>
               </tr>
+              {advanceCharge > 0 && (
+                <tr>
+                  <td style={{ padding: "12px 14px", border: "1px solid #e8e8e8", color: "#666" }}>-</td>
+                  <td style={{ padding: "12px 14px", border: "1px solid #e8e8e8" }}>
+                    <p style={{ fontWeight: 600 }}>Move In Charges</p>
+                    <p style={{ fontSize: 11, color: "#666", marginTop: 3 }}>Initial advance / deposit adjustments</p>
+                  </td>
+                  <td style={{ padding: "12px 14px", textAlign: "center", border: "1px solid #e8e8e8" }}>1</td>
+                  <td style={{ padding: "12px 14px", textAlign: "right", fontWeight: 600, border: "1px solid #e8e8e8" }}>₹{advanceCharge.toLocaleString("en-IN")}.00</td>
+                  <td style={{ padding: "12px 14px", textAlign: "right", fontWeight: 600, border: "1px solid #e8e8e8" }}>₹{advanceCharge.toLocaleString("en-IN")}.00</td>
+                </tr>
+              )}
               {penalty > 0 && (
                 <tr>
                   <td style={{ padding: "12px 14px", border: "1px solid #e8e8e8", color: "#666" }}>2</td>
@@ -339,6 +371,12 @@ export function RentReceiptModal({ receipt, onClose }) {
                 <span style={{ fontSize: 13 }}>Original Rent</span>
                 <span style={{ fontSize: 13, fontWeight: 600 }}>₹{originalRent.toLocaleString("en-IN")}.00</span>
               </div>
+              {advanceCharge > 0 && (
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "5px 16px" }}>
+                  <span style={{ fontSize: 13 }}>Move In Charges</span>
+                  <span style={{ fontSize: 13, fontWeight: 600 }}>₹{advanceCharge.toLocaleString("en-IN")}.00</span>
+                </div>
+              )}
               {penalty > 0 && (
                 <div style={{ display: "flex", justifyContent: "space-between", padding: "5px 16px" }}>
                   <span style={{ fontSize: 13 }}>Late Penalty</span>
