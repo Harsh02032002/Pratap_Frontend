@@ -635,8 +635,6 @@ export default function AddStaffPage() {
                 </div>
               </div>
 
-              </div>
-
               <div className="flex justify-between pt-2 border-t border-slate-100">
                 <button type="button" onClick={() => setStep(2)}
                   className="px-6 h-11 border border-slate-200 text-slate-600 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-slate-50 transition-all">
