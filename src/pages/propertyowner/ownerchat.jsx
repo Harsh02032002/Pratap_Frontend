@@ -231,6 +231,7 @@ export default function OwnerChat() {
           file_url: msg.file_url || null,
           time: new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
           isMe: msg.sender_login_id === owner.loginId,
+          isSystem: msg.sender_login_id === 'system' || msg.sender_role === 'superadmin' || msg.message_type === 'system',
           isBlocked: msg.is_blocked || false,
           violationType: msg.violation_type || null
         })));
@@ -471,29 +472,44 @@ export default function OwnerChat() {
                 {loadingMessages && messages.length === 0 ? (
                   <div className="text-center py-8 text-slate-400">Loading messages...</div>
                 ) : messages.map((msg, i) => (
-                  <div key={msg.id || i} className={`flex ${msg.isMe ? "justify-end" : "justify-start"}`}>
-                    <div className={`max-w-[70%] rounded-2xl p-4 shadow-sm ${msg.isMe ? "bg-blue-600 text-white rounded-br-sm" : "bg-white border border-slate-100 text-slate-800 rounded-bl-sm"}`}>
-                      {msg.isBlocked ? (
-                        <span className="text-[12px] italic font-semibold text-rose-500 block">
-                          ⚠️ Message blocked by Roomhy Safety Policy (contact/payment info detected)
-                        </span>
-                      ) : (
-                        <div>
-                          {msg.message_type === 'image' ? (
-                            <img src={msg.file_url} alt="uploaded" className="max-w-full rounded-xl cursor-pointer" onClick={() => window.open(msg.file_url, '_blank')} />
-                          ) : msg.message_type === 'file' ? (
-                            <div className="flex items-center gap-2">
-                              <FileText size={16} />
-                              <a href={msg.file_url} target="_blank" rel="noopener noreferrer" className={`underline ${msg.isMe ? 'text-blue-100' : 'text-blue-600'}`}>{msg.text.replace('Sent a file: ', '')}</a>
-                            </div>
-                          ) : (
-                            <p className="text-[13px]">{msg.text}</p>
-                          )}
+                  msg.isSystem ? (
+                    <div key={msg.id || i} className="w-full flex justify-center my-3">
+                      <div className="bg-amber-50 border-2 border-amber-400 text-amber-950 rounded-2xl p-4 max-w-lg shadow-md flex items-start gap-3">
+                        <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                        <div className="flex-1 text-xs font-semibold leading-relaxed">
+                          <p className="font-bold text-amber-950 uppercase tracking-wider text-[11px] mb-1 flex items-center gap-1">
+                            <span>⚠️ ROOMHY POLICY WARNING</span>
+                          </p>
+                          <p>{msg.text}</p>
+                          <span className="text-[9px] font-bold text-amber-700 mt-2 block text-right">{msg.time}</span>
                         </div>
-                      )}
-                      <span className={`text-[10px] block mt-1.5 text-right ${msg.isMe ? "text-blue-200" : "text-slate-400"}`}>{msg.time}</span>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div key={msg.id || i} className={`flex ${msg.isMe ? "justify-end" : "justify-start"}`}>
+                      <div className={`max-w-[70%] rounded-2xl p-4 shadow-sm ${msg.isMe ? "bg-blue-600 text-white rounded-br-sm" : "bg-white border border-slate-100 text-slate-800 rounded-bl-sm"}`}>
+                        {msg.isBlocked ? (
+                          <span className="text-[12px] italic font-semibold text-rose-500 block">
+                            ⚠️ Message blocked by Roomhy Safety Policy (contact/payment info detected)
+                          </span>
+                        ) : (
+                          <div>
+                            {msg.message_type === 'image' ? (
+                              <img src={msg.file_url} alt="uploaded" className="max-w-full rounded-xl cursor-pointer" onClick={() => window.open(msg.file_url, '_blank')} />
+                            ) : msg.message_type === 'file' ? (
+                              <div className="flex items-center gap-2">
+                                <FileText size={16} />
+                                <a href={msg.file_url} target="_blank" rel="noopener noreferrer" className={`underline ${msg.isMe ? 'text-blue-100' : 'text-blue-600'}`}>{msg.text.replace('Sent a file: ', '')}</a>
+                              </div>
+                            ) : (
+                              <p className="text-[13px]">{msg.text}</p>
+                            )}
+                          </div>
+                        )}
+                        <span className={`text-[10px] block mt-1.5 text-right ${msg.isMe ? "text-blue-200" : "text-slate-400"}`}>{msg.time}</span>
+                      </div>
+                    </div>
+                  )
                 ))}
                 <div ref={messagesEndRef} />
               </div>
