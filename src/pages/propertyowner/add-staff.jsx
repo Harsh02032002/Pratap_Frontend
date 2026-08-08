@@ -8,7 +8,6 @@ import {
 import { apiFetch } from "../../utils/api";
 // All Owner Panel modules — same as sidebar
 const OWNER_PANEL_MODULES = [
-  { key: "Dashboard",               label: "Dashboard" },
   { key: "Properties",              label: "Properties" },
   { key: "Tenants",                 label: "Tenants" },
   { key: "Leads & Bookings",        label: "Leads & Bookings" },
@@ -635,74 +634,6 @@ export default function AddStaffPage() {
                   </button>
                 </div>
               </div>
-
-              {/* Sub-Module Restrictions — grouped by parent module */}
-              <div className="pt-2 border-t border-slate-100 space-y-5">
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <div>
-                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                      <Shield size={13} className="text-rose-400" /> Sub-Module Restrictions <span className="text-rose-400 normal-case font-bold">(Checked = Blocked)</span>
-                    </h3>
-                    <p className="text-[10px] text-slate-400 font-medium mt-0.5">Block specific sub-features within Owner Panel modules</p>
-                  </div>
-                  <button type="button"
-                    onClick={() => setFormData(f => ({ ...f, restrictedModules: [] }))}
-                    className="px-3 py-1 text-[10px] font-bold text-slate-400 border border-slate-200 rounded-lg hover:bg-slate-50 transition-all uppercase">
-                    Clear All
-                  </button>
-                </div>
-
-                <div className="space-y-5">
-                  {[
-                    ...OWNER_SUBMODULE_GROUPS,
-                    // Custom sub-modules added by owner (shown under a "Custom" group)
-                    ...(customSubModules.length > 0 ? [{ module: "Custom", items: customSubModules.map(c => ({ key: c.key, label: c.label })) }] : []),
-                  ].map(group => (
-                    <div key={group.module}>
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">{group.module}</p>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                        {group.items.map(item => {
-                          const isBlocked = (formData.restrictedModules || []).includes(item.key);
-                          return (
-                            <button
-                              key={item.key}
-                              type="button"
-                              onClick={() => setFormData(prev => {
-                                const list = prev.restrictedModules || [];
-                                const next = list.includes(item.key) ? list.filter(k => k !== item.key) : [...list, item.key];
-                                return { ...prev, restrictedModules: next };
-                              })}
-                              className={`flex items-center gap-2 p-2.5 rounded-xl border text-left transition-all ${isBlocked
-                                ? "bg-rose-50 border-rose-200 text-rose-700"
-                                : "bg-white border-slate-200 hover:border-rose-200 text-slate-600"}`}
-                            >
-                              <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${isBlocked ? "bg-rose-600 border-rose-600" : "border-slate-300 bg-white"}`}>
-                                {isBlocked && <X size={9} className="text-white" />}
-                              </div>
-                              <span className="text-xs font-bold leading-tight">{item.label}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Add custom restriction inline */}
-                <div className="flex items-center gap-2 pt-1">
-                  <input
-                    type="text"
-                    value={newSubModuleName}
-                    onChange={e => setNewSubModuleName(e.target.value)}
-                    onKeyDown={e => e.key === "Enter" && (e.preventDefault(), handleCreateCustomSubModule())}
-                    placeholder="Add custom blocked feature (e.g. View Rent Reports)..."
-                    className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-emerald-400 transition-all"
-                  />
-                  <button type="button" onClick={handleCreateCustomSubModule}
-                    className="px-4 h-9 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shrink-0 flex items-center gap-1.5">
-                    <Plus size={13} /> Add
-                  </button>
-                </div>
 
               </div>
 
