@@ -22,10 +22,26 @@ export default function PaymentCheckout() {
   const [paymentStatus, setPaymentStatus] = useState("pending"); // pending, success, failed
   const [error, setError] = useState("");
 
+  const orderId = searchParams.get("order_id") || searchParams.get("orderId") || searchParams.get("link_id") || searchParams.get("linkId");
+
   useEffect(() => {
     const init = async () => {
       setLoading(true);
       try {
+        if (orderId) {
+          const statusRes = await fetchJson(`/api/payments/cashfree/status/${orderId}`).catch(() => null);
+          if (statusRes?.status === 'PAID' || statusRes?.status === 'SUCCESS' || statusRes?.payment_status === 'SUCCESS' || statusRes?.transaction?.status === 'Verified' || statusRes?.transaction?.status === 'Settled') {
+            setPaymentStatus("success");
+            setLoading(false);
+            return;
+          } else if (statusRes?.status === 'FAILED' || statusRes?.status === 'CANCELLED') {
+            setPaymentStatus("failed");
+            setError(statusRes?.message || "Payment transaction was not completed.");
+            setLoading(false);
+            return;
+          }
+        }
+
         // Fetch Razorpay Key
         const keyRes = await fetchJson("/api/booking/config/razorpay-key").catch(() => null);
         setRazorpayKey(keyRes?.razorpayKey || keyRes?.key || "");
@@ -43,7 +59,7 @@ export default function PaymentCheckout() {
       }
     };
     init();
-  }, [bookingId]);
+  }, [bookingId, orderId]);
 
   const handlePayNow = async () => {
     try {

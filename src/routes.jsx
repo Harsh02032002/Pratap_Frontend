@@ -348,6 +348,8 @@ const routeEntries = [
 
   ["/website/fast-bidding", "./pages/website/FastBiddingPage.jsx"],
   ["/website/pay", "./pages/website/PaymentCheckout.jsx"],
+  ["/payment-status", "./pages/website/PaymentCheckout.jsx"],
+  ["/website/payment-status", "./pages/website/PaymentCheckout.jsx"],
   ["/website/list", "./pages/website/ListYourPropertyPage.jsx"],
   ["/website/profile", "./pages/website/ProfilePage.jsx"],
   ["/website/settings", "./pages/website/SettingsPage.jsx"],
