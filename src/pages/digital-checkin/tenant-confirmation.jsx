@@ -4,8 +4,8 @@ import { useHtmlPage } from "../../utils/htmlPage";
 const resolveTenantLoginUrl = () => {
   const host = window.location.hostname;
   return host === "localhost" || host === "127.0.0.1"
-    ? "http://localhost:5001/tenant//tenant/tenantlogin"
-    : "https://app.roomhy.com/tenant//tenant/tenantlogin";
+    ? "http://localhost:5173/tenant/tenantlogin"
+    : "https://app.roomhy.com/tenant/tenantlogin";
 };
 
 export default function DigitalCheckinTenantConfirmation() {

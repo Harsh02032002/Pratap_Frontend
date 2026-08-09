@@ -73,7 +73,25 @@ export default function PaymentCheckout() {
       } else if (paymentLink) {
         window.location.href = paymentLink;
       } else {
-        throw new Error(orderRes?.message || "Could not create Cashfree payment session");
+        // Fallback to create-link if payment_session_id is not directly returned
+        const linkRes = await fetchJson("/api/payments/cashfree/create-link", {
+          method: "POST",
+          body: JSON.stringify({
+            bookingId,
+            amount: Number(amount),
+            customerInfo: {
+              name: bookingData?.name || "Guest",
+              email: bookingData?.email || "",
+              phone: bookingData?.phone || ""
+            }
+          })
+        }).catch(() => null);
+
+        if (linkRes?.link_url) {
+          window.location.href = linkRes.link_url;
+        } else {
+          throw new Error(orderRes?.message || linkRes?.message || "Could not create Cashfree payment session");
+        }
       }
     } catch (err) {
       console.error("Payment initiation error:", err);
