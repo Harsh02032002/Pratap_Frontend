@@ -35,17 +35,39 @@ export default function PaymentCheckout() {
   const [paymentStatus, setPaymentStatus] = useState("pending"); // pending, success, failed
   const [error, setError] = useState("");
 
+  const redirectStatus = String(
+    searchParams.get("txStatus") ||
+    searchParams.get("link_status") ||
+    searchParams.get("order_status") ||
+    searchParams.get("status") ||
+    ""
+  ).toUpperCase();
+
   useEffect(() => {
     const init = async () => {
       setLoading(true);
       try {
+        if (redirectStatus === "SUCCESS" || redirectStatus === "PAID" || redirectStatus === "PAID_SUCCESSFULLY") {
+          setPaymentStatus("success");
+          setLoading(false);
+          return;
+        }
+
         if (orderId) {
           const statusRes = await fetchJson(`/api/payments/cashfree/status/${orderId}`).catch(() => null);
-          if (statusRes?.status === 'PAID' || statusRes?.status === 'SUCCESS' || statusRes?.payment_status === 'SUCCESS' || statusRes?.transaction?.status === 'Verified' || statusRes?.transaction?.status === 'Settled') {
+          const rawStatus = String(
+            statusRes?.status ||
+            statusRes?.cf_status ||
+            statusRes?.db_status ||
+            statusRes?.transaction?.status ||
+            ""
+          ).toUpperCase();
+
+          if (rawStatus === "PAID" || rawStatus === "SUCCESS" || rawStatus === "VERIFIED" || rawStatus === "SETTLED" || rawStatus === "PAID_SUCCESSFULLY") {
             setPaymentStatus("success");
             setLoading(false);
             return;
-          } else if (statusRes?.status === 'FAILED' || statusRes?.status === 'CANCELLED') {
+          } else if (rawStatus === "FAILED" || rawStatus === "CANCELLED") {
             setPaymentStatus("failed");
             setError(statusRes?.message || "Payment transaction was not completed.");
             setLoading(false);
@@ -82,7 +104,7 @@ export default function PaymentCheckout() {
       }
     };
     init();
-  }, [extractedBookingId, rawBookingId, orderId]);
+  }, [extractedBookingId, rawBookingId, orderId, redirectStatus]);
 
   const handlePayNow = async () => {
     try {
