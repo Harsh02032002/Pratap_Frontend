@@ -305,10 +305,10 @@ const DomainGuard = () => {
     // These paths are reached via email links (payment/gateway, visitor-verify)
     // and must NEVER be blocked by domain-level guards.
     const isPublicTokenRoute =
-      path.startsWith("/payment/") ||
+      path.startsWith("/payment") ||
       path.startsWith("/visitor-verify") ||
       path.startsWith("/digital-checkin") ||
-      path.startsWith("/website/");
+      path.startsWith("/website");
     if (isPublicTokenRoute) return;
 
     // 1. Admin / Superadmin Domain
