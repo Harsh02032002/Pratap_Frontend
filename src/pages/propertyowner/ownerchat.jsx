@@ -105,10 +105,12 @@ export default function OwnerChat() {
         })
       }).catch(() => null);
 
-      if (cfRes?.link_url) {
+      if (cfRes?.link_url && (cfRes.link_url.includes('cashfree.com') || cfRes.link_url.includes('cashfree'))) {
         paymentUrl = cfRes.link_url;
       }
     } catch (_) {}
+
+    paymentUrl = paymentUrl.replace(/app\.roomhy\.com/g, 'roomhy.com');
 
     let paymentMessage = "";
     if (depositAmount > 0) {
