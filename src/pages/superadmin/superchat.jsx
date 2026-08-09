@@ -66,8 +66,11 @@ const resolveChatError = (err, fallback) => {
 };
 
 export default function SuperChat() {
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [search, setSearch] = useState(() => {
+    const params = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+    return params.get("search") || params.get("roomId") || params.get("user1") || "";
+  });
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 400);
@@ -84,7 +87,11 @@ export default function SuperChat() {
   const [error, setError] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [viewMode, setViewMode] = useState("my"); // "my" or "all"
+  const [viewMode, setViewMode] = useState(() => {
+    const params = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+    const s = params.get("search") || params.get("roomId") || params.get("fromAlerts") || params.get("user1");
+    return s ? "all" : "my";
+  });
   const [highlightedMessageId, setHighlightedMessageId] = useState(null);
   const socketRef = useRef(null);
   const activeChatRef = useRef(null);
@@ -146,6 +153,19 @@ export default function SuperChat() {
       
       setInbox(filtered);
       setActiveChat((prev) => {
+        const params = new URLSearchParams(window.location.search);
+        const targetSearch = (params.get("search") || params.get("roomId") || params.get("user1") || "").toLowerCase();
+        if (targetSearch) {
+          const matched = conversations.find((c) =>
+            String(c.participant_login_id || "").toLowerCase() === targetSearch ||
+            String(c.user1 || "").toLowerCase() === targetSearch ||
+            String(c.user2 || "").toLowerCase() === targetSearch ||
+            String(c.owner_details?.loginId || "").toLowerCase() === targetSearch ||
+            String(c.tenant_details?.loginId || "").toLowerCase() === targetSearch ||
+            String(c.pair_key || "").toLowerCase().includes(targetSearch)
+          );
+          if (matched) return matched;
+        }
         if (prev) return filtered.find((x) => (x.participant_login_id === prev.participant_login_id || x.pair_key === prev.pair_key)) || filtered[0] || null;
         return filtered[0] || null;
       });

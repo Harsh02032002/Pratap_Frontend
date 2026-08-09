@@ -531,7 +531,8 @@ export default function TenantRec() {
               noticePeriodCharges: String(t.noticePeriodCharges ?? agd.noticePeriodCharges ?? "0"),
               inclusions: t.inclusions || agd.inclusions || "",
               gstCharges: String(t.gstCharges ?? agd.gstCharges ?? "0"),
-              advanceChargeAmount: String(t.advanceChargeAmount ?? agd.advanceChargeAmount ?? ""),
+              advanceCharge: String(t.advanceCharge ?? t.advanceChargeAmount ?? agd.advanceCharge ?? agd.advanceChargeAmount ?? "0"),
+              advanceChargeAmount: String(t.advanceCharge ?? t.advanceChargeAmount ?? agd.advanceCharge ?? agd.advanceChargeAmount ?? "0"),
             }));
 
             // ── Emergency Contact: DB stores as emergencyContact.{name,phone,relationship} ──
@@ -854,7 +855,8 @@ export default function TenantRec() {
         noticePeriodCharges: tenancyDetails.noticePeriodCharges,
         inclusions: tenancyDetails.inclusions,
         gstCharges: tenancyDetails.gstCharges,
-        advanceChargeAmount: tenancyDetails.advanceChargeAmount,
+        advanceCharge: tenancyDetails.advanceCharge || tenancyDetails.advanceChargeAmount || "0",
+        advanceChargeAmount: tenancyDetails.advanceCharge || tenancyDetails.advanceChargeAmount || "0",
         propertyAddress: roomAssignment.propertyAddress,
         permanentAddress: additionalDetails.permanentAddress,
         idProofNumber: basicDetails.idProofNumber,

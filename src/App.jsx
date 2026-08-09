@@ -301,6 +301,15 @@ const DomainGuard = () => {
 
     const path = location.pathname || "";
 
+    // ─── CRITICAL: Public tokenized routes must be accessible on ANY domain ───
+    // These paths are reached via email links (payment/gateway, visitor-verify)
+    // and must NEVER be blocked by domain-level guards.
+    const isPublicTokenRoute =
+      path.startsWith("/payment/") ||
+      path.startsWith("/visitor-verify") ||
+      path.startsWith("/digital-checkin");
+    if (isPublicTokenRoute) return;
+
     // 1. Admin / Superadmin Domain
     const isAdminDomain = host === "admin.roomhy.com" || host === "www.admin.roomhy.com";
     if (isAdminDomain) {
@@ -322,7 +331,7 @@ const DomainGuard = () => {
         window.location.replace(resolveHostHome());
         return;
       }
-      const isAllowed = path.startsWith("/propertyowner") || path.startsWith("/tenant") || path.startsWith("/digital-checkin") || path.startsWith("/manager") || path.startsWith("/staff");
+      const isAllowed = path.startsWith("/propertyowner") || path.startsWith("/tenant") || path.startsWith("/digital-checkin") || path.startsWith("/manager") || path.startsWith("/staff") || path.startsWith("/payment");
       if (!isAllowed) {
         window.location.replace("/propertyowner/index");
       }
@@ -347,6 +356,9 @@ const DomainGuard = () => {
       "/co-living",
       "/apartments",
       "/property",
+      "/payment",           // ← FIXED: tokenized payment gateway from onboarding email
+      "/visitor-verify",   // ← FIXED: visitor pass verification QR links
+      "/digital-checkin",  // ← FIXED: tenant onboarding checkin flow
       "/admin"
     ];
 

@@ -88,7 +88,7 @@ export default function OwnerChat() {
     const bookingId = associatedBooking._id;
 
     setIsSending(true);
-    let paymentUrl = `${window.location.origin}/website/pay?bookingId=${bookingId}&amount=${amount}`;
+    let paymentUrl = `https://roomhy.com/website/pay?bookingId=${bookingId}&amount=${amount}`;
 
     try {
       // Create Cashfree payment order & link

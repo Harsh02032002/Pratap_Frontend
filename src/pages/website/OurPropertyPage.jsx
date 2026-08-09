@@ -421,10 +421,25 @@ export default function OurPropertyPage() {
           filtered = filtered.filter(p => p.price <= parseInt(maxPrice));
         }
         
+        // Extract colleges from ALL properties before applying college filter
+        const collegesByProperty = {};
+        const allCollegesSet = new Set();
+
+        formattedProperties.forEach(prop => {
+          if (Array.isArray(prop.nearbyColleges) && prop.nearbyColleges.length > 0) {
+            const names = prop.nearbyColleges.map(c => (typeof c === 'string' ? c : c.name)).filter(Boolean);
+            collegesByProperty[prop.id] = names;
+            names.forEach(n => allCollegesSet.add(n));
+          }
+        });
+
+        setPropertyNearbyColleges(collegesByProperty);
+        setAllColleges(Array.from(allCollegesSet).sort());
+
         // Multi-college filter - show properties near ANY selected college
         if (selectedColleges.length > 0) {
           filtered = filtered.filter(p => {
-            const propColleges = propertyNearbyColleges[p.id] || [];
+            const propColleges = collegesByProperty[p.id] || [];
             return selectedColleges.some(selectedCollege => 
               propColleges.some(college => 
                 college.toLowerCase().includes(selectedCollege.toLowerCase()) ||
@@ -448,20 +463,6 @@ export default function OurPropertyPage() {
 
         // Fix: Use the filtered length for accurate pagination counts
         setTotalCount(filtered.length);
-
-        // Extract colleges from ALL filtered properties (not just current page)
-        const collegesByProperty = {};
-        const allCollegesSet = new Set();
-
-        filtered.forEach(prop => {
-          if (prop.nearbyColleges && prop.nearbyColleges.length > 0) {
-            collegesByProperty[prop.id] = prop.nearbyColleges.map(c => c.name || c);
-            prop.nearbyColleges.forEach(c => allCollegesSet.add(c.name || c));
-          }
-        });
-
-        setPropertyNearbyColleges(collegesByProperty);
-        setAllColleges(Array.from(allCollegesSet).sort());
 
         // Get current page properties
         const indexOfLastProperty = currentPage * propertiesPerPage;
