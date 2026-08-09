@@ -307,7 +307,8 @@ const DomainGuard = () => {
     const isPublicTokenRoute =
       path.startsWith("/payment/") ||
       path.startsWith("/visitor-verify") ||
-      path.startsWith("/digital-checkin");
+      path.startsWith("/digital-checkin") ||
+      path.startsWith("/website/");
     if (isPublicTokenRoute) return;
 
     // 1. Admin / Superadmin Domain
@@ -317,7 +318,7 @@ const DomainGuard = () => {
         window.location.replace(resolveHostHome());
         return;
       }
-      const isAllowed = path.startsWith("/superadmin") || path.startsWith("/employee") || path.startsWith("/staff") || path.startsWith("/digital-checkin");
+      const isAllowed = path.startsWith("/superadmin") || path.startsWith("/employee") || path.startsWith("/staff") || path.startsWith("/digital-checkin") || path.startsWith("/website");
       if (!isAllowed) {
         window.location.replace("/superadmin/index");
       }
@@ -331,7 +332,7 @@ const DomainGuard = () => {
         window.location.replace(resolveHostHome());
         return;
       }
-      const isAllowed = path.startsWith("/propertyowner") || path.startsWith("/tenant") || path.startsWith("/digital-checkin") || path.startsWith("/manager") || path.startsWith("/staff") || path.startsWith("/payment");
+      const isAllowed = path.startsWith("/propertyowner") || path.startsWith("/tenant") || path.startsWith("/digital-checkin") || path.startsWith("/manager") || path.startsWith("/staff") || path.startsWith("/payment") || path.startsWith("/website");
       if (!isAllowed) {
         window.location.replace("/propertyowner/index");
       }
