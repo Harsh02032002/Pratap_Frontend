@@ -324,12 +324,72 @@ export default function Payment() {
     }
   }, []);
 
+  const [walletData, setWalletData] = useState({
+    heldBalance: 0,
+    availableBalance: 0,
+    walletBalance: 0,
+    withdrawnBalance: 0,
+    bankDetails: {}
+  });
+  const [walletLoading, setWalletLoading] = useState(false);
+  const [withdrawModalOpen, setWithdrawModalOpen] = useState(false);
+  const [withdrawAmt, setWithdrawAmt] = useState("");
+  const [withdrawLoading, setWithdrawLoading] = useState(false);
+
+  const fetchWallet = useCallback(async (loginId) => {
+    if (!loginId) return;
+    setWalletLoading(true);
+    try {
+      const res = await fetchJson(`/api/wallet/owner/balance?loginId=${loginId}`).catch(() => null);
+      if (res?.wallet) {
+        setWalletData(res.wallet);
+      }
+    } catch (err) {
+      console.error("Wallet error:", err);
+    } finally {
+      setWalletLoading(false);
+    }
+  }, []);
+
+  const handleInstantWithdraw = async (e) => {
+    e.preventDefault();
+    const num = parseFloat(withdrawAmt);
+    if (isNaN(num) || num <= 0) {
+      showToast("Please enter a valid withdrawal amount", "error");
+      return;
+    }
+    setWithdrawLoading(true);
+    try {
+      const session = getOwnerRuntimeSession();
+      const res = await fetchJson("/api/wallet/owner/withdraw-instant", {
+        method: "POST",
+        body: JSON.stringify({
+          loginId: session?.loginId,
+          amount: num
+        })
+      });
+      if (res?.success) {
+        showToast(res.message || "🎉 Withdrawal transferred to bank account!");
+        setWithdrawModalOpen(false);
+        setWithdrawAmt("");
+        if (session?.loginId) fetchWallet(session.loginId);
+      } else {
+        showToast(res?.message || "Withdrawal failed", "error");
+      }
+    } catch (err) {
+      showToast(err.message || "Failed to process instant withdrawal", "error");
+    } finally {
+      setWithdrawLoading(false);
+    }
+  };
+
   useEffect(() => {
     const session = getOwnerRuntimeSession();
     if (!session?.loginId) { window.location.href = "/propertyowner/ownerlogin"; return; }
     setOwner(session);
     loadData(session);
-  }, [loadData]);
+    fetchWallet(session.loginId);
+  }, [loadData, fetchWallet]);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 300);
@@ -705,6 +765,108 @@ export default function Payment() {
           </button>
         </div>
       </div>
+
+      {/* Owner Cashfree Wallet & Instant Bank Withdrawal Banner */}
+      <div className="mb-6 bg-gradient-to-br from-slate-900 via-slate-800 to-black text-white p-6 rounded-3xl shadow-xl border border-slate-800">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-teal-500/20 text-teal-400 rounded-2xl border border-teal-500/30">
+              <Wallet size={32} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-bold text-white">Owner Cashfree Wallet</h2>
+                <span className="px-2.5 py-0.5 bg-teal-500/20 text-teal-300 text-[11px] font-bold rounded-full border border-teal-500/30">Instant Bank Payout Active</span>
+              </div>
+              <p className="text-xs text-slate-400 mt-1">Tenant payments are held in Held Balance until 1 day post move-in date, then auto-released to Available Balance.</p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-6">
+            <div className="border-r border-slate-700/60 pr-6">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-amber-400 mb-1">🔒 Held Balance</div>
+              <div className="text-2xl font-black text-white">₹{(walletData.heldBalance || 0).toLocaleString('en-IN')}</div>
+              <div className="text-[10px] text-slate-400 mt-0.5">Releases 1 day post move-in</div>
+            </div>
+
+            <div>
+              <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-400 mb-1">💰 Available Balance</div>
+              <div className="text-2xl font-black text-emerald-400">₹{(walletData.availableBalance || walletData.walletBalance || 0).toLocaleString('en-IN')}</div>
+              <div className="text-[10px] text-slate-400 mt-0.5">Ready for instant withdrawal</div>
+            </div>
+
+            <button
+              onClick={() => setWithdrawModalOpen(true)}
+              disabled={(walletData.availableBalance || walletData.walletBalance || 0) <= 0}
+              className="px-5 py-3 bg-teal-500 hover:bg-teal-400 text-slate-950 font-black rounded-2xl shadow-lg shadow-teal-500/20 transition-all transform hover:-translate-y-0.5 text-xs disabled:opacity-40 disabled:pointer-events-none flex items-center gap-2"
+            >
+              <CreditCard size={16} /> Withdraw to My Bank Account
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      {/* Withdraw Modal */}
+      {withdrawModalOpen && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-6">
+            <div className="flex items-center justify-between border-b border-border pb-4">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Withdraw to Bank Account</h3>
+                <p className="text-xs text-slate-500">Instant Cashfree Payout directly into your bank</p>
+              </div>
+              <button onClick={() => setWithdrawModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full">
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleInstantWithdraw} className="space-y-4">
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Available to Withdraw:</span>
+                  <span className="font-bold text-emerald-600">₹{(walletData.availableBalance || walletData.walletBalance || 0).toLocaleString('en-IN')}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Bank Account / UPI:</span>
+                  <span className="font-bold text-slate-800">{walletData.bankDetails?.accountNumber || walletData.bankDetails?.upiId || "Registered Cashfree Bank Account"}</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Withdrawal Amount (₹)</label>
+                <input
+                  type="number"
+                  placeholder={`Max ₹${walletData.availableBalance || walletData.walletBalance || 0}`}
+                  value={withdrawAmt}
+                  onChange={(e) => setWithdrawAmt(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-base font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  required
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setWithdrawModalOpen(false)}
+                  className="flex-1 py-3 text-slate-600 font-bold bg-slate-100 hover:bg-slate-200 rounded-xl text-xs transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={withdrawLoading}
+                  className="flex-1 py-3 bg-slate-900 hover:bg-black text-white font-bold rounded-xl text-xs shadow-lg transition-all flex items-center justify-center gap-1.5"
+                >
+                  {withdrawLoading ? <RefreshCw className="animate-spin" size={14} /> : <CreditCard size={14} />}
+                  Transfer ₹{withdrawAmt || 0} Now
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Phase legend — live counts from row data, not stale DB currentPhase */}
       {rows.length > 0 && (

@@ -246,9 +246,10 @@ export default function AboutPage() {
       subtitle: 'The Minds Behind Roomhy',
       name: 'Resham Singh',
       role: 'Founder & Director',
-      image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=400',
+      image: '/website/images/ceo1.png',
       description: 'With a vision to transform India\'s student housing sector into a transparent, tech-driven ecosystem, ensuring broker-free, affordable accommodation for India\'s youth.'
     });
+    const teamImg = (!content.image || content.image.includes('unsplash')) ? '/website/images/ceo1.png' : content.image;
     return (
       <section key="team" className="py-8 md:py-20 px-4 bg-white">
         <div className="max-w-7xl mx-auto">
@@ -262,7 +263,7 @@ export default function AboutPage() {
               <div className="relative w-36 h-36 md:w-52 md:h-52 mb-4 md:mb-6">
                 <div className="absolute inset-0 bg-amber-500 rounded-2xl md:rounded-3xl rotate-6 transition-transform group-hover:rotate-12 group-hover:scale-105" />
                 <div className="absolute inset-0 bg-gray-900 rounded-2xl md:rounded-3xl overflow-hidden shadow-xl border-2 md:border-4 border-white">
-                  <img src={content.image || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=400"} alt={content.name} className="w-full h-full object-cover transition-all duration-500" />
+                  <img src={teamImg} alt={content.name} className="w-full h-full object-cover transition-all duration-500" />
                 </div>
               </div>
               <h3 className="text-sm md:text-2xl font-bold text-gray-900">{content.name}</h3>

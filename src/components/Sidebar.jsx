@@ -116,6 +116,7 @@ const NAV = [
     path: "/superadmin/accounting", 
     children: [
         { label: "Overview", path: "/superadmin/accounting", restrictedKey: "acc_overview" },
+        { label: "💰 Admin Platform Wallet", path: "/superadmin/admin-wallet" },
         { label: "Revenue Overview", path: "/superadmin/home/revenue-overview", restrictedKey: "acc_revenue_overview" },
         { 
           label: "Tenant Accounts", 
@@ -137,10 +138,10 @@ const NAV = [
         { 
           label: "Refunds", 
           children: [
-            { label: "Booking Amount Refund", path: "/superadmin/refund", restrictedKey: "acc_refunds" },
-            { label: "Partial Refund", path: "/superadmin/refund" },
-            { label: "Refund Approval System", path: "/superadmin/refund" },
-            { label: "Refund History", path: "/superadmin/refund" },
+            { label: "Booking Amount Refund", path: "/superadmin/refund/booking", restrictedKey: "acc_refunds" },
+            { label: "Partial Refund", path: "/superadmin/refund/partial" },
+            { label: "Refund Approval System", path: "/superadmin/refund/approvals" },
+            { label: "Refund History", path: "/superadmin/refund/history" },
           ]
         },
         { 
