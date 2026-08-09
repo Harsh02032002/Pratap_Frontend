@@ -301,9 +301,13 @@ const DomainGuard = () => {
 
     const path = location.pathname || "";
 
-    // ─── CRITICAL: Public tokenized routes must be accessible on ANY domain ───
-    // These paths are reached via email links (payment/gateway, visitor-verify)
-    // and must NEVER be blocked by domain-level guards.
+    // ─── Forward checkout & payment status routes to main domain roomhy.com ───
+    if ((host.includes("admin.roomhy.com") || host.includes("app.roomhy.com")) &&
+        (path.startsWith("/payment-status") || path.startsWith("/website/pay"))) {
+      window.location.replace(`https://roomhy.com${location.pathname}${location.search}`);
+      return;
+    }
+
     const isPublicTokenRoute =
       path.startsWith("/payment") ||
       path.startsWith("/visitor-verify") ||

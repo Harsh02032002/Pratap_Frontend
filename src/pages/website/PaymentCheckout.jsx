@@ -40,6 +40,12 @@ export default function PaymentCheckout() {
             setLoading(false);
             return;
           }
+          if (statusRes?.transaction) {
+            setBookingData({
+              property_name: statusRes.transaction.property_name || "Roomhy Stay",
+              amount: statusRes.transaction.booking_amount || 0
+            });
+          }
         }
 
         // Fetch Razorpay Key
@@ -156,7 +162,7 @@ export default function PaymentCheckout() {
                    </div>
                    <div className="pt-4 border-t border-gray-200 flex justify-between items-center">
                       <span className="text-sm font-bold text-gray-900">Amount to Pay</span>
-                      <span className="text-2xl font-black text-teal-600">₹{amount}</span>
+                      <span className="text-2xl font-black text-teal-600">₹{amount || bookingData?.amount || bookingData?.booking_amount || 0}</span>
                    </div>
                 </div>
 
@@ -172,7 +178,7 @@ export default function PaymentCheckout() {
                     onClick={handlePayNow}
                     className="w-full py-4 bg-gray-900 hover:bg-black text-white font-bold rounded-2xl shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-1 active:translate-y-0 flex items-center justify-center gap-2"
                   >
-                    Pay ₹{amount} Now
+                    Pay ₹{amount || bookingData?.amount || bookingData?.booking_amount || 0} Now
                   </button>
 
                   <button 
