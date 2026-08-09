@@ -9,7 +9,20 @@ export default function PaymentCheckout() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   
-  const bookingId = searchParams.get("bookingId");
+  const rawBookingId = searchParams.get("bookingId");
+  const orderId = searchParams.get("order_id") || searchParams.get("orderId") || searchParams.get("link_id") || searchParams.get("linkId");
+  
+  const extractedBookingId = useMemo(() => {
+    if (rawBookingId) return rawBookingId;
+    if (orderId) {
+      const parts = String(orderId).split("_");
+      for (const part of parts) {
+        if (part.length === 24 && /^[0-9a-fA-F]{24}$/.test(part)) return part;
+      }
+    }
+    return null;
+  }, [rawBookingId, orderId]);
+
   const rawAmount = searchParams.get("amount");
   const amount = useMemo(() => {
     const val = parseFloat(String(rawAmount || "0").replace(/[^\d.-]/g, ""));
@@ -21,8 +34,6 @@ export default function PaymentCheckout() {
   const [bookingData, setBookingData] = useState(null);
   const [paymentStatus, setPaymentStatus] = useState("pending"); // pending, success, failed
   const [error, setError] = useState("");
-
-  const orderId = searchParams.get("order_id") || searchParams.get("orderId") || searchParams.get("link_id") || searchParams.get("linkId");
 
   useEffect(() => {
     const init = async () => {
@@ -53,9 +64,15 @@ export default function PaymentCheckout() {
         setRazorpayKey(keyRes?.razorpayKey || keyRes?.key || "");
 
         // Fetch Booking Details if possible
-        if (bookingId) {
-          const bRes = await fetchJson(`/api/booking/requests/${bookingId}`).catch(() => null);
-          setBookingData(bRes?.data || bRes || null);
+        const targetBookingId = extractedBookingId || rawBookingId;
+        if (targetBookingId) {
+          const bRes = await fetchJson(`/api/booking/requests/${targetBookingId}`).catch(() => null);
+          if (bRes) {
+            setBookingData(prev => ({
+              ...(bRes.data || bRes || {}),
+              amount: bRes?.total_amount || bRes?.amount || prev?.amount || 0
+            }));
+          }
         }
       } catch (err) {
         console.error(err);
@@ -65,16 +82,18 @@ export default function PaymentCheckout() {
       }
     };
     init();
-  }, [bookingId, orderId]);
+  }, [extractedBookingId, rawBookingId, orderId]);
 
   const handlePayNow = async () => {
     try {
-      // Create Cashfree Order / Link
+      const targetBookingId = extractedBookingId || rawBookingId;
+      const finalAmount = amount || bookingData?.amount || bookingData?.booking_amount || 0;
+
       const orderRes = await fetchJson("/api/payments/cashfree/create-order", {
         method: "POST",
         body: JSON.stringify({
-          bookingId,
-          amount: Number(amount),
+          bookingId: targetBookingId,
+          amount: Number(finalAmount),
           customerInfo: {
             name: bookingData?.name || "Guest",
             email: bookingData?.email || "",
@@ -99,8 +118,8 @@ export default function PaymentCheckout() {
         const linkRes = await fetchJson("/api/payments/cashfree/create-link", {
           method: "POST",
           body: JSON.stringify({
-            bookingId,
-            amount: Number(amount),
+            bookingId: targetBookingId,
+            amount: Number(finalAmount),
             customerInfo: {
               name: bookingData?.name || "Guest",
               email: bookingData?.email || "",
