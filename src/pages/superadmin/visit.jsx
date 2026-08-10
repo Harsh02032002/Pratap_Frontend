@@ -182,13 +182,13 @@ export default function Visit() {
       if (isEmpPage && sid) {
         url += `?staffId=${encodeURIComponent(sid)}&staffName=${encodeURIComponent(storedUser.name || "")}`;
       }
-      const data = await fetchJson(url);
+      const data = await fetchJson(url, { headers: getAuthHeader() });
       const list = data?.visits || data || [];
       setVisits(list);
 
       // Fetch Owners
       try {
-        const ownerData = await fetchJson("/api/owners");
+        const ownerData = await fetchJson("/api/owners", { headers: getAuthHeader() });
         const oList = Array.isArray(ownerData) ? ownerData : (ownerData?.owners || ownerData?.data || []);
         if (isEmpPage && sid) {
           const filtered = oList.filter(o =>
