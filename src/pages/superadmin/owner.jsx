@@ -192,9 +192,12 @@ export default function Owner() {
       let base = owners;
 
       if (currentView === "pending") {
-         base = owners.filter(o => !o.isActive);
-      } else if (currentView === "kyc") {
-         base = owners; // Show all owners in KYC view, status displayed in table
+         base = owners.filter(o => !o.isActive || o.status === "pending_approval" || o.isEmployeeSubmitted);
+      } else if (currentView === "kyc" || currentView === "agreements") {
+         base = owners; // Show all owners in KYC / Agreements view
+      } else {
+         // Default / "list" (View All Property Owners) -> ONLY show active approved owners!
+         base = owners.filter(o => o.isActive !== false && o.status !== "pending_approval");
       }
 
       return base.filter(o => {
@@ -690,7 +693,7 @@ export default function Owner() {
                                  </td>
                                  <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                                     <div className="flex items-center justify-end gap-2">
-                                       {(currentView === "pending" || o.isActive === false || o.status === "pending_approval") && (() => {
+                                       {currentView === "pending" && (() => {
                                           const hasKyc = Boolean(
                                              o.kycStatus === 'verified' ||
                                              (o.kyc?.status && o.kyc.status !== 'pending' && o.kyc.status !== 'requested') ||

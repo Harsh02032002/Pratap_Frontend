@@ -163,6 +163,11 @@ export default function Visit() {
   const toggleSection = (key) => setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
   const toggleAmenity = (a) => setFormAmenities(prev => { const n = new Set(prev); n.has(a) ? n.delete(a) : n.add(a); return n; });
 
+  // 2 Tabs State
+  const [empOwners, setEmpOwners] = useState([]);
+  const [activeTab, setActiveTab] = useState("owners"); // "owners" | "properties"
+  const [selectedOwnerDetail, setSelectedOwnerDetail] = useState(null);
+
   // ─── Data Loading ───────────────────────────────────────────────────────────
 
   const loadVisits = async () => {
@@ -170,19 +175,61 @@ export default function Visit() {
       setLoading(true);
       const isEmpPage = window.location.pathname.startsWith("/employee");
       const storedUser = JSON.parse(sessionStorage.getItem("user") || localStorage.getItem("user") || "{}");
+      const sid = storedUser.loginId || storedUser.employeeId || storedUser.name;
+
+      // Fetch Visits
       let url = "/api/visits";
-      if (isEmpPage && (storedUser.loginId || storedUser.employeeId || storedUser.name)) {
-        const sid = storedUser.loginId || storedUser.employeeId || storedUser.name;
+      if (isEmpPage && sid) {
         url += `?staffId=${encodeURIComponent(sid)}&staffName=${encodeURIComponent(storedUser.name || "")}`;
       }
       const data = await fetchJson(url);
       const list = data?.visits || data || [];
       setVisits(list);
+
+      // Fetch Owners
+      try {
+        const ownerData = await fetchJson("/api/owners");
+        const oList = Array.isArray(ownerData) ? ownerData : (ownerData?.owners || []);
+        if (isEmpPage && sid) {
+          const filtered = oList.filter(o =>
+            o.createdByStaffId === sid ||
+            o.addedByStaffId === sid ||
+            o.isEmployeeSubmitted ||
+            (o.locationCode && storedUser.assignedArea && o.locationCode.toLowerCase() === storedUser.assignedArea.toLowerCase())
+          );
+          setEmpOwners(filtered.length > 0 ? filtered : oList);
+        } else {
+          setEmpOwners(oList);
+        }
+      } catch (oErr) {
+        console.warn("Owners fetch warning:", oErr.message);
+      }
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
 
   useEffect(() => { loadVisits(); }, []);
+
+  const handleApproveOwner = async (owner) => {
+    if (!owner) return;
+    const loginId = owner.loginId || owner._id;
+    if (!window.confirm(`Are you sure you want to approve owner "${owner.name}" (${loginId})? Credentials will be emailed to ${owner.email}.`)) {
+      return;
+    }
+    try {
+      setLoading(true);
+      await fetchJson(`/api/owners/${encodeURIComponent(loginId)}/approve`, {
+        method: "PUT",
+        headers: { ...getAuthHeader(), "Content-Type": "application/json" }
+      });
+      alert(`✅ Owner "${owner.name}" approved successfully!\nCredentials emailed to ${owner.email}.\nThis owner is now visible in View All Property Owners.`);
+      loadVisits();
+    } catch (err) {
+      alert(err.message || "Failed to approve owner");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (currentView === "addOwner") generateCreds();
@@ -200,6 +247,37 @@ export default function Visit() {
     if (!formName || !formPhone || !formEmail) return alert("Please fill required fields: Owner Name, Email, Phone Number");
     setSaving(true);
     try {
+      const storedUser = JSON.parse(sessionStorage.getItem("user") || localStorage.getItem("user") || "{}");
+      const visitId = `v_${Date.now()}`;
+
+      // Step 1: Submit Visit Report (so it appears in Superadmin & Employee Visit Reports)
+      try {
+        await fetchJson("/api/visits/submit", {
+          method: "POST",
+          headers: { ...getAuthHeader(), "Content-Type": "application/json" },
+          body: JSON.stringify({
+            visitorName: formName,
+            visitorEmail: formEmail,
+            visitorPhone: formPhone,
+            propertyName: formPropertyName || `${formName}'s Property`,
+            propertyType: "hostel",
+            city: formOwnerCity || formCity || "Indore",
+            area: formArea || formOwnerCity || "",
+            ownerName: formName,
+            ownerEmail: formEmail,
+            ownerPhone: formPhone,
+            ownerCity: formOwnerCity || formCity,
+            staffName: storedUser.name || "Staff Member",
+            staffId: storedUser.loginId || storedUser.employeeId || "STAFF",
+            status: "pending",
+            _id: visitId,
+          })
+        });
+      } catch (vErr) {
+        console.warn("Visit submit warning:", vErr.message);
+      }
+
+      // Step 2: Create Pending Owner (triggers direct KYC email & lands in Superadmin Pending Owners)
       await fetchJson("/api/owners", {
         method: "POST",
         headers: { ...getAuthHeader(), "Content-Type": "application/json" },
@@ -220,13 +298,14 @@ export default function Visit() {
           checkinUpiId: formUpiId,
           isEmployeeSubmitted: true,
           status: 'pending_approval',
-          kycStatus: 'pending'
+          kycStatus: 'pending',
+          isActive: false
         })
       });
-      alert(`✅ Property Owner onboarding request submitted for Superadmin approval!\n\nOwner ID: ${formLoginId}\nPassword: ${formPassword}\n\nCredentials will be emailed to ${formEmail} after Superadmin approves the account.`);
+
+      alert(`✅ Property Owner & Visit Report submitted successfully!\n\nOwner ID: ${formLoginId}\nPassword: ${formPassword}\n\nKYC email has been sent to ${formEmail}. Credentials will be emailed upon Superadmin approval.`);
       resetForm();
       setShowAddOwnerModal(false);
-      setCurrentView("list");
       loadVisits();
     } catch (err) {
       alert(err.message || "Failed to add property owner.");
@@ -373,6 +452,18 @@ export default function Visit() {
       return propName.includes(q) || staffName.includes(q);
     });
   }, [visits, search]);
+
+  const filteredOwners = useMemo(() => {
+    const q = search.toLowerCase();
+    return empOwners.filter(o => {
+      const name = (o.name || "").toLowerCase();
+      const loginId = (o.loginId || "").toLowerCase();
+      const email = (o.email || "").toLowerCase();
+      const phone = (o.phone || "").toLowerCase();
+      const area = (o.locationCode || o.city || "").toLowerCase();
+      return name.includes(q) || loginId.includes(q) || email.includes(q) || phone.includes(q) || area.includes(q);
+    });
+  }, [empOwners, search]);
 
   const stats = useMemo(() => {
     const total = visits.length;
@@ -627,52 +718,155 @@ export default function Visit() {
         </div>
       )}
 
-      {/* ═══ VISITS LIST VIEW ═══ */}
+      {/* ═══ 2 TABS NAVIGATION: OWNER SUBMISSIONS VS PROPERTY SUBMISSIONS ═══ */}
+      <div className="flex items-center gap-3 border-b border-slate-200/80 pb-3">
+        <button
+          onClick={() => setActiveTab("owners")}
+          className={cn(
+            "px-5 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2.5 shadow-sm active:scale-95",
+            activeTab === "owners"
+              ? "bg-blue-600 text-white shadow-blue-600/20"
+              : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+          )}
+        >
+          <UserPlus size={16} />
+          <span>Owner Submissions</span>
+          <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-extrabold", activeTab === "owners" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-700")}>
+            {empOwners.length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("properties")}
+          className={cn(
+            "px-5 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2.5 shadow-sm active:scale-95",
+            activeTab === "properties"
+              ? "bg-emerald-600 text-white shadow-emerald-600/20"
+              : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+          )}
+        >
+          <Building2 size={16} />
+          <span>Property Submissions</span>
+          <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-extrabold", activeTab === "properties" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-700")}>
+            {visits.length}
+          </span>
+        </button>
+      </div>
+
       <div className="space-y-6">
-          {/* Stats Bar */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Visit Reports</p>
-                <h3 className="text-2xl font-bold text-slate-800 mt-1">{stats.total}</h3>
-              </div>
-              <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                <Building2 size={24} />
-              </div>
-            </div>
-            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Approved / Onboarded</p>
-                <h3 className="text-2xl font-bold text-emerald-600 mt-1">{stats.approved}</h3>
-              </div>
-              <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                <CheckCircle2 size={24} />
-              </div>
-            </div>
-            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Pending Review</p>
-                <h3 className="text-2xl font-bold text-amber-600 mt-1">{stats.pending}</h3>
-              </div>
-              <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                <Clock size={24} />
-              </div>
-            </div>
+        {/* Search & Refresh */}
+        <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between gap-4">
+          <div className="flex-1 relative">
+            <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder={activeTab === "owners" ? "Search by owner name, login ID, phone or city..." : "Search by property name or staff member..."}
+              className="w-full bg-slate-50 border border-slate-100 rounded-xl pl-11 pr-4 py-3 text-xs font-bold text-slate-700 outline-none focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all placeholder:text-slate-300"
+            />
           </div>
+          <button onClick={loadVisits} className="p-3 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl border border-slate-100 transition-all">
+            <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
+          </button>
+        </div>
 
-          {/* Search & Actions */}
-          <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between gap-4">
-            <div className="flex-1 relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
-              <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by property name or staff member..."
-                className="w-full bg-slate-50 border border-slate-100 rounded-xl pl-11 pr-4 py-3 text-xs font-bold text-slate-700 outline-none focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all placeholder:text-slate-300" />
-            </div>
-            <button onClick={loadVisits} className="p-3 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl border border-slate-100 transition-all">
-              <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
-            </button>
+        {/* ═══ TAB 1: OWNER SUBMISSIONS TABLE ═══ */}
+        {activeTab === "owners" ? (
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50/50 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  <th className="p-4 pl-6">Owner Profile</th>
+                  <th className="p-4">Contact Info</th>
+                  <th className="p-4">Location / Area</th>
+                  <th className="p-4">Banking Status</th>
+                  <th className="p-4">Approval Status</th>
+                  <th className="p-4 pr-6 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50 text-xs font-bold text-slate-700">
+                {loading ? (
+                  <tr><td colSpan={6} className="p-8 text-center text-slate-400 font-bold uppercase tracking-widest">Loading owner submissions...</td></tr>
+                ) : filteredOwners.length === 0 ? (
+                  <tr><td colSpan={6} className="p-8 text-center text-slate-400 font-bold uppercase tracking-widest">No owner submissions found</td></tr>
+                ) : (
+                  filteredOwners.map((o, i) => {
+                    const hasKyc = Boolean(
+                      o.kycStatus === 'verified' ||
+                      (o.kyc?.status && o.kyc.status !== 'pending' && o.kyc.status !== 'requested') ||
+                      o.checkinSubmittedAt ||
+                      o.checkinAadhaarNumber ||
+                      o.kyc?.aadhaarNumber ||
+                      o.checkinOwnerPhoto
+                    );
+                    return (
+                      <tr key={o._id || i} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="p-4 pl-6">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs shrink-0 border border-blue-100">
+                              {(o.name || "O").charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="font-bold text-slate-800">{o.name || "Owner"}</p>
+                              <span className="text-[10px] font-mono font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">{o.loginId || "PENDING"}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <p className="text-slate-800">{o.phone || "No Phone"}</p>
+                          <p className="text-[10px] text-slate-400 font-normal">{o.email || "-"}</p>
+                        </td>
+                        <td className="p-4">
+                          <p className="text-slate-700">{o.locationCode || o.city || "-"}</p>
+                        </td>
+                        <td className="p-4">
+                          <p className="text-slate-700">{o.checkinBankName || o.bankName || "Not Linked"}</p>
+                          <p className="text-[10px] text-slate-400 font-normal">{o.checkinBankAccountNumber ? "A/C Linked" : "No A/C"}</p>
+                        </td>
+                        <td className="p-4">
+                          <span className={cn(
+                            "px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider",
+                            o.isActive !== false ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-amber-50 text-amber-600 border border-amber-100"
+                          )}>
+                            {o.isActive !== false ? "Approved Active" : "Pending Approval"}
+                          </span>
+                        </td>
+                        <td className="p-4 pr-6 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            {!isEmpPage && o.isActive === false && (
+                              <button
+                                onClick={() => handleApproveOwner(o)}
+                                disabled={!hasKyc}
+                                title={hasKyc ? "Approve owner & email login credentials" : "KYC required before approval"}
+                                className={cn(
+                                  "px-3 py-1.5 rounded-lg font-bold text-[10px] uppercase flex items-center gap-1 transition-all shadow-sm active:scale-95",
+                                  hasKyc
+                                    ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20"
+                                    : "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60"
+                                )}
+                              >
+                                <CheckCircle2 size={12} />
+                                <span>{hasKyc ? "Approve Owner" : "KYC Pending"}</span>
+                              </button>
+                            )}
+                            <button
+                              onClick={() => setSelectedOwnerDetail(o)}
+                              className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-[10px] font-bold uppercase transition-all inline-flex items-center gap-1"
+                            >
+                              <Eye size={12} /> View Details
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
           </div>
-
-          {/* Table */}
+        ) : (
+          /* ═══ TAB 2: PROPERTY SUBMISSIONS TABLE ═══ */
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -689,7 +883,7 @@ export default function Visit() {
                 {loading ? (
                   <tr><td colSpan={6} className="p-8 text-center text-slate-400 font-bold uppercase tracking-widest">Loading visits...</td></tr>
                 ) : filteredVisits.length === 0 ? (
-                  <tr><td colSpan={6} className="p-8 text-center text-slate-400 font-bold uppercase tracking-widest">No visit reports found</td></tr>
+                  <tr><td colSpan={6} className="p-8 text-center text-slate-400 font-bold uppercase tracking-widest">No property submissions found</td></tr>
                 ) : (
                   filteredVisits.map((v, i) => (
                     <tr key={v._id || i} className="hover:bg-slate-50/50 transition-colors">
@@ -752,7 +946,8 @@ export default function Visit() {
               </tbody>
             </table>
           </div>
-        </div>
+        )}
+      </div>
 
       {/* ─── VIEW VISIT MODAL ─────────────────────────────────────────────────── */}
       {viewingVisit && (
@@ -871,6 +1066,55 @@ export default function Visit() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─── VIEW OWNER DETAIL MODAL ──────────────────────────────────────────── */}
+      {selectedOwnerDetail && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-3xl w-full max-w-xl p-6 sm:p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm shrink-0 border border-blue-100">
+                  {(selectedOwnerDetail.name || "O").charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">{selectedOwnerDetail.name || "Property Owner"}</h3>
+                  <span className="text-xs font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-100">ID: {selectedOwnerDetail.loginId}</span>
+                </div>
+              </div>
+              <button onClick={() => setSelectedOwnerDetail(null)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                <X size={20} className="text-slate-500" />
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs">
+              <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                <div><span className="text-slate-400 font-bold block mb-1">Email Address</span><span className="font-bold text-slate-900">{selectedOwnerDetail.email || "N/A"}</span></div>
+                <div><span className="text-slate-400 font-bold block mb-1">Phone Number</span><span className="font-bold text-slate-900">{selectedOwnerDetail.phone || "N/A"}</span></div>
+                <div><span className="text-slate-400 font-bold block mb-1">Operating Area/City</span><span className="font-bold text-slate-900">{selectedOwnerDetail.locationCode || selectedOwnerDetail.city || "N/A"}</span></div>
+                <div><span className="text-slate-400 font-bold block mb-1">Account Status</span><span className="font-bold text-emerald-600 uppercase">{selectedOwnerDetail.isActive !== false ? "Approved Active" : "Pending Approval"}</span></div>
+              </div>
+
+              <div className="bg-slate-900 text-white p-5 rounded-2xl space-y-3">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Banking & Settlement Info</p>
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div><span className="text-slate-400 block mb-0.5">Bank Name</span><span className="font-bold">{selectedOwnerDetail.checkinBankName || selectedOwnerDetail.bankName || "Not Linked"}</span></div>
+                  <div><span className="text-slate-400 block mb-0.5">Branch Name</span><span className="font-bold">{selectedOwnerDetail.checkinBranchName || selectedOwnerDetail.branchName || "N/A"}</span></div>
+                  <div><span className="text-slate-400 block mb-0.5">Account Number</span><span className="font-bold font-mono text-emerald-400">{selectedOwnerDetail.checkinBankAccountNumber || selectedOwnerDetail.accountNumber || "N/A"}</span></div>
+                  <div><span className="text-slate-400 block mb-0.5">IFSC Code</span><span className="font-bold font-mono text-blue-400">{selectedOwnerDetail.checkinIfscCode || selectedOwnerDetail.ifscCode || "N/A"}</span></div>
+                  <div><span className="text-slate-400 block mb-0.5">Account Holder</span><span className="font-bold">{selectedOwnerDetail.checkinAccountHolderName || selectedOwnerDetail.accountHolderName || selectedOwnerDetail.name || "N/A"}</span></div>
+                  <div><span className="text-slate-400 block mb-0.5">UPI ID</span><span className="font-bold font-mono text-amber-400">{selectedOwnerDetail.checkinUpiId || selectedOwnerDetail.upiId || "N/A"}</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-4 border-t border-slate-100">
+              <button onClick={() => setSelectedOwnerDetail(null)} className="px-5 py-2.5 bg-slate-900 hover:bg-black text-white font-bold rounded-xl text-xs transition-colors">
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
