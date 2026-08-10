@@ -988,12 +988,20 @@ export default function Admin() {
           <div className="mt-5 rounded-2xl border border-border bg-card shadow-soft overflow-hidden">
             <div className="px-6 py-4 border-b border-border/50 flex items-center justify-between">
               <div>
-                <h3 className="font-semibold text-[15px] text-foreground">Profile Update Requests</h3>
+                <h3 className="font-semibold text-[15px] text-foreground">Update Requests to Admin</h3>
                 <p className="text-[12px] text-muted-foreground mt-0.5">Status of changes you've asked Roomhy to approve</p>
               </div>
+              {changeRequests.length > 4 && (
+                <button
+                  onClick={() => window.location.href = '/propertyowner/update-requests'}
+                  className="text-[12px] font-semibold text-primary hover:opacity-70 flex items-center gap-0.5 transition-opacity"
+                >
+                  View all <ChevronRight className="size-3.5" />
+                </button>
+              )}
             </div>
             <div className="divide-y divide-border/40">
-              {changeRequests.slice(0, 5).map((req, i) => {
+              {changeRequests.slice(0, 4).map((req, i) => {
                 const status = req.status || "Pending";
                 const isApproved = status === "Approved";
                 const isRejected = status === "Rejected";
@@ -1272,11 +1280,15 @@ export default function Admin() {
           </div>
         </MobileSectionCard>
 
-        {/* 7b. Profile Update Requests */}
+        {/* 7b. Update Requests to Admin */}
         {changeRequests.length > 0 && (
-          <MobileSectionCard title="Profile Update Requests">
+          <MobileSectionCard
+            title="Update Requests to Admin"
+            actionText={changeRequests.length > 4 ? "View all" : undefined}
+            onAction={changeRequests.length > 4 ? () => window.location.href = '/propertyowner/update-requests' : undefined}
+          >
             <div className="space-y-3">
-              {changeRequests.slice(0, 5).map((req, i) => {
+              {changeRequests.slice(0, 4).map((req, i) => {
                 const status = req.status || "Pending";
                 const isApproved = status === "Approved";
                 const isRejected = status === "Rejected";

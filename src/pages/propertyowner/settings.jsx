@@ -8,7 +8,7 @@ import {
   fetchOwnerTenants,
   downloadCsv
 } from "../../utils/propertyowner";
-import { Building, UserCog, Shield, Globe, Lock, Check, Database, Download, Landmark, Eye, EyeOff, ExternalLink, X, Loader2 } from "lucide-react";
+import { Building, UserCog, Shield, Globe, Lock, Check, Database, Download, Landmark, Eye, EyeOff, X, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { fetchJson } from "../../utils/api";
 
@@ -63,6 +63,9 @@ export default function Settings() {
   const [exporting, setExporting] = useState(false);
   const [bankData, setBankData]       = useState(null);
   const [bankLoading, setBankLoading] = useState(true);
+  const [bankEditOpen, setBankEditOpen] = useState(false);
+  const [bankForm, setBankForm] = useState({ accountHolder: "", bankName: "", branchName: "", accountNumber: "", ifscCode: "", upiId: "" });
+  const [bankSubmitting, setBankSubmitting] = useState(false);
 
   const [pwModal, setPwModal] = useState(false);
   const [pwStep, setPwStep] = useState("otp"); // "otp" | "reset"
@@ -274,6 +277,53 @@ export default function Settings() {
     bankData.accountHolder || bankData.bankName || bankData.accountNumber || bankData.upiId
   );
 
+  const openBankEdit = () => {
+    setBankForm({
+      accountHolder: bankData?.accountHolder || "",
+      bankName: bankData?.bankName || "",
+      branchName: bankData?.branchName || "",
+      accountNumber: bankData?.accountNumber || "",
+      ifscCode: bankData?.ifscCode || "",
+      upiId: bankData?.upiId || "",
+    });
+    setBankEditOpen(true);
+  };
+
+  // Bank changes never apply instantly — same submit-then-approve pipeline as
+  // Profile Settings. Superadmin review + approve is what actually updates
+  // the Owner record (and anywhere else it's read from) once accepted.
+  const submitBankUpdate = async (e) => {
+    e.preventDefault();
+    setBankSubmitting(true);
+    try {
+      const data = await fetchJson("/api/owner-change-requests/submit", {
+        method: "POST",
+        body: JSON.stringify({
+          ownerLoginId: owner.loginId,
+          requestType: "bank_details",
+          requestedChanges: {
+            checkinAccountHolderName: bankForm.accountHolder,
+            checkinBankName: bankForm.bankName,
+            checkinBranchName: bankForm.branchName,
+            checkinBankAccountNumber: bankForm.accountNumber,
+            checkinIfscCode: bankForm.ifscCode,
+            checkinUpiId: bankForm.upiId,
+          }
+        })
+      });
+      if (data.success) {
+        toast.success("Bank details submitted for Superadmin approval.");
+        setBankEditOpen(false);
+      } else {
+        toast.error(data.message || "Failed to submit request.");
+      }
+    } catch (err) {
+      toast.error(err.message || "Failed to submit request.");
+    } finally {
+      setBankSubmitting(false);
+    }
+  };
+
   return (
     <PropertyOwnerLayout
       owner={owner}
@@ -325,19 +375,21 @@ export default function Settings() {
             </div>
           </div>
 
-          {/* Payment & Banking — pulled from KYC */}
+          {/* Payment & Banking — pulled from KYC, edits go through Superadmin approval */}
           <div className="border border-border bg-card rounded-2xl p-6 shadow-soft">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-[16px] font-bold text-foreground flex items-center gap-2.5">
                 <Landmark className="w-5 h-5 text-primary" />
                 Payment &amp; Banking
               </h3>
-              <a
-                href="/propertyowner/kyc-verification"
-                className="inline-flex items-center gap-1 text-[11.5px] text-primary font-medium hover:underline"
-              >
-                Update via KYC <ExternalLink className="size-3" />
-              </a>
+              {hasBank && (
+                <button
+                  onClick={openBankEdit}
+                  className="inline-flex items-center gap-1 text-[11.5px] text-primary font-semibold hover:underline"
+                >
+                  Update
+                </button>
+              )}
             </div>
 
             {bankLoading ? (
@@ -363,7 +415,7 @@ export default function Settings() {
             {bankData?.locked && (
               <p className="text-[11.5px] text-amber-600 mt-3 flex items-center gap-1.5">
                 <Lock className="size-3" />
-                Bank details are locked by your KYC submission. Contact support to update.
+                Verified via KYC — any change you submit here still needs Superadmin approval before it takes effect.
               </p>
             )}
           </div>
@@ -531,6 +583,98 @@ export default function Settings() {
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {bankEditOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 relative max-h-[90vh] overflow-y-auto">
+            <button onClick={() => setBankEditOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-5">
+              <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                <Landmark className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-[16px] text-slate-900">Update Bank Details</h3>
+                <p className="text-[11.5px] text-slate-500">Submitted for Superadmin approval before it takes effect.</p>
+              </div>
+            </div>
+
+            <form onSubmit={submitBankUpdate} className="space-y-4">
+              <div>
+                <label className="text-[10px] font-black text-slate-700 uppercase tracking-tight mb-2 block">Account Holder</label>
+                <input
+                  type="text"
+                  value={bankForm.accountHolder}
+                  onChange={e => setBankForm(p => ({ ...p, accountHolder: e.target.value }))}
+                  className="w-full h-11 px-4 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-black text-slate-700 uppercase tracking-tight mb-2 block">Bank Name</label>
+                  <input
+                    type="text"
+                    value={bankForm.bankName}
+                    onChange={e => setBankForm(p => ({ ...p, bankName: e.target.value }))}
+                    className="w-full h-11 px-4 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-slate-700 uppercase tracking-tight mb-2 block">Branch</label>
+                  <input
+                    type="text"
+                    value={bankForm.branchName}
+                    onChange={e => setBankForm(p => ({ ...p, branchName: e.target.value }))}
+                    className="w-full h-11 px-4 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-700 uppercase tracking-tight mb-2 block">Account Number</label>
+                <input
+                  type="text"
+                  value={bankForm.accountNumber}
+                  onChange={e => setBankForm(p => ({ ...p, accountNumber: e.target.value }))}
+                  className="w-full h-11 px-4 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-black text-slate-700 uppercase tracking-tight mb-2 block">IFSC Code</label>
+                  <input
+                    type="text"
+                    value={bankForm.ifscCode}
+                    onChange={e => setBankForm(p => ({ ...p, ifscCode: e.target.value.toUpperCase() }))}
+                    className="w-full h-11 px-4 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-slate-700 uppercase tracking-tight mb-2 block">UPI ID</label>
+                  <input
+                    type="text"
+                    value={bankForm.upiId}
+                    onChange={e => setBankForm(p => ({ ...p, upiId: e.target.value }))}
+                    className="w-full h-11 px-4 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={bankSubmitting}
+                className="w-full h-11 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                {bankSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</> : "Submit for Approval"}
+              </button>
+            </form>
           </div>
         </div>
       )}
