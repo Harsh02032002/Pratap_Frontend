@@ -848,7 +848,10 @@ export default function Visit() {
                   <tr><td colSpan={6} className="p-8 text-center text-slate-400 font-bold uppercase tracking-widest">No owner submissions found</td></tr>
                 ) : (
                   filteredOwners.map((o, i) => {
-                    const isApproved = o.isActive === true && (o.status === "approved" || o.status === "active") && !o.isEmployeeSubmitted && o.status !== "pending_approval";
+                    const isApproved = Boolean(
+                      o.status === "approved" || 
+                      (o.isActive === true && o.status !== "pending_approval" && !o.isEmployeeSubmitted)
+                    );
                     const hasKyc = Boolean(
                       o.kycStatus === 'verified' ||
                       o.kycStatus === 'completed' ||
