@@ -9,7 +9,7 @@ import {
   Camera, Map, Star, Edit3, Trash, RefreshCw,
   Sparkles, Layers, Box, Globe2, IndianRupee,
   Plus, Loader2, Save, Smartphone, Monitor, Info,
-  UserPlus, Send, Lock, ChevronDown, Wifi, ShieldCheck,
+  UserPlus, Send, Lock, ChevronDown, Wifi, ShieldCheck, FileCheck,
   UtensilsCrossed, Cigarette, PawPrint, BedDouble, DoorOpen
 } from "lucide-react";
 import { fetchJson, getAuthHeader } from "../../utils/api";
