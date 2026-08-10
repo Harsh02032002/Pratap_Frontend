@@ -690,7 +690,7 @@ export default function Owner() {
                                  </td>
                                  <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                                     <div className="flex items-center justify-end gap-2">
-                                       {(() => {
+                                       {(currentView === "pending" || o.isActive === false || o.status === "pending_approval") && (() => {
                                           const hasKyc = Boolean(
                                              o.kycStatus === 'verified' ||
                                              (o.kyc?.status && o.kyc.status !== 'pending' && o.kyc.status !== 'requested') ||
