@@ -13,6 +13,7 @@ import {
   UtensilsCrossed, Cigarette, PawPrint, BedDouble, DoorOpen
 } from "lucide-react";
 import { fetchJson, getAuthHeader } from "../../utils/api";
+import AddPropertyWizard from "./AddPropertyWizard";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
@@ -142,9 +143,15 @@ export default function Visit() {
   const [formPhotos, setFormPhotos] = useState([]);
   const [formRoomTypes, setFormRoomTypes] = useState([]);
 
-  // Credentials
+  // Credentials & Banking
   const [formLoginId, setFormLoginId] = useState("");
   const [formPassword, setFormPassword] = useState("");
+  const [formBankName, setFormBankName] = useState("");
+  const [formBranchName, setFormBranchName] = useState("");
+  const [formBankAccountNumber, setFormBankAccountNumber] = useState("");
+  const [formIfscCode, setFormIfscCode] = useState("");
+  const [formAccountHolderName, setFormAccountHolderName] = useState("");
+  const [formUpiId, setFormUpiId] = useState("");
 
   // UI state
   const [saving, setSaving] = useState(false);
@@ -182,15 +189,54 @@ export default function Visit() {
   }, [currentView]);
 
   const generateCreds = () => {
-    const prefix = "OWN";
-    const genId = `${prefix}${Math.floor(1000 + Math.random() * 9000)}`;
+    const genId = `ROOMHY${Math.floor(1000 + Math.random() * 9000)}`;
     const password = Math.random().toString(36).slice(-8).toUpperCase();
     setFormLoginId(genId);
     setFormPassword(password);
   };
 
+  const handleAddOwnerSubmit = async (e) => {
+    e.preventDefault();
+    if (!formName || !formPhone || !formEmail) return alert("Please fill required fields: Owner Name, Email, Phone Number");
+    setSaving(true);
+    try {
+      await fetchJson("/api/owners", {
+        method: "POST",
+        headers: { ...getAuthHeader(), "Content-Type": "application/json" },
+        body: JSON.stringify({
+          loginId: formLoginId,
+          name: formName,
+          email: formEmail,
+          phone: formPhone,
+          locationCode: formArea || formOwnerCity,
+          city: formOwnerCity,
+          credentials: { password: formPassword, firstTime: true },
+          checkinPassword: formPassword,
+          checkinBankName: formBankName,
+          checkinBranchName: formBranchName,
+          checkinBankAccountNumber: formBankAccountNumber,
+          checkinIfscCode: formIfscCode,
+          checkinAccountHolderName: formAccountHolderName,
+          checkinUpiId: formUpiId,
+          isEmployeeSubmitted: true,
+          status: 'pending_approval',
+          kycStatus: 'pending'
+        })
+      });
+      alert(`✅ Property Owner onboarding request submitted for Superadmin approval!\n\nOwner ID: ${formLoginId}\nPassword: ${formPassword}\n\nCredentials will be emailed to ${formEmail} after Superadmin approves the account.`);
+      resetForm();
+      setCurrentView("list");
+      loadVisits();
+    } catch (err) {
+      alert(err.message || "Failed to add property owner.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const resetForm = () => {
     setFormName(""); setFormEmail(""); setFormPhone(""); setFormOwnerCity("");
+    setFormBankName(""); setFormBranchName(""); setFormBankAccountNumber(""); setFormIfscCode(""); setFormAccountHolderName(""); setFormUpiId("");
     setFormPropertyName(""); setFormPropertyType("hostel"); setFormGender("Co-ed");
     setFormRent(""); setFormDeposit(""); setFormDescription("");
     setFormArea(""); setFormCity(""); setFormAddress(""); setFormPincode(""); setFormLandmark("");
@@ -392,379 +438,169 @@ export default function Visit() {
          </div>
          {isEmpPage && (
            <div className="flex items-center gap-3">
-              <button onClick={() => { if (currentView === "addOwner") resetForm(); setCurrentView(currentView === "addOwner" ? "list" : "addOwner"); }} className={cn(
+              <button onClick={() => { if (currentView === "addOwner") resetForm(); else generateCreds(); setCurrentView(currentView === "addOwner" ? "list" : "addOwner"); }} className={cn(
                 "px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-lg transition-all flex items-center gap-2",
-                currentView === "addOwner" ? "bg-white text-slate-600 border border-slate-100 shadow-slate-200" : "bg-slate-800 text-white shadow-slate-800/10 hover:bg-slate-900"
+                currentView === "addOwner" ? "bg-white text-slate-600 border border-slate-100 shadow-slate-200" : "bg-blue-600 text-white shadow-blue-600/10 hover:bg-blue-700"
               )}>
                  {currentView === "addOwner" ? <RefreshCw className="w-3.5 h-3.5" /> : <UserPlus className="w-3.5 h-3.5" />}
                  {currentView === "addOwner" ? "Back to Visits" : "+ Add Property Owner"}
               </button>
-              {currentView === "list" && (
-                <button onClick={() => setCurrentView("addOwner")} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-lg shadow-emerald-600/10 transition-all flex items-center gap-2">
-                   <Plus className="w-3.5 h-3.5" /> + Add Property
-                </button>
-              )}
+              <button onClick={() => setCurrentView(currentView === "addProperty" ? "list" : "addProperty")} className={cn(
+                "px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-lg transition-all flex items-center gap-2",
+                currentView === "addProperty" ? "bg-white text-slate-600 border border-slate-100 shadow-slate-200" : "bg-emerald-600 text-white shadow-emerald-600/10 hover:bg-emerald-700"
+              )}>
+                 {currentView === "addProperty" ? <RefreshCw className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+                 {currentView === "addProperty" ? "Back to Visits" : "+ Add Property"}
+              </button>
            </div>
          )}
       </div>
 
-      {currentView === "addOwner" ? (
-        /* ═══ ADD PROPERTY OWNER — COMPREHENSIVE FORM ═══ */
-        <div className="max-w-5xl mx-auto animate-in fade-in zoom-in-95 duration-500 mt-4">
-          {/* Form Header */}
-          <div className="bg-white rounded-t-[2rem] border border-b-0 border-slate-100 shadow-2xl overflow-hidden">
-            <div className="p-8 bg-gradient-to-br from-slate-50 to-white flex items-center gap-6 border-b border-slate-100">
-              <div className="w-16 h-16 rounded-[1.5rem] bg-slate-900 text-white flex items-center justify-center shadow-2xl shadow-slate-900/30">
-                <UserPlus size={28} />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-slate-800 tracking-tight">Onboard Property Owner</h3>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Fill in property visit details and onboard owner with auto KYC</p>
-              </div>
+      {currentView === "addProperty" ? (
+        /* ═══ EXACT SUPERADMIN ADD PROPERTY WIZARD (SCREENSHOT 4) ═══ */
+        <div className="bg-white rounded-3xl p-4 sm:p-6 shadow-xl border border-slate-100 mt-4 animate-in fade-in zoom-in-95 duration-300">
+          <AddPropertyWizard isModal={true} onClose={() => setCurrentView("list")} />
+        </div>
+      ) : currentView === "addOwner" ? (
+        /* ═══ EXACT SUPERADMIN ADD PROPERTY OWNER FORM (SCREENSHOT 3) ═══ */
+        <div className="max-w-4xl mx-auto bg-white rounded-3xl border border-slate-200/80 shadow-xl overflow-hidden mt-4 animate-in fade-in zoom-in-95 duration-300">
+          <div className="p-6 sm:p-8 border-b border-slate-100 flex items-center gap-4 bg-slate-50/50">
+            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100">
+              <UserPlus size={24} />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-900">Property Owner Information</h3>
+              <p className="text-xs text-slate-500">Fill in owner details and banking info to create account.</p>
             </div>
           </div>
 
-          <form onSubmit={handleOnboard}>
-            <div className="bg-white border-x border-slate-100 shadow-2xl divide-y divide-slate-50">
-
-              {/* ─── Section 1: Owner Identity ──────────────────────────────── */}
-              <div>
-                <SectionHeader icon={User} title="Owner Identity" subtitle="Primary contact information" open={openSections.owner} onToggle={() => toggleSection("owner")} color="blue" />
-                {openSections.owner && (
-                  <div className="px-8 pb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FormField label="Owner Name" value={formName} onChange={e => setFormName(e.target.value)} placeholder="e.g. Rahul Sharma" required />
-                    <FormField label="Email Address" value={formEmail} onChange={e => setFormEmail(e.target.value)} type="email" placeholder="rahul@example.com" required />
-                    <FormField label="Phone Number" value={formPhone} onChange={e => setFormPhone(e.target.value)} placeholder="+91 XXXX XXXXXX" prefix="+91" required />
-                    <FormField label="Owner City" value={formOwnerCity} onChange={e => setFormOwnerCity(e.target.value)} placeholder="e.g. Indore" />
-                  </div>
-                )}
+          <form onSubmit={handleAddOwnerSubmit} className="p-6 sm:p-8 space-y-6">
+            {/* Basic Identity Section */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-700">Owner Name *</label>
+                <input
+                  required
+                  value={formName}
+                  onChange={e => setFormName(e.target.value)}
+                  placeholder="e.g. Rahul Sharma"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                />
               </div>
-
-              {/* ─── Section 2: Property Details ────────────────────────────── */}
-              <div>
-                <SectionHeader icon={Building2} title="Property Details" subtitle="Property name, type, rent & deposit" open={openSections.property} onToggle={() => toggleSection("property")} color="indigo" />
-                {openSections.property && (
-                  <div className="px-8 pb-8 space-y-6">
-                    <FormField label="Property Name" value={formPropertyName} onChange={e => setFormPropertyName(e.target.value)} placeholder="e.g. Sunshine Boys PG" required />
-                    
-                    {/* Property Type Cards */}
-                    <div>
-                      <label className="text-[10px] font-black text-slate-400 uppercase mb-3 block tracking-widest ml-1">Property Type</label>
-                      <div className="grid grid-cols-3 gap-4">
-                        {PROPERTY_TYPES.map(pt => {
-                          const Icon = pt.icon;
-                          const active = formPropertyType === pt.value;
-                          return (
-                            <button key={pt.value} type="button" onClick={() => setFormPropertyType(pt.value)}
-                              className={cn("p-4 rounded-2xl border-2 text-left transition-all relative group",
-                                active ? "border-blue-600 bg-blue-50/50" : "border-slate-100 hover:border-slate-200"
-                              )}>
-                              {active && <div className="absolute top-3 right-3 bg-blue-600 rounded-full p-0.5 shadow-lg"><Check className="w-3 h-3 text-white" /></div>}
-                              <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center mb-3 transition-all", active ? "bg-blue-600 text-white shadow-lg" : "bg-slate-100 text-slate-400")}>
-                                <Icon className="w-4 h-4" />
-                              </div>
-                              <p className="text-[11px] font-bold text-slate-700">{pt.label}</p>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Gender Selector */}
-                    <div>
-                      <label className="text-[10px] font-black text-slate-400 uppercase mb-3 block tracking-widest ml-1">Gender Suitability</label>
-                      <div className="flex gap-3">
-                        {GENDER_OPTIONS.map(g => (
-                          <button key={g} type="button" onClick={() => setFormGender(g)}
-                            className={cn("px-5 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all",
-                              formGender === g ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-200" : "bg-slate-50 text-slate-500 border-slate-100 hover:bg-slate-100"
-                            )}>
-                            {g}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-6">
-                      <FormField label="Monthly Rent" value={formRent} onChange={e => setFormRent(e.target.value)} placeholder="8000" prefix="₹" suffix="/mo" type="number" />
-                      <FormField label="Security Deposit" value={formDeposit} onChange={e => setFormDeposit(e.target.value)} placeholder="10000" prefix="₹" type="number" />
-                    </div>
-
-                    <div>
-                      <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest ml-1">Description</label>
-                      <textarea rows={3} value={formDescription} onChange={e => setFormDescription(e.target.value)} placeholder="Brief property description..."
-                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none resize-none focus:bg-white focus:ring-4 focus:ring-blue-100 focus:border-blue-200 transition-all placeholder:text-slate-300" />
-                    </div>
-                  </div>
-                )}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-700">Email Address *</label>
+                <input
+                  required
+                  value={formEmail}
+                  onChange={e => setFormEmail(e.target.value)}
+                  type="email"
+                  placeholder="rahul@example.com"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                />
               </div>
-
-              {/* ─── Section 3: Location ─────────────────────────────────────── */}
-              <div>
-                <SectionHeader icon={MapPin} title="Location" subtitle="Area, city, address & pincode" open={openSections.location} onToggle={() => toggleSection("location")} color="emerald" />
-                {openSections.location && (
-                  <div className="px-8 pb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FormField label="Area / Locality" value={formArea} onChange={e => setFormArea(e.target.value)} placeholder="e.g. Koramangala" required />
-                    <FormField label="City" value={formCity} onChange={e => setFormCity(e.target.value)} placeholder="e.g. Bangalore" required />
-                    <FormField label="Full Address" value={formAddress} onChange={e => setFormAddress(e.target.value)} placeholder="House/building, street..." className="md:col-span-2" />
-                    <FormField label="Pincode" value={formPincode} onChange={e => setFormPincode(e.target.value)} placeholder="560034" />
-                    <FormField label="Nearby Landmark" value={formLandmark} onChange={e => setFormLandmark(e.target.value)} placeholder="Near Christ University" />
-                  </div>
-                )}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-700">Phone Number *</label>
+                <input
+                  required
+                  value={formPhone}
+                  onChange={e => setFormPhone(e.target.value)}
+                  placeholder="9876543210"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                />
               </div>
-
-              {/* ─── Section 4: Occupancy ────────────────────────────────────── */}
-              <div>
-                <SectionHeader icon={BedDouble} title="Occupancy" subtitle="Rooms & beds info" open={openSections.occupancy} onToggle={() => toggleSection("occupancy")} color="amber" />
-                {openSections.occupancy && (
-                  <div className="px-8 pb-8 grid grid-cols-3 gap-6">
-                    <FormField label="Vacant Rooms" value={formVacantRooms} onChange={e => setFormVacantRooms(e.target.value)} placeholder="10" type="number" />
-                    <FormField label="Occupied Rooms" value={formOccupiedRooms} onChange={e => setFormOccupiedRooms(e.target.value)} placeholder="5" type="number" />
-                    <FormField label="Occupied Beds" value={formOccupiedBeds} onChange={e => setFormOccupiedBeds(e.target.value)} placeholder="12" type="number" />
-                  </div>
-                )}
-              </div>
-
-              {/* ─── Section 5: Features & Amenities ─────────────────────────── */}
-              <div>
-                <SectionHeader icon={Zap} title="Features & Amenities" subtitle="Amenities, furnishing, ventilation" open={openSections.features} onToggle={() => toggleSection("features")} color="violet" />
-                {openSections.features && (
-                  <div className="px-8 pb-8 space-y-6">
-                    {/* Amenities Chips */}
-                    <div>
-                      <label className="text-[10px] font-black text-slate-400 uppercase mb-3 block tracking-widest ml-1">Amenities</label>
-                      <div className="flex flex-wrap gap-2">
-                        {AMENITY_LIST.map(a => (
-                          <button key={a} type="button" onClick={() => toggleAmenity(a)}
-                            className={cn(
-                              "px-4 py-2 rounded-xl text-[10px] font-bold border transition-all",
-                              formAmenities.has(a)
-                                ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-200"
-                                : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50 hover:border-slate-300"
-                            )}>
-                            {a}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Furnishing */}
-                    <div>
-                      <label className="text-[10px] font-black text-slate-400 uppercase mb-3 block tracking-widest ml-1">Furnishing</label>
-                      <div className="flex gap-3">
-                        {FURNISHING_OPTIONS.map(f => (
-                          <button key={f} type="button" onClick={() => setFormFurnishing(f)}
-                            className={cn("px-5 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all",
-                              formFurnishing === f ? "bg-violet-600 text-white border-violet-600 shadow-lg shadow-violet-200" : "bg-slate-50 text-slate-500 border-slate-100 hover:bg-slate-100"
-                            )}>
-                            {f}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-6">
-                      <FormField label="Ventilation" value={formVentilation} onChange={e => setFormVentilation(e.target.value)} placeholder="Good / Average" />
-                      <FormField label="Minimum Stay" value={formMinStay} onChange={e => setFormMinStay(e.target.value)} placeholder="e.g. 3 Months" />
-                      <FormField label="Entry / Exit" value={formEntryExit} onChange={e => setFormEntryExit(e.target.value)} placeholder="e.g. 24/7" />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* ─── Section 5.5: Room Configurations ────────────────────────── */}
-              <div>
-                <SectionHeader icon={BedDouble} title="Room Configurations" subtitle="Configure room types and pricing" open={openSections.roomTypes} onToggle={() => toggleSection("roomTypes")} color="violet" />
-                {openSections.roomTypes && (
-                  <div className="px-8 pb-8 space-y-6">
-                    <div className="space-y-4">
-                      {formRoomTypes.map((rt, idx) => (
-                        <div key={idx} className="bg-slate-50 border border-slate-100 rounded-2xl p-5 relative space-y-4">
-                          <button type="button" onClick={() => setFormRoomTypes(prev => prev.filter((_, i) => i !== idx))}
-                            className="absolute top-4 right-4 bg-rose-50 text-rose-600 p-2 rounded-xl border border-rose-100 hover:bg-rose-100 hover:text-rose-700 transition-all">
-                            <Trash className="w-3.5 h-3.5" />
-                          </button>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pr-10">
-                            <div>
-                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Room Type / Sharing</label>
-                              <input type="text" value={rt.type} onChange={e => {
-                                const newTypes = [...formRoomTypes];
-                                newTypes[idx].type = e.target.value;
-                                setFormRoomTypes(newTypes);
-                              }} placeholder="e.g. Double Sharing AC" className="w-full bg-white border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold text-slate-700 outline-none focus:border-blue-200" />
-                            </div>
-                            <div>
-                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Description</label>
-                              <input type="text" value={rt.desc} onChange={e => {
-                                const newTypes = [...formRoomTypes];
-                                newTypes[idx].desc = e.target.value;
-                                setFormRoomTypes(newTypes);
-                              }} placeholder="e.g. Attached washroom, study desk" className="w-full bg-white border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold text-slate-700 outline-none focus:border-blue-200" />
-                            </div>
-                            <div>
-                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Occupancy (Beds per Room)</label>
-                              <input type="number" value={rt.occupancy} onChange={e => {
-                                const newTypes = [...formRoomTypes];
-                                newTypes[idx].occupancy = parseInt(e.target.value) || 1;
-                                setFormRoomTypes(newTypes);
-                              }} placeholder="e.g. 2" className="w-full bg-white border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold text-slate-700 outline-none focus:border-blue-200" />
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div>
-                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Total Rooms</label>
-                              <input type="text" value={rt.totalRooms} onChange={e => {
-                                const newTypes = [...formRoomTypes];
-                                newTypes[idx].totalRooms = e.target.value;
-                                setFormRoomTypes(newTypes);
-                              }} placeholder="e.g. 5" className="w-full bg-white border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold text-slate-700 outline-none focus:border-blue-200" />
-                            </div>
-                            <div>
-                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Total Beds</label>
-                              <input type="text" value={rt.totalBeds} onChange={e => {
-                                const newTypes = [...formRoomTypes];
-                                newTypes[idx].totalBeds = e.target.value;
-                                setFormRoomTypes(newTypes);
-                              }} placeholder="e.g. 10" className="w-full bg-white border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold text-slate-700 outline-none focus:border-blue-200" />
-                            </div>
-                            <div>
-                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Price Per Bed (₹/mo)</label>
-                              <input type="text" value={rt.pricePerBed} onChange={e => {
-                                const newTypes = [...formRoomTypes];
-                                newTypes[idx].pricePerBed = e.target.value;
-                                setFormRoomTypes(newTypes);
-                              }} placeholder="e.g. 7500" className="w-full bg-white border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold text-slate-700 outline-none focus:border-blue-200" />
-                            </div>
-                            <div>
-                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Price Per Room (₹/mo)</label>
-                              <input type="text" value={rt.pricePerRoom} onChange={e => {
-                                const newTypes = [...formRoomTypes];
-                                newTypes[idx].pricePerRoom = e.target.value;
-                                setFormRoomTypes(newTypes);
-                              }} placeholder="e.g. 15000" className="w-full bg-white border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold text-slate-700 outline-none focus:border-blue-200" />
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <button type="button" onClick={() => setFormRoomTypes(prev => [...prev, { type: "", desc: "", totalRooms: "", totalBeds: "", occupancy: 1, pricePerBed: "", pricePerRoom: "" }])}
-                      className="w-full py-4 border-2 border-dashed border-slate-200 hover:border-blue-300 text-slate-500 hover:text-blue-600 rounded-2xl font-bold text-xs transition-all flex items-center justify-center gap-2 bg-white">
-                      <Plus className="w-4 h-4" /> Add Room Configuration
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* ─── Section 6: Policies ──────────────────────────────────────── */}
-              <div>
-                <SectionHeader icon={ShieldCheck} title="Policies" subtitle="Visitors, cooking, smoking, pets" open={openSections.policies} onToggle={() => toggleSection("policies")} color="cyan" />
-                {openSections.policies && (
-                  <div className="px-8 pb-8">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <TogglePill label="Visitors" icon={Users} active={formVisitorsAllowed} onClick={() => setFormVisitorsAllowed(!formVisitorsAllowed)} />
-                      <TogglePill label="Cooking" icon={UtensilsCrossed} active={formCookingAllowed} onClick={() => setFormCookingAllowed(!formCookingAllowed)} />
-                      <TogglePill label="Smoking" icon={Cigarette} active={formSmokingAllowed} onClick={() => setFormSmokingAllowed(!formSmokingAllowed)} />
-                      <TogglePill label="Pets" icon={PawPrint} active={formPetsAllowed} onClick={() => setFormPetsAllowed(!formPetsAllowed)} />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* ─── Section 7: Ratings & Notes ───────────────────────────────── */}
-              <div>
-                <SectionHeader icon={Star} title="Ratings & Notes" subtitle="Cleanliness, reviews, internal remarks" open={openSections.ratings} onToggle={() => toggleSection("ratings")} color="orange" />
-                {openSections.ratings && (
-                  <div className="px-8 pb-8 space-y-6">
-                    {/* Star Rating */}
-                    <div>
-                      <label className="text-[10px] font-black text-slate-400 uppercase mb-3 block tracking-widest ml-1">Cleanliness Rating</label>
-                      <div className="flex items-center gap-2">
-                        {[1, 2, 3, 4, 5].map(s => (
-                          <button key={s} type="button" onClick={() => setFormCleanlinessRating(s)}
-                            className="transition-all hover:scale-110 active:scale-95">
-                            <Star className={cn("w-8 h-8 transition-colors", s <= formCleanlinessRating ? "text-amber-400 fill-amber-400" : "text-slate-200")} />
-                          </button>
-                        ))}
-                        <span className="ml-3 text-sm font-bold text-slate-500">{formCleanlinessRating}/5</span>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <FormField label="Owner Behaviour" value={formOwnerBehaviour} onChange={e => setFormOwnerBehaviour(e.target.value)} placeholder="Cooperative, Friendly..." />
-                      <FormField label="Student Reviews" value={formStudentReviews} onChange={e => setFormStudentReviews(e.target.value)} placeholder="What students say..." />
-                    </div>
-
-                    <div>
-                      <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest ml-1">Internal Remarks (Private)</label>
-                      <textarea rows={3} value={formInternalRemarks} onChange={e => setFormInternalRemarks(e.target.value)} placeholder="Internal notes for superadmin only..."
-                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none resize-none focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all placeholder:text-slate-300" />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* ─── Section 8: Photos ────────────────────────────────────────── */}
-              <div>
-                <SectionHeader icon={Camera} title="Photos" subtitle="Property photos" open={openSections.photos} onToggle={() => toggleSection("photos")} color="rose" />
-                {openSections.photos && (
-                  <div className="px-8 pb-8 space-y-4">
-                    <div className="flex gap-3">
-                      <div className="flex-1">
-                        <FormField label="Photo URL" value={formPhotoUrl} onChange={e => setFormPhotoUrl(e.target.value)} placeholder="https://example.com/photo.jpg" />
-                      </div>
-                      <div className="flex items-end">
-                        <button type="button" onClick={addPhotoUrl}
-                          className="px-5 py-4 bg-blue-600 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg shadow-blue-200">
-                          <Plus className="w-4 h-4" /> Add
-                        </button>
-                      </div>
-                    </div>
-
-                    {formPhotos.length > 0 && (
-                      <div className="flex flex-wrap gap-3 mt-2">
-                        {formPhotos.map((url, idx) => (
-                          <div key={idx} className="relative group w-24 h-24 rounded-xl overflow-hidden border border-slate-100 shadow-sm">
-                            <img src={url} alt="" className="w-full h-full object-cover" onError={e => e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23cbd5e1' viewBox='0 0 24 24'%3E%3Cpath d='M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z'/%3E%3C/svg%3E"} />
-                            <button type="button" onClick={() => removePhoto(idx)}
-                              className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
-                              <X className="w-3 h-3" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-700">Operating Area / City</label>
+                <input
+                  value={formOwnerCity || formArea}
+                  onChange={e => { setFormOwnerCity(e.target.value); setFormArea(e.target.value); }}
+                  placeholder="e.g. Koramangala, Bangalore"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                />
               </div>
             </div>
 
-            {/* ─── Credentials Card + Actions ───────────────────────────────── */}
-            <div className="bg-white rounded-b-[2rem] border border-t-0 border-slate-100 shadow-2xl p-8 space-y-6">
-              <div className="bg-slate-900 text-white p-6 rounded-2xl flex items-center justify-between shadow-xl shadow-slate-900/10">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-600/30">
-                    <Lock size={22} />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Auto Generated Credentials</p>
-                    <p className="text-sm font-bold mt-0.5">Login ID: <span className="font-mono text-blue-400 font-bold">{formLoginId}</span> • Temp Password: <span className="font-mono text-emerald-400 font-bold">{formPassword}</span></p>
-                  </div>
+            {/* Banking Details */}
+            <div className="pt-4 border-t border-slate-100 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <IndianRupee size={18} />
                 </div>
-                <button type="button" onClick={generateCreds} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-[9px] font-bold uppercase tracking-widest border border-slate-700 transition-all flex items-center gap-2">
-                  <RefreshCw className="w-3 h-3" /> Regenerate
-                </button>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900">Banking & Settlement Details</h4>
+                  <p className="text-xs text-slate-400">Used for rent payouts — owner can also edit in their panel</p>
+                </div>
               </div>
 
-              <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-                <button type="button" onClick={() => { resetForm(); setCurrentView("list"); }} className="px-6 py-4 rounded-2xl text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all">
-                  Cancel
-                </button>
-                <button type="submit" disabled={saving} className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest shadow-xl shadow-blue-600/20 transition-all flex items-center gap-2">
-                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                  {saving ? "Onboarding Owner..." : "Onboard Property Owner"}
-                </button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700">Bank Name</label>
+                  <input value={formBankName} onChange={e => setFormBankName(e.target.value)} placeholder="e.g. State Bank of India" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700">Branch Name</label>
+                  <input value={formBranchName} onChange={e => setFormBranchName(e.target.value)} placeholder="e.g. MG Road Branch" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700">Bank Account Number</label>
+                  <input value={formBankAccountNumber} onChange={e => setFormBankAccountNumber(e.target.value)} placeholder="e.g. 1234567890" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700">IFSC Code</label>
+                  <input value={formIfscCode} onChange={e => setFormIfscCode(e.target.value.toUpperCase())} placeholder="e.g. SBIN0001234" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700">Account Holder Name</label>
+                  <input value={formAccountHolderName} onChange={e => setFormAccountHolderName(e.target.value)} placeholder="e.g. Rahul Sharma" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700">UPI ID <span className="text-slate-400 font-normal">(Optional)</span></label>
+                  <input value={formUpiId} onChange={e => setFormUpiId(e.target.value)} placeholder="e.g. rahul@upi" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+                </div>
               </div>
+            </div>
+
+            {/* Generated Credentials Banner */}
+            <div className="bg-slate-900 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-white">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white border border-white/10 shrink-0">
+                  <Lock size={20} />
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Generated Owner Credentials</p>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-semibold text-slate-400">ID:</span>
+                    <code className="text-sm font-mono font-bold text-white bg-slate-800 px-2.5 py-1 rounded-lg">{formLoginId || "ROOMHY4438"}</code>
+                    <span className="text-xs font-semibold text-slate-400 ml-2">Password:</span>
+                    <code className="text-sm font-mono font-bold text-blue-400 bg-slate-800 px-2.5 py-1 rounded-lg">{formPassword || "JMA5DXBQ"}</code>
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={generateCreds}
+                className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 transition-colors flex items-center gap-2 shrink-0"
+              >
+                <RefreshCw size={14} /> Re-generate
+              </button>
+            </div>
+
+            {/* Form Actions */}
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setCurrentView("list")}
+                className="px-5 py-2.5 bg-white hover:bg-slate-50 text-slate-700 font-bold rounded-xl text-xs border border-slate-200 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-all shadow-sm flex items-center gap-2 disabled:opacity-50 active:scale-95"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                {saving ? "Submitting Request..." : "Add Property Owner"}
+              </button>
             </div>
           </form>
         </div>
