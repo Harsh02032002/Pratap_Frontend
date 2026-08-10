@@ -136,6 +136,10 @@ const routeEntries = [
 
   // Employee Routes (dynamically mapped to superadmin components)
   ["/employee/index", "./pages/employee/index.jsx"],
+  ["/employee/visit", "./pages/employee/visit.jsx"],
+  ["/employee/visits", "./pages/employee/visit.jsx"],
+  ["/employee/visit-report", "./pages/employee/visit.jsx"],
+  ["/employee/visit-reports", "./pages/employee/visit.jsx"],
 
 
   // Property Owner Routes

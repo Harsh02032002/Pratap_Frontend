@@ -354,7 +354,9 @@ export default function Visit() {
   // RENDER
   // ═══════════════════════════════════════════════════════════════════════════
 
-  const isEmpPage = typeof window !== "undefined" && window.location.pathname.startsWith("/employee");
+  const storedUser = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user") || "{}") : {};
+  const userRole = (storedUser?.role || "").toLowerCase();
+  const isEmpPage = (typeof window !== "undefined" && window.location.pathname.startsWith("/employee")) || (userRole !== "superadmin" && userRole !== "admin" && (userRole === "employee" || userRole === "staff" || userRole === "areamanager"));
   const [viewingVisit, setViewingVisit] = useState(null);
   const [editingVisit, setEditingVisit] = useState(null);
   const [editVisitForm, setEditVisitForm] = useState({});
