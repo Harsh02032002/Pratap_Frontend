@@ -167,6 +167,12 @@ export default function Visit() {
   const [empOwners, setEmpOwners] = useState([]);
   const [activeTab, setActiveTab] = useState("owners"); // "owners" | "properties"
   const [selectedOwnerDetail, setSelectedOwnerDetail] = useState(null);
+  const [editingOwner, setEditingOwner] = useState(null);
+  const [editOwnerForm, setEditOwnerForm] = useState({
+    name: "", email: "", phone: "", locationCode: "",
+    bankName: "", branchName: "", accountNumber: "", ifscCode: "", accountHolderName: "", upiId: ""
+  });
+  const [savingOwnerEdit, setSavingOwnerEdit] = useState(false);
 
   // ─── Data Loading ───────────────────────────────────────────────────────────
 
@@ -228,6 +234,50 @@ export default function Visit() {
       alert(err.message || "Failed to approve owner");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveOwnerEdit = async (e) => {
+    e.preventDefault();
+    if (!editingOwner) return;
+    setSavingOwnerEdit(true);
+    try {
+      const id = editingOwner.loginId || editingOwner._id;
+      const payload = {
+        name: editOwnerForm.name,
+        email: editOwnerForm.email,
+        checkinEmail: editOwnerForm.email,
+        phone: editOwnerForm.phone,
+        checkinPhone: editOwnerForm.phone,
+        locationCode: editOwnerForm.locationCode,
+        area: editOwnerForm.locationCode,
+        bankName: editOwnerForm.bankName,
+        checkinBankName: editOwnerForm.bankName,
+        branchName: editOwnerForm.branchName,
+        checkinBranchName: editOwnerForm.branchName,
+        accountNumber: editOwnerForm.accountNumber,
+        checkinBankAccountNumber: editOwnerForm.accountNumber,
+        ifscCode: editOwnerForm.ifscCode,
+        checkinIfscCode: editOwnerForm.ifscCode,
+        accountHolderName: editOwnerForm.accountHolderName,
+        checkinAccountHolderName: editOwnerForm.accountHolderName,
+        upiId: editOwnerForm.upiId,
+        checkinUpiId: editOwnerForm.upiId
+      };
+
+      await fetchJson(`/api/owners/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        headers: { ...getAuthHeader(), "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      alert("Owner details updated successfully!");
+      setEditingOwner(null);
+      loadVisits();
+    } catch (err) {
+      alert("Failed to update owner: " + (err.message || err));
+    } finally {
+      setSavingOwnerEdit(false);
     }
   };
 
@@ -858,6 +908,26 @@ export default function Visit() {
                             >
                               <Eye size={12} /> View Details
                             </button>
+                            <button
+                              onClick={() => {
+                                setEditingOwner(o);
+                                setEditOwnerForm({
+                                  name: o.name || "",
+                                  email: o.email || o.checkinEmail || "",
+                                  phone: o.phone || o.checkinPhone || "",
+                                  locationCode: o.locationCode || o.area || o.city || "",
+                                  bankName: o.checkinBankName || o.bankName || "",
+                                  branchName: o.checkinBranchName || o.branchName || "",
+                                  accountNumber: o.checkinBankAccountNumber || o.accountNumber || "",
+                                  ifscCode: o.checkinIfscCode || o.ifscCode || "",
+                                  accountHolderName: o.checkinAccountHolderName || o.accountHolderName || o.name || "",
+                                  upiId: o.checkinUpiId || o.upiId || ""
+                                });
+                              }}
+                              className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg text-[10px] font-bold uppercase transition-all inline-flex items-center gap-1"
+                            >
+                              <Edit3 size={12} /> Edit Owner
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -1110,6 +1180,119 @@ export default function Visit() {
                   <div><span className="text-slate-400 block mb-0.5">UPI ID</span><span className="font-bold font-mono text-amber-400">{selectedOwnerDetail.checkinUpiId || selectedOwnerDetail.upiId || "N/A"}</span></div>
                 </div>
               </div>
+
+              {/* ─── KYC & VERIFICATION DOCUMENTS SECTION ──────────────────────────── */}
+              <div className="bg-slate-50 border border-slate-200 p-5 rounded-2xl space-y-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                    <FileCheck size={14} className="text-blue-600" /> KYC & Verification Documents
+                  </p>
+                  <span className={cn(
+                    "px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase",
+                    (selectedOwnerDetail.checkinAadhaarNumber || selectedOwnerDetail.kyc?.aadhaarNumber || selectedOwnerDetail.aadhaarNumber)
+                      ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                      : "bg-amber-100 text-amber-700 border border-amber-200"
+                  )}>
+                    {(selectedOwnerDetail.checkinAadhaarNumber || selectedOwnerDetail.kyc?.aadhaarNumber || selectedOwnerDetail.aadhaarNumber) ? "KYC Submitted" : "KYC Pending"}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <span className="text-slate-400 font-bold block mb-0.5">Aadhaar Number</span>
+                    <span className="font-bold font-mono text-slate-800">
+                      {selectedOwnerDetail.checkinAadhaarNumber || selectedOwnerDetail.kyc?.aadhaarNumber || selectedOwnerDetail.aadhaarNumber || "Not Uploaded"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 font-bold block mb-0.5">Aadhaar Linked Phone</span>
+                    <span className="font-bold text-slate-800">
+                      {selectedOwnerDetail.checkinAadhaarLinkedPhone || selectedOwnerDetail.phone || "N/A"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Uploaded Document Previews */}
+                <div className="grid grid-cols-3 gap-3 pt-2 border-t border-slate-200/60">
+                  {/* Aadhaar Document */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-slate-500 font-bold block">Aadhaar Front/Back</span>
+                    {(selectedOwnerDetail.checkinAadhaarImage || selectedOwnerDetail.kyc?.documentImage || selectedOwnerDetail.checkinAadhaarFront) ? (
+                      <a 
+                        href={selectedOwnerDetail.checkinAadhaarImage || selectedOwnerDetail.kyc?.documentImage || selectedOwnerDetail.checkinAadhaarFront} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="block group relative overflow-hidden rounded-xl border border-slate-200 bg-white p-1 hover:border-blue-400 transition-all"
+                      >
+                        <img 
+                          src={selectedOwnerDetail.checkinAadhaarImage || selectedOwnerDetail.kyc?.documentImage || selectedOwnerDetail.checkinAadhaarFront} 
+                          alt="Aadhaar Document" 
+                          className="w-full h-16 object-cover rounded-lg group-hover:scale-105 transition-transform" 
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold transition-opacity rounded-lg">
+                          View Doc ↗
+                        </div>
+                      </a>
+                    ) : (
+                      <div className="w-full h-16 rounded-xl border border-dashed border-slate-200 bg-white/50 flex flex-col items-center justify-center text-slate-400 text-[10px]">
+                        <span>No Document</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Bank Proof / Cheque */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-slate-500 font-bold block">Bank Proof / Cheque</span>
+                    {(selectedOwnerDetail.checkinBankProof || selectedOwnerDetail.checkinCancelledCheque?.dataUrl) ? (
+                      <a 
+                        href={selectedOwnerDetail.checkinBankProof || selectedOwnerDetail.checkinCancelledCheque?.dataUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="block group relative overflow-hidden rounded-xl border border-slate-200 bg-white p-1 hover:border-blue-400 transition-all"
+                      >
+                        <img 
+                          src={selectedOwnerDetail.checkinBankProof || selectedOwnerDetail.checkinCancelledCheque?.dataUrl} 
+                          alt="Bank Proof" 
+                          className="w-full h-16 object-cover rounded-lg group-hover:scale-105 transition-transform" 
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold transition-opacity rounded-lg">
+                          View Proof ↗
+                        </div>
+                      </a>
+                    ) : (
+                      <div className="w-full h-16 rounded-xl border border-dashed border-slate-200 bg-white/50 flex flex-col items-center justify-center text-slate-400 text-[10px]">
+                        <span>No Proof</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Owner Photo */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-slate-500 font-bold block">Owner Photo</span>
+                    {(selectedOwnerDetail.checkinOwnerPhoto || selectedOwnerDetail.photo) ? (
+                      <a 
+                        href={selectedOwnerDetail.checkinOwnerPhoto || selectedOwnerDetail.photo} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="block group relative overflow-hidden rounded-xl border border-slate-200 bg-white p-1 hover:border-blue-400 transition-all"
+                      >
+                        <img 
+                          src={selectedOwnerDetail.checkinOwnerPhoto || selectedOwnerDetail.photo} 
+                          alt="Owner Photo" 
+                          className="w-full h-16 object-cover rounded-lg group-hover:scale-105 transition-transform" 
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold transition-opacity rounded-lg">
+                          View Photo ↗
+                        </div>
+                      </a>
+                    ) : (
+                      <div className="w-full h-16 rounded-xl border border-dashed border-slate-200 bg-white/50 flex flex-col items-center justify-center text-slate-400 text-[10px]">
+                        <span>No Photo</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="flex justify-end pt-4 border-t border-slate-100">
@@ -1117,6 +1300,152 @@ export default function Visit() {
                 Close
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── EDIT OWNER MODAL ─────────────────────────────────────────────────── */}
+      {editingOwner && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-3xl w-full max-w-lg p-6 sm:p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Edit Owner Details</h3>
+                <span className="text-xs font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-100">ID: {editingOwner.loginId}</span>
+              </div>
+              <button onClick={() => setEditingOwner(null)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                <X size={20} className="text-slate-500" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveOwnerEdit} className="space-y-4 text-xs">
+              <div className="space-y-3">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Personal & Contact Info</p>
+                <div>
+                  <label className="block text-slate-600 font-bold mb-1">Owner Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={editOwnerForm.name}
+                    onChange={e => setEditOwnerForm({ ...editOwnerForm, name: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 font-bold"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-600 font-bold mb-1">Email Address</label>
+                    <input
+                      type="email"
+                      required
+                      value={editOwnerForm.email}
+                      onChange={e => setEditOwnerForm({ ...editOwnerForm, email: e.target.value })}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-600 font-bold mb-1">Phone Number</label>
+                    <input
+                      type="text"
+                      required
+                      value={editOwnerForm.phone}
+                      onChange={e => setEditOwnerForm({ ...editOwnerForm, phone: e.target.value })}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 font-bold"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-slate-600 font-bold mb-1">Operating Area / City</label>
+                  <input
+                    type="text"
+                    value={editOwnerForm.locationCode}
+                    onChange={e => setEditOwnerForm({ ...editOwnerForm, locationCode: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-3 border-t border-slate-100">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Banking & Settlement Info</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-600 font-bold mb-1">Bank Name</label>
+                    <input
+                      type="text"
+                      value={editOwnerForm.bankName}
+                      onChange={e => setEditOwnerForm({ ...editOwnerForm, bankName: e.target.value })}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-600 font-bold mb-1">Branch Name</label>
+                    <input
+                      type="text"
+                      value={editOwnerForm.branchName}
+                      onChange={e => setEditOwnerForm({ ...editOwnerForm, branchName: e.target.value })}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 font-bold"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-600 font-bold mb-1">Account Number</label>
+                    <input
+                      type="text"
+                      value={editOwnerForm.accountNumber}
+                      onChange={e => setEditOwnerForm({ ...editOwnerForm, accountNumber: e.target.value })}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 font-bold font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-600 font-bold mb-1">IFSC Code</label>
+                    <input
+                      type="text"
+                      value={editOwnerForm.ifscCode}
+                      onChange={e => setEditOwnerForm({ ...editOwnerForm, ifscCode: e.target.value.toUpperCase() })}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 font-bold font-mono"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-600 font-bold mb-1">Account Holder Name</label>
+                    <input
+                      type="text"
+                      value={editOwnerForm.accountHolderName}
+                      onChange={e => setEditOwnerForm({ ...editOwnerForm, accountHolderName: e.target.value })}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-600 font-bold mb-1">UPI ID</label>
+                    <input
+                      type="text"
+                      value={editOwnerForm.upiId}
+                      onChange={e => setEditOwnerForm({ ...editOwnerForm, upiId: e.target.value })}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 font-bold font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingOwner(null)}
+                  className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingOwnerEdit}
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-colors flex items-center gap-1.5 shadow-sm active:scale-95"
+                >
+                  {savingOwnerEdit ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                  Save Changes
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
