@@ -48,9 +48,10 @@ export default function ListYourPropertyPage() {
   }, []);
 
   const isSectionVisible = (id) => {
+    if (id === 'list-form') return true; // Form is mandatory on List Your Property page
     if (layoutSections.length === 0) return true;
     const sec = layoutSections.find(s => s.id === id);
-    return sec ? sec.visible : true;
+    return sec ? sec.visible !== false : true;
   };
 
   const getSectionContent = (id, fallback) => {
@@ -433,9 +434,13 @@ export default function ListYourPropertyPage() {
   };
 
   const defaultOrder = ['list-hero', 'owner-benefits', 'list-form'];
-  const activeOrder = layoutSections.length > 0
+  let activeOrder = layoutSections.length > 0
     ? layoutSections.map(s => s.id)
     : defaultOrder;
+
+  if (!activeOrder.includes('list-form')) {
+    activeOrder.push('list-form');
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

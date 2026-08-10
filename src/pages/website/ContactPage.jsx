@@ -112,8 +112,8 @@ export default function ContactPage() {
 
   const renderCards = () => {
     const content = getSectionContent('contact-cards', {
-      email: 'hello@roomhy.com',
-      phone: '+91 99830 05030',
+      email: 'team@roomhy.com',
+      phone: '+91 8764425030',
       address: '847, Balaji Nagar, Rangbari, Near Pani Ki Tanki, Kota, Rajasthan 324005, India'
     });
 
