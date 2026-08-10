@@ -169,7 +169,7 @@ export default function Visit() {
     try {
       setLoading(true);
       const isEmpPage = window.location.pathname.startsWith("/employee");
-      const storedUser = JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user") || "{}");
+      const storedUser = JSON.parse(sessionStorage.getItem("user") || localStorage.getItem("user") || "{}");
       let url = "/api/visits";
       if (isEmpPage && (storedUser.loginId || storedUser.employeeId || storedUser.name)) {
         const sid = storedUser.loginId || storedUser.employeeId || storedUser.name;
@@ -401,7 +401,7 @@ export default function Visit() {
   // RENDER
   // ═══════════════════════════════════════════════════════════════════════════
 
-  const storedUser = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user") || "{}") : {};
+  const storedUser = typeof window !== "undefined" ? JSON.parse(sessionStorage.getItem("user") || localStorage.getItem("user") || "{}") : {};
   const userRole = (storedUser?.role || "").toLowerCase();
   const isEmpPage = (typeof window !== "undefined" && window.location.pathname.startsWith("/employee")) || (userRole !== "superadmin" && userRole !== "admin" && (userRole === "employee" || userRole === "staff" || userRole === "areamanager"));
   const [viewingVisit, setViewingVisit] = useState(null);
@@ -439,16 +439,14 @@ export default function Visit() {
             <h1 className="text-2xl font-bold text-slate-800 tracking-tight leading-none">Visit Reports</h1>
             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">View and manage property visit reports</p>
          </div>
-         {isEmpPage && (
-           <div className="flex items-center gap-3">
-              <button onClick={() => { generateCreds(); setShowAddOwnerModal(true); }} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-lg shadow-blue-600/10 transition-all flex items-center gap-2 active:scale-95">
-                 <UserPlus className="w-3.5 h-3.5" /> + Add Property Owner
-              </button>
-              <button onClick={() => setShowAddPropertyModal(true)} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-lg shadow-emerald-600/10 transition-all flex items-center gap-2 active:scale-95">
-                 <Plus className="w-3.5 h-3.5" /> + Add Property
-              </button>
-           </div>
-         )}
+         <div className="flex items-center gap-3">
+            <button onClick={() => { generateCreds(); setShowAddOwnerModal(true); }} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-lg shadow-blue-600/10 transition-all flex items-center gap-2 active:scale-95">
+               <UserPlus className="w-3.5 h-3.5" /> + Add Property Owner
+            </button>
+            <button onClick={() => setShowAddPropertyModal(true)} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-lg shadow-emerald-600/10 transition-all flex items-center gap-2 active:scale-95">
+               <Plus className="w-3.5 h-3.5" /> + Add Property
+            </button>
+         </div>
       </div>
 
       {/* ═══ ADD PROPERTY WIZARD MODAL ═══ */}
