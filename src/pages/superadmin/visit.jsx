@@ -189,7 +189,7 @@ export default function Visit() {
       // Fetch Owners
       try {
         const ownerData = await fetchJson("/api/owners");
-        const oList = Array.isArray(ownerData) ? ownerData : (ownerData?.owners || []);
+        const oList = Array.isArray(ownerData) ? ownerData : (ownerData?.owners || ownerData?.data || []);
         if (isEmpPage && sid) {
           const filtered = oList.filter(o =>
             o.createdByStaffId === sid ||
@@ -792,6 +792,7 @@ export default function Visit() {
                   <tr><td colSpan={6} className="p-8 text-center text-slate-400 font-bold uppercase tracking-widest">No owner submissions found</td></tr>
                 ) : (
                   filteredOwners.map((o, i) => {
+                    const isApproved = o.isActive === true || o.status === "approved" || o.status === "active";
                     const hasKyc = Boolean(
                       o.kycStatus === 'verified' ||
                       (o.kyc?.status && o.kyc.status !== 'pending' && o.kyc.status !== 'requested') ||
@@ -827,18 +828,18 @@ export default function Visit() {
                         <td className="p-4">
                           <span className={cn(
                             "px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider",
-                            o.isActive !== false ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-amber-50 text-amber-600 border border-amber-100"
+                            isApproved ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-amber-50 text-amber-600 border border-amber-100"
                           )}>
-                            {o.isActive !== false ? "Approved Active" : "Pending Approval"}
+                            {isApproved ? "Approved Active" : "Pending Approval"}
                           </span>
                         </td>
                         <td className="p-4 pr-6 text-right">
                           <div className="flex items-center justify-end gap-2">
-                            {!isEmpPage && o.isActive === false && (
+                            {!isEmpPage && !isApproved && (
                               <button
                                 onClick={() => handleApproveOwner(o)}
                                 disabled={!hasKyc}
-                                title={hasKyc ? "Approve owner & email login credentials" : "KYC required before approval"}
+                                title={hasKyc ? "Approve owner & email login credentials" : "Owner must submit KYC before Superadmin approval"}
                                 className={cn(
                                   "px-3 py-1.5 rounded-lg font-bold text-[10px] uppercase flex items-center gap-1 transition-all shadow-sm active:scale-95",
                                   hasKyc
