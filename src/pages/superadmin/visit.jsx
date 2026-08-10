@@ -354,28 +354,56 @@ export default function Visit() {
   // RENDER
   // ═══════════════════════════════════════════════════════════════════════════
 
+  const isEmpPage = typeof window !== "undefined" && window.location.pathname.startsWith("/employee");
+  const [viewingVisit, setViewingVisit] = useState(null);
+  const [editingVisit, setEditingVisit] = useState(null);
+  const [editVisitForm, setEditVisitForm] = useState({});
+  const [savingEditVisit, setSavingEditVisit] = useState(false);
+
+  const handleSaveVisitEdit = async (e) => {
+    e.preventDefault();
+    if (!editingVisit?._id) return;
+    setSavingEditVisit(true);
+    try {
+      await fetchJson(`/api/visits/${editingVisit._id}`, {
+        method: "PUT",
+        headers: { ...getAuthHeader(), "Content-Type": "application/json" },
+        body: JSON.stringify(editVisitForm)
+      });
+      alert("✅ Visit report updated successfully!");
+      setEditingVisit(null);
+      loadVisits();
+    } catch (err) {
+      alert(err.message || "Failed to update visit report");
+    } finally {
+      setSavingEditVisit(false);
+    }
+  };
+
   return (
-    <div className="p-6 space-y-6 bg-[#F8FAFC] min-h-full">
-      {/* Header Area */}
+    <div className="p-6 bg-slate-50/50 min-h-screen space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
          <div className="flex flex-col gap-1">
             <h1 className="text-2xl font-bold text-slate-800 tracking-tight leading-none">Visit Reports</h1>
             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">View and manage property visit reports</p>
          </div>
-         <div className="flex items-center gap-3">
-            <button onClick={() => { if (currentView === "addOwner") resetForm(); setCurrentView(currentView === "addOwner" ? "list" : "addOwner"); }} className={cn(
-              "px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-lg transition-all flex items-center gap-2",
-              currentView === "addOwner" ? "bg-white text-slate-600 border border-slate-100 shadow-slate-200" : "bg-slate-800 text-white shadow-slate-800/10 hover:bg-slate-900"
-            )}>
-               {currentView === "addOwner" ? <RefreshCw className="w-3.5 h-3.5" /> : <UserPlus className="w-3.5 h-3.5" />}
-               {currentView === "addOwner" ? "Back to Visits" : "Add Property Owner"}
-            </button>
-            {currentView === "list" && (
-              <button onClick={() => setCurrentView("addOwner")} className="bg-slate-800 text-white px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-lg shadow-slate-800/10 hover:bg-slate-900 transition-all flex items-center gap-2">
-                 <Plus className="w-3.5 h-3.5" /> Add New Visit
+         {isEmpPage && (
+           <div className="flex items-center gap-3">
+              <button onClick={() => { if (currentView === "addOwner") resetForm(); setCurrentView(currentView === "addOwner" ? "list" : "addOwner"); }} className={cn(
+                "px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-lg transition-all flex items-center gap-2",
+                currentView === "addOwner" ? "bg-white text-slate-600 border border-slate-100 shadow-slate-200" : "bg-slate-800 text-white shadow-slate-800/10 hover:bg-slate-900"
+              )}>
+                 {currentView === "addOwner" ? <RefreshCw className="w-3.5 h-3.5" /> : <UserPlus className="w-3.5 h-3.5" />}
+                 {currentView === "addOwner" ? "Back to Visits" : "+ Add Property Owner"}
               </button>
-            )}
-         </div>
+              {currentView === "list" && (
+                <button onClick={() => setCurrentView("addOwner")} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-lg shadow-emerald-600/10 transition-all flex items-center gap-2">
+                   <Plus className="w-3.5 h-3.5" /> + Add Property
+                </button>
+              )}
+           </div>
+         )}
       </div>
 
       {currentView === "addOwner" ? (
@@ -830,10 +858,33 @@ export default function Visit() {
                         </span>
                       </td>
                       <td className="p-4 pr-6 text-right">
-                        <button onClick={() => alert(`Visit Details:\n\nProperty: ${v.propertyName}\nOwner: ${v.ownerName}\nPhone: ${v.ownerPhone}\nRent: ₹${v.monthlyRent}\nAddress: ${v.address}`)}
-                          className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold uppercase transition-all">
-                          View Details
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => setViewingVisit(v)}
+                            className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-[10px] font-bold uppercase transition-all flex items-center gap-1"
+                          >
+                            <Eye size={12} /> View
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingVisit(v);
+                              setEditVisitForm({
+                                propertyName: v.propertyName || v.propertyInfo?.name || "",
+                                ownerName: v.ownerName || v.visitorName || "",
+                                ownerPhone: v.ownerPhone || v.visitorPhone || "",
+                                ownerEmail: v.ownerEmail || v.visitorEmail || "",
+                                monthlyRent: v.monthlyRent || 0,
+                                area: v.area || "",
+                                city: v.city || "",
+                                address: v.address || "",
+                                internalRemarks: v.internalRemarks || ""
+                              });
+                            }}
+                            className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg text-[10px] font-bold uppercase transition-all flex items-center gap-1"
+                          >
+                            <Edit3 size={12} /> Edit
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -843,6 +894,128 @@ export default function Visit() {
           </div>
         </div>
       )}
+
+      {/* ─── VIEW VISIT MODAL ─────────────────────────────────────────────────── */}
+      {viewingVisit && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl w-full max-w-2xl p-6 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">{viewingVisit.propertyName || "Visit Report Details"}</h3>
+                <p className="text-xs text-slate-500">Submitted by: {viewingVisit.staffName || viewingVisit.submittedBy || "Staff"}</p>
+              </div>
+              <button onClick={() => setViewingVisit(null)} className="p-2 hover:bg-slate-100 rounded-full">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs">
+              <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                <div><span className="text-slate-400 font-bold block mb-1">Owner Name</span><span className="font-bold text-slate-900">{viewingVisit.ownerName || viewingVisit.visitorName || "N/A"}</span></div>
+                <div><span className="text-slate-400 font-bold block mb-1">Owner Phone</span><span className="font-bold text-slate-900">{viewingVisit.ownerPhone || viewingVisit.visitorPhone || "N/A"}</span></div>
+                <div><span className="text-slate-400 font-bold block mb-1">Owner Email</span><span className="font-bold text-slate-900">{viewingVisit.ownerEmail || viewingVisit.visitorEmail || "N/A"}</span></div>
+                <div><span className="text-slate-400 font-bold block mb-1">City / Area</span><span className="font-bold text-slate-900">{viewingVisit.city || viewingVisit.area || "N/A"}</span></div>
+                <div><span className="text-slate-400 font-bold block mb-1">Property Type</span><span className="font-bold text-blue-600 uppercase">{viewingVisit.propertyType || "Hostel"}</span></div>
+                <div><span className="text-slate-400 font-bold block mb-1">Monthly Rent</span><span className="font-bold text-emerald-600">₹{viewingVisit.monthlyRent || 0}/mo</span></div>
+              </div>
+
+              {viewingVisit.address && (
+                <div>
+                  <span className="text-slate-400 font-bold block mb-1">Address</span>
+                  <p className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-slate-700">{viewingVisit.address}</p>
+                </div>
+              )}
+
+              {viewingVisit.internalRemarks && (
+                <div>
+                  <span className="text-slate-400 font-bold block mb-1">Internal Remarks</span>
+                  <p className="p-3 bg-amber-50 rounded-xl border border-amber-100 text-amber-800">{viewingVisit.internalRemarks}</p>
+                </div>
+              )}
+
+              {Array.isArray(viewingVisit.photos) && viewingVisit.photos.length > 0 && (
+                <div>
+                  <span className="text-slate-400 font-bold block mb-2">Visit Photos ({viewingVisit.photos.length})</span>
+                  <div className="grid grid-cols-3 gap-2">
+                    {viewingVisit.photos.map((url, idx) => (
+                      <img key={idx} src={url} alt={`Visit photo ${idx+1}`} className="w-full h-24 object-cover rounded-xl border border-slate-200" />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end pt-4 border-t border-slate-100">
+              <button onClick={() => setViewingVisit(null)} className="px-5 py-2.5 bg-slate-900 hover:bg-black text-white font-bold rounded-xl text-xs">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── EDIT VISIT MODAL ─────────────────────────────────────────────────── */}
+      {editingVisit && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl w-full max-w-lg p-6 shadow-2xl space-y-6">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Edit Visit Report</h3>
+                <p className="text-xs text-slate-500">ID: {editingVisit._id}</p>
+              </div>
+              <button onClick={() => setEditingVisit(null)} className="p-2 hover:bg-slate-100 rounded-full">
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveVisitEdit} className="space-y-4 text-xs">
+              <div>
+                <label className="block text-slate-400 font-bold uppercase mb-1">Property Name</label>
+                <input type="text" value={editVisitForm.propertyName || ""} onChange={e => setEditVisitForm({...editVisitForm, propertyName: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" required />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-400 font-bold uppercase mb-1">Owner Name</label>
+                  <input type="text" value={editVisitForm.ownerName || ""} onChange={e => setEditVisitForm({...editVisitForm, ownerName: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" />
+                </div>
+                <div>
+                  <label className="block text-slate-400 font-bold uppercase mb-1">Owner Phone</label>
+                  <input type="text" value={editVisitForm.ownerPhone || ""} onChange={e => setEditVisitForm({...editVisitForm, ownerPhone: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-400 font-bold uppercase mb-1">City / Area</label>
+                  <input type="text" value={editVisitForm.city || ""} onChange={e => setEditVisitForm({...editVisitForm, city: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" />
+                </div>
+                <div>
+                  <label className="block text-slate-400 font-bold uppercase mb-1">Monthly Rent (₹)</label>
+                  <input type="number" value={editVisitForm.monthlyRent || 0} onChange={e => setEditVisitForm({...editVisitForm, monthlyRent: parseFloat(e.target.value) || 0})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-slate-400 font-bold uppercase mb-1">Address</label>
+                <textarea value={editVisitForm.address || ""} onChange={e => setEditVisitForm({...editVisitForm, address: e.target.value})} rows={2} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-medium" />
+              </div>
+              <div>
+                <label className="block text-slate-400 font-bold uppercase mb-1">Internal Remarks</label>
+                <textarea value={editVisitForm.internalRemarks || ""} onChange={e => setEditVisitForm({...editVisitForm, internalRemarks: e.target.value})} rows={2} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-medium" />
+              </div>
+
+              <div className="flex gap-3 pt-4 border-t border-slate-100">
+                <button type="button" onClick={() => setEditingVisit(null)} className="flex-1 py-3 text-slate-600 font-bold bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">
+                  Cancel
+                </button>
+                <button type="submit" disabled={savingEditVisit} className="flex-1 py-3 bg-slate-900 hover:bg-black text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-1.5">
+                  {savingEditVisit ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />}
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

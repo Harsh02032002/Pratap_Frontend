@@ -297,41 +297,16 @@ export default function Rooms() {
 
   const handlePropertyPageChange = async (propTitle, propId, newPage) => {
     setPropPages(prev => ({ ...prev, [propTitle]: newPage }));
-
-    const currentPropRoomsCount = rooms.filter(r => r.propertyId === propId).length;
-    const expectedRoomsCount = newPage * ROOMS_PER_PAGE;
-    const totalPropRooms = propertyTotals[propId] || currentPropRoomsCount;
-
-    if (currentPropRoomsCount < expectedRoomsCount && currentPropRoomsCount < totalPropRooms) {
-      try {
-        const { fetchRoomsByPropertyId } = require("../../utils/propertyowner");
-        const res = await fetchRoomsByPropertyId(propId, newPage, ROOMS_PER_PAGE);
-        if (res.rooms && res.rooms.length > 0) {
-          const normalizedNewRooms = res.rooms.map(r => normalizeRoom(r, owner?.loginId, properties));
-          setRooms(prev => {
-            const newRooms = [...prev];
-            normalizedNewRooms.forEach(nr => {
-              if (!newRooms.find(x => (x._id || x.id) === (nr._id || nr.id))) {
-                newRooms.push(nr);
-              }
-            });
-            return newRooms;
-          });
-        }
-      } catch (e) {
-        console.error("Failed to fetch more rooms", e);
-      }
-    }
   };
 
   const [propertyTotals, setPropertyTotals] = useState({});
 
-  const load = async (session, page = 1, limit = 5, skipCache = false) => {
+  const load = async (session, page = 1, limit = 500, skipCache = false) => {
     setLoading(true);
     try {
       const [props, roomData, tList] = await Promise.all([
         fetchOwnerProperties(session.loginId),
-        fetchOwnerRooms(session.loginId, page, limit, skipCache),
+        fetchOwnerRooms(session.loginId, 1, 500, skipCache),
         fetchOwnerTenants(session.loginId),
       ]);
       setProperties(props);
@@ -347,12 +322,11 @@ export default function Rooms() {
     }
   };
 
-
   useEffect(() => {
     const s = getOwnerRuntimeSession();
     if (!s?.loginId) { window.location.href = "/propertyowner/ownerlogin"; return; }
     setOwner(s);
-    load(s, 1, ROOMS_PER_PAGE);
+    load(s, 1, 500);
   }, []);
 
   useEffect(() => {

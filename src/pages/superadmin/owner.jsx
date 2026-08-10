@@ -257,6 +257,39 @@ export default function Owner() {
       }
    };
 
+   const handleApproveOwner = async (owner) => {
+      const hasSubmittedKyc = Boolean(
+         owner.kycStatus === 'verified' ||
+         (owner.kyc?.status && owner.kyc.status !== 'pending' && owner.kyc.status !== 'requested') ||
+         owner.checkinSubmittedAt ||
+         owner.checkinAadhaarNumber ||
+         owner.kyc?.aadhaarNumber ||
+         owner.checkinOwnerPhoto
+      );
+
+      if (!hasSubmittedKyc) {
+         alert("❌ Cannot approve owner: Owner has not submitted KYC documents yet.");
+         return;
+      }
+
+      if (!window.confirm(`Are you sure you want to approve owner ${owner.name} (${owner.loginId}) and send credentials email?`)) return;
+
+      try {
+         setLoading(true);
+         const res = await fetchJson(`/api/owners/${encodeURIComponent(owner.loginId || owner._id)}/approve`, {
+            method: "POST",
+            headers: getAuthHeader(),
+            body: JSON.stringify({ password: owner.checkinPassword || owner.password || "Roomhy@123" })
+         });
+         alert(res.message || "✅ Owner approved and credentials email sent successfully!");
+         loadOwners();
+      } catch (err) {
+         alert("Failed to approve owner: " + (err.body || err.message));
+      } finally {
+         setLoading(false);
+      }
+   };
+
    const handleDelete = async (id) => {
       if (!window.confirm(`Are you sure you want to delete owner ${id}?`)) return;
       try {
@@ -649,7 +682,7 @@ export default function Owner() {
                                     })() : (
                                        <span className={cn(
                                           "text-xs font-bold px-2.5 py-1 rounded-lg uppercase inline-block",
-                                          status === "verified" ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-amber-50 text-amber-600 border border-amber-100"
+                                       status === "verified" ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-amber-50 text-amber-600 border border-amber-100"
                                        )}>
                                           {status}
                                        </span>
@@ -657,6 +690,32 @@ export default function Owner() {
                                  </td>
                                  <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                                     <div className="flex items-center justify-end gap-2">
+                                       {(() => {
+                                          const hasKyc = Boolean(
+                                             o.kycStatus === 'verified' ||
+                                             (o.kyc?.status && o.kyc.status !== 'pending' && o.kyc.status !== 'requested') ||
+                                             o.checkinSubmittedAt ||
+                                             o.checkinAadhaarNumber ||
+                                             o.kyc?.aadhaarNumber ||
+                                             o.checkinOwnerPhoto
+                                          );
+                                          return (
+                                             <button
+                                                onClick={() => handleApproveOwner(o)}
+                                                disabled={!hasKyc}
+                                                title={hasKyc ? "Approve owner and send login credentials email" : "KYC submission is required before approving this owner"}
+                                                className={cn(
+                                                   "px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1 transition-all shadow-sm active:scale-95",
+                                                   hasKyc
+                                                      ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20"
+                                                      : "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60"
+                                                )}
+                                             >
+                                                <CheckCircle2 size={14} />
+                                                <span>{hasKyc ? "Approve Owner" : "KYC Pending"}</span>
+                                             </button>
+                                          );
+                                       })()}
                                        <button
                                           onClick={() => setAgreementModalOwner(o)}
                                           title="View Signed Asset Agreement"
@@ -679,10 +738,10 @@ export default function Owner() {
                                        </button>
                                        <button
                                           onClick={() => setSelectedOwner(o)}
-                                          title="View Details"
-                                          className="p-2 rounded-lg bg-white text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all border border-slate-200 shadow-sm active:scale-95"
+                                          title="View Details & KYC"
+                                          className="p-2 rounded-lg bg-white text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all border border-slate-200 shadow-sm active:scale-95 flex items-center gap-1 text-xs font-bold"
                                        >
-                                          <Eye size={16} />
+                                          <Eye size={16} /> View
                                        </button>
                                        <button
                                           onClick={() => handleDelete(o.loginId || o._id)}
