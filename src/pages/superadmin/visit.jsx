@@ -225,6 +225,7 @@ export default function Visit() {
       });
       alert(`✅ Property Owner onboarding request submitted for Superadmin approval!\n\nOwner ID: ${formLoginId}\nPassword: ${formPassword}\n\nCredentials will be emailed to ${formEmail} after Superadmin approves the account.`);
       resetForm();
+      setShowAddOwnerModal(false);
       setCurrentView("list");
       loadVisits();
     } catch (err) {
@@ -407,6 +408,8 @@ export default function Visit() {
   const [editingVisit, setEditingVisit] = useState(null);
   const [editVisitForm, setEditVisitForm] = useState({});
   const [savingEditVisit, setSavingEditVisit] = useState(false);
+  const [showAddOwnerModal, setShowAddOwnerModal] = useState(false);
+  const [showAddPropertyModal, setShowAddPropertyModal] = useState(false);
 
   const handleSaveVisitEdit = async (e) => {
     e.preventDefault();
@@ -438,175 +441,196 @@ export default function Visit() {
          </div>
          {isEmpPage && (
            <div className="flex items-center gap-3">
-              <button onClick={() => { if (currentView === "addOwner") resetForm(); else generateCreds(); setCurrentView(currentView === "addOwner" ? "list" : "addOwner"); }} className={cn(
-                "px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-lg transition-all flex items-center gap-2",
-                currentView === "addOwner" ? "bg-white text-slate-600 border border-slate-100 shadow-slate-200" : "bg-blue-600 text-white shadow-blue-600/10 hover:bg-blue-700"
-              )}>
-                 {currentView === "addOwner" ? <RefreshCw className="w-3.5 h-3.5" /> : <UserPlus className="w-3.5 h-3.5" />}
-                 {currentView === "addOwner" ? "Back to Visits" : "+ Add Property Owner"}
+              <button onClick={() => { generateCreds(); setShowAddOwnerModal(true); }} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-lg shadow-blue-600/10 transition-all flex items-center gap-2 active:scale-95">
+                 <UserPlus className="w-3.5 h-3.5" /> + Add Property Owner
               </button>
-              <button onClick={() => setCurrentView(currentView === "addProperty" ? "list" : "addProperty")} className={cn(
-                "px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-lg transition-all flex items-center gap-2",
-                currentView === "addProperty" ? "bg-white text-slate-600 border border-slate-100 shadow-slate-200" : "bg-emerald-600 text-white shadow-emerald-600/10 hover:bg-emerald-700"
-              )}>
-                 {currentView === "addProperty" ? <RefreshCw className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-                 {currentView === "addProperty" ? "Back to Visits" : "+ Add Property"}
+              <button onClick={() => setShowAddPropertyModal(true)} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-lg shadow-emerald-600/10 transition-all flex items-center gap-2 active:scale-95">
+                 <Plus className="w-3.5 h-3.5" /> + Add Property
               </button>
            </div>
          )}
       </div>
 
-      {currentView === "addProperty" ? (
-        /* ═══ EXACT SUPERADMIN ADD PROPERTY WIZARD (SCREENSHOT 4) ═══ */
-        <div className="bg-white rounded-3xl p-4 sm:p-6 shadow-xl border border-slate-100 mt-4 animate-in fade-in zoom-in-95 duration-300">
-          <AddPropertyWizard isModal={true} onClose={() => setCurrentView("list")} />
-        </div>
-      ) : currentView === "addOwner" ? (
-        /* ═══ EXACT SUPERADMIN ADD PROPERTY OWNER FORM (SCREENSHOT 3) ═══ */
-        <div className="max-w-4xl mx-auto bg-white rounded-3xl border border-slate-200/80 shadow-xl overflow-hidden mt-4 animate-in fade-in zoom-in-95 duration-300">
-          <div className="p-6 sm:p-8 border-b border-slate-100 flex items-center gap-4 bg-slate-50/50">
-            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100">
-              <UserPlus size={24} />
+      {/* ═══ ADD PROPERTY WIZARD MODAL ═══ */}
+      {showAddPropertyModal && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-3xl w-full max-w-5xl shadow-2xl border border-slate-200/80 overflow-hidden max-h-[92vh] flex flex-col">
+            <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
+                  <Plus size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Add Property Wizard</h3>
+                  <p className="text-xs text-slate-500">List a new property with step-by-step details</p>
+                </div>
+              </div>
+              <button onClick={() => setShowAddPropertyModal(false)} className="p-2 hover:bg-slate-200/60 rounded-full transition-colors">
+                <X size={20} className="text-slate-500" />
+              </button>
             </div>
-            <div>
-              <h3 className="text-lg font-bold text-slate-900">Property Owner Information</h3>
-              <p className="text-xs text-slate-500">Fill in owner details and banking info to create account.</p>
+
+            <div className="overflow-y-auto p-4 sm:p-6 flex-1">
+              <AddPropertyWizard isModal={true} onClose={() => setShowAddPropertyModal(false)} />
             </div>
           </div>
+        </div>
+      )}
 
-          <form onSubmit={handleAddOwnerSubmit} className="p-6 sm:p-8 space-y-6">
-            {/* Basic Identity Section */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-700">Owner Name *</label>
-                <input
-                  required
-                  value={formName}
-                  onChange={e => setFormName(e.target.value)}
-                  placeholder="e.g. Rahul Sharma"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-700">Email Address *</label>
-                <input
-                  required
-                  value={formEmail}
-                  onChange={e => setFormEmail(e.target.value)}
-                  type="email"
-                  placeholder="rahul@example.com"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-700">Phone Number *</label>
-                <input
-                  required
-                  value={formPhone}
-                  onChange={e => setFormPhone(e.target.value)}
-                  placeholder="9876543210"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-700">Operating Area / City</label>
-                <input
-                  value={formOwnerCity || formArea}
-                  onChange={e => { setFormOwnerCity(e.target.value); setFormArea(e.target.value); }}
-                  placeholder="e.g. Koramangala, Bangalore"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
-                />
-              </div>
-            </div>
-
-            {/* Banking Details */}
-            <div className="pt-4 border-t border-slate-100 space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                  <IndianRupee size={18} />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-slate-900">Banking & Settlement Details</h4>
-                  <p className="text-xs text-slate-400">Used for rent payouts — owner can also edit in their panel</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-700">Bank Name</label>
-                  <input value={formBankName} onChange={e => setFormBankName(e.target.value)} placeholder="e.g. State Bank of India" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-700">Branch Name</label>
-                  <input value={formBranchName} onChange={e => setFormBranchName(e.target.value)} placeholder="e.g. MG Road Branch" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-700">Bank Account Number</label>
-                  <input value={formBankAccountNumber} onChange={e => setFormBankAccountNumber(e.target.value)} placeholder="e.g. 1234567890" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-700">IFSC Code</label>
-                  <input value={formIfscCode} onChange={e => setFormIfscCode(e.target.value.toUpperCase())} placeholder="e.g. SBIN0001234" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-700">Account Holder Name</label>
-                  <input value={formAccountHolderName} onChange={e => setFormAccountHolderName(e.target.value)} placeholder="e.g. Rahul Sharma" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-700">UPI ID <span className="text-slate-400 font-normal">(Optional)</span></label>
-                  <input value={formUpiId} onChange={e => setFormUpiId(e.target.value)} placeholder="e.g. rahul@upi" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
-                </div>
-              </div>
-            </div>
-
-            {/* Generated Credentials Banner */}
-            <div className="bg-slate-900 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-white">
+      {/* ═══ ADD PROPERTY OWNER MODAL ═══ */}
+      {showAddOwnerModal && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-3xl w-full max-w-4xl shadow-2xl border border-slate-200/80 overflow-hidden max-h-[90vh] flex flex-col">
+            <div className="p-6 sm:p-7 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0">
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white border border-white/10 shrink-0">
-                  <Lock size={20} />
+                <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100">
+                  <UserPlus size={24} />
                 </div>
                 <div>
-                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Generated Owner Credentials</p>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-semibold text-slate-400">ID:</span>
-                    <code className="text-sm font-mono font-bold text-white bg-slate-800 px-2.5 py-1 rounded-lg">{formLoginId || "ROOMHY4438"}</code>
-                    <span className="text-xs font-semibold text-slate-400 ml-2">Password:</span>
-                    <code className="text-sm font-mono font-bold text-blue-400 bg-slate-800 px-2.5 py-1 rounded-lg">{formPassword || "JMA5DXBQ"}</code>
+                  <h3 className="text-lg font-bold text-slate-900">Property Owner Information</h3>
+                  <p className="text-xs text-slate-500">Fill in owner details and banking info to create account.</p>
+                </div>
+              </div>
+              <button onClick={() => setShowAddOwnerModal(false)} className="p-2 hover:bg-slate-200/60 rounded-full transition-colors">
+                <X size={20} className="text-slate-500" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddOwnerSubmit} className="overflow-y-auto p-6 sm:p-8 flex-1 space-y-6">
+              {/* Basic Identity Section */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700">Owner Name *</label>
+                  <input
+                    required
+                    value={formName}
+                    onChange={e => setFormName(e.target.value)}
+                    placeholder="e.g. Rahul Sharma"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700">Email Address *</label>
+                  <input
+                    required
+                    value={formEmail}
+                    onChange={e => setFormEmail(e.target.value)}
+                    type="email"
+                    placeholder="rahul@example.com"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700">Phone Number *</label>
+                  <input
+                    required
+                    value={formPhone}
+                    onChange={e => setFormPhone(e.target.value)}
+                    placeholder="9876543210"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700">Operating Area / City</label>
+                  <input
+                    value={formOwnerCity || formArea}
+                    onChange={e => { setFormOwnerCity(e.target.value); setFormArea(e.target.value); }}
+                    placeholder="e.g. Koramangala, Bangalore"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Banking Details */}
+              <div className="pt-4 border-t border-slate-100 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <IndianRupee size={18} />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900">Banking & Settlement Details</h4>
+                    <p className="text-xs text-slate-400">Used for rent payouts — owner can also edit in their panel</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Bank Name</label>
+                    <input value={formBankName} onChange={e => setFormBankName(e.target.value)} placeholder="e.g. State Bank of India" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Branch Name</label>
+                    <input value={formBranchName} onChange={e => setFormBranchName(e.target.value)} placeholder="e.g. MG Road Branch" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Bank Account Number</label>
+                    <input value={formBankAccountNumber} onChange={e => setFormBankAccountNumber(e.target.value)} placeholder="e.g. 1234567890" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">IFSC Code</label>
+                    <input value={formIfscCode} onChange={e => setFormIfscCode(e.target.value.toUpperCase())} placeholder="e.g. SBIN0001234" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Account Holder Name</label>
+                    <input value={formAccountHolderName} onChange={e => setFormAccountHolderName(e.target.value)} placeholder="e.g. Rahul Sharma" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">UPI ID <span className="text-slate-400 font-normal">(Optional)</span></label>
+                    <input value={formUpiId} onChange={e => setFormUpiId(e.target.value)} placeholder="e.g. rahul@upi" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
                   </div>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={generateCreds}
-                className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 transition-colors flex items-center gap-2 shrink-0"
-              >
-                <RefreshCw size={14} /> Re-generate
-              </button>
-            </div>
 
-            {/* Form Actions */}
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setCurrentView("list")}
-                className="px-5 py-2.5 bg-white hover:bg-slate-50 text-slate-700 font-bold rounded-xl text-xs border border-slate-200 transition-all"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={saving}
-                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-all shadow-sm flex items-center gap-2 disabled:opacity-50 active:scale-95"
-              >
-                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                {saving ? "Submitting Request..." : "Add Property Owner"}
-              </button>
-            </div>
-          </form>
+              {/* Generated Credentials Banner */}
+              <div className="bg-slate-900 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-white">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white border border-white/10 shrink-0">
+                    <Lock size={20} />
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Generated Owner Credentials</p>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-semibold text-slate-400">ID:</span>
+                      <code className="text-sm font-mono font-bold text-white bg-slate-800 px-2.5 py-1 rounded-lg">{formLoginId || "ROOMHY4438"}</code>
+                      <span className="text-xs font-semibold text-slate-400 ml-2">Password:</span>
+                      <code className="text-sm font-mono font-bold text-blue-400 bg-slate-800 px-2.5 py-1 rounded-lg">{formPassword || "JMA5DXBQ"}</code>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={generateCreds}
+                  className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 transition-colors flex items-center gap-2 shrink-0"
+                >
+                  <RefreshCw size={14} /> Re-generate
+                </button>
+              </div>
+
+              {/* Form Actions */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowAddOwnerModal(false)}
+                  className="px-5 py-2.5 bg-white hover:bg-slate-50 text-slate-700 font-bold rounded-xl text-xs border border-slate-200 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-all shadow-sm flex items-center gap-2 disabled:opacity-50 active:scale-95"
+                >
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  {saving ? "Submitting Request..." : "Add Property Owner"}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-      ) : (
-        /* ═══ VISITS LIST VIEW ═══ */
-        <div className="space-y-6">
+      )}
+
+      {/* ═══ VISITS LIST VIEW ═══ */}
+      <div className="space-y-6">
           {/* Stats Bar */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
@@ -731,7 +755,6 @@ export default function Visit() {
             </table>
           </div>
         </div>
-      )}
 
       {/* ─── VIEW VISIT MODAL ─────────────────────────────────────────────────── */}
       {viewingVisit && (
