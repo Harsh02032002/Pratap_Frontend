@@ -792,10 +792,11 @@ export default function Visit() {
                   <tr><td colSpan={6} className="p-8 text-center text-slate-400 font-bold uppercase tracking-widest">No owner submissions found</td></tr>
                 ) : (
                   filteredOwners.map((o, i) => {
-                    const isApproved = o.isActive === true || o.status === "approved" || o.status === "active";
+                    const isApproved = o.isActive === true && (o.status === "approved" || o.status === "active") && !o.isEmployeeSubmitted && o.status !== "pending_approval";
                     const hasKyc = Boolean(
                       o.kycStatus === 'verified' ||
-                      (o.kyc?.status && o.kyc.status !== 'pending' && o.kyc.status !== 'requested') ||
+                      o.kycStatus === 'completed' ||
+                      (o.kyc?.status && o.kyc.status !== 'pending' && o.kyc.status !== 'requested' && o.kyc.status !== 'sent') ||
                       o.checkinSubmittedAt ||
                       o.checkinAadhaarNumber ||
                       o.kyc?.aadhaarNumber ||
