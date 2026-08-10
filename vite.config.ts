@@ -163,7 +163,7 @@ export default defineConfig({
     // Forward /api/* to backend in dev
     proxy: {
       '/api': {
-        target: 'http://localhost:5002',
+        target: 'http://localhost:5001',
         changeOrigin: true,
         secure: false,
       },

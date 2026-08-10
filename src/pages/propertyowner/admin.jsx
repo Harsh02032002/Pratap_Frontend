@@ -22,7 +22,10 @@ import {
   MessageCircle,
   ChevronRight,
   Clock,
-  AlertCircle
+  AlertCircle,
+  CheckCircle2,
+  XCircle,
+  UserCog
 } from "lucide-react";
 import { StatCard } from "../../components/propertyowner/StatCard";
 import { MobileStatCard, MobileSectionCard } from "../../components/propertyowner/MobileComponents";
@@ -113,6 +116,7 @@ export default function Admin() {
   const [rentTotal, setRentTotal] = useState(0);
   const [enquiries, setEnquiries] = useState([]);
   const [notifications, setNotifications] = useState([]);
+  const [changeRequests, setChangeRequests] = useState([]);
   const [propertiesCount, setPropertiesCount] = useState(0);
   const [recentChats, setRecentChats] = useState([]);
   const [tenants, setTenants] = useState([]);
@@ -302,7 +306,19 @@ export default function Admin() {
     loadChartData(session.loginId, chartPeriod);
     loadCollectionStats(session._id || session.loginId);
     loadMonthlyData(session.loginId);
+    loadChangeRequests(session.loginId);
   }, []);
+
+  // Status of the owner's own submitted profile/bank-detail change requests —
+  // surfaced so they know if superadmin approved or rejected an update (and why).
+  const loadChangeRequests = async (loginId) => {
+    try {
+      const res = await fetchJson(`/api/owner-change-requests?ownerLoginId=${encodeURIComponent(loginId)}`);
+      setChangeRequests(Array.isArray(res?.data) ? res.data : []);
+    } catch (err) {
+      // Non-critical — the rest of the dashboard still works without this.
+    }
+  };
 
   useEffect(() => {
     if (owner?.loginId) loadChartData(owner.loginId, chartPeriod);
@@ -967,6 +983,56 @@ export default function Admin() {
           </div>
         </div>
 
+        {/* Profile/Bank Update Requests — status of what the owner asked superadmin to change */}
+        {changeRequests.length > 0 && (
+          <div className="mt-5 rounded-2xl border border-border bg-card shadow-soft overflow-hidden">
+            <div className="px-6 py-4 border-b border-border/50 flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-[15px] text-foreground">Profile Update Requests</h3>
+                <p className="text-[12px] text-muted-foreground mt-0.5">Status of changes you've asked Roomhy to approve</p>
+              </div>
+            </div>
+            <div className="divide-y divide-border/40">
+              {changeRequests.slice(0, 5).map((req, i) => {
+                const status = req.status || "Pending";
+                const isApproved = status === "Approved";
+                const isRejected = status === "Rejected";
+                const badgeClass = isApproved
+                  ? "bg-emerald-50 text-emerald-600"
+                  : isRejected
+                    ? "bg-rose-50 text-rose-600"
+                    : "bg-amber-50 text-amber-600";
+                const Icon = isApproved ? CheckCircle2 : isRejected ? XCircle : Clock;
+                return (
+                  <div key={req._id || i} className="px-6 py-4 flex items-start gap-3">
+                    <div className={`size-8 rounded-full flex items-center justify-center shrink-0 ${badgeClass}`}>
+                      <Icon className="size-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[13px] font-semibold text-foreground capitalize">
+                          {(req.requestType || "profile").replace('_', ' ')} update
+                        </span>
+                        <span className={`px-1.5 py-0.5 text-[9px] font-black rounded uppercase tracking-wide shrink-0 ${badgeClass}`}>
+                          {status}
+                        </span>
+                      </div>
+                      <p className="text-[11.5px] text-muted-foreground mt-0.5 truncate">
+                        {Object.entries(req.requestedChanges || {}).map(([k, v]) => `${k}: ${v}`).join(", ")} · {getRelativeTime(req.createdAt)}
+                      </p>
+                      {isRejected && req.rejectionReason && (
+                        <p className="text-[11.5px] text-rose-600 mt-1 bg-rose-50 rounded-lg px-2.5 py-1.5 inline-block">
+                          Reason: {req.rejectionReason}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
       </div>
       {/* ═══════════════════════ END DESKTOP VIEW ═══════════════════════ */}
 
@@ -1205,6 +1271,52 @@ export default function Admin() {
             ))}
           </div>
         </MobileSectionCard>
+
+        {/* 7b. Profile Update Requests */}
+        {changeRequests.length > 0 && (
+          <MobileSectionCard title="Profile Update Requests">
+            <div className="space-y-3">
+              {changeRequests.slice(0, 5).map((req, i) => {
+                const status = req.status || "Pending";
+                const isApproved = status === "Approved";
+                const isRejected = status === "Rejected";
+                const badgeClass = isApproved
+                  ? "bg-emerald-50 text-emerald-600"
+                  : isRejected
+                    ? "bg-rose-50 text-rose-600"
+                    : "bg-amber-50 text-amber-600";
+                const Icon = isApproved ? CheckCircle2 : isRejected ? XCircle : Clock;
+                return (
+                  <div key={req._id || i} className="border-b border-slate-50 last:border-0 pb-3 last:pb-0">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${badgeClass}`}>
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-[13px] font-bold text-slate-900 capitalize truncate">
+                            {(req.requestType || "profile").replace('_', ' ')} update
+                          </h4>
+                          <span className={`px-1.5 py-0.5 text-[8px] font-black rounded uppercase tracking-wider shrink-0 ${badgeClass}`}>
+                            {status}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-0.5 truncate">
+                          {Object.entries(req.requestedChanges || {}).map(([k, v]) => `${k}: ${v}`).join(", ")}
+                        </p>
+                      </div>
+                    </div>
+                    {isRejected && req.rejectionReason && (
+                      <p className="text-[11px] text-rose-600 mt-2 bg-rose-50 rounded-lg px-2.5 py-1.5">
+                        Reason: {req.rejectionReason}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </MobileSectionCard>
+        )}
 
         {/* 8. Recent Payments */}
         <MobileSectionCard title="Recent Payments" actionText="View history" onAction={() => window.location.href = '/propertyowner/collection-report'}>

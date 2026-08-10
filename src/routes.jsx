@@ -35,6 +35,7 @@ const routeEntries = [
   ["/superadmin/new_signups", "./pages/superadmin/new_signups.jsx"],
   ["/superadmin/notifications", "./pages/superadmin/AllNotifications.jsx"],
   ["/superadmin/owner", "./pages/superadmin/owner.jsx"],
+  ["/superadmin/owner-requests", "./pages/superadmin/owner-requests.jsx"],
   ["/superadmin/payment_disputes", "./pages/superadmin/payment_disputes.jsx"],
   ["/superadmin/platform", "./pages/superadmin/platform.jsx"],
   ["/superadmin/platform_reports", "./pages/superadmin/platform_reports.jsx"],

@@ -77,6 +77,7 @@ const NAV = [
             { label: "Approved / Pending", path: "/superadmin/owner?view=pending" },
             { label: "KYC / Documents", path: "/superadmin/owner?view=kyc" },
             { label: "Agreements", path: "/superadmin/owner?view=agreements" },
+            { label: "Owner Requests", path: "/superadmin/owner-requests", restrictedKey: "um_property_owners" },
             { label: "🔐 Owner Subscriptions", path: "/superadmin/owner-subscriptions", restrictedKey: "um_owner_subscriptions" },
           ]
         },
