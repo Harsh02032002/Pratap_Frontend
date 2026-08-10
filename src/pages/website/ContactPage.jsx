@@ -29,7 +29,7 @@ export default function ContactPage() {
       try {
         const apiPromise = fetchJson('/api/page-layouts/contact');
         const res = await Promise.race([apiPromise, timeoutPromise]);
-        
+
         resolved = true;
         if (res && res.success && res.data && res.data.sections) {
           const sorted = res.data.sections.sort((a, b) => a.order - b.order);
@@ -85,10 +85,10 @@ export default function ContactPage() {
       subtitle: "Have questions? We'd love to hear from you"
     });
     return (
-      <div key="contact-hero" className="relative w-full py-10 px-6 overflow-hidden border-b border-stone-200/50" 
-           style={{ background: 'linear-gradient(135deg, #FFFAF5 0%, #FDFCFB 50%, #F5F7FA 100%)' }}>
-        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" 
-             style={{ backgroundImage: `url("https://www.transparenttextures.com/patterns/pinstripe.png")` }}>
+      <div key="contact-hero" className="relative w-full py-10 px-6 overflow-hidden border-b border-stone-200/50"
+        style={{ background: 'linear-gradient(135deg, #FFFAF5 0%, #FDFCFB 50%, #F5F7FA 100%)' }}>
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
+          style={{ backgroundImage: `url("https://www.transparenttextures.com/patterns/pinstripe.png")` }}>
         </div>
         <div className="relative max-w-7xl mx-auto flex flex-col items-center text-center">
           <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center mb-4">
@@ -127,7 +127,7 @@ export default function ContactPage() {
       <section key="contact-cards" className="py-16 px-4 max-w-5xl mx-auto -mt-16 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {contactCards.map((card, index) => (
-            <a 
+            <a
               key={index}
               href={card.href}
               className="group bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300"
@@ -183,7 +183,7 @@ export default function ContactPage() {
                   </div>
                 );
               }
-              
+
               return (
                 <div key={field.name}>
                   <label className="text-gray-700 text-sm font-semibold mb-1.5 block">{field.label}</label>

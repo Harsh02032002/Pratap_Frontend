@@ -105,7 +105,7 @@ const websiteFooterHtml = (year) => `
           <div class="mt-5 flex flex-wrap items-center gap-3 text-sm">
             <a class="text-gray-600 hover:text-blue-600" href="/website/contact">Help & Support</a>
             <span class="text-gray-300">•</span>
-            <a class="text-gray-600 hover:text-blue-600" href="mailto:hello@roomhy.com">hello@roomhy.com</a>
+            <a class="text-gray-600 hover:text-blue-600" href="mailto:team@roomhy.com">team@roomhy.com</a>
           </div>
 
           <div class="mt-6 flex items-center gap-4 text-gray-600">
@@ -201,30 +201,29 @@ const locationStripHtml = (cities = [], areas = []) => {
       <div class="container mx-auto px-4 sm:px-6 py-4">
         <div class="roomhy-area-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-x-4 gap-y-3">
           ${areaByCity
-            .map(
-              ({ city, cityAreas }) => `
+      .map(
+        ({ city, cityAreas }) => `
                 <div class="roomhy-city-block rounded-md bg-white/[0.02] px-3 py-2">
                   <div class="text-sm font-semibold ${cityAreas.length ? "text-[#31c9b4]" : "text-gray-200"} mb-1.5">${escapeHtml(
-                    city?.name || ""
-                  )}</div>
+          city?.name || ""
+        )}</div>
                   <ul class="space-y-1">
-                    ${
-                      cityAreas.length
-                        ? cityAreas
-                            .map(
-                              (area) =>
-                                `<li class="text-xs text-gray-300/90"><a class="hover:text-white underline-offset-2 hover:underline" href="/website/ourproperty?city=${encodeURIComponent(
-                                  city?.name || ""
-                                )}&area=${encodeURIComponent(area?.name || "")}">PGs in ${escapeHtml(area?.name || "")}</a></li>`
-                            )
-                            .join("")
-                        : `<li class="text-xs text-gray-400">No areas yet</li>`
-                    }
+                    ${cityAreas.length
+            ? cityAreas
+              .map(
+                (area) =>
+                  `<li class="text-xs text-gray-300/90"><a class="hover:text-white underline-offset-2 hover:underline" href="/website/ourproperty?city=${encodeURIComponent(
+                    city?.name || ""
+                  )}&area=${encodeURIComponent(area?.name || "")}">PGs in ${escapeHtml(area?.name || "")}</a></li>`
+              )
+              .join("")
+            : `<li class="text-xs text-gray-400">No areas yet</li>`
+          }
                   </ul>
                 </div>
               `
-            )
-            .join("")}
+      )
+      .join("")}
         </div>
       </div>
     </section>
@@ -631,10 +630,10 @@ export const useHtmlPage = ({
   disableMobileSidebar = false
 }) => {
   const useClientLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
-    const configKey = (() => {
-      try {
-        return String(
-          hashString(
+  const configKey = (() => {
+    try {
+      return String(
+        hashString(
           JSON.stringify({
             title,
             bodyClass,

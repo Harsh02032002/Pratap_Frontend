@@ -138,7 +138,7 @@ export default function ListYourPropertyPage() {
         additional_message: formData.description || '',
         photos: []
       };
-      
+
       await submitEnquiry(enquiryData);
       setShowSuccess(true);
       setFormData({
@@ -175,10 +175,10 @@ export default function ListYourPropertyPage() {
       subtitle: 'Reach thousands of students looking for accommodation'
     });
     return (
-      <div key="list-hero" className="relative w-full py-10 px-6 overflow-hidden border-b border-stone-200/50" 
-           style={{ background: 'linear-gradient(135deg, #FFFAF5 0%, #FDFCFB 50%, #F5F7FA 100%)' }}>
-        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" 
-             style={{ backgroundImage: `url("https://www.transparenttextures.com/patterns/pinstripe.png")` }}>
+      <div key="list-hero" className="relative w-full py-10 px-6 overflow-hidden border-b border-stone-200/50"
+        style={{ background: 'linear-gradient(135deg, #FFFAF5 0%, #FDFCFB 50%, #F5F7FA 100%)' }}>
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
+          style={{ backgroundImage: `url("https://www.transparenttextures.com/patterns/pinstripe.png")` }}>
         </div>
         <div className="relative max-w-7xl mx-auto flex flex-col items-center text-center">
           <div className="flex items-center gap-4 mb-2">
@@ -466,9 +466,9 @@ export default function ListYourPropertyPage() {
             <h3 className="font-semibold text-gray-900 mb-2">Need Help?</h3>
             <p className="text-gray-600 text-sm mb-4">Our team is here to assist you with listing your property</p>
             <div className="flex flex-wrap gap-4">
-              <a href="tel:+911234567890" className="flex items-center gap-2 text-blue-600 hover:text-blue-700">
+              <a href="tel:+918764425030" className="flex items-center gap-2 text-blue-600 hover:text-blue-700">
                 <Phone className="w-4 h-4" />
-                <span>+91 12345 67890</span>
+                <span>+91 8764425030</span>
               </a>
               <a href="mailto:team@roomhy.com" className="flex items-center gap-2 text-blue-600 hover:text-blue-700">
                 <Mail className="w-4 h-4" />
