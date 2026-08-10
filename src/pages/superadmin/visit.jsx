@@ -229,6 +229,12 @@ export default function Visit() {
         headers: { ...getAuthHeader(), "Content-Type": "application/json" }
       });
       alert(`✅ Owner "${owner.name}" approved successfully!\nCredentials emailed to ${owner.email}.\nThis owner is now visible in View All Property Owners.`);
+      setEmpOwners(prev => prev.map(o => {
+        if ((o.loginId && o.loginId === loginId) || o._id === loginId) {
+          return { ...o, isActive: true, status: 'approved', isEmployeeSubmitted: false };
+        }
+        return o;
+      }));
       loadVisits();
     } catch (err) {
       alert(err.message || "Failed to approve owner");
