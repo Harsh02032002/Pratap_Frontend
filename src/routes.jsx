@@ -395,6 +395,25 @@ const routeEntries = [
   ["/manager/dashboard", "./pages/manager/dashboard.jsx"],
 ];
 
+const lazyWithRetry = (importFn) =>
+  lazy(async () => {
+    const storageKey = 'chunk_reload_attempted';
+    try {
+      const module = await importFn();
+      sessionStorage.removeItem(storageKey);
+      return module;
+    } catch (error) {
+      console.warn('Failed to load dynamic chunk module, auto-refreshing page:', error);
+      const isRefreshed = sessionStorage.getItem(storageKey);
+      if (!isRefreshed) {
+        sessionStorage.setItem(storageKey, 'true');
+        window.location.reload();
+        return new Promise(() => {});
+      }
+      throw error;
+    }
+  });
+
 const buildRouteElement = (modulePath) => {
   const loader = allModules[modulePath];
 
@@ -402,7 +421,7 @@ const buildRouteElement = (modulePath) => {
     throw new Error(`Missing route module: ${modulePath}`);
   }
 
-  const Component = lazy(loader);
+  const Component = lazyWithRetry(loader);
   return <Component />;
 };
 
