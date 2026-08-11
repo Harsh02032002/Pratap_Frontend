@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import WebsiteNavbar from "../../components/website/WebsiteNavbar";
 import WebsiteFooter from "../../components/website/WebsiteFooter";
 import MobileBottomNav from "../../components/website/MobileBottomNav";
-import { Target, Shield, Heart, Zap, Rocket, Globe, TrendingUp, Users, Building2, Info, Handshake, Search, Sparkles, Quote } from 'lucide-react';
+import { Target, Shield, Heart, Zap, Rocket, Globe, TrendingUp, Users, Building2, Info, Handshake, Search, Sparkles, Quote, ArrowRight } from 'lucide-react';
 import { fetchJson } from "../../utils/api";
 import useSEO from "../../hooks/useSEO";
 
@@ -75,101 +75,101 @@ export default function AboutPage() {
   const renderHero = () => {
     const content = getSectionContent('about-hero', {
       title: 'About Us',
-      subtitle: 'At Roomhy, we believe finding the right place to stay should be simple and stress-free.'
+      subtitle: 'Our Story & Mission'
     });
     return (
-      <div key="about-hero" className="relative w-full py-8 md:py-14 px-4 md:px-6 overflow-hidden border-b border-stone-200/50" 
+      <div key="about-hero" className="relative w-full py-5 md:py-10 px-4 md:px-6 overflow-hidden border-b border-stone-200/50" 
            style={{ background: 'linear-gradient(135deg, #FFFAF5 0%, #FDFCFB 50%, #F5F7FA 100%)' }}>
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none" 
              style={{ backgroundImage: `url("https://www.transparenttextures.com/patterns/pinstripe.png")` }}>
         </div>
         <div className="relative max-w-7xl mx-auto flex flex-col items-center text-center">
-          <div className="w-10 h-10 md:w-14 md:h-14 rounded-2xl bg-amber-100 flex items-center justify-center mb-3 md:mb-4">
-            <Info size={22} className="text-amber-600 md:w-7 md:h-7" />
+          <div className="w-8 h-8 md:w-12 md:h-12 rounded-xl bg-amber-100 flex items-center justify-center mb-2 md:mb-4">
+            <Info size={18} className="text-amber-600 md:w-6 md:h-6" />
           </div>
-          <div className="flex items-center gap-2 md:gap-4 mb-2">
-            <div className="h-[1px] w-6 md:w-12 bg-[#C5A059]/40 hidden md:block"></div>
-            <h1 className="text-xl md:text-5xl font-extrabold text-[#1A1A1A] tracking-tight">
+          <div className="flex items-center gap-2 md:gap-4 mb-1 md:mb-2">
+            <div className="h-[1px] w-6 md:w-8 bg-[#C5A059]/40 hidden md:block"></div>
+            <h1 className="text-lg md:text-4xl font-bold text-[#1A1A1A] tracking-tight">
               {content.title}
             </h1>
-            <div className="h-[1px] w-6 md:w-12 bg-[#C5A059]/40 hidden md:block"></div>
+            <div className="h-[1px] w-6 md:w-8 bg-[#C5A059]/40 hidden md:block"></div>
           </div>
-          <p className="text-xs md:text-xl text-stone-600 font-medium max-w-2xl mx-auto leading-relaxed">
+          <p className="text-xs md:text-lg text-stone-500 font-normal opacity-90 max-w-xl mx-auto">
             {content.subtitle}
           </p>
-          <div className="mt-3 md:mt-5 w-2 h-2 rounded-full bg-[#C5A059]"></div>
+          <div className="mt-2 md:mt-4 w-1.5 h-1.5 rounded-full bg-[#C5A059]/30"></div>
         </div>
       </div>
     );
   };
 
   const renderAboutStory = () => {
-    const content = getSectionContent('about-story', {
-      intro: "At Roomhy, we believe finding the right place to stay should be simple and stress-free.",
-      mainText: "We created Roomhy to make the process of discovering and managing properties easier for everyone. Whether you are looking for a comfortable place to stay or you are a property owner looking to manage your property, Roomhy brings everything together in one place.",
-      ownerText: "For property owners, we provide simple tools to add and manage properties, keep information updated, and handle day-to-day property activities more easily.",
-      seekerText: "For people looking for a property, Roomhy makes it easier to explore available options, check the details, and find a place that suits their needs.",
-      goalText: "We are building Roomhy with a simple goal — to make the property experience easier, more convenient, and more reliable.",
-      growthText: "As we grow, we continue to improve the platform based on what property owners and customers actually need.",
-      quote: "Roomhy is more than just a property platform. It is our effort to make finding and managing a place feel a little easier."
-    });
-
     return (
-      <section key="about-story" className="py-10 md:py-16 px-4 max-w-5xl mx-auto">
-        {/* Intro & Main Purpose */}
-        <div className="text-center mb-8 md:mb-12">
-          <p className="text-amber-600 font-semibold text-xs md:text-sm uppercase tracking-wider mb-2">Our Core Purpose</p>
-          <h2 className="text-2xl md:text-3xl font-bold text-stone-800 leading-snug mb-4">
-            {content.intro}
+      <section key="about-story" className="py-10 md:py-16 px-4 md:px-8 max-w-6xl mx-auto">
+        {/* Lead Purpose Banner */}
+        <div className="text-center mb-10 md:mb-14">
+          <p className="text-amber-600 font-semibold text-xs md:text-sm uppercase tracking-wider mb-2">Simple & Stress-Free</p>
+          <h2 className="text-xl md:text-3xl font-extrabold text-stone-900 leading-snug mb-4 max-w-3xl mx-auto">
+            At Roomhy, we believe finding the right place to stay should be simple and stress-free.
           </h2>
-          <p className="text-stone-600 text-sm md:text-lg leading-relaxed max-w-3xl mx-auto">
-            {content.mainText}
+          <p className="text-stone-600 text-sm md:text-base leading-relaxed max-w-3xl mx-auto">
+            We created Roomhy to make the process of discovering and managing properties easier for everyone. Whether you are looking for a comfortable place to stay or you are a property owner looking to manage your property, Roomhy brings everything together in one place.
           </p>
         </div>
 
-        {/* Feature Cards for Property Owners and Property Seekers */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-8 md:my-12">
-          <div className="bg-gradient-to-br from-amber-50/80 via-white to-amber-50/30 p-6 md:p-8 rounded-2xl border border-amber-200/60 shadow-sm hover:shadow-md transition-all">
-            <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center mb-4">
-              <Building2 className="w-6 h-6" />
+        {/* Feature Cards Grid (Owners & Seekers) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 md:mb-12">
+          {/* Property Owners */}
+          <div className="bg-white p-6 md:p-8 rounded-2xl border border-stone-200/80 shadow-sm hover:border-amber-300 transition-all">
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center mb-4">
+              <Building2 size={22} />
             </div>
-            <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-2">For Property Owners</h3>
-            <p className="text-stone-600 text-xs md:text-base leading-relaxed">
-              {content.ownerText}
+            <h3 className="text-lg md:text-xl font-bold text-stone-900 mb-2">For Property Owners</h3>
+            <p className="text-stone-600 text-xs md:text-sm leading-relaxed">
+              We provide simple tools to add and manage properties, keep information updated, and handle day-to-day property activities more easily.
             </p>
           </div>
 
-          <div className="bg-gradient-to-br from-teal-50/80 via-white to-teal-50/30 p-6 md:p-8 rounded-2xl border border-teal-200/60 shadow-sm hover:shadow-md transition-all">
-            <div className="w-12 h-12 rounded-xl bg-teal-500/10 text-teal-600 flex items-center justify-center mb-4">
-              <Search className="w-6 h-6" />
+          {/* Property Seekers */}
+          <div className="bg-white p-6 md:p-8 rounded-2xl border border-stone-200/80 shadow-sm hover:border-teal-300 transition-all">
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-teal-50 text-teal-600 border border-teal-100 flex items-center justify-center mb-4">
+              <Search size={22} />
             </div>
-            <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-2">For Property Seekers</h3>
-            <p className="text-stone-600 text-xs md:text-base leading-relaxed">
-              {content.seekerText}
+            <h3 className="text-lg md:text-xl font-bold text-stone-900 mb-2">For Property Seekers</h3>
+            <p className="text-stone-600 text-xs md:text-sm leading-relaxed">
+              Roomhy makes it easier to explore available options, check the details, and find a place that suits their needs.
             </p>
           </div>
         </div>
 
-        {/* Goal & Growth */}
-        <div className="bg-white rounded-2xl p-6 md:p-10 border border-stone-200 shadow-sm text-center mb-8 md:mb-12">
-          <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-amber-100 text-amber-600 mb-4">
-            <Sparkles className="w-5 h-5" />
+        {/* Goal & Growth Pill Boxes */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 md:mb-12">
+          <div className="p-6 rounded-2xl bg-amber-50/50 border border-amber-100">
+            <div className="flex items-center gap-2 mb-2">
+              <Target className="text-amber-600" size={18} />
+              <h4 className="text-sm md:text-base font-bold text-stone-900">Our Goal</h4>
+            </div>
+            <p className="text-stone-600 text-xs md:text-sm leading-relaxed">
+              We are building Roomhy with a simple goal — to make the property experience easier, more convenient, and more reliable.
+            </p>
           </div>
-          <p className="text-stone-800 text-sm md:text-lg font-medium leading-relaxed max-w-2xl mx-auto mb-3">
-            {content.goalText}
-          </p>
-          <p className="text-stone-500 text-xs md:text-base leading-relaxed max-w-2xl mx-auto">
-            {content.growthText}
-          </p>
+
+          <div className="p-6 rounded-2xl bg-teal-50/50 border border-teal-100">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp className="text-teal-600" size={18} />
+              <h4 className="text-sm md:text-base font-bold text-stone-900">As We Grow</h4>
+            </div>
+            <p className="text-stone-600 text-xs md:text-sm leading-relaxed">
+              As we grow, we continue to improve the platform based on what property owners and customers actually need.
+            </p>
+          </div>
         </div>
 
-        {/* Highlight Banner Quote */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-stone-900 via-gray-900 to-amber-950 text-white p-6 md:p-10 text-center shadow-lg">
-          <div className="absolute top-0 right-0 transform translate-x-4 -translate-y-4 opacity-10 pointer-events-none">
-            <Quote size={120} />
-          </div>
-          <p className="relative z-10 text-base md:text-xl font-semibold italic text-amber-100 max-w-2xl mx-auto leading-relaxed">
-            "{content.quote}"
+        {/* Calm Light Signature Quote Banner */}
+        <div className="relative rounded-2xl p-6 md:p-10 text-center bg-gradient-to-r from-amber-50 via-amber-50/40 to-stone-50 border border-amber-200/70 shadow-sm">
+          <Quote className="text-amber-400 mx-auto mb-3 opacity-50" size={32} />
+          <p className="text-base md:text-xl font-bold italic text-stone-800 leading-relaxed max-w-3xl mx-auto">
+            "Roomhy is more than just a property platform. It is our effort to make finding and managing a place feel a little easier."
           </p>
         </div>
       </section>
@@ -352,9 +352,18 @@ export default function AboutPage() {
   };
 
   const defaultOrder = ['about-hero', 'about-story', 'vision', 'mission', 'values', 'stats', 'team'];
-  const activeOrder = layoutSections.length > 0
+  let activeOrder = layoutSections.length > 0
     ? layoutSections.map(s => s.id)
     : defaultOrder;
+
+  if (activeOrder.length > 0 && !activeOrder.includes('about-story')) {
+    const heroIdx = activeOrder.indexOf('about-hero');
+    if (heroIdx !== -1) {
+      activeOrder.splice(heroIdx + 1, 0, 'about-story');
+    } else {
+      activeOrder.unshift('about-story');
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
