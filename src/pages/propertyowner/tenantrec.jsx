@@ -412,7 +412,13 @@ export default function TenantRec() {
     idProofNumber: "",
     idProofFile: null,
     aadhaarFront: null,
-    aadhaarBack: null
+    aadhaarBack: null,
+    // Alternate ID path: tenant has no Aadhaar / no Aadhaar-linked mobile, so
+    // they can never complete the OTP step — owner uploads a different proof
+    // for Superadmin review instead.
+    noAadhaar: false,
+    alternateProofType: "",
+    alternateProofFile: null
   });
 
   const [ocrLoadingFront, setOcrLoadingFront] = useState(false);
@@ -740,8 +746,13 @@ export default function TenantRec() {
     else if (!/^[6-9]\d{9}$/.test(phoneDigits)) newErrors.phone = "Please enter a valid mobile number";
     if (!basicDetails.dob) newErrors.dob = "Date of Birth is required";
     if (!basicDetails.gender) newErrors.gender = "Gender is required";
-    if (!basicDetails.idProofNumber) newErrors.idProofNumber = "ID Proof No is required";
-    if (!basicDetails.idProofFile) newErrors.idProofFile = "Proof upload is required";
+    if (basicDetails.noAadhaar) {
+      if (!basicDetails.alternateProofType) newErrors.alternateProofType = "Select a document type";
+      if (!basicDetails.alternateProofFile) newErrors.alternateProofFile = "Proof upload is required";
+    } else {
+      if (!basicDetails.idProofNumber) newErrors.idProofNumber = "ID Proof No is required";
+      if (!basicDetails.idProofFile) newErrors.idProofFile = "Proof upload is required";
+    }
 
     if (!roomAssignment.propertyId) newErrors.propertyId = "Property is required";
     if (!roomAssignment.floor) newErrors.floor = "Floor is required";
@@ -776,8 +787,13 @@ export default function TenantRec() {
     else if (!/^[6-9]\d{9}$/.test(phoneDigits)) newErrors.phone = "Please enter a valid mobile number";
     if (!basicDetails.dob) newErrors.dob = "Date of Birth is required";
     if (!basicDetails.gender) newErrors.gender = "Gender is required";
-    if (!basicDetails.idProofNumber) newErrors.idProofNumber = "ID Proof No is required";
-    if (!basicDetails.idProofFile) newErrors.idProofFile = "Proof upload is required";
+    if (basicDetails.noAadhaar) {
+      if (!basicDetails.alternateProofType) newErrors.alternateProofType = "Select a document type";
+      if (!basicDetails.alternateProofFile) newErrors.alternateProofFile = "Proof upload is required";
+    } else {
+      if (!basicDetails.idProofNumber) newErrors.idProofNumber = "ID Proof No is required";
+      if (!basicDetails.idProofFile) newErrors.idProofFile = "Proof upload is required";
+    }
 
     if (!roomAssignment.propertyId) newErrors.propertyId = "Property is required";
     if (!roomAssignment.floor) newErrors.floor = "Floor is required";
@@ -800,7 +816,7 @@ export default function TenantRec() {
     if (Object.keys(newErrors).length > 0) {
       toast.error("Please fill all required fields correctly.");
       if (isMobile) {
-        if (newErrors.fullName || newErrors.email || newErrors.phone || newErrors.dob || newErrors.gender || newErrors.idProofNumber || newErrors.idProofFile) {
+        if (newErrors.fullName || newErrors.email || newErrors.phone || newErrors.dob || newErrors.gender || newErrors.idProofNumber || newErrors.idProofFile || newErrors.alternateProofType || newErrors.alternateProofFile) {
           setActiveMobileTab(1);
         } else if (newErrors.propertyId || newErrors.floor || newErrors.roomUnit || newErrors.rentAgreementType) {
           setActiveMobileTab(2);
@@ -868,6 +884,9 @@ export default function TenantRec() {
           aadhaarFront: basicDetails.aadhaarFront,
           aadhaarBack: basicDetails.aadhaarBack
         },
+        noAadhaar: basicDetails.noAadhaar,
+        alternateProofType: basicDetails.noAadhaar ? basicDetails.alternateProofType : undefined,
+        alternateProofFile: basicDetails.noAadhaar ? basicDetails.alternateProofFile : undefined,
 
         additional: additionalDetails,
       };
@@ -942,6 +961,43 @@ export default function TenantRec() {
       if (json.url) {
         setBasicDetails(prev => ({ ...prev, idProofFile: json.url }));
         toast.success("ID Proof uploaded!");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Upload failed: " + err.message);
+    } finally {
+      toast.dismiss(loadingToast);
+    }
+  };
+
+  const handleAlternateProofUpload = async (file) => {
+    if (!file) return;
+
+    const loadingToast = toast.loading("Uploading document...");
+    const data = new FormData();
+    data.append("image", file);
+
+    try {
+      const res = await fetch(`${apiUrl}/api/upload`, {
+        method: "POST",
+        body: data,
+        headers: getAuthHeader()
+      });
+
+      let json;
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        json = await res.json();
+      } else {
+        const text = await res.text();
+        throw new Error(text || `HTTP error ${res.status}`);
+      }
+
+      if (!res.ok) throw new Error(json.error || "Upload failed");
+
+      if (json.url) {
+        setBasicDetails(prev => ({ ...prev, alternateProofFile: json.url }));
+        toast.success("Document uploaded!");
       }
     } catch (err) {
       console.error(err);
@@ -1324,22 +1380,65 @@ export default function TenantRec() {
                   placeholder="Select gender"
                   error={errors.gender}
                 />
-                <FormSelect
-                  label="ID Proof Type"
-                  required
-                  value={basicDetails.idProofType}
-                  onChange={e => setBasicDetails({ ...basicDetails, idProofType: e.target.value })}
-                  options={["Aadhaar Card", "PAN Card", "Voter ID", "Driving License", "Passport"]}
-                />
-                <FormField
-                  label="ID Proof Number"
-                  required
-                  value={basicDetails.idProofNumber}
-                  onChange={e => setBasicDetails({ ...basicDetails, idProofNumber: e.target.value })}
-                  placeholder="Enter ID proof number"
-                  error={errors.idProofNumber}
-                />
-                {basicDetails.idProofType === "Aadhaar Card" ? (
+                <div className="sm:col-span-3 flex items-center gap-2.5 bg-amber-50/70 border border-amber-200 rounded-xl px-3.5 py-2.5">
+                  <input
+                    type="checkbox"
+                    id="noAadhaarToggle"
+                    checked={basicDetails.noAadhaar}
+                    onChange={e => setBasicDetails({ ...basicDetails, noAadhaar: e.target.checked })}
+                    className="size-4 rounded border-amber-300 text-amber-600 focus:ring-0 cursor-pointer accent-amber-600"
+                  />
+                  <label htmlFor="noAadhaarToggle" className="text-[11px] font-bold text-amber-800 cursor-pointer">
+                    Tenant does not have Aadhaar (or it's not linked to their mobile number)
+                  </label>
+                </div>
+
+                {basicDetails.noAadhaar ? (
+                  <div className="sm:col-span-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormSelect
+                      label="Alternate ID Proof Type"
+                      required
+                      value={basicDetails.alternateProofType}
+                      onChange={e => setBasicDetails({ ...basicDetails, alternateProofType: e.target.value })}
+                      options={["Voter ID", "PAN", "Driving License", "Passport", "Other"]}
+                      placeholder="Select document type"
+                      error={errors.alternateProofType}
+                    />
+                    <div>
+                      <label className="text-[10px] font-black text-slate-800 uppercase mb-3 block tracking-tight">
+                        Upload Document Photo <span className="text-rose-500">*</span>
+                      </label>
+                      <MultiSourceUpload
+                        value={basicDetails.alternateProofFile}
+                        onUpload={handleAlternateProofUpload}
+                        error={errors.alternateProofFile}
+                      />
+                      {errors.alternateProofFile && <span className="text-[8px] font-bold text-rose-500 mt-2 uppercase tracking-widest block">{errors.alternateProofFile}</span>}
+                    </div>
+                    <p className="sm:col-span-2 text-[10px] text-amber-700 bg-amber-50/70 p-2.5 rounded-xl font-medium flex items-center gap-1.5">
+                      <Info size={14} className="shrink-0" /> This tenant skips Aadhaar OTP verification — Superadmin will review the uploaded document before the agreement and payment link are sent.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <FormSelect
+                      label="ID Proof Type"
+                      required
+                      value={basicDetails.idProofType}
+                      onChange={e => setBasicDetails({ ...basicDetails, idProofType: e.target.value })}
+                      options={["Aadhaar Card", "PAN Card", "Voter ID", "Driving License", "Passport"]}
+                    />
+                    <FormField
+                      label="ID Proof Number"
+                      required
+                      value={basicDetails.idProofNumber}
+                      onChange={e => setBasicDetails({ ...basicDetails, idProofNumber: e.target.value })}
+                      placeholder="Enter ID proof number"
+                      error={errors.idProofNumber}
+                    />
+                  </>
+                )}
+                {!basicDetails.noAadhaar && (basicDetails.idProofType === "Aadhaar Card" ? (
                   <div className="sm:col-span-3 space-y-3">
                     <label className="text-[10px] font-black text-slate-800 uppercase block tracking-tight">
                       Aadhaar Card Upload (Front & Back) <span className="text-rose-500">*</span>
@@ -1395,7 +1494,7 @@ export default function TenantRec() {
                     />
                     {errors.idProofFile && <span className="text-[8px] font-bold text-rose-500 mt-2 uppercase tracking-widest block">{errors.idProofFile}</span>}
                   </div>
-                )}
+                ))}
 
               </div>
             </div>
@@ -1879,7 +1978,17 @@ export default function TenantRec() {
                 <CheckCircle2 className="w-10 h-10 text-emerald-500" />
               </div>
               <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight mb-2">Tenant Added Successfully!</h2>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-8">Onboarding link and credentials generated</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-8">
+                {newTenant.kycMode === "alternate_proof"
+                  ? "Sent for Superadmin approval"
+                  : "Onboarding link and credentials generated"}
+              </p>
+
+              {newTenant.kycMode === "alternate_proof" && (
+                <p className="w-full text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6 text-left font-medium">
+                  This tenant has no Aadhaar, so the uploaded document is waiting on Superadmin review. The agreement and payment link will go out automatically once it's approved — no action needed from you or the tenant until then.
+                </p>
+              )}
 
               <div className="w-full space-y-4 mb-8">
                 <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 text-left">

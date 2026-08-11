@@ -28,6 +28,7 @@ const routeEntries = [
   ["/superadmin/import_local", "./pages/superadmin/import_local.jsx"],
   ["/superadmin/index", "./pages/superadmin/index.jsx"],
   ["/superadmin/kyc_verification", "./pages/superadmin/kyc_verification.jsx"],
+  ["/superadmin/tenant-kyc-requests", "./pages/superadmin/tenant-kyc-requests.jsx"],
   ["/superadmin/location", "./pages/superadmin/location.jsx"],
   ["/superadmin/log", "./pages/superadmin/log.jsx"],
   ["/superadmin/manager", "./pages/superadmin/manager.jsx"],

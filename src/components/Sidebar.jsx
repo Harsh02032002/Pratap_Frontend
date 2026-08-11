@@ -87,6 +87,7 @@ const NAV = [
             { label: "View All Tenants", path: "/superadmin/tenant", restrictedKey: "um_tenants" },
             { label: "Add Tenant", path: "/superadmin/add-tenant", restrictedKey: "um_add_tenant" },
             { label: "KYC / Documents", path: "/superadmin/kyc_verification", restrictedKey: "um_kyc" },
+            { label: "Request KYC Approve", path: "/superadmin/tenant-kyc-requests", restrictedKey: "um_kyc" },
             { label: "Rent History", path: "/superadmin/rentcollection", restrictedKey: "um_rent_history" },
             { label: "Agreements", path: "/superadmin/tenant" },
           ]

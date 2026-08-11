@@ -4,7 +4,7 @@ import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLay
 import { MobileTabs, MobileEmptyState, cn } from "../../components/propertyowner/MobileComponents";
 import {
   Plus, Search, ArrowUpDown, Download, Users, ExternalLink,
-  User, CalendarClock, CheckCircle, AlertTriangle, Phone,
+  User, CalendarClock, CheckCircle, AlertTriangle, Phone, Clock,
   Shield, Building2, FileText, BadgeCheck, X, MapPin, Mail,
   CreditCard, Home, Edit, Eye, Activity, MessageSquare, IndianRupee, Send, Trash2
 } from "lucide-react";
@@ -17,6 +17,7 @@ import {
   fetchOwnerRooms
 } from "../../utils/propertyowner";
 import { API_URL } from "../../utils/api";
+import toast from "react-hot-toast";
 
 const getFileUrl = (url) => {
   if (!url) return null;
@@ -80,6 +81,11 @@ export default function Tenants() {
   const [selectedTenant, setSelectedTenant] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalTab, setModalTab] = useState("overview");
+  const [resendModal, setResendModal] = useState(null); // { tenantId, tenantName } | null
+  const [resendSubmitting, setResendSubmitting] = useState(false);
+  // Tenants with a Pending alternate-ID-proof request — they're waiting on
+  // Superadmin, so an Aadhaar-OTP completion reminder doesn't apply to them.
+  const [pendingKycRequestTenantIds, setPendingKycRequestTenantIds] = useState(new Set());
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingTenant, setEditingTenant] = useState(null);
   const [editForm, setEditForm] = useState({
@@ -223,6 +229,9 @@ export default function Tenants() {
     }
   };
 
+  // Temporarily unused — the "Approve KYC" buttons below call handleResendKycLink
+  // instead for now. Kept as-is so the real approve flow is a one-line swap back
+  // once it's ready to go live again.
   const handleApproveKyc = async (tenantId) => {
     const confirmApprove = window.confirm("Are you sure you want to approve KYC and activate this tenant?");
     if (!confirmApprove) return;
@@ -241,16 +250,27 @@ export default function Tenants() {
     }
   };
 
-  const handleResendKycLink = async (tenantId, tenantName) => {
-    const confirmSend = window.confirm(`Resend KYC / Digital Check-in re-upload link to ${tenantName || 'tenant'} via Email?`);
-    if (!confirmSend) return;
+  const handleResendKycLink = (tenantId, tenantName) => {
+    setResendModal({ tenantId, tenantName });
+  };
+
+  const confirmResendKycLink = async () => {
+    if (!resendModal) return;
+    setResendSubmitting(true);
     try {
-      const res = await fetchJson(`/api/tenants/${tenantId}/resend-kyc-link`, {
-        method: "POST"
+      // Backend awaits the actual SMTP send before responding, which can
+      // take longer than fetchJson's default 12s — bumping this out so a
+      // slow-but-successful send doesn't surface as a false "timed out" error.
+      const res = await fetchJson(`/api/tenants/${resendModal.tenantId}/resend-kyc-link`, {
+        method: "POST",
+        timeout: 30000
       });
-      alert(res.message || "KYC link sent successfully!");
+      toast.success(res.message || "KYC completion request sent!");
+      setResendModal(null);
     } catch (err) {
-      alert("Error sending KYC link: " + (err.message || err));
+      toast.error("Error sending request: " + (err.message || err));
+    } finally {
+      setResendSubmitting(false);
     }
   };
 
@@ -281,6 +301,16 @@ export default function Tenants() {
         setErrorMsg(err?.body || err?.message || "Failed to load tenants.");
       } finally {
         setLoading(false);
+      }
+
+      try {
+        const kycReqRes = await fetchJson(`/api/tenant-kyc-requests?ownerLoginId=${encodeURIComponent(session.loginId)}&status=Pending`);
+        const ids = new Set(
+          (kycReqRes?.data || []).map(r => (r.tenantId && typeof r.tenantId === "object" ? r.tenantId._id : r.tenantId))
+        );
+        setPendingKycRequestTenantIds(ids);
+      } catch (_) {
+        // Non-critical — the completion-request button just won't be disabled.
       }
     };
     load();
@@ -677,20 +707,24 @@ export default function Tenants() {
                           <div className="flex items-center justify-end gap-1.5">
                             {(t.kycStatus !== "verified" && t.kycStatus !== "rejected") && (
                               <>
-                                <button 
-                                  onClick={() => handleResendKycLink(t._id || t.id, t.name)}
-                                  className="p-1.5 text-blue-600 hover:bg-blue-50 border border-blue-200/60 rounded-lg transition-colors"
-                                  title="Resend KYC Re-upload Link via Email"
-                                >
-                                  <Send size={14} />
-                                </button>
-                                <button 
-                                  onClick={() => handleApproveKyc(t._id || t.id)}
-                                  className="inline-flex items-center gap-1 px-3 py-1.5 text-[11.5px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-xs transition-colors shrink-0"
-                                  title="Approve KYC & Activate Tenant"
-                                >
-                                  <CheckCircle size={13} /> Approve KYC
-                                </button>
+                                {/* TODO: temporary — sends a completion reminder instead of
+                                    actually approving, until the real approve flow is ready. */}
+                                {pendingKycRequestTenantIds.has(t._id || t.id) ? (
+                                  <span
+                                    className="inline-flex items-center gap-1 px-3 py-1.5 text-[11.5px] font-bold text-slate-400 bg-slate-100 rounded-lg cursor-not-allowed shrink-0"
+                                    title="Alternate ID proof already submitted — awaiting Superadmin review"
+                                  >
+                                    <Clock size={13} /> Awaiting Superadmin
+                                  </span>
+                                ) : (
+                                  <button
+                                    onClick={() => handleResendKycLink(t._id || t.id, t.name)}
+                                    className="inline-flex items-center gap-1 px-3 py-1.5 text-[11.5px] font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-xs transition-colors shrink-0"
+                                    title="Request KYC Completion"
+                                  >
+                                    <Send size={13} /> Request Completion
+                                  </button>
+                                )}
                               </>
                             )}
                             <button 
@@ -851,12 +885,17 @@ export default function Tenants() {
                                  <AlertTriangle size={12} />
                               </button>
                             )}
-                            <button onClick={() => handleResendKycLink(t._id || t.id, t.name)} className="w-8 h-8 rounded-full bg-blue-50 border border-blue-100/50 flex items-center justify-center text-blue-600 hover:bg-blue-100 transition-colors" title="Resend KYC Link">
-                               <Send size={12} />
-                            </button>
-                            <button onClick={() => handleApproveKyc(t._id || t.id)} className="h-8 px-3 rounded-full bg-emerald-50 border border-emerald-100/50 text-emerald-700 flex items-center gap-1 hover:bg-emerald-100 transition-colors text-[11px] font-bold">
-                               <CheckCircle size={12} /> Approve KYC
-                            </button>
+                            {/* TODO: temporary — sends a completion reminder instead of
+                                actually approving, until the real approve flow is ready. */}
+                            {pendingKycRequestTenantIds.has(t._id || t.id) ? (
+                              <span className="h-8 px-3 rounded-full bg-slate-100 text-slate-400 flex items-center gap-1 text-[11px] font-bold cursor-not-allowed" title="Awaiting Superadmin review">
+                                <Clock size={12} /> Awaiting Superadmin
+                              </span>
+                            ) : (
+                              <button onClick={() => handleResendKycLink(t._id || t.id, t.name)} className="h-8 px-3 rounded-full bg-blue-50 border border-blue-100/50 text-blue-700 flex items-center gap-1 hover:bg-blue-100 transition-colors text-[11px] font-bold">
+                                 <Send size={12} /> Request Completion
+                              </button>
+                            )}
                           </div>
                         ) : (
                           <button onClick={() => window.location.href = `/propertyowner/payment?tenant=${t._id}`} className="h-8 px-3.5 rounded-full bg-blue-50 border border-blue-100/50 text-blue-700 flex items-center gap-1.5 hover:bg-blue-100 transition-colors text-[11px] font-bold ml-1">
@@ -907,13 +946,19 @@ export default function Tenants() {
                       <div className="flex items-center gap-2 mt-1.5">
                         <Pill tone={getStatusTone(getDisplayStatus(t))}>{getDisplayStatus(t)}</Pill>
                         <Pill tone={getKycTone(t.kycStatus || t.kyc)}>{t.kycStatus || t.kyc || "pending"} KYC</Pill>
-                        <button
-                          onClick={() => handleResendKycLink(t._id || t.id, t.name)}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold text-blue-600 bg-blue-50 border border-blue-100 rounded-md hover:bg-blue-100 transition-colors"
-                          title="Resend KYC Re-upload Link via Email"
-                        >
-                          <Send size={11} /> Resend KYC Link
-                        </button>
+                        {pendingKycRequestTenantIds.has(t._id || t.id) ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold text-slate-400 bg-slate-100 rounded-md cursor-not-allowed" title="Awaiting Superadmin review">
+                            <Clock size={11} /> Awaiting Superadmin
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => handleResendKycLink(t._id || t.id, t.name)}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold text-blue-600 bg-blue-50 border border-blue-100 rounded-md hover:bg-blue-100 transition-colors"
+                            title="Resend KYC Re-upload Link via Email"
+                          >
+                            <Send size={11} /> Resend KYC Link
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1202,17 +1247,28 @@ export default function Tenants() {
                     )}
 
                     {/* Approve Action Button */}
+                    {/* TODO: temporary — sends a completion reminder instead of
+                        actually approving, until the real approve flow is ready. */}
                     {(t.kycStatus !== "verified" && t.kycStatus !== "rejected") && (
                       <div className="pt-2">
-                        <button
-                          onClick={() => {
-                            setModalOpen(false);
-                            handleApproveKyc(t._id || t.id);
-                          }}
-                          className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-[13px] flex items-center gap-2 shadow-sm transition-colors"
-                        >
-                          <CheckCircle size={16} /> Approve KYC & Activate Tenant Now
-                        </button>
+                        {pendingKycRequestTenantIds.has(t._id || t.id) ? (
+                          <span
+                            className="px-5 py-2.5 bg-slate-100 text-slate-400 rounded-xl font-bold text-[13px] flex items-center gap-2 cursor-not-allowed w-fit"
+                            title="Alternate ID proof already submitted — awaiting Superadmin review"
+                          >
+                            <Clock size={16} /> Awaiting Superadmin Approval
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setModalOpen(false);
+                              handleResendKycLink(t._id || t.id, t.name);
+                            }}
+                            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-[13px] flex items-center gap-2 shadow-sm transition-colors"
+                          >
+                            <Send size={16} /> Request KYC Completion
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1827,6 +1883,42 @@ export default function Tenants() {
             >
               Cancel
             </button>
+          </div>
+        </div>
+      )}
+
+      {resendModal && (
+        <div
+          className="fixed inset-0 z-[200] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={(e) => e.target === e.currentTarget && !resendSubmitting && setResendModal(null)}
+        >
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="p-6">
+              <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center mb-4">
+                <Send className="w-6 h-6 text-blue-600" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900">Request KYC completion?</h3>
+              <p className="text-sm text-slate-500 mt-1">
+                This sends a KYC / Digital Check-in re-upload link to{" "}
+                <span className="font-semibold text-slate-700">{resendModal.tenantName || "this tenant"}</span> via email.
+              </p>
+            </div>
+            <div className="flex gap-3 px-6 py-4 bg-slate-50 border-t border-slate-100">
+              <button
+                onClick={() => setResendModal(null)}
+                disabled={resendSubmitting}
+                className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmResendKycLink}
+                disabled={resendSubmitting}
+                className="flex-1 py-2.5 rounded-lg text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors disabled:opacity-60"
+              >
+                {resendSubmitting ? "Sending..." : "Send Request"}
+              </button>
+            </div>
           </div>
         </div>
       )}
