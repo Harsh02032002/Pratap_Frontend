@@ -306,17 +306,26 @@ export default function OwnerRequestsPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {Object.entries(viewModal.requestedChanges || {}).map(([key, newValue]) => {
+                    {Object.entries(viewModal.requestedChanges || {})
+                      .filter(([key]) => key !== 'checkinBankProofName')
+                      .map(([key, newValue]) => {
                       const oldValue = viewModal.previousValues ? viewModal.previousValues[key] : undefined;
                       const hasOldValue = oldValue !== undefined && oldValue !== null && oldValue !== "";
+                      const isDoc = key === 'checkinBankProof';
                       return (
                         <tr key={key}>
-                          <td className="px-4 py-3 text-xs font-bold text-slate-500 uppercase align-top">{key}</td>
+                          <td className="px-4 py-3 text-xs font-bold text-slate-500 uppercase align-top">{isDoc ? "Bank Proof" : key}</td>
                           <td className="px-4 py-3 text-sm text-slate-500 align-top break-words">
-                            {hasOldValue ? String(oldValue) : <span className="italic text-slate-300">not set</span>}
+                            {isDoc
+                              ? (hasOldValue ? <a href={oldValue} target="_blank" rel="noreferrer" className="text-primary underline">View previous</a> : <span className="italic text-slate-300">not set</span>)
+                              : (hasOldValue ? String(oldValue) : <span className="italic text-slate-300">not set</span>)}
                           </td>
                           <td className="px-4 py-3 text-sm font-bold text-emerald-700 bg-emerald-50/40 align-top break-words">
-                            {String(newValue)}
+                            {isDoc ? (
+                              <a href={newValue} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 underline">
+                                <FileText size={14} /> {viewModal.requestedChanges.checkinBankProofName || "View document"}
+                              </a>
+                            ) : String(newValue)}
                           </td>
                         </tr>
                       );

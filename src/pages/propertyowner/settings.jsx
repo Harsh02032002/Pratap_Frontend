@@ -8,9 +8,9 @@ import {
   fetchOwnerTenants,
   downloadCsv
 } from "../../utils/propertyowner";
-import { Building, UserCog, Shield, Globe, Lock, Check, Database, Download, Landmark, Eye, EyeOff, X, Loader2 } from "lucide-react";
+import { Building, UserCog, Shield, Globe, Lock, Check, Database, Download, Landmark, Eye, EyeOff, X, Loader2, Upload, FileCheck, Paperclip } from "lucide-react";
 import toast from "react-hot-toast";
-import { fetchJson } from "../../utils/api";
+import { fetchJson, getApiBase, getAuthHeader } from "../../utils/api";
 
 function FieldRow({ label, value, masked, empty }) {
   const [show, setShow] = useState(false);
@@ -66,6 +66,8 @@ export default function Settings() {
   const [bankEditOpen, setBankEditOpen] = useState(false);
   const [bankForm, setBankForm] = useState({ accountHolder: "", bankName: "", branchName: "", accountNumber: "", ifscCode: "", upiId: "" });
   const [bankSubmitting, setBankSubmitting] = useState(false);
+  const [bankProof, setBankProof] = useState({ url: "", name: "" });
+  const [bankProofUploading, setBankProofUploading] = useState(false);
 
   const [pwModal, setPwModal] = useState(false);
   const [pwStep, setPwStep] = useState("otp"); // "otp" | "reset"
@@ -286,7 +288,78 @@ export default function Settings() {
       ifscCode: bankData?.ifscCode || "",
       upiId: bankData?.upiId || "",
     });
+    setBankProof({ url: "", name: "" });
     setBankEditOpen(true);
+  };
+
+  // A changed account number is exactly the case a fraudster would exploit to
+  // redirect payouts — require proof (passbook/cancelled cheque) before the
+  // request can even be submitted for review.
+  const accountNumberChanged = bankForm.accountNumber !== (bankData?.accountNumber || "");
+
+  // Cloudinary rejects any single asset over 10MB at the account level —
+  // that's enforced after upload regardless of transport, so chunking the
+  // request doesn't help. Phone-camera photos of a passbook routinely blow
+  // past that, so shrink the image client-side rather than asking the owner
+  // to do it themselves.
+  const compressImage = (file, maxDim, quality) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          const scale = maxDim / Math.max(width, height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => {
+          if (!blob) return reject(new Error('Compression failed'));
+          resolve(new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' }));
+        }, 'image/jpeg', quality);
+      };
+      img.onerror = () => reject(new Error('Could not read image'));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error('Could not read file'));
+    reader.readAsDataURL(file);
+  });
+
+  const uploadBankProof = async (file) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error("Please upload an image (photo of the passbook or cheque), not a document file.");
+      return;
+    }
+    setBankProofUploading(true);
+    try {
+      let uploadFile = file;
+      const TEN_MB = 10 * 1024 * 1024;
+      if (file.type.startsWith('image/') && file.size > TEN_MB) {
+        uploadFile = await compressImage(file, 1920, 0.8);
+        if (uploadFile.size > TEN_MB) {
+          uploadFile = await compressImage(file, 1280, 0.6);
+        }
+      }
+      const data = new FormData();
+      data.append('image', uploadFile);
+      const res = await fetch(`${getApiBase()}/api/upload`, {
+        method: 'POST',
+        body: data,
+        headers: getAuthHeader()
+      });
+      const json = await res.json();
+      if (!res.ok || !json.url) throw new Error(json.error || 'Upload failed');
+      setBankProof({ url: json.url, name: file.name });
+    } catch (err) {
+      toast.error(err.message || "Failed to upload document.");
+    } finally {
+      setBankProofUploading(false);
+    }
   };
 
   // Bank changes never apply instantly — same submit-then-approve pipeline as
@@ -294,21 +367,30 @@ export default function Settings() {
   // the Owner record (and anywhere else it's read from) once accepted.
   const submitBankUpdate = async (e) => {
     e.preventDefault();
+    if (accountNumberChanged && !bankProof.url) {
+      toast.error("Please upload a passbook or cancelled cheque photo to verify the new account number.");
+      return;
+    }
     setBankSubmitting(true);
     try {
+      const requestedChanges = {
+        checkinAccountHolderName: bankForm.accountHolder,
+        checkinBankName: bankForm.bankName,
+        checkinBranchName: bankForm.branchName,
+        checkinBankAccountNumber: bankForm.accountNumber,
+        checkinIfscCode: bankForm.ifscCode,
+        checkinUpiId: bankForm.upiId,
+      };
+      if (bankProof.url) {
+        requestedChanges.checkinBankProof = bankProof.url;
+        requestedChanges.checkinBankProofName = bankProof.name;
+      }
       const data = await fetchJson("/api/owner-change-requests/submit", {
         method: "POST",
         body: JSON.stringify({
           ownerLoginId: owner.loginId,
           requestType: "bank_details",
-          requestedChanges: {
-            checkinAccountHolderName: bankForm.accountHolder,
-            checkinBankName: bankForm.bankName,
-            checkinBranchName: bankForm.branchName,
-            checkinBankAccountNumber: bankForm.accountNumber,
-            checkinIfscCode: bankForm.ifscCode,
-            checkinUpiId: bankForm.upiId,
-          }
+          requestedChanges
         })
       });
       if (data.success) {
@@ -645,6 +727,49 @@ export default function Settings() {
                   required
                 />
               </div>
+
+              {accountNumberChanged && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-4">
+                  <label className="text-[10px] font-black text-amber-700 uppercase tracking-tight mb-2 flex items-center gap-1.5">
+                    <Paperclip className="w-3 h-3" /> Bank Proof Required
+                  </label>
+                  <p className="text-[11px] text-amber-700/80 mb-3">
+                    You changed the account number — upload a passbook photo or cancelled cheque so Superadmin can verify it before approving.
+                  </p>
+
+                  {bankProof.url ? (
+                    <div className="flex items-center justify-between gap-3 bg-white border border-emerald-200 rounded-lg px-3 py-2.5">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <FileCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span className="text-[12px] font-semibold text-slate-700 truncate">{bankProof.name || "Document uploaded"}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setBankProof({ url: "", name: "" })}
+                        className="text-[11px] font-semibold text-rose-600 hover:underline shrink-0"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex items-center justify-center gap-2 h-11 border-2 border-dashed border-amber-300 rounded-lg text-[12px] font-semibold text-amber-700 cursor-pointer hover:bg-amber-100/50 transition-colors">
+                      {bankProofUploading ? (
+                        <><Loader2 className="w-4 h-4 animate-spin" /> Uploading...</>
+                      ) : (
+                        <><Upload className="w-4 h-4" /> Upload Passbook / Cheque</>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={bankProofUploading}
+                        onChange={e => uploadBankProof(e.target.files?.[0])}
+                      />
+                    </label>
+                  )}
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[10px] font-black text-slate-700 uppercase tracking-tight mb-2 block">IFSC Code</label>
@@ -669,7 +794,7 @@ export default function Settings() {
 
               <button
                 type="submit"
-                disabled={bankSubmitting}
+                disabled={bankSubmitting || bankProofUploading}
                 className="w-full h-11 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-60"
               >
                 {bankSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</> : "Submit for Approval"}
