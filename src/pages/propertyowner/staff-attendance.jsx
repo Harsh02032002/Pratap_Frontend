@@ -152,8 +152,15 @@ export default function StaffAttendancePage() {
         cachedAtt ? Promise.resolve(cachedAtt) : apiFetch(`/api/hr/attendance/${owner.loginId}`).then(r => r?.data || []),
       ]);
 
+      // Raw employee records carry the assigned property as `assignedProperties` (an array),
+      // not a singular `assignedProperty` — filtering on the wrong field silently matched
+      // nothing, showing 0 staff regardless of which property was active.
+      const staffPropertyId = (s) => {
+        const first = Array.isArray(s.assignedProperties) ? s.assignedProperties[0] : s.assignedProperty;
+        return first?._id || first?.id || first || "";
+      };
       const scopedStaff = propertyId
-        ? allStaff.filter(s => String(s.assignedProperty || s.assignedProperty?._id || s.assignedProperty?.id || "") === String(propertyId))
+        ? allStaff.filter(s => String(staffPropertyId(s)) === String(propertyId))
         : allStaff;
 
       const scopedAttendance = propertyId
