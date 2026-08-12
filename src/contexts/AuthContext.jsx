@@ -1,4 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import {
+  getScopedAuthToken,
+  getScopedStoredUser,
+  clearScopedSession,
+  isWebsiteRoute,
+  isAdminRole
+} from '../utils/authScope';
 
 const AuthContext = createContext();
 
@@ -21,31 +28,27 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token =
-      sessionStorage.getItem("token") ||
-      localStorage.getItem("token") ||
-      localStorage.getItem("website_token");
+    // Resolve the session that belongs to THIS route. On the public website the
+    // panel `token` is out of scope — reading it here is what made the website
+    // navbar show "Super Admin" for every visitor once a superadmin had signed
+    // in on the same browser.
+    const onWebsite = isWebsiteRoute();
+    const token = getScopedAuthToken();
+    const parsedUser = getScopedStoredUser();
 
-    const rawUserStr =
-      sessionStorage.getItem("user") ||
-      sessionStorage.getItem("staff_user") ||
-      localStorage.getItem("staff_user") ||
-      localStorage.getItem("user") ||
-      localStorage.getItem("website_user");
-
-    if (!token || !rawUserStr) {
+    if (!token || !parsedUser) {
       setLoading(false);
       return;
     }
 
-    let parsedUser = null;
-    try {
-      parsedUser = JSON.parse(rawUserStr);
-    } catch (_) {}
-
-    if (parsedUser) {
-      setUser(parsedUser);
+    // A panel identity is never a website identity, even if a stale website
+    // token somehow resolves to one.
+    if (onWebsite && isAdminRole(parsedUser.role)) {
+      setLoading(false);
+      return;
     }
+
+    setUser(parsedUser);
 
     fetch(`${getAuthApiUrl()}/api/auth/me`, {
       headers: { Authorization: `Bearer ${token}` }
@@ -55,6 +58,10 @@ export const AuthProvider = ({ children }) => {
         if (data) {
           const backendUser = (data?.user && typeof data.user === "object") ? data.user : data;
           if (backendUser && typeof backendUser === "object" && backendUser.role) {
+            if (onWebsite && isAdminRole(backendUser.role)) {
+              setUser(null);
+              return;
+            }
             setUser(backendUser);
           }
         }
@@ -76,12 +83,10 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     setUser(null);
-    try {
-      localStorage.removeItem('token');
-      sessionStorage.removeItem('token');
-      localStorage.removeItem('user');
-      sessionStorage.removeItem('user');
-    } catch (_) {}
+    // Clears the keys for the current context: website routes drop the website
+    // session, panel routes drop the panel session. Clearing only the panel
+    // keys used to leave a website visitor still signed in.
+    clearScopedSession();
   };
 
   const value = {

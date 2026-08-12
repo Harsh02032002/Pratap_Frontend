@@ -1,4 +1,5 @@
 import { fetchPropertiesLocal } from './mockApi';
+import { getScopedAuthToken } from './authScope';
 
 // ---------------------------------------------------------------------------
 // Module-level request cache
@@ -54,19 +55,19 @@ export const getApiBase = () => {
 };
 
 // Read JWT for the Authorization: Bearer header on every request.
-// sessionStorage is checked FIRST because it is isolated per browser tab: this
-// lets an owner (tab A) and one of their staff (tab B) stay signed in at the
-// same time in the same browser without the shared localStorage `token` from one
-// clobbering the other. Falls back to localStorage for flows that only persist
-// there. Cookie is also set by the backend for httpOnly support.
+//
+// The token is scoped to the current route (see utils/authScope.js). On panel
+// routes sessionStorage is checked FIRST because it is isolated per browser
+// tab: this lets an owner (tab A) and one of their staff (tab B) stay signed in
+// at the same time in the same browser without the shared localStorage `token`
+// from one clobbering the other.
+//
+// On website routes only the website token is used. It must NOT fall back to
+// the panel `token`, or a superadmin session left in shared localStorage would
+// authenticate every website visitor as that superadmin.
+// Cookie is also set by the backend for httpOnly support.
 export const getAuthHeader = () => {
-  const token =
-    sessionStorage.getItem("token") ||
-    localStorage.getItem("token") ||
-    sessionStorage.getItem("website_token") ||
-    localStorage.getItem("website_token") ||
-    sessionStorage.getItem("accessToken") ||
-    localStorage.getItem("accessToken");
+  const token = getScopedAuthToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 

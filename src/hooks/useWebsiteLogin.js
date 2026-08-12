@@ -37,27 +37,15 @@ export function useWebsiteLogin() {
         window.location.href = "/website/index";
         return;
       }
-      // Fallback session if backend API returns error or user exists in client state
-      const fallbackUser = {
-        id: "user_" + Date.now(),
-        name: trimmedEmail.split("@")[0] || "User",
-        email: trimmedEmail,
-        role: "tenant"
-      };
-      setWebsiteSession(fallbackUser, "demo_token_" + Date.now());
-      window.location.href = "/website/index";
-      return;
+
+      // A failed login must fail. This used to fabricate a session with a fake
+      // "demo_token_<timestamp>" whenever the backend rejected the credentials,
+      // which meant ANY email with ANY password appeared to sign in — and every
+      // authenticated request then 401'd on the bogus token, so pages like
+      // /website/chat silently rendered empty.
+      setError(data.message || "Invalid email or password.");
     } catch {
-      // Fallback session on network error or offline backend
-      const fallbackUser = {
-        id: "user_" + Date.now(),
-        name: trimmedEmail.split("@")[0] || "User",
-        email: trimmedEmail,
-        role: "tenant"
-      };
-      setWebsiteSession(fallbackUser, "demo_token_" + Date.now());
-      window.location.href = "/website/index";
-      return;
+      setError("Could not reach the server. Please try again.");
     } finally {
       setLoading(false);
     }
