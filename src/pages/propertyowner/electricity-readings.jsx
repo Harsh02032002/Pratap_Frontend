@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { X, Plus, Zap, RotateCw, Calendar, Edit2, Trash2 } from "lucide-react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession, getActiveOwnerPropertyId, fetchRoomsByPropertyId, fetchOwnerProperties } from "../../utils/propertyowner";
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, getActiveOwnerPropertyId } from "../../utils/propertyowner";
 import { getApiBase, fetchJson } from "../../utils/api";
 import { toast } from "react-hot-toast";
 
@@ -30,6 +30,8 @@ export default function ElectricityReadings() {
     loadRooms(owner.loginId);
   }, []);
 
+  // Rooms + their reading history/latest come from the electricity-specific endpoint
+  // (not the generic /api/rooms/property listing, which has no knowledge of meter readings).
   const loadRooms = async (loginId) => {
     setLoading(true);
     try {
@@ -37,34 +39,21 @@ export default function ElectricityReadings() {
       if (!propertyId) {
         setRooms([]);
         toast.error("Select an active property to view electricity readings");
-        return;
+        return [];
       }
 
-      const [propList, data] = await Promise.all([
-        fetchOwnerProperties(loginId, true).catch(() => []),
-        fetchRoomsByPropertyId(propertyId, 1, 100),
-      ]);
-      const prop = (Array.isArray(propList) ? propList : []).find(p =>
-        String(p._id || p.id || p.propertyId || "") === String(propertyId)
-      ) || null;
-      setActiveProperty(prop);
-
-      const activeTitle = String(prop?.title || prop?.name || prop?.propertyName || "").trim().toLowerCase();
-      if (data.success || Array.isArray(data.rooms)) {
-        const normalized = (data.rooms || []).filter(r => {
-          const roomPropId = String(r.propertyId || r.property?._id || r.property || "").trim();
-          const roomPropTitle = String(r.propertyTitle || r.property?.title || "").trim().toLowerCase();
-          return (
-            roomPropId === String(propertyId) ||
-            (activeTitle && roomPropTitle === activeTitle)
-          );
-        });
-        setRooms(normalized);
+      const data = await fetchJson(`/api/electricity/owner/${encodeURIComponent(loginId)}?propertyId=${encodeURIComponent(propertyId)}`);
+      if (data.success && Array.isArray(data.data)) {
+        setRooms(data.data);
+        setActiveProperty(data.data[0] ? { title: data.data[0].propertyTitle } : null);
+        return data.data;
       } else {
         toast.error("Failed to load meter data");
+        return [];
       }
     } catch (e) {
       toast.error("Error loading meter data");
+      return [];
     } finally {
       setLoading(false);
     }
@@ -97,17 +86,12 @@ export default function ElectricityReadings() {
       if (data.success) {
         toast.success("Reading saved successfully!");
         setModalOpen(false);
-        // Refresh data
-        loadRooms(owner.loginId);
 
-        // Update selected room explicitly so UI refreshes without re-selecting
+        // Refresh and re-select so the just-saved reading shows immediately
+        const updatedRooms = await loadRooms(owner.loginId);
         if (selectedRoom) {
-          const propertyId = getActiveOwnerPropertyId();
-          const updatedRooms = await fetchRoomsByPropertyId(propertyId, 1, 100);
-          if (updatedRooms.rooms) {
-            const updatedRoom = updatedRooms.rooms.find(r => String(r.roomNo || r.number || r.title) === String(selectedRoom.roomNo));
-            if (updatedRoom) setSelectedRoom(updatedRoom);
-          }
+          const updatedRoom = updatedRooms.find(r => String(r.roomNo) === String(selectedRoom.roomNo));
+          if (updatedRoom) setSelectedRoom(updatedRoom);
         }
       } else {
         toast.error(data.message || "Failed to save reading");
@@ -136,15 +120,11 @@ export default function ElectricityReadings() {
       });
       if (data.success) {
         toast.success("Reading deleted successfully!");
-        loadRooms(owner.loginId);
 
+        const updatedRooms = await loadRooms(owner.loginId);
         if (selectedRoom) {
-          const propertyId = getActiveOwnerPropertyId();
-          const updatedRooms = await fetchRoomsByPropertyId(propertyId, 1, 100);
-          if (updatedRooms.rooms) {
-            const updatedRoom = updatedRooms.rooms.find(r => String(r.roomNo || r.number || r.title) === String(selectedRoom.roomNo));
-            if (updatedRoom) setSelectedRoom(updatedRoom);
-          }
+          const updatedRoom = updatedRooms.find(r => String(r.roomNo) === String(selectedRoom.roomNo));
+          if (updatedRoom) setSelectedRoom(updatedRoom);
         }
       } else {
         toast.error(data.message || "Failed to delete reading");
@@ -233,7 +213,7 @@ export default function ElectricityReadings() {
                 {selectedRoom?.roomId === room.roomId && (
                   <div className="mt-4 pt-4 border-t border-slate-100">
                     <h4 className="text-[12px] font-bold text-slate-800 mb-3">Reading History</h4>
-                    {!selectedRoom.history || selectedRoom.history.length === 0 ? (
+                    {!selectedRoom?.history || selectedRoom.history.length === 0 ? (
                       <p className="text-[11px] text-slate-500 mb-3 text-center py-2 bg-slate-50 rounded-lg">No readings recorded yet</p>
                     ) : (
                       <div className="space-y-2 mb-3 max-h-[250px] overflow-y-auto">

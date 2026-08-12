@@ -2,39 +2,11 @@ import React, { useEffect, useMemo, useState } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
 import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerTenants } from "../../utils/propertyowner";
 import { fetchJson } from "../../utils/api";
-import { ShieldCheck, Search, AlertTriangle, CheckCircle2, BadgeCheck, CreditCard, Download, Printer } from "lucide-react";
+import { fetchPayments } from "../../utils/rentCollectionApi";
+import { ShieldCheck, Search, AlertTriangle, CheckCircle2, Download, Printer, Home } from "lucide-react";
 
 const fmt = (n) => "₹" + (Number(n || 0)).toLocaleString("en-IN");
 const OVERRIDES_KEY = "roomhy_security_deposit_overrides";
-
-function hasCompletedKyc(kycStatus) {
-  const value = String(kycStatus || "").toLowerCase();
-  return ["submitted", "verified", "approved", "completed"].includes(value);
-}
-
-function depositStatus(tenant) {
-  const required = Number(tenant.required || 0);
-  const paid = Number(tenant.paid || 0);
-  const kycComplete = hasCompletedKyc(tenant.kycStatus);
-  const agreementSigned = Boolean(
-    tenant.agreementSigned ||
-    tenant.agreementStatus === "signed" ||
-    tenant.digitalCheckin?.agreement?.status === "signed"
-  );
-
-  if (!required) return { label: "N/A", tone: "muted" };
-  if (kycComplete && agreementSigned && paid >= required) return { label: "Confirmed", tone: "success" };
-  if (paid >= required) return { label: "Complete", tone: "success" };
-  if (paid > 0) return { label: "Partial", tone: "warning" };
-  return { label: "None", tone: "danger" };
-}
-
-const toneClasses = {
-  success: "bg-emerald-50 text-emerald-600 border-emerald-100",
-  warning: "bg-amber-50 text-amber-600 border-amber-100",
-  danger: "bg-rose-50 text-rose-600 border-rose-100",
-  muted: "bg-muted text-muted-foreground border-border",
-};
 
 const makeReceiptId = (tenantId) => {
   const stamp = new Date().toISOString().replace(/[-:.TZ]/g, "").slice(0, 14);
@@ -235,11 +207,31 @@ export default function SecurityDepositsPage() {
     } catch (_) {}
   }, [depositOverrides]);
 
+  const [moveInCharges, setMoveInCharges] = useState({});
+
   useEffect(() => {
     fetchOwnerTenants(owner.loginId)
       .then(data => setTenants(Array.isArray(data) ? data : []))
       .catch(() => setTenants([]))
       .finally(() => setLoading(false));
+  }, [owner.loginId]);
+
+  // Move-in charge is a Rent/RentInvoice-level field (paid once at onboarding), separate
+  // from the security-deposit tracking above — sourced from the payments list so this page
+  // can show it without duplicating any deposit logic.
+  useEffect(() => {
+    fetchPayments(owner.loginId, 300)
+      .then(data => {
+        const map = {};
+        (data?.payments || []).forEach(p => {
+          const id = String(p.tenantId || "");
+          if (id && p.advanceChargeAmount > 0 && !map[id]) {
+            map[id] = { amount: p.advanceChargeAmount, paymentDate: p.paymentDate };
+          }
+        });
+        setMoveInCharges(map);
+      })
+      .catch(() => setMoveInCharges({}));
   }, [owner.loginId]);
 
   useEffect(() => {
@@ -272,14 +264,6 @@ export default function SecurityDepositsPage() {
         const paid = Number(merged.securityDepositPaid || 0);
         const balance = Number(merged.securityDepositBalance ?? Math.max(0, required - paid));
         const stage = required === 0 ? "none" : paid <= 0 ? "none" : paid >= required ? "complete" : "partial";
-        const status = depositStatus({
-          required,
-          paid,
-          kycStatus: merged.kycStatus,
-          agreementSigned: merged.agreementSigned,
-          agreementStatus: merged.agreementStatus,
-          digitalCheckin: merged.digitalCheckin
-        });
 
         return {
           ...merged,
@@ -290,13 +274,13 @@ export default function SecurityDepositsPage() {
           paid,
           balance,
           stage,
-          status,
           joinDate: merged.joinDate || merged.checkInDate || merged.createdAt || "",
           phone: merged.phone || "",
-          email: merged.email || ""
+          email: merged.email || "",
+          moveInCharge: moveInCharges[String(merged._id || merged.id || "")] || null
         };
       });
-  }, [tenants, depositOverrides]);
+  }, [tenants, depositOverrides, moveInCharges]);
 
   const filtered = useMemo(() => {
     const q = debouncedSearch.trim().toLowerCase();
@@ -387,6 +371,27 @@ export default function SecurityDepositsPage() {
     } catch (err) {
       console.warn("Could not persist deposit update, keeping local confirmation:", err?.message);
     }
+  };
+
+  const viewReceipt = (d) => {
+    setReceipt({
+      receiptId: makeReceiptId(d._id),
+      tenantId: d._id,
+      tenantName: d.name,
+      roomNo: d.roomNo,
+      propertyName: d.propertyTitle || d.property?.title || "Property",
+      required: d.required,
+      previousPaid: 0,
+      paidNow: d.paid,
+      addedAmount: d.paid,
+      balance: d.balance,
+      paymentMode: "full",
+      stage: d.stage,
+      kycStatus: d.kycStatus,
+      agreementSigned: d.agreementSigned,
+      issuedAt: new Date().toISOString()
+    });
+    setReceiptModalOpen(true);
   };
 
   const openReceiptWindow = (receiptData) => {
@@ -504,7 +509,6 @@ export default function SecurityDepositsPage() {
                   </td>
                 </tr>
               ) : filtered.map((d) => {
-                const st = d.status;
                 const paidPct = d.required > 0 ? Math.min(100, Math.round((d.paid / d.required) * 100)) : 0;
                 const canRecordPayment = d.required > 0;
                 return (
@@ -516,8 +520,8 @@ export default function SecurityDepositsPage() {
                     <td className="px-6 py-4 font-bold text-foreground">Room {d.roomNo}</td>
                     <td className="px-6 py-4 text-muted-foreground">{d.required > 0 ? fmt(d.required) : <span className="italic text-muted-foreground/60">Not set</span>}</td>
                     <td className="px-6 py-4">
-                      <div className="font-bold text-emerald-600">{fmt(d.paid)}</div>
-                      <div className="text-[11px] text-muted-foreground">{paidPct}% of deposit</div>
+                      <div className="font-bold text-emerald-600">{fmt(d.moveInCharge ? d.moveInCharge.amount : d.paid)}</div>
+                      <div className="text-[11px] text-muted-foreground">{d.moveInCharge ? "Move-in charge paid" : `${paidPct}% of deposit`}</div>
                     </td>
                     <td className="px-6 py-4 font-semibold text-rose-600">{d.balance > 0 ? fmt(d.balance) : <span className="text-emerald-600">—</span>}</td>
                     <td className="px-6 py-4 text-muted-foreground">
@@ -525,30 +529,37 @@ export default function SecurityDepositsPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col gap-1.5">
-                        <span className={`inline-flex w-fit px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${toneClasses[st.tone]}`}>
-                          {st.label}
+                        <span className={`inline-flex w-fit px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${d.required === 0 ? "bg-muted text-muted-foreground border-border" : d.balance > 0 ? "bg-rose-50 text-rose-600 border-rose-100" : "bg-emerald-50 text-emerald-600 border-emerald-100"}`}>
+                          {d.required === 0 ? "N/A" : d.balance > 0 ? "Pending" : "Paid"}
                         </span>
-                        <div className="flex flex-wrap gap-1.5 text-[10.5px]">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border ${d.kycStatus ? "bg-blue-50 text-blue-600 border-blue-100" : "bg-muted text-muted-foreground border-border"}`}>
-                            <BadgeCheck className="size-3" /> {d.kycStatus || "KYC pending"}
-                          </span>
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border ${d.agreementSigned ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-muted text-muted-foreground border-border"}`}>
-                            <CheckCircle2 className="size-3" /> {d.agreementSigned ? "Agreement signed" : "Agreement pending"}
-                          </span>
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border ${d.stage === "complete" ? "bg-emerald-50 text-emerald-600 border-emerald-100" : d.stage === "partial" ? "bg-amber-50 text-amber-600 border-amber-100" : "bg-rose-50 text-rose-600 border-rose-100"}`}>
-                            <CreditCard className="size-3" /> {d.stage === "complete" ? "Deposit complete" : d.stage === "partial" ? "Deposit partial" : "Deposit none"}
-                          </span>
-                        </div>
+                        <span className={`inline-flex items-center gap-1 w-fit px-2 py-0.5 rounded-full border text-[10.5px] ${d.moveInCharge ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-muted text-muted-foreground border-border"}`}>
+                          <Home className="size-3" /> {d.moveInCharge ? `Move-in ₹${d.moveInCharge.amount.toLocaleString("en-IN")} paid` : "Move-in not paid"}
+                        </span>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button
-                        onClick={() => openPaymentModal(d)}
-                        disabled={!canRecordPayment}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-foreground text-background hover:opacity-90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        Mark Paid / Receipt
-                      </button>
+                      {!canRecordPayment ? (
+                        <button
+                          disabled
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-foreground text-background opacity-40 cursor-not-allowed"
+                        >
+                          Pending
+                        </button>
+                      ) : d.balance > 0 ? (
+                        <button
+                          onClick={() => openPaymentModal(d)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-rose-600 text-white hover:opacity-90 transition-colors"
+                        >
+                          Pending
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => viewReceipt(d)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-emerald-600 text-white hover:opacity-90 transition-colors"
+                        >
+                          Receipt
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );
