@@ -22,10 +22,10 @@ export const queryKeys = {
     // The logged-in staff member's own attendance for a month.
     mine: (staffLoginId, month, year) => ["attendance", "mine", staffLoginId, month, year],
     // Tenant attendance for an owner on a given date.
-    tenants: (ownerLoginId, date) => ["attendance", "tenants", ownerLoginId, date],
+    tenants: (ownerLoginId, date, propertyId = "") => ["attendance", "tenants", ownerLoginId, date, propertyId],
     // One tenant's attendance history for a month.
-    tenantHistory: (ownerLoginId, tenantId, month, year) => [
-      "attendance", "tenantHistory", ownerLoginId, tenantId, month, year,
+    tenantHistory: (ownerLoginId, tenantId, month, year, propertyId = "") => [
+      "attendance", "tenantHistory", ownerLoginId, tenantId, month, year, propertyId,
     ],
   },
 
@@ -39,7 +39,7 @@ export const queryKeys = {
   visitors: {
     all: ["visitors"],
     byOwner: (ownerLoginId, params = {}) => ["visitors", "owner", ownerLoginId, params],
-    passes: (ownerLoginId) => ["visitors", "passes", ownerLoginId],
+    passes: (ownerLoginId, params = {}) => ["visitors", "passes", ownerLoginId, params],
   },
 
   tenants: {

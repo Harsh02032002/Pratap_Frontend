@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { X, Plus, Zap, RotateCw, Calendar, Edit2, Trash2 } from "lucide-react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession } from "../../utils/propertyowner";
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, getActiveOwnerPropertyId, fetchRoomsByPropertyId, fetchOwnerProperties } from "../../utils/propertyowner";
 import { getApiBase, fetchJson } from "../../utils/api";
 import { toast } from "react-hot-toast";
 
@@ -17,6 +17,7 @@ export default function ElectricityReadings() {
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedRoom, setSelectedRoom] = useState(null);
+  const [activeProperty, setActiveProperty] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [readingForm, setReadingForm] = useState({
     billingMonth: new Date().toISOString().slice(0, 7),
@@ -32,9 +33,33 @@ export default function ElectricityReadings() {
   const loadRooms = async (loginId) => {
     setLoading(true);
     try {
-      const data = await fetchJson(`/api/electricity/owner/${loginId}`);
-      if (data.success) {
-        setRooms(data.data);
+      const propertyId = getActiveOwnerPropertyId();
+      if (!propertyId) {
+        setRooms([]);
+        toast.error("Select an active property to view electricity readings");
+        return;
+      }
+
+      const [propList, data] = await Promise.all([
+        fetchOwnerProperties(loginId, true).catch(() => []),
+        fetchRoomsByPropertyId(propertyId, 1, 100),
+      ]);
+      const prop = (Array.isArray(propList) ? propList : []).find(p =>
+        String(p._id || p.id || p.propertyId || "") === String(propertyId)
+      ) || null;
+      setActiveProperty(prop);
+
+      const activeTitle = String(prop?.title || prop?.name || prop?.propertyName || "").trim().toLowerCase();
+      if (data.success || Array.isArray(data.rooms)) {
+        const normalized = (data.rooms || []).filter(r => {
+          const roomPropId = String(r.propertyId || r.property?._id || r.property || "").trim();
+          const roomPropTitle = String(r.propertyTitle || r.property?.title || "").trim().toLowerCase();
+          return (
+            roomPropId === String(propertyId) ||
+            (activeTitle && roomPropTitle === activeTitle)
+          );
+        });
+        setRooms(normalized);
       } else {
         toast.error("Failed to load meter data");
       }
@@ -77,9 +102,10 @@ export default function ElectricityReadings() {
 
         // Update selected room explicitly so UI refreshes without re-selecting
         if (selectedRoom) {
-          const updatedRooms = await fetchJson(`/api/electricity/owner/${owner.loginId}`);
-          if (updatedRooms.success) {
-            const updatedRoom = updatedRooms.data.find(r => r.roomId === selectedRoom.roomId);
+          const propertyId = getActiveOwnerPropertyId();
+          const updatedRooms = await fetchRoomsByPropertyId(propertyId, 1, 100);
+          if (updatedRooms.rooms) {
+            const updatedRoom = updatedRooms.rooms.find(r => String(r.roomNo || r.number || r.title) === String(selectedRoom.roomNo));
             if (updatedRoom) setSelectedRoom(updatedRoom);
           }
         }
@@ -113,9 +139,10 @@ export default function ElectricityReadings() {
         loadRooms(owner.loginId);
 
         if (selectedRoom) {
-          const updatedRooms = await fetchJson(`/api/electricity/owner/${owner.loginId}`);
-          if (updatedRooms.success) {
-            const updatedRoom = updatedRooms.data.find(r => r.roomId === selectedRoom.roomId);
+          const propertyId = getActiveOwnerPropertyId();
+          const updatedRooms = await fetchRoomsByPropertyId(propertyId, 1, 100);
+          if (updatedRooms.rooms) {
+            const updatedRoom = updatedRooms.rooms.find(r => String(r.roomNo || r.number || r.title) === String(selectedRoom.roomNo));
             if (updatedRoom) setSelectedRoom(updatedRoom);
           }
         }
@@ -183,7 +210,7 @@ export default function ElectricityReadings() {
                 <div className="flex items-center justify-between mb-2">
                   <div>
                     <p className="font-black text-slate-900 text-[15px]">Room {room.roomNo || "—"}</p>
-                    <p className="text-[11px] text-slate-500">{room.propertyTitle}</p>
+                    <p className="text-[11px] text-slate-500">{activeProperty?.title || room.propertyTitle}</p>
                   </div>
                   <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
                     <Zap className="w-5 h-5 text-amber-500" />
@@ -252,7 +279,7 @@ export default function ElectricityReadings() {
           </div>
 
           {/* Desktop 2-col Grid - hidden on mobile */}
-          <div className="hidden md:grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="hidden md:grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left: Room List */}
             <div className="rounded-2xl border border-border bg-card p-5 shadow-soft h-fit">
               <h2 className="text-[16px] font-semibold text-foreground mb-4">Rooms</h2>
@@ -271,7 +298,7 @@ export default function ElectricityReadings() {
                           ? "bg-primary text-primary-foreground"
                           : "bg-muted text-muted-foreground hover:bg-muted/80")}>
                       <div>Room {room.roomNo || "-"}</div>
-                      <div className="text-[11px] opacity-75">{room.propertyTitle}</div>
+                      <div className="text-[11px] opacity-75">{activeProperty?.title || room.propertyTitle}</div>
                     </button>
                   ))
                 )}

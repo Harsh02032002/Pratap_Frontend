@@ -6,19 +6,7 @@ import {
   Clock, IndianRupee, Phone, Mail, Shield, Briefcase, Calendar, MapPin, User, Plus, X
 } from "lucide-react";
 import { apiFetch } from "../../utils/api";
-// All Owner Panel modules — same as sidebar
-const OWNER_PANEL_MODULES = [
-  { key: "Properties",              label: "Properties" },
-  { key: "Tenants",                 label: "Tenants" },
-  { key: "Leads & Bookings",        label: "Leads & Bookings" },
-  { key: "Rent & Payments",         label: "Rent & Payments" },
-  { key: "Complaints & Maintenance",label: "Complaints & Maintenance" },
-  { key: "Staff Management",        label: "Staff Management" },
-  { key: "Attendance & Entry",      label: "Attendance & Entry" },
-  { key: "Communication",           label: "Communication" },
-  { key: "Reports",                 label: "Reports" },
-  { key: "Settings",                label: "Settings" },
-];
+import { STAFF_MODULE_GROUPS, ALL_STAFF_PERMISSION_KEYS } from "../../utils/staffAccess";
 
 // Sub-module restrictions — exactly matching sidebar sub-items, grouped by parent module
 const OWNER_SUBMODULE_GROUPS = [
@@ -298,8 +286,8 @@ export default function AddStaffPage() {
           joiningDate: formData.joiningDate,
           address: formData.address,
           emergencyContact: formData.emergencyContact,
-          assignedProperty: formData.assignedProperty,
-          assignedPropertyName: formData.assignedPropertyName,
+          // Backend/Employee schema stores this as a plural array (assignedProperties).
+          assignedProperties: formData.assignedProperty ? [formData.assignedProperty] : [],
         }),
       });
       if (!empData?.data) throw new Error(empData?.error || "Failed to create staff");
@@ -340,7 +328,7 @@ export default function AddStaffPage() {
         name: "", role: "Warden", customRole: "", phone: "", email: "", salary: "",
         shift: SHIFTS[1].label, joiningDate: new Date().toISOString().split("T")[0],
         address: "", emergencyContact: "", assignedProperty: "", assignedPropertyName: "",
-        status: "Active", photoDataUrl: "", permissions: DEFAULT_PERMISSIONS,
+        status: "Active", photoDataUrl: "", permissions: [],
       });
       // Refresh next ID
       try {
@@ -596,34 +584,38 @@ export default function AddStaffPage() {
                 </p>
               </div>
 
-              {/* Owner Panel Module Selection */}
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Allow Access To</p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {OWNER_PANEL_MODULES.map(mod => {
-                    const active = formData.permissions.includes(mod.key);
-                    const Icon = mod.icon;
-                    return (
-                      <button
-                        key={mod.key}
-                        type="button"
-                        onClick={() => togglePermission(mod.key)}
-                        className={`flex items-center gap-2.5 p-3 rounded-xl border text-left transition-all ${active
-                          ? "bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-600/20"
-                          : "border-slate-200 hover:border-blue-300 hover:bg-blue-50 text-slate-600"}`}
-                      >
-                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${active ? "border-white" : "border-slate-300"}`}>
-                          {active && <CheckCircle2 size={10} className="text-white" />}
-                        </div>
-                        {Icon && <Icon size={14} className={active ? "text-white" : "text-slate-400"} />}
-                        <span className="text-xs font-bold">{mod.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-                <div className="flex gap-2 mt-3">
+              {/* Module Selection — Staff Panel + Owner Panel, same grouping/style as the staff profile's permission editor */}
+              <div className="space-y-5">
+                {Object.entries(STAFF_MODULE_GROUPS).map(([groupName, mods]) => (
+                  <div key={groupName}>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">{groupName}</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {mods.filter(mod => mod.key !== "Dashboard").map(mod => {
+                        const active = formData.permissions.includes(mod.key);
+                        const Icon = mod.icon;
+                        return (
+                          <button
+                            key={mod.key}
+                            type="button"
+                            onClick={() => togglePermission(mod.key)}
+                            className={`flex items-center gap-2.5 p-3 rounded-xl border text-left transition-all ${active
+                              ? "bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-600/20"
+                              : "border-slate-200 hover:border-blue-300 hover:bg-blue-50 text-slate-600"}`}
+                          >
+                            <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${active ? "border-white" : "border-slate-300"}`}>
+                              {active && <CheckCircle2 size={10} className="text-white" />}
+                            </div>
+                            {Icon && <Icon size={14} className={active ? "text-white" : "text-slate-400"} />}
+                            <span className="text-xs font-bold">{mod.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+                <div className="flex gap-2 pt-1">
                   <button type="button"
-                    onClick={() => setFormData(f => ({ ...f, permissions: OWNER_PANEL_MODULES.map(m => m.key) }))}
+                    onClick={() => setFormData(f => ({ ...f, permissions: [...ALL_STAFF_PERMISSION_KEYS] }))}
                     className="px-4 py-1.5 text-xs font-black text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-all">
                     Select All
                   </button>

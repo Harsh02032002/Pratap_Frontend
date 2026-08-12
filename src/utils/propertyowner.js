@@ -169,6 +169,16 @@ export const filterByActiveProperty = (list, isProperty = false) => {
   return list;
 };
 
+export const getActiveOwnerPropertyId = () => {
+  if (typeof window === "undefined") return "";
+  try {
+    const activeContext = localStorage.getItem("owner_active_property");
+    return activeContext && activeContext !== "all" ? String(activeContext) : "";
+  } catch {
+    return "";
+  }
+};
+
 export const getOwnerRuntimeSession = () => {
   const session = getOwnerSession();
   if (session?.loginId) return session;

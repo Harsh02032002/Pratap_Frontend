@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession } from "../../utils/propertyowner";
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, getActiveOwnerPropertyId } from "../../utils/propertyowner";
 import { 
   UserPlus, Search, LogOut, CheckCircle2, 
   Clock, ShieldAlert, Phone
@@ -31,14 +31,19 @@ export default function VisitorEntryPage() {
   }, [owner.loginId]);
 
   const fetchVisitors = async () => {
-    const CACHE_KEY = `visitors:active:${owner.loginId}`;
+    const propertyId = getActiveOwnerPropertyId();
+    const CACHE_KEY = `visitors:active:${owner.loginId}:${propertyId || "all"}`;
     const cached = cacheGet(CACHE_KEY);
     if (cached) { setVisitors(cached); setLoading(false); return; }
     try {
       setLoading(true);
-      const data = await apiFetch(`/api/visitors/owner/${owner.loginId}?status=Inside`);
+      const qs = new URLSearchParams({ status: "Inside" });
+      if (propertyId) qs.set("propertyId", propertyId);
+      const data = await apiFetch(`/api/visitors/owner/${owner.loginId}?${qs.toString()}`);
       if (data.success && data.visitors) {
-        const mapped = data.visitors.map(v => ({
+        const mapped = data.visitors
+          .filter(v => !propertyId || String(v.propertyId || v.property_id || "") === String(propertyId))
+          .map(v => ({
           id: v._id,
           name: v.name,
           phone: v.phone,
@@ -62,11 +67,13 @@ export default function VisitorEntryPage() {
     if (!vName || !vPhone || !vHost || !vRoom) return;
     
     try {
+      const propertyId = getActiveOwnerPropertyId();
       const data = await apiFetch('/api/visitors', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ownerLoginId: owner.loginId,
+          propertyId,
           name: vName,
           phone: vPhone,
           hostName: vHost,
@@ -76,7 +83,9 @@ export default function VisitorEntryPage() {
         })
       });
       if (data.success) {
-        cacheInvalidate(`visitors:`);
+        const propertyId = getActiveOwnerPropertyId();
+        cacheInvalidate(`visitors:active:${owner.loginId}:${propertyId || "all"}`);
+        cacheInvalidate(`visitors:passes:${owner.loginId}:${propertyId || "all"}`);
         fetchVisitors();
         setVName("");
         setVPhone("");

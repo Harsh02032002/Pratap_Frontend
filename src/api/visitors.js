@@ -2,8 +2,11 @@
 import { apiFetch } from "../utils/api";
 
 /** Visitor log for an owner (parentLoginId for staff). Returns an array. */
-export async function getOwnerVisitors(ownerLoginId) {
-  const data = await apiFetch(`/api/visitors/owner/${ownerLoginId}`);
+export async function getOwnerVisitors(ownerLoginId, { propertyId } = {}) {
+  const qs = new URLSearchParams();
+  if (propertyId) qs.set("propertyId", propertyId);
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  const data = await apiFetch(`/api/visitors/owner/${ownerLoginId}${suffix}`);
   return data?.visitors || [];
 }
 

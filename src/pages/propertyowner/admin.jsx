@@ -44,6 +44,7 @@ import {
 } from "../../utils/propertyowner";
 import { fetchRentDashboard } from "../../utils/rentCollectionApi";
 import { cacheGet, cacheSet } from "../../utils/cache";
+import { STAFF_HOME_PATH } from "../../utils/staffAccess";
 
 const _chartCache = new Map(); // loginId → { thisWeek, growth, timestamp }
 const CHART_CACHE_TTL = 7 * 60 * 1000; // 7 minutes
@@ -299,6 +300,14 @@ export default function Admin() {
     const session = getOwnerRuntimeSession();
     if (!session?.loginId) {
       window.location.href = "/propertyowner/ownerlogin";
+      return;
+    }
+    // The real Owner Dashboard is never accessible to staff, even proxying for
+    // their parent owner — a page-level check independent of the router guard
+    // (StaffRouteGuard/canAccessOwnerPathAsStaff) so this can't be bypassed by
+    // a race on that guard's own effect, or reached before it runs.
+    if (session.isStaffProxy) {
+      window.location.href = STAFF_HOME_PATH;
       return;
     }
     setOwner(session);

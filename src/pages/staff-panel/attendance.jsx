@@ -11,6 +11,7 @@ import {
   useTenantAttendance, useTenantHistory, useMarkTenantAttendance,
 } from "../../hooks/useAttendance";
 import { useOwnerTenants } from "../../hooks/useTenants";
+import { getActiveOwnerPropertyId } from "../../utils/propertyowner";
 
 const STATUS_STYLES = {
   Present: { bg: "bg-emerald-100 text-emerald-700 border-emerald-200" },
@@ -304,6 +305,7 @@ export default function StaffAttendancePage() {
   // Only wardens (or staff explicitly granted "Tenant Attendance" by the owner)
   // may mark tenant attendance. Everyone else can only mark their own.
   const canTenantAttendance = canManageTenantAttendance(staff);
+  const activePropertyId = getActiveOwnerPropertyId();
 
   // Tab: "mine" | "tenants"
   const [tab, setTab] = useState("mine");
@@ -370,8 +372,10 @@ export default function StaffAttendancePage() {
   const tenantsEnabled = tab === "tenants" && canTenantAttendance;
   const tenantsQuery = useOwnerTenants(parentLoginId, { enabled: tenantsEnabled });
   const tenants = useMemo(
-    () => (tenantsQuery.data || []).filter(t => !t.isDeleted && t.status !== 'inactive'),
-    [tenantsQuery.data]
+    () => (tenantsQuery.data || [])
+      .filter(t => !t.isDeleted && t.status !== 'inactive')
+      .filter(t => !activePropertyId || String(t.property?._id || t.property || t.propertyId || t.property_id || "") === String(activePropertyId)),
+    [tenantsQuery.data, activePropertyId]
   );
   const loadingTenants = tenantsQuery.isLoading && tenantsEnabled;
 

@@ -85,7 +85,9 @@ export default function Ownerlogin() {
     try {
       const data = await fetchJson("/api/employees/login", {
         method: "POST",
-        body: JSON.stringify({ loginId: loginId.trim(), password })
+        // Staff IDs are always issued in uppercase (STAFF0001); normalize here so
+        // a staff member typing it in lowercase isn't wrongly told it's invalid.
+        body: JSON.stringify({ loginId: loginId.trim().toUpperCase(), password })
       });
       const emp = data.data || {};
       if (data.requirePasswordReset || emp.requirePasswordReset) {

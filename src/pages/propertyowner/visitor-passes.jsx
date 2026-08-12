@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession } from "../../utils/propertyowner";
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, getActiveOwnerPropertyId } from "../../utils/propertyowner";
 import {
   QrCode, Search, CheckCircle2, XCircle, Clock, User, Phone, Calendar
 } from "lucide-react";
@@ -28,9 +28,13 @@ export default function VisitorPassesPage() {
   const fetchPasses = async () => {
     try {
       setLoading(true);
-      const data = await apiFetch(`/api/visitors/owner/${owner.loginId}?limit=100`);
+      const propertyId = getActiveOwnerPropertyId();
+      const qs = new URLSearchParams({ limit: "100" });
+      if (propertyId) qs.set("propertyId", propertyId);
+      const data = await apiFetch(`/api/visitors/owner/${owner.loginId}?${qs.toString()}`);
       if (data.success && data.visitors) {
-        setPasses(data.visitors);
+        const filtered = data.visitors.filter(v => !propertyId || String(v.propertyId || v.property_id || "") === String(propertyId));
+        setPasses(filtered);
       }
     } catch (err) {
       console.error(err);

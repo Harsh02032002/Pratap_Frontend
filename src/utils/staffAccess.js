@@ -140,6 +140,11 @@ export function canAccessOwnerPathAsStaff(session, pathname) {
     return h && h !== "#" && (path === h || path.startsWith(`${h}/`));
   };
 
+  // Hard block, independent of OWNER_SECTION_PERMISSIONS: the real Owner
+  // Dashboard is never grantable to staff, full stop — see the note above
+  // OWNER_SECTION_PERMISSIONS for why this can't just rely on that map.
+  if (matches("/propertyowner/admin")) return false;
+
   const restrictedList = Array.isArray(session?.restrictedModules) ? session.restrictedModules : [];
 
   for (const m of STAFF_SELF_SERVICE_NAV) {
@@ -172,6 +177,13 @@ export function canAccessOwnerPathAsStaff(session, pathname) {
 // All access flows through these helpers — this module owns the session.
 // ----------------------------------------------------------------------------
 export function normalizeStaffRecord(emp = {}) {
+  // Employee schema stores this as a plural array (assignedProperties: ObjectId[]),
+  // populated by the backend to [{ _id, title, ... }] on login/list. A staff member
+  // is scoped to a single property today, so we key off the first entry.
+  const assignedProps = Array.isArray(emp.assignedProperties) ? emp.assignedProperties : [];
+  const firstProp = assignedProps[0];
+  const firstPropId = firstProp && typeof firstProp === "object" ? (firstProp._id || firstProp.id) : firstProp;
+  const firstPropName = firstProp && typeof firstProp === "object" ? (firstProp.title || firstProp.name) : "";
   return {
     _id: emp._id || emp.id || "",
     loginId: emp.loginId || emp.login_id || emp.staffId || "",
@@ -179,8 +191,8 @@ export function normalizeStaffRecord(emp = {}) {
     role: emp.role || "Staff",
     parentLoginId: emp.parentLoginId || "",
     permissions: Array.isArray(emp.permissions) ? emp.permissions : [],
-    assignedPropertyName: emp.assignedPropertyName || "",
-    assignedProperty: emp.assignedProperty || "",
+    assignedPropertyName: emp.assignedPropertyName || firstPropName || "",
+    assignedProperty: firstPropId ? String(firstPropId) : (emp.assignedProperty || ""),
     photoDataUrl: emp.photoDataUrl || "",
   };
 }
@@ -248,8 +260,15 @@ export const STAFF_SELF_SERVICE_NAV = [
 // screens in STAFF_SELF_SERVICE_NAV and must NEVER be mapped here — otherwise a
 // staff-panel grant (e.g. "Room Inventory") would leak an owner section
 // (Properties → Add Property).
+//
+// "Dashboard" (the real /propertyowner/admin Owner Dashboard) is deliberately
+// NOT mapped here and must never be added back. STAFF_ACCESS_MODULES' own
+// "Dashboard" entry (the staff's self-service home tile) is `always: true`, and
+// hasStaffPermission() special-cases the string "Dashboard" to always pass — so
+// mapping the owner section to the same key would silently grant every staff
+// member the real Owner Dashboard regardless of what was actually assigned to
+// them. The staff's home tile lives only in STAFF_SELF_SERVICE_NAV.
 export const OWNER_SECTION_PERMISSIONS = {
-  "Dashboard": ["Dashboard"],
   "Properties": ["Properties"],
   "Tenants": ["Tenants"],
   "Leads & Bookings": ["Leads & Bookings", "Leads", "Bookings"],

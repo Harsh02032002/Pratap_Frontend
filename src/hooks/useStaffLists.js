@@ -5,6 +5,7 @@ import { getOwnerComplaints } from "../api/complaints";
 import { getOwnerRooms } from "../api/rooms";
 import { getOwnerVisitors } from "../api/visitors";
 import { apiFetch } from "../utils/api";
+import { getActiveOwnerPropertyId } from "../utils/propertyowner";
 
 /** Complaints visible to a staff member via their owner-scoped property. */
 export function useStaffComplaints(ownerLoginId, options = {}) {
@@ -30,9 +31,10 @@ export function useStaffRooms(ownerLoginId, options = {}) {
 
 /** Visitor passes / visitor records for a staff member's owner. */
 export function useStaffVisitorPasses(ownerLoginId, options = {}) {
+  const propertyId = getActiveOwnerPropertyId();
   return useQuery({
-    queryKey: queryKeys.visitors.passes(ownerLoginId),
-    queryFn: () => getOwnerVisitors(ownerLoginId),
+    queryKey: queryKeys.visitors.passes(ownerLoginId, { propertyId }),
+    queryFn: () => getOwnerVisitors(ownerLoginId, { propertyId }),
     enabled: !!ownerLoginId,
     staleTime: STALE.visitors,
     ...options,
@@ -42,6 +44,7 @@ export function useStaffVisitorPasses(ownerLoginId, options = {}) {
 /** Update a visitor pass, then refresh the owner-scoped visitor cache. */
 export function useUpdateStaffVisitorPass(ownerLoginId) {
   const qc = useQueryClient();
+  const propertyId = getActiveOwnerPropertyId();
   return useMutation({
     mutationFn: ({ id, action, approver }) =>
       apiFetch(`/api/visitors/${id}/${action}`, {
@@ -53,8 +56,8 @@ export function useUpdateStaffVisitorPass(ownerLoginId) {
         }),
       }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.visitors.byOwner(ownerLoginId) });
-      qc.invalidateQueries({ queryKey: queryKeys.visitors.passes(ownerLoginId) });
+      qc.invalidateQueries({ queryKey: queryKeys.visitors.byOwner(ownerLoginId, { propertyId }) });
+      qc.invalidateQueries({ queryKey: queryKeys.visitors.passes(ownerLoginId, { propertyId }) });
     },
   });
 }

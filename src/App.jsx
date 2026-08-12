@@ -64,6 +64,15 @@ const resolveHostHome = () => {
     return "/tenant/tenantdashboard";
   }
 
+  // Staff (owner-scoped employees, including wardens) live in `staff_session`,
+  // not any of the keys readStoredUser()/getOwnerSession() check — without this,
+  // any redirect to "/" bounces a logged-in staff member to the public website
+  // instead of back into their dashboard.
+  const staffSession = getStaffSession();
+  if (staffSession?.loginId && !owner?.loginId) {
+    return STAFF_HOME_PATH;
+  }
+
   if (host === "admin.roomhy.com" || host === "www.admin.roomhy.com") {
     if (role === "superadmin" || role === "admin") return "/superadmin/superadmin";
     if (role === "manager") {

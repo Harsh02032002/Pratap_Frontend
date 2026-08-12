@@ -16,6 +16,14 @@ function getStaffSession() {
 export default function StaffVisitors() {
   const staff = getStaffSession();
   const parentLoginId = staff?.parentLoginId || "";
+  const activePropertyId = (() => {
+    try {
+      const raw = localStorage.getItem("owner_active_property");
+      return raw && raw !== "all" ? raw : "";
+    } catch {
+      return "";
+    }
+  })();
 
   // ── Server state: React Query ──
   const { data: visitors = [], isLoading: loading } = useOwnerVisitors(parentLoginId);
@@ -35,9 +43,18 @@ export default function StaffVisitors() {
   const handleAddVisitor = (e) => {
     e.preventDefault();
     if (!parentLoginId || !vName || !vPhone || !vHost || !vRoom) return;
+    const activePropertyId = (() => {
+      try {
+        const raw = localStorage.getItem("owner_active_property");
+        return raw && raw !== "all" ? raw : "";
+      } catch {
+        return "";
+      }
+    })();
     createVisitorMut.mutate(
       {
         ownerLoginId: parentLoginId,
+        propertyId: activePropertyId,
         name: vName,
         phone: vPhone,
         hostName: vHost,
@@ -64,11 +81,15 @@ export default function StaffVisitors() {
     updateVisitorMut.mutate({ id, status: 'Exited' }, { onError: () => alert("Error checking out visitor") });
   };
 
-  const filteredVisitors = visitors.filter(v => 
-    v.name?.toLowerCase().includes(search.toLowerCase()) || 
-    v.hostName?.toLowerCase().includes(search.toLowerCase()) ||
-    v.hostRoom?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredVisitors = visitors.filter(v => {
+    const matchesProperty = !activePropertyId || String(v.propertyId || v.property_id || "") === String(activePropertyId);
+    const q = search.toLowerCase();
+    const matchesSearch =
+      v.name?.toLowerCase().includes(q) ||
+      v.hostName?.toLowerCase().includes(q) ||
+      v.hostRoom?.toLowerCase().includes(q);
+    return matchesProperty && matchesSearch;
+  });
 
   return (
     <StaffLayout title="Visitors Log">

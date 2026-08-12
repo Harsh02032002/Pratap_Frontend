@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession } from "../../utils/propertyowner";
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, getActiveOwnerPropertyId } from "../../utils/propertyowner";
 import { 
   DoorOpen, ShieldCheck, ToggleLeft, ToggleRight, 
   Clock, AlertTriangle, AlertCircle, Plus, Trash2
@@ -25,14 +25,17 @@ export default function GateManagementPage() {
   React.useEffect(() => {
     const fetchStatsAndGates = async () => {
        try {
+          const propertyId = getActiveOwnerPropertyId();
+          const visitorQs = new URLSearchParams({ status: "Inside" });
+          if (propertyId) visitorQs.set("propertyId", propertyId);
           const [vData, tData, gData] = await Promise.all([
-             apiFetch(`/api/visitors/owner/${owner.loginId}?status=Inside`),
+             apiFetch(`/api/visitors/owner/${owner.loginId}?${visitorQs.toString()}`),
              apiFetch(`/api/tenant-attendance/owner/${owner.loginId}`),
              apiFetch(`/api/gates/owner/${owner.loginId}`)
           ]);
           
           setStats({
-             visitorsInside: vData.visitors ? vData.visitors.length : 0,
+             visitorsInside: vData.visitors ? vData.visitors.filter(v => !propertyId || String(v.propertyId || v.property_id || "") === String(propertyId)).length : 0,
              tenantsInside: tData.attendance ? tData.attendance.filter(a => a.status === 'Inside').length : 0
           });
           

@@ -17,8 +17,10 @@ export async function checkOut(staffLoginId) {
 }
 
 /** Tenant attendance for an owner on a date. Returns an array. */
-export async function getTenantAttendance(ownerLoginId, date) {
-  const data = await apiFetch(`/api/tenant-attendance?ownerLoginId=${ownerLoginId}&date=${date}`);
+export async function getTenantAttendance(ownerLoginId, date, propertyId = "") {
+  const qs = new URLSearchParams({ ownerLoginId, date });
+  if (propertyId) qs.set("propertyId", propertyId);
+  const data = await apiFetch(`/api/tenant-attendance?${qs.toString()}`);
   return data?.data || data?.attendance || [];
 }
 
@@ -32,10 +34,10 @@ export async function applyLeave(payload) {
 }
 
 /** One tenant's attendance history for a month (newest first). */
-export async function getTenantHistory(ownerLoginId, tenantId, month, year) {
-  const data = await apiFetch(
-    `/api/tenant-attendance?ownerLoginId=${ownerLoginId}&tenantId=${tenantId}&month=${month}&year=${year}`
-  );
+export async function getTenantHistory(ownerLoginId, tenantId, month, year, propertyId = "") {
+  const qs = new URLSearchParams({ ownerLoginId, tenantId, month, year });
+  if (propertyId) qs.set("propertyId", propertyId);
+  const data = await apiFetch(`/api/tenant-attendance?${qs.toString()}`);
   const records = data?.data || data?.attendance || [];
   return [...records].sort((a, b) => (a.date < b.date ? 1 : -1));
 }
