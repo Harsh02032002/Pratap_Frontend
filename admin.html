@@ -45,8 +45,12 @@
     </div>
     <div id="admin-root"></div>
     <script>
-      // Hide loader as soon as admin-root has children (React mounted)
       (function() {
+        var p = window.location.pathname || '';
+        if (p.includes('/superadmin') || p.includes('/admin/superadmin')) {
+          window.location.replace('/superadmin/index');
+          return;
+        }
         var loader = document.getElementById('admin-init-loader');
         var root = document.getElementById('admin-root');
         if (!loader || !root) return;
@@ -59,8 +63,8 @@
           }
         });
         obs.observe(root, { childList: true });
-        // Failsafe: hide after 12s no matter what
-        setTimeout(function() { if (loader) loader.style.display = 'none'; }, 12000);
+        // Failsafe: hide after 2s no matter what
+        setTimeout(function() { if (loader) loader.style.display = 'none'; }, 2000);
       })();
     </script>
     <script type="module" src="/src/admin/main.tsx"></script>
