@@ -74,7 +74,6 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       htmlTitlePlugin,
-      adminServerPlugin,   // ← must be FIRST so it intercepts before Vite's HTML serving
       react(),
       ...(process.env.ANALYZE ? [visualizer({
         open: true,
@@ -140,11 +139,9 @@ export default defineConfig(({ mode }) => {
         format: { comments: false },
       },
 
-      // Multi-page: main Roomhy app + admin sub-app served from same Vite
       rollupOptions: {
         input: {
           main: path.resolve(__dirname, 'index.html'),
-          admin: path.resolve(__dirname, 'admin.html'),
         },
         output: {
           manualChunks: (id) => {

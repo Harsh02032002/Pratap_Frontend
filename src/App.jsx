@@ -321,7 +321,7 @@ const DomainGuard = () => {
         window.location.replace(`https://app.roomhy.com${path}`);
         return;
       }
-      const isAllowed = path.startsWith("/superadmin") || path.startsWith("/employee") || path.startsWith("/staff") || path.startsWith("/digital-checkin") || path.startsWith("/website") || path.startsWith("/admin");
+      const isAllowed = path.startsWith("/superadmin") || path.startsWith("/employee") || path.startsWith("/staff") || path.startsWith("/digital-checkin") || path.startsWith("/website");
       if (!isAllowed) {
         window.location.replace("/superadmin/index");
       }
@@ -335,7 +335,7 @@ const DomainGuard = () => {
         window.location.replace(resolveHostHome());
         return;
       }
-      if (path.startsWith("/superadmin") || path.startsWith("/employee") || path.startsWith("/admin")) {
+      if (path.startsWith("/superadmin") || path.startsWith("/employee")) {
         window.location.replace(`https://admin.roomhy.com${path}`);
         return;
       }
@@ -352,10 +352,6 @@ const DomainGuard = () => {
       // Redirect superadmin links on main website to admin.roomhy.com
       if (path.startsWith("/superadmin")) {
         window.location.replace(`https://admin.roomhy.com/superadmin/index`);
-        return;
-      }
-      if (path.startsWith("/admin")) {
-        window.location.replace(`https://admin.roomhy.com/admin`);
         return;
       }
       // Redirect owner links on main website to app.roomhy.com
@@ -412,94 +408,6 @@ const RouteChromeCleanup = () => {
   return null;
 };
 
-// Admin panel loader — when React Router intercepts /admin* routes,
-// force a hard browser navigation so admin.html (TanStack Router app) loads.
-// This only triggers on SPA-link clicks; direct URL navigation is handled by
-// the dev server (admin.html entry) or Vercel rewrites in production.
-const AdminPanelLoader = () => {
-  React.useEffect(() => {
-    // Sirf ek baar redirect — loop rokne ke liye sessionStorage use karo
-    const key = 'admin_redirect_attempted';
-    if (!sessionStorage.getItem(key)) {
-      sessionStorage.setItem(key, '1');
-      window.location.replace(window.location.href);
-    }
-    // Cleanup when admin loads successfully
-    return () => sessionStorage.removeItem(key);
-  }, []);
-  return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ width: 32, height: 32, border: '4px solid #e2e8f0', borderTop: '4px solid #0ea5e9', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
-        <p style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Loading Admin Panel…</p>
-      </div>
-    </div>
-  );
-};
-
-
-export default function App() {
-  // Categorize routes for nested layout
-  const shellRoutes = routes.filter(r => {
-    const isSuperadmin = r.path.startsWith("/superadmin/") && r.path !== "/superadmin/index";
-    const isEmployee = r.path.startsWith("/employee/") && r.path !== "/employee/index";
-    // Employees and Superadmins use the same shared shell layout
-    return isSuperadmin || isEmployee;
-  });
-
-  const standaloneRoutes = routes.filter(r => !shellRoutes.find(sr => sr.path === r.path));
-  const ownerRoutes = standaloneRoutes.filter(r => r.path.startsWith("/propertyowner/"));
-  const otherStandaloneRoutes = standaloneRoutes.filter(r => !r.path.startsWith("/propertyowner/"));
-
-  return (
-    <AuthProvider>
-      <TranslationProvider>
-        <ThemeProvider>
-          <Router>
-            <Toaster position="top-right" reverseOrder={false} />
-            <DomainGuard />
-            <InstallPWA />
-            <ManagerRouteGuard />
-            <RouteRoleGuard />
-            <StaffSessionSync />
-            <StaffRouteGuard />
-            <RouteChromeCleanup />
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-                {/* Routes wrapped in SharedShell Layout */}
-                <Route element={<SharedShell />}>
-                  {shellRoutes.map(route => (
-                    <Route key={route.path} path={route.path} element={route.element} />
-                  ))}
-                </Route>
-
-                {/* Owner Panel routes — wrapped in ErrorBoundary */}
-                <Route element={<OwnerPanelShell />}>
-                  {ownerRoutes.map(route => (
-                    <Route key={route.path} path={route.path} element={route.element} />
-                  ))}
-                </Route>
-
-                {/* Other standalone routes (tenant, website, staff, etc.) */}
-                {otherStandaloneRoutes.map(route => {
-                  if (PROTECTED_TENANT_PATHS.has(route.path)) {
-                    return (
-                      <Route
-                        key={route.path}
-                        path={route.path}
-                        element={
-                          <TenantProtectedRoute>
-                            {route.element}
-                          </TenantProtectedRoute>
-                        }
-                      />
-                    );
-                  }
-                  return (
-                    <Route key={route.path} path={route.path} element={route.element} />
-                  );
-                })}
-
                 <Route path="/" element={<React.Suspense fallback={<PageLoader />}>{React.createElement(lazy(() => import('./HomePage.jsx')))}</React.Suspense>} />
                 <Route path="/superadmin" element={<Navigate to="/superadmin/index" replace />} />
                 <Route path="/employee" element={<Navigate to="/employee/areaadmin" replace />} />
@@ -509,11 +417,6 @@ export default function App() {
                 <Route path="/staff" element={<Navigate to={STAFF_HOME_PATH} replace />} />
                 <Route path="/staff/*" element={<Navigate to={STAFF_HOME_PATH} replace />} />
                 <Route path="/website" element={<Navigate to="/website/index" replace />} />
-                <Route path="/admin/login" element={<Navigate to="/superadmin/index" replace />} />
-                <Route path="/admin/index" element={<Navigate to="/superadmin/index" replace />} />
-                {/* Admin panel — force hard browser navigation so TanStack Router (admin) takes over */}
-                <Route path="/admin" element={<AdminPanelLoader />} />
-                <Route path="/admin/*" element={<AdminPanelLoader />} />
                 <Route path="*" element={<HtmlRedirectOrHome />} />
               </Routes>
             </Suspense>
