@@ -6,6 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:website": "vite build --mode website",
+    "build:superadmin": "vite build --mode superadmin",
+    "build:propertyowner": "vite build --mode propertyowner",
+    "build:all": "npm run build:website && npm run build:superadmin && npm run build:propertyowner",
     "lint": "eslint .",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.app.json"

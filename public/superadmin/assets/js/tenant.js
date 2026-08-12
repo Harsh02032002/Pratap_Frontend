@@ -55,7 +55,7 @@ lucide.createIcons();
         // Logout
         document.getElementById('logoutBtn').addEventListener('click', (e) => {
              e.preventDefault();
-             window.location.href = '/superadmin/superadmin/superadmin/index';
+             window.location.href = '/superadmin/index';
         });
 
         // Load Tenants

@@ -3,7 +3,7 @@ lucide.createIcons();
         // Auth check: allow all staff roles (superadmin, area manager, employee)
         const user = getStaffSessionUser();
         if (!user || !isAllowedStaffRole(user.role)) {
-            window.location.href = '/superadmin/superadmin/superadmin/index';
+            window.location.href = '/superadmin/index';
         } else {
             // Fill profile dynamically from logged-in staff account
             const name = user.name || user.loginId || 'Staff User';
@@ -48,7 +48,7 @@ lucide.createIcons();
             localStorage.removeItem('staff_user');
             localStorage.removeItem('staff_token');
             localStorage.removeItem('token');
-            window.location.href = '/superadmin/superadmin/superadmin/index';
+            window.location.href = '/superadmin/index';
         });
 
         // Mobile menu functionality

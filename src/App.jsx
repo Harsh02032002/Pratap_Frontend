@@ -35,6 +35,7 @@ const PageLoader = () => (
 const resolveHostHome = () => {
   if (typeof window === "undefined") return "/website/index";
   const host = (window.location.hostname || "").toLowerCase();
+  const metaTarget = typeof document !== "undefined" ? document.querySelector('meta[name="roomhy-app-target"]')?.getAttribute('content') : null;
 
   const readStoredUser = () => {
     const keys = ["user", "staff_user", "manager_user"];
@@ -64,7 +65,7 @@ const resolveHostHome = () => {
     return "/tenant/tenantdashboard";
   }
 
-  if (host === "admin.roomhy.com" || host === "www.admin.roomhy.com") {
+  if (metaTarget === "superadmin" || host === "admin.roomhy.com" || host === "www.admin.roomhy.com") {
     if (role === "superadmin" || role === "admin") return "/superadmin/superadmin";
     if (role === "manager") {
       const hasManagerSession =
@@ -76,7 +77,7 @@ const resolveHostHome = () => {
     if (role === "areamanager" || role === "employee") return "/employee/areaadmin";
     return "/superadmin/index";
   }
-  if (host === "app.roomhy.com" || host === "www.app.roomhy.com") {
+  if (metaTarget === "propertyowner" || host === "app.roomhy.com" || host === "www.app.roomhy.com") {
     if (owner?.loginId) return "/propertyowner/admin";
     return "/propertyowner/index";
   }

@@ -562,7 +562,7 @@
         function logout() {
             localStorage.removeItem('areaAdminToken');
             localStorage.removeItem('superAdminToken');
-            window.location.href = '/superadmin/superadmin/index';
+            window.location.href = '/superadmin/index';
         }
 
         // Initialize lucide icons
