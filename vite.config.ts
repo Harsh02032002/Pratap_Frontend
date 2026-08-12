@@ -113,11 +113,20 @@ export default defineConfig({
         admin: path.resolve(__dirname, 'admin.html'),
       },
       output: {
-        manualChunks: {
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-icons': ['lucide-react'],
-          'vendor-maps': ['leaflet', 'react-leaflet'],
-          'vendor-utils': ['axios', '@supabase/supabase-js'],
+        manualChunks: (id) => {
+          // Main website vendor
+          if (id.includes('react-router-dom')) return 'vendor-router';
+          if (id.includes('react-dom') || (id.includes('react') && !id.includes('@tanstack') && !id.includes('lucide'))) return 'vendor-react';
+          if (id.includes('lucide-react')) return 'vendor-icons';
+          if (id.includes('leaflet')) return 'vendor-maps';
+          if (id.includes('axios') || id.includes('@supabase')) return 'vendor-utils';
+
+          // Admin panel — keep in own chunks so main site stays lean
+          if (id.includes('@tanstack/react-router')) return 'admin-router';
+          if (id.includes('@tanstack/react-query')) return 'admin-query';
+          if (id.includes('@radix-ui')) return 'admin-radix';
+          if (id.includes('cmdk') || id.includes('class-variance-authority') || id.includes('clsx') || id.includes('tailwind-merge') || id.includes('sonner')) return 'admin-ui';
+          if (id.includes('src/admin')) return 'admin-app';
         },
         entryFileNames: 'assets/js/[name]-[hash].js',
         chunkFileNames: 'assets/js/[name]-[hash].js',

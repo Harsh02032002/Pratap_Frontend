@@ -593,7 +593,7 @@ export default function Payouts() {
                 <tr className="text-slate-400 text-[8px] font-black uppercase border-b border-slate-50 tracking-widest">
                   {/* Select-all checkbox */}
                   <th className="pb-4 pr-3 w-8">
-                    <button onClick={toggleSelectAll} className="text-slate-400 hover:text-slate-700 transition-colors">
+                    <button onClick={toggleSelectAll} className="text-slate-400 hover:text-slate-700 transition-colors" title="Select All Pending">
                       {allSelected
                         ? <CheckSquare size={15} className="text-blue-600" />
                         : <Square size={15} />}
@@ -602,8 +602,10 @@ export default function Payouts() {
                   <th className="pb-4">Ref #</th>
                   <th className="pb-4">Owner</th>
                   <th className="pb-4">Tenant / Property</th>
+                  <th className="pb-4 text-center">Rent Collected (₹)</th>
+                  <th className="pb-4 text-center">Commission Fee (₹)</th>
+                  <th className="pb-4 text-center text-emerald-700">Pay Owner (₹)</th>
                   <th className="pb-4 text-center">Settlement Account</th>
-                  <th className="pb-4 text-center">Owner Gets (₹)</th>
                   <th className="pb-4 text-center">Date</th>
                   <th className="pb-4 text-center">Status</th>
                   <th className="pb-4 text-right">Action</th>
@@ -611,12 +613,16 @@ export default function Payouts() {
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {filteredPayouts.map((p, i) => {
-                  const id       = p._id || p.id;
-                  const isPaid   = p.payout_status === "Paid";
+                  const id         = p._id || p.id;
+                  const isPaid     = p.payout_status === "Paid";
                   const isSelected = selectedIds.has(id);
-                  const acctNum  = p.payout_account_number || p.bank_details?.account_number || "";
-                  const bankNm   = p.payout_bank_name      || p.bank_details?.bank_name      || "";
-                  const ifsc     = p.payout_ifsc_code      || p.bank_details?.ifsc_code      || "";
+                  const acctNum    = p.payout_account_number || p.bank_details?.account_number || "";
+                  const bankNm     = p.payout_bank_name      || p.bank_details?.bank_name      || "";
+                  const ifsc       = p.payout_ifsc_code      || p.bank_details?.ifsc_code      || "";
+
+                  const ownerNet   = p.owner_amount || 0;
+                  const totalRent  = p.booking_amount || p.amount || (ownerNet + (p.commission_amount || 0) + (p.gst_amount || 0));
+                  const commFee    = ((p.commission_amount || 0) + (p.gst_amount || 0)) || Math.max(0, totalRent - ownerNet);
 
                   return (
                     <tr key={id || i}
@@ -660,6 +666,21 @@ export default function Payouts() {
                         )}
                       </td>
 
+                      {/* Total Rent Collected */}
+                      <td className="py-3 text-center font-bold text-slate-700 text-[12px]">
+                        ₹{fmt(totalRent)}
+                      </td>
+
+                      {/* Commission Fee */}
+                      <td className="py-3 text-center text-rose-600 font-bold text-[11px]">
+                        −₹{fmt(commFee)}
+                      </td>
+
+                      {/* Owner Payable Amount */}
+                      <td className="py-3 text-center font-black text-emerald-600 text-[13px] bg-emerald-50/30 rounded-lg">
+                        ₹{fmt(ownerNet)}
+                      </td>
+
                       {/* Bank */}
                       <td className="py-3 text-center">
                         {acctNum ? (
@@ -672,11 +693,6 @@ export default function Payouts() {
                         ) : (
                           <span className="text-[9px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">Auto-fill on transfer</span>
                         )}
-                      </td>
-
-                      {/* Amount */}
-                      <td className="py-3 text-center font-black text-slate-800 text-[13px]">
-                        ₹{fmt(p.owner_amount)}
                       </td>
 
                       {/* Date */}
