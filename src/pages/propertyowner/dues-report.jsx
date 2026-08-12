@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession } from "../../utils/propertyowner";
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, getActiveOwnerPropertyId } from "../../utils/propertyowner";
 import { fetchInvoices, fetchPenaltyConfigs, sendReminder, recordPayment } from "../../utils/rentCollectionApi";
 import { Search, Send, IndianRupee, RefreshCw, Smartphone, CreditCard, Banknote } from "lucide-react";
 
@@ -94,7 +94,7 @@ export default function DuesReportPage() {
     setLoading(true);
     try {
       const [invData, configData] = await Promise.allSettled([
-        fetchInvoices({ ownerId, status: "PENDING,PARTIAL", limit: 200 }, force),
+        fetchInvoices({ ownerId, status: "PENDING,PARTIAL", limit: 200, propertyId: getActiveOwnerPropertyId() }, force),
         fetchPenaltyConfigs(ownerId, force),
       ]);
       if (invData.status === "fulfilled") {

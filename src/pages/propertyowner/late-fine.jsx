@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession } from "../../utils/propertyowner";
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, getActiveOwnerPropertyId } from "../../utils/propertyowner";
 import { fetchInvoices, fetchPenaltyConfigs, waivePenalty } from "../../utils/rentCollectionApi";
 import { AlertTriangle, Search, ShieldCheck, RefreshCw, Settings } from "lucide-react";
 
@@ -94,7 +94,7 @@ export default function LatePaymentsPage() {
     try {
       const ownerId = owner._id || owner.loginId;
       const [invoiceData, configData] = await Promise.all([
-        fetchInvoices({ ownerId, status: "PENDING,PARTIAL", limit: 200 }, force),
+        fetchInvoices({ ownerId, status: "PENDING,PARTIAL", limit: 200, propertyId: getActiveOwnerPropertyId() }, force),
         fetchPenaltyConfigs(ownerId, force),
       ]);
 

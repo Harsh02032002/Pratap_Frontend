@@ -107,11 +107,12 @@ export const verifyCashOtp = (tenantLoginId, otp, rentId) =>
     return data;
   });
 
-export function fetchPayments(ownerId, limit = 200) {
-  const key = `payments:all:${ownerId}:${limit}`;
+export function fetchPayments(ownerId, limit = 200, propertyId = '') {
+  const key = `payments:all:${ownerId}:${limit}:${propertyId || 'all'}`;
   const hit = cacheGet(key);
   if (hit) return Promise.resolve(hit);
-  return fetchJson(`${rentCollectionBase()}/payments?limit=${limit}`)
+  const qs = new URLSearchParams({ limit: String(limit), ...(propertyId ? { propertyId } : {}) }).toString();
+  return fetchJson(`${rentCollectionBase()}/payments?${qs}`)
     .then(data => cacheSet(key, data, 60 * 1000));
 }
 

@@ -7,7 +7,8 @@ import { MobileTabs, MobileEmptyState } from "../../components/propertyowner/Mob
 import {
   clearOwnerRuntimeSession,
   fetchOwnerTenants,
-  getOwnerRuntimeSession
+  getOwnerRuntimeSession,
+  getActiveOwnerPropertyId
 } from "../../utils/propertyowner";
 import {
   fetchRentDashboard,
@@ -296,7 +297,7 @@ export default function Payment() {
       const [tenantsData, dashData, invData, configData, contactData] = await Promise.allSettled([
         fetchOwnerTenants(session.loginId),
         fetchRentDashboard(session._id || session.loginId),
-        fetchInvoices({ ownerId: session._id || session.loginId, limit: 100 }),
+        fetchInvoices({ ownerId: session._id || session.loginId, limit: 100, propertyId: getActiveOwnerPropertyId() }),
         fetchPenaltyConfigs(session._id || session.loginId),
         fetchMissingContacts(session._id || session.loginId),
       ]);
