@@ -22,15 +22,11 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const token =
-      sessionStorage.getItem("token") ||
-      localStorage.getItem("token") ||
+      sessionStorage.getItem("website_token") ||
       localStorage.getItem("website_token");
 
     const rawUserStr =
-      sessionStorage.getItem("user") ||
-      sessionStorage.getItem("staff_user") ||
-      localStorage.getItem("staff_user") ||
-      localStorage.getItem("user") ||
+      sessionStorage.getItem("website_user") ||
       localStorage.getItem("website_user");
 
     if (!token || !rawUserStr) {
@@ -54,7 +50,7 @@ export const AuthProvider = ({ children }) => {
       .then((data) => {
         if (data) {
           const backendUser = (data?.user && typeof data.user === "object") ? data.user : data;
-          if (backendUser && typeof backendUser === "object" && backendUser.role) {
+          if (backendUser && typeof backendUser === "object") {
             setUser(backendUser);
           }
         }
@@ -69,18 +65,19 @@ export const AuthProvider = ({ children }) => {
 
   const login = (userData, token) => {
     setUser(userData);
-    localStorage.setItem('token', token);
-    sessionStorage.setItem('token', token);
-    localStorage.setItem('userData', JSON.stringify(userData));
+    localStorage.setItem('website_token', token);
+    sessionStorage.setItem('website_token', token);
+    localStorage.setItem('website_user', JSON.stringify(userData));
+    sessionStorage.setItem('website_user', JSON.stringify(userData));
   };
 
   const logout = () => {
     setUser(null);
     try {
-      localStorage.removeItem('token');
-      sessionStorage.removeItem('token');
-      localStorage.removeItem('user');
-      sessionStorage.removeItem('user');
+      localStorage.removeItem('website_token');
+      sessionStorage.removeItem('website_token');
+      localStorage.removeItem('website_user');
+      sessionStorage.removeItem('website_user');
     } catch (_) {}
   };
 

@@ -209,7 +209,8 @@ export default function WebsiteChat() {
           `/api/chat/conversation?user1=${encodeURIComponent(websiteUserId)}&user2=${encodeURIComponent(activeChat.participant_login_id)}`
         );
         setMessages((Array.isArray(list) ? list : []).map(normalizeMessage));
-        await fetchJson(`/api/chat/mark-read/${encodeURIComponent(websiteUserId)}`, { method: "POST" });
+        // Mark as read silently — don't fail or clear messages if this errors
+        fetchJson(`/api/chat/mark-read/${encodeURIComponent(websiteUserId)}`, { method: "POST" }).catch(() => {});
       } catch (error) {
         console.error("Error loading messages:", error);
         setChatError("Unable to load messages.");
@@ -255,7 +256,10 @@ export default function WebsiteChat() {
     socket.on("reconnect", joinSelfRoom);
     socket.on("receive_message", async (incoming) => {
       const roomId = String(incoming?.room_id || "").trim().toLowerCase();
-      if (roomId === websiteUserId.toLowerCase()) {
+      const senderId = String(incoming?.sender_login_id || "").trim().toLowerCase();
+      const myId = websiteUserId.toLowerCase();
+      // Refresh if we are the receiver OR the sender (both directions)
+      if (roomId === myId || senderId === myId) {
         await refreshCurrentConversation();
         loadChats();
       }
@@ -470,18 +474,12 @@ export default function WebsiteChat() {
                     const isFile = msg.message_type === 'file';
 
                     return (
-                      <div key={msg._id} className={`flex flex-col ${isSystem ? 'items-center w-full my-3' : isMine ? 'items-end' : 'items-start'}`}>
+                      <div key={msg._id} className={`flex flex-col ${isSystem ? 'items-center w-full my-2' : isMine ? 'items-end' : 'items-start'}`}>
                         {isSystem ? (
-                          <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-3xl p-5 max-w-[85%] text-center shadow-sm flex flex-col items-center gap-2">
-                            <div className="flex items-center gap-1.5 justify-center">
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[9px] font-black uppercase tracking-wider">
-                                <ShieldCheck size={10} /> System Warning
-                              </span>
-                            </div>
-                            <p className="text-xs font-bold leading-relaxed text-slate-700 max-w-md">
+                          <div className="flex flex-col items-center my-1 max-w-[85%]">
+                            <span className="bg-slate-200/70 text-slate-600 text-[11px] font-medium px-4 py-1.5 rounded-full text-center shadow-xs">
                               {msg.message}
-                            </p>
-                            <span className="text-[9px] text-gray-400 mt-1 block">{formatTime(msg.created_at)}</span>
+                            </span>
                           </div>
                         ) : (
                           <>

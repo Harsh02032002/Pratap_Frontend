@@ -116,7 +116,6 @@ const NAV = [
     path: "/superadmin/accounting", 
     children: [
         { label: "Overview", path: "/superadmin/accounting", restrictedKey: "acc_overview" },
-        { label: "Admin Platform Wallet", path: "/superadmin/admin-wallet" },
         { label: "Revenue Overview", path: "/superadmin/home/revenue-overview", restrictedKey: "acc_revenue_overview" },
         { 
           label: "Tenant Accounts", 

@@ -81,18 +81,8 @@ const resolveHostHome = () => {
     return "/propertyowner/index";
   }
 
-  // On localhost — default to website homepage for normal users/visitors
+  // On localhost — root URL '/' ALWAYS loads the Main Website Homepage
   if (isLocalhost) {
-    if (role === "superadmin" || role === "admin") return "/superadmin/superadmin";
-    if (role === "manager") {
-      const hasManagerSession =
-        !!sessionStorage.getItem("managerToken") ||
-        !!localStorage.getItem("managerToken") ||
-        !!localStorage.getItem("managerData");
-      if (hasManagerSession) return "/propertyowner/admin";
-    }
-    if (role === "areamanager" || role === "employee") return "/employee/areaadmin";
-    if (owner?.loginId) return "/propertyowner/admin";
     return "/";
   }
 
@@ -322,6 +312,10 @@ const DomainGuard = () => {
         window.location.replace(resolveHostHome());
         return;
       }
+      if (path.startsWith("/propertyowner") || path.startsWith("/tenant")) {
+        window.location.replace(`https://app.roomhy.com${path}`);
+        return;
+      }
       const isAllowed = path.startsWith("/superadmin") || path.startsWith("/employee") || path.startsWith("/staff") || path.startsWith("/digital-checkin") || path.startsWith("/website");
       if (!isAllowed) {
         window.location.replace("/superadmin/index");
@@ -336,6 +330,10 @@ const DomainGuard = () => {
         window.location.replace(resolveHostHome());
         return;
       }
+      if (path.startsWith("/superadmin") || path.startsWith("/employee")) {
+        window.location.replace(`https://admin.roomhy.com${path}`);
+        return;
+      }
       const isAllowed = path.startsWith("/propertyowner") || path.startsWith("/tenant") || path.startsWith("/digital-checkin") || path.startsWith("/manager") || path.startsWith("/staff") || path.startsWith("/payment") || path.startsWith("/website");
       if (!isAllowed) {
         window.location.replace("/propertyowner/index");
@@ -343,33 +341,22 @@ const DomainGuard = () => {
       return;
     }
 
-    // 3. Fallback for main website domain (roomhy.com) and others
-    // Show only coming-soon page on root URL or paths not matching allowed website routes
-    const allowedWebsiteRoutes = [
-      "/website",
-      "/website-editor",
-      "/about-us",
-      "/contact-us",
-      "/list-property",
-      "/login",
-      "/register",
-      "/faq",
-      "/privacy-policy",
-      "/terms-and-conditions",
-      "/pg",
-      "/hostels",
-      "/co-living",
-      "/apartments",
-      "/property",
-      "/payment",           // ← FIXED: tokenized payment gateway from onboarding email
-      "/visitor-verify",   // ← FIXED: visitor pass verification QR links
-      "/digital-checkin",  // ← FIXED: tenant onboarding checkin flow
-      "/admin"
-    ];
-
-    if (!allowedWebsiteRoutes.some(route => path.startsWith(route))) {
-      if (path === "/" || path === "") {
-        // Root — let the router handle it (shows HomePage)
+    // 3. Fallback for main website domain (roomhy.com)
+    const isMainWebsiteDomain = host === "roomhy.com" || host === "www.roomhy.com";
+    if (isMainWebsiteDomain) {
+      // Redirect superadmin links on main website to admin.roomhy.com
+      if (path.startsWith("/superadmin") || path.startsWith("/admin")) {
+        window.location.replace(`https://admin.roomhy.com/superadmin/index`);
+        return;
+      }
+      // Redirect owner links on main website to app.roomhy.com
+      if (path.startsWith("/propertyowner")) {
+        window.location.replace(`https://app.roomhy.com/propertyowner/index`);
+        return;
+      }
+      // Redirect tenant links on main website to app.roomhy.com
+      if (path.startsWith("/tenant")) {
+        window.location.replace(`https://app.roomhy.com/tenant/tenantlogin`);
         return;
       }
     }
