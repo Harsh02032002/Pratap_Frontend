@@ -27,7 +27,7 @@
       links: [
         { href: "rentcollection", label: "Rent Collections", icon: "wallet" },
         { href: "platform", label: "Commissions", icon: "indian-rupee" },
-        { href: "refund", label: "Refunds", icon: "rotate-ccw" }
+        // { href: "refund", label: "Refunds", icon: "rotate-ccw" }
       ]
     },
     { heading: "System", links: [{ href: "location", label: "Locations", icon: "map-pin" }] }
@@ -358,4 +358,3 @@
   // Start initialization
   initOnLoad();
 })();
-

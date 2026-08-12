@@ -11,7 +11,6 @@ import {
   Wifi, IndianRupee, Info, UtensilsCrossed, Camera, ChevronDown, ChevronUp,
   Wallet, FileText
 } from "lucide-react";
-import WebsitePropertyPreviewModal from "../../components/shared/WebsitePropertyPreviewModal";
 
 
 const PROPERTY_TYPES = ["hostel", "pg", "apartment", "co-living", "room"];
@@ -1016,7 +1015,6 @@ export default function Properties() {
   const [mobileTab, setMobileTab] = useState("all");
   const [viewProperty, setViewProperty] = useState(null);
   const [editProperty, setEditProperty] = useState(null);
-  const [previewProperty, setPreviewProperty] = useState(null);
   const apiBase = getApiBase();
 
   const loadProps = async (session) => {
@@ -1036,6 +1034,12 @@ export default function Properties() {
     setOwner(session);
     loadProps(session);
   }, []);
+
+  const openWebsitePreview = (p) => {
+    const propertyId = p?._id || p?.id || p?.visitId;
+    if (!propertyId) return;
+    window.open(`/website/property-details/${encodeURIComponent(propertyId)}`, "_blank", "noopener,noreferrer");
+  };
 
   const filters = ["All", "PG", "Hostel", "Flat", "Apartment"];
   const filtered = properties.filter(p => {
@@ -1221,7 +1225,7 @@ export default function Properties() {
                         <Eye className="size-3.5" />
                       </button>
                       <button
-                        onClick={() => setPreviewProperty(p)}
+                        onClick={() => openWebsitePreview(p)}
                         className="flex items-center justify-center gap-1 py-2.5 px-3 bg-teal-50 border border-teal-200 text-teal-700 font-bold rounded-lg text-[10px] hover:bg-teal-100 transition-all"
                         title="Preview on Website"
                       >
@@ -1330,7 +1334,7 @@ export default function Properties() {
                         <Eye className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => setPreviewProperty(p)}
+                        onClick={() => openWebsitePreview(p)}
                         className="flex items-center justify-center gap-1.5 py-2.5 px-3 bg-teal-50 border border-teal-200 text-teal-700 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-teal-100 transition-colors"
                       >
                         <Globe className="w-4 h-4" /> Preview
@@ -1364,13 +1368,6 @@ export default function Properties() {
           apiBase={apiBase}
           onClose={() => setEditProperty(null)}
           onSuccess={() => { setEditProperty(null); if (owner) loadProps(owner); }}
-        />
-      )}
-      {/* Website Preview Modal */}
-      {previewProperty && (
-        <WebsitePropertyPreviewModal
-          property={previewProperty}
-          onClose={() => setPreviewProperty(null)}
         />
       )}
     </PropertyOwnerLayout>
