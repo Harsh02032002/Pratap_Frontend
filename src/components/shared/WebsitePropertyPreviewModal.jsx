@@ -9,7 +9,7 @@
  * to the shared components.
  */
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { X, Eye, Loader2 } from "lucide-react";
 import {
   PropertyHeader,
@@ -49,16 +49,56 @@ function normalizeProperty(raw) {
       pick("amenities") ||
       pick("propertyInfo.amenities") ||
       [];
+    if (!Array.isArray(raw_am)) {
+      if (typeof raw_am === "object" && raw_am !== null) {
+        return Object.entries(raw_am)
+          .filter(([, v]) => !!v)
+          .map(([k]) => ({ name: k.replace(/([A-Z])/g, " $1").trim(), icon: "check", category: "basic" }));
+      }
+      if (typeof raw_am === "string") {
+        return raw_am.split(",").map(a => ({ name: a.trim(), icon: "check", category: "basic" }));
+      }
+      return [];
+    }
     return raw_am.map((a) => {
       if (typeof a === "string") {
         try { return JSON.parse(a); } catch { return { name: a, icon: "check", category: "basic" }; }
       }
-      return a;
+      return a || { name: "", icon: "check", category: "basic" };
     });
   })();
 
   const price =
     Number(pick("monthlyRent", "rent", "price", "propertyInfo.rent")) || 0;
+
+  const images = (() => {
+    const rawImgs =
+      (Array.isArray(raw.images) && raw.images.length > 0 && raw.images) ||
+      (Array.isArray(raw.propertyInfo?.photos) && raw.propertyInfo.photos.length > 0 && raw.propertyInfo.photos) ||
+      (Array.isArray(raw.photos) && raw.photos.length > 0 && raw.photos) ||
+      [];
+    return Array.isArray(rawImgs) ? rawImgs.filter(Boolean) : [];
+  })();
+
+  const exclusiveBenefits = (() => {
+    const raw_eb = pick("exclusiveBenefits", "benefits") || [];
+    if (!Array.isArray(raw_eb)) return [];
+    return raw_eb.map((b) => typeof b === "string" ? { title: b, description: "" } : (b || { title: "", description: "" }));
+  })();
+
+  const roomTypes = (() => {
+    const rt =
+      (Array.isArray(raw.roomTypes) && raw.roomTypes.length > 0 && raw.roomTypes) ||
+      (Array.isArray(raw.propertyInfo?.roomTypes) && raw.propertyInfo.roomTypes.length > 0 && raw.propertyInfo.roomTypes) ||
+      (Array.isArray(raw.roomVariants) && raw.roomVariants) ||
+      [];
+    return Array.isArray(rt) ? rt : [];
+  })();
+
+  const propertyViews = (() => {
+    const pv = pick("propertyViews") || [];
+    return Array.isArray(pv) ? pv : [];
+  })();
 
   const formatted = {
     id:           pick("_id", "id", "visitId") || "",
@@ -80,52 +120,32 @@ function normalizeProperty(raw) {
     rating:       Number(pick("rating")) || 0,
     latitude:     Number(pick("latitude", "propertyInfo.latitude")) || null,
     longitude:    Number(pick("longitude", "propertyInfo.longitude")) || null,
-    nearbyColleges: pick("nearbyColleges") || [],
+    nearbyColleges: Array.isArray(pick("nearbyColleges")) ? pick("nearbyColleges") : [],
     discountPercent: Number(pick("pricing.discountPercent", "discountPercent")) || 0,
     originalPrice: pick("originalPrice") || null,
     securityDeposit: pick("pricing.securityDeposit") || 0,
     advanceRent:  pick("pricing.advanceRent") || 0,
     pricing:      pick("pricing") || {},
-    // Images
-    image:
-      pick("featuredImage") ||
-      (Array.isArray(raw.images) && raw.images[0]) ||
-      null,
-    images:
-      Array.isArray(raw.images) && raw.images.length > 0
-        ? raw.images
-        : Array.isArray(raw.propertyInfo?.photos) && raw.propertyInfo.photos.length > 0
-        ? raw.propertyInfo.photos
-        : [],
-    propertyViews: pick("propertyViews") || [],
-    // Details
+    image:        pick("featuredImage") || images[0] || null,
+    images,
+    propertyViews,
     amenities,
-    exclusiveBenefits: pick("exclusiveBenefits", "benefits") || [],
-    facilities: pick("facilities", "propertyInfo.facilities") || {},
-    roomTypes: (() => {
-      const rt =
-        (Array.isArray(raw.roomTypes) && raw.roomTypes.length > 0 && raw.roomTypes) ||
-        (Array.isArray(raw.propertyInfo?.roomTypes) && raw.propertyInfo.roomTypes.length > 0 && raw.propertyInfo.roomTypes) ||
-        raw.roomVariants ||
-        [];
-      return rt;
-    })(),
-    totalRooms: (() => {
-      const fromRT = (raw.roomTypes || raw.propertyInfo?.roomTypes || []).reduce(
-        (s, rt) => s + parseInt(rt.totalRooms || 0),
-        0
-      );
+    exclusiveBenefits,
+    facilities:   typeof pick("facilities", "propertyInfo.facilities") === 'object' ? pick("facilities", "propertyInfo.facilities") : {},
+    roomTypes,
+    totalRooms:   (() => {
+      const fromRT = roomTypes.reduce((s, rt) => s + parseInt(rt?.totalRooms || 0, 10), 0);
       return fromRT || Number(pick("totalRooms")) || 0;
     })(),
-    bedsPerRoom: pick("bedsPerRoom") || 1,
+    bedsPerRoom:  pick("bedsPerRoom") || 1,
     propertyDetails: pick("propertyDetails") || {},
-    policies: pick("policies") || {},
-    highlights: pick("highlights") || [],
-    offers: pick("offers") || [],
-    benefits: pick("benefits", "exclusiveBenefits") || [],
+    policies:     pick("policies") || {},
+    highlights:   Array.isArray(pick("highlights")) ? pick("highlights") : [],
+    offers:       Array.isArray(pick("offers")) ? pick("offers") : [],
+    benefits:     exclusiveBenefits,
     pricingDetails: pick("pricingDetails") || null,
-    status: pick("status") || "active",
-    isPublished: pick("isPublished") !== undefined ? raw.isPublished : true,
+    status:       pick("status") || "active",
+    isPublished:  pick("isPublished") !== undefined ? raw.isPublished : true,
     tenantDescription: pick("tenantDescription") || "",
     propertyType: pick("propertyType", "type", "propertyInfo.propertyType") || "pg",
   };
@@ -199,112 +219,138 @@ export default function WebsitePropertyPreviewModal({ property: rawProperty, onC
 
                     {/* 1. Property Views Gallery */}
                     <div className="md:rounded-2xl md:overflow-hidden">
-                      <GalleryWrapper
-                        propertyViews={property.propertyViews}
-                        images={property.images}
-                        onBack={onClose}
-                      />
+                      <PreviewContentBoundary>
+                        <GalleryWrapper
+                          propertyViews={property.propertyViews}
+                          images={property.images}
+                          onBack={onClose}
+                        />
+                      </PreviewContentBoundary>
                     </div>
 
                     {/* Content Sections */}
                     <div className="md:px-0 px-0">
 
                       {/* 2. Property Header */}
-                      <div className="pt-5 pb-5" style={{ borderBottom: "1px solid #e8e8e8" }}>
-                        <PropertyHeader property={property} reviewStats={{ avgRating: property.rating, totalReviews: 0 }} />
-                      </div>
+                      <PreviewContentBoundary>
+                        <div className="pt-5 pb-5" style={{ borderBottom: "1px solid #e8e8e8" }}>
+                          <PropertyHeader property={property} reviewStats={{ avgRating: property.rating, totalReviews: 0 }} />
+                        </div>
+                      </PreviewContentBoundary>
 
                       {/* 3. Highlights */}
-                      <HighlightsSection property={property} />
+                      <PreviewContentBoundary>
+                        <HighlightsSection property={property} />
+                      </PreviewContentBoundary>
 
                       {/* 4. Description + Features */}
-                      <DescriptionSection
-                        description={property.description}
-                        amenities={property.amenities}
-                        beds={property.totalRooms}
-                        gender={property.gender}
-                        price={property.price}
-                      />
+                      <PreviewContentBoundary>
+                        <DescriptionSection
+                          description={property.description}
+                          amenities={property.amenities}
+                          beds={property.totalRooms}
+                          gender={property.gender}
+                          price={property.price}
+                        />
+                      </PreviewContentBoundary>
 
                       {/* 5. Amenities Section */}
-                      <div className="px-4 md:px-0">
-                        <AmenitiesSection
-                          amenities={property.amenities}
-                          facilities={property.facilities}
-                        />
-                      </div>
+                      <PreviewContentBoundary>
+                        <div className="px-4 md:px-0">
+                          <AmenitiesSection
+                            amenities={property.amenities}
+                            facilities={property.facilities}
+                          />
+                        </div>
+                      </PreviewContentBoundary>
 
                       {/* 5.5. Choose Your Room */}
-                      <div className="px-4 md:px-0">
-                        <RoomTypesSection roomTypes={property.roomTypes} />
-                      </div>
+                      <PreviewContentBoundary>
+                        <div className="px-4 md:px-0">
+                          <RoomTypesSection roomTypes={property.roomTypes} />
+                        </div>
+                      </PreviewContentBoundary>
 
                       {/* 6. Exclusive Benefits */}
-                      <div className="px-4 md:px-0">
-                        <ExclusiveBenefitsSection exclusiveBenefits={property.exclusiveBenefits} />
-                      </div>
+                      <PreviewContentBoundary>
+                        <div className="px-4 md:px-0">
+                          <ExclusiveBenefitsSection exclusiveBenefits={property.exclusiveBenefits} />
+                        </div>
+                      </PreviewContentBoundary>
 
                       {/* 7. Offers (Legacy) */}
-                      <OffersSection
-                        offers={property.exclusiveBenefits?.map((b) => b.title)}
-                        benefits={property.benefits}
-                      />
+                      <PreviewContentBoundary>
+                        <OffersSection
+                          offers={property.exclusiveBenefits?.map((b) => b.title)}
+                          benefits={property.benefits}
+                        />
+                      </PreviewContentBoundary>
 
                       {/* 8. Nearby Places — skipped in preview (no live map API call needed) */}
-                      <NearbySection
-                        nearbyInstitutes={[]}
-                        loading={false}
-                        hasCoordinates={!!(property.latitude && property.longitude)}
-                      />
+                      <PreviewContentBoundary>
+                        <NearbySection
+                          nearbyInstitutes={[]}
+                          loading={false}
+                          hasCoordinates={!!(property.latitude && property.longitude)}
+                        />
+                      </PreviewContentBoundary>
 
                       {/* 9. Map (if coords available) */}
                       {property.latitude && property.longitude && (
-                        <div className="md:hidden px-4 py-5" style={{ borderBottom: "1px solid #e8e8e8" }}>
-                          <h2 className="text-lg font-bold text-[#222] mb-3 flex items-center gap-2">
-                            Property Location
-                          </h2>
-                          <div className="rounded-lg overflow-hidden" style={{ height: 200, border: "1px solid #e8e8e8" }}>
-                            <iframe
-                              src={`https://www.google.com/maps?q=${property.latitude},${property.longitude}&z=14&output=embed`}
-                              width="100%"
-                              height="100%"
-                              style={{ border: 0 }}
-                              allowFullScreen
-                              loading="lazy"
-                              title="Property Location"
-                            />
+                        <PreviewContentBoundary>
+                          <div className="md:hidden px-4 py-5" style={{ borderBottom: "1px solid #e8e8e8" }}>
+                            <h2 className="text-lg font-bold text-[#222] mb-3 flex items-center gap-2">
+                              Property Location
+                            </h2>
+                            <div className="rounded-lg overflow-hidden" style={{ height: 200, border: "1px solid #e8e8e8" }}>
+                              <iframe
+                                src={`https://www.google.com/maps?q=${property.latitude},${property.longitude}&z=14&output=embed`}
+                                width="100%"
+                                height="100%"
+                                style={{ border: 0 }}
+                                allowFullScreen
+                                loading="lazy"
+                                title="Property Location"
+                              />
+                            </div>
                           </div>
-                        </div>
+                        </PreviewContentBoundary>
                       )}
 
                       {/* 10. Pricing Breakdown (Mobile) */}
-                      <PricingBreakdown property={property} />
+                      <PreviewContentBoundary>
+                        <PricingBreakdown property={property} />
+                      </PreviewContentBoundary>
 
                       {/* 11. Reviews — empty in preview */}
-                      <ReviewsSection
-                        reviews={[]}
-                        reviewStats={{ avgRating: property.rating, totalReviews: 0, ratingBreakdown: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } }}
-                        hasReviewed={false}
-                        userReview={null}
-                        showReviewForm={false}
-                        setShowReviewForm={() => {}}
-                        newRating={5}
-                        setNewRating={() => {}}
-                        newReviewText=""
-                        setNewReviewText={() => {}}
-                        submittingReview={false}
-                        handleSubmitReview={(e) => e.preventDefault()}
-                      />
+                      <PreviewContentBoundary>
+                        <ReviewsSection
+                          reviews={[]}
+                          reviewStats={{ avgRating: property.rating, totalReviews: 0, ratingBreakdown: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } }}
+                          hasReviewed={false}
+                          userReview={null}
+                          showReviewForm={false}
+                          setShowReviewForm={() => {}}
+                          newRating={5}
+                          setNewRating={() => {}}
+                          newReviewText=""
+                          setNewReviewText={() => {}}
+                          submittingReview={false}
+                          handleSubmitReview={(e) => e.preventDefault()}
+                        />
+                      </PreviewContentBoundary>
 
                     </div>
                   </div>
 
                   {/* ── RIGHT SIDEBAR (Desktop) ── */}
                   <div className="hidden md:block md:col-span-1">
-                    <StickyCTA
-                      property={property}
-                      onBookNow={() => {/* preview — no action */}}
-                    />
+                    <PreviewContentBoundary>
+                      <StickyCTA
+                        property={property}
+                        onBookNow={() => {/* preview — no action */}}
+                      />
+                    </PreviewContentBoundary>
                   </div>
 
                 </div>
@@ -342,8 +388,6 @@ function GalleryWrapper({ propertyViews, images, onBack }) {
 }
 
 // ─── Error Boundary for Gallery ───────────────────────────────────────────────
-
-import React from "react";
 
 class GalleryErrorBoundary extends React.Component {
   constructor(props) {
@@ -388,4 +432,23 @@ function FallbackGallery({ images }) {
       </div>
     </div>
   );
+}
+
+class PreviewContentBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(err) {
+    console.warn("Preview Section Warning:", err);
+  }
+  render() {
+    if (this.state.hasError) {
+      return null;
+    }
+    return this.props.children;
+  }
 }

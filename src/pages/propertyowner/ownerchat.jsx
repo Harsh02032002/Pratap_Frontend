@@ -205,6 +205,18 @@ export default function OwnerChat() {
 
       let conversations = res?.conversations || [];
 
+      // Filter out owner-to-owner and owner-to-superadmin conversations.
+      // Keep only tenants (email-based IDs, roomhyweb* IDs) and unknown parties.
+      const OWNER_LOGIN_PATTERN = /^ROOMHY\d{4,}$/i;
+      const SUPERADMIN_PATTERN = /^(superadmin|super_admin|admin)$/i;
+      conversations = conversations.filter(c => {
+        const pid = String(c.participant_login_id || '').trim();
+        // Exclude other owner accounts and superadmin
+        if (OWNER_LOGIN_PATTERN.test(pid) && pid.toUpperCase() !== owner.loginId.toUpperCase()) return false;
+        if (SUPERADMIN_PATTERN.test(pid)) return false;
+        return true;
+      });
+
       if (tenants && Array.isArray(tenants)) {
         const existingLoginIds = new Set(conversations.map(c => c.participant_login_id));
         const newConversations = tenants
@@ -228,6 +240,7 @@ export default function OwnerChat() {
       setLoadingInbox(false);
     }
   };
+
 
   const fetchMessages = async (targetUserId) => {
     try {
@@ -317,9 +330,33 @@ export default function OwnerChat() {
       fetchInbox();
     });
 
+    socket.on("message_blocked", (data) => {
+      if (data?.warning) {
+        setBlockedMsgSnippet(data?.message || '');
+        setShowBypassWarning(true);
+      }
+      if (activeChatRef.current?.participant_login_id) {
+        fetchMessages(activeChatRef.current.participant_login_id);
+      }
+    });
+
+    socket.on("account_blocked", () => {
+      // Panel blur & redirect handled by PropertyOwnerLayout,
+      // but also trigger here as fallback in case that socket missed it
+      import('../../utils/propertyowner').then(({ clearOwnerRuntimeSession }) => {
+        clearOwnerRuntimeSession();
+      }).catch(() => {});
+      setTimeout(() => {
+        window.location.href = '/propertyowner/ownerlogin';
+      }, 4000);
+    });
+
     return () => {
       socket.off("connect", joinOwnRoom);
       socket.off("reconnect", joinOwnRoom);
+      socket.off("receive_message");
+      socket.off("message_blocked");
+      socket.off("account_blocked");
       socket.disconnect();
       socketRef.current = null;
     };

@@ -116,7 +116,7 @@ export default function Owner() {
       if (!formName || !formPhone || !formEmail) return alert("Please fill in all required fields.");
       setSaving(true);
       try {
-         await fetchJson("/api/owners", {
+         const res = await fetchJson("/api/owners", {
             method: "POST",
             headers: getAuthHeader(),
             body: JSON.stringify({
@@ -135,7 +135,7 @@ export default function Owner() {
                checkinUpiId: formUpiId
             })
          });
-         alert("Property Owner added successfully! Account credentials have been generated.");
+         alert(`Property Owner added successfully!\n\nKYC Verification Link has been sent to ${formEmail}.\n\nLogin credentials will be issued after the owner completes KYC.`);
          setSearchParams({ view: "list" });
          loadOwners();
       } catch (err) { alert(err.message || "Failed to add property owner."); }

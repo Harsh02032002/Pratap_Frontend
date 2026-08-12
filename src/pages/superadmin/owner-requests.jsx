@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import SharedShell from "../../components/SharedShell";
 import { useSuperadminLogin } from "./useSuperadminLogin";
 import {
   CheckCircle, XCircle, Clock, ChevronDown, ChevronRight,
@@ -189,22 +188,29 @@ export default function OwnerRequestsPage() {
 
   const showToast = (message, type = "info") => setToast({ message, type });
 
-  const fetchRequests = async () => {
-    setLoading(true);
+  const [backendDown, setBackendDown] = useState(false);
+
+  const fetchRequests = async (isInitial = false) => {
+    if (isInitial) setLoading(true);
     try {
       const statusParam = filter !== "All" ? `?status=${filter}` : "";
       const res  = await fetch(`/api/owner-change-requests${statusParam}`);
       const data = await res.json();
-      if (data.success) setRequests(data.data || []);
+      if (data.success) {
+        setRequests(data.data || []);
+        setBackendDown(false);
+      }
     } catch (err) {
-      console.error(err);
+      // Backend offline — don't spam, just mark as down
+      setBackendDown(true);
+      console.warn("Owner requests: backend unreachable");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (adminLoginId) fetchRequests();
+    if (adminLoginId) fetchRequests(true);
   }, [adminLoginId, filter]);
 
   const handleApprove = async (req) => {
@@ -252,7 +258,7 @@ export default function OwnerRequestsPage() {
   if (!adminLoginId) return null;
 
   return (
-    <SharedShell title="Owner Change Requests">
+    <div className="flex-1 p-8 min-h-screen bg-slate-50">
       {/* ── Modals ──────────────────────────────────────────── */}
       {approveModal && (
         <ConfirmModal
@@ -457,6 +463,6 @@ export default function OwnerRequestsPage() {
           </table>
         </div>
       </div>
-    </SharedShell>
+    </div>
   );
 }

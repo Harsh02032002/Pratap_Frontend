@@ -139,7 +139,7 @@ export const resolveWebsiteChatUserId = (booking = {}) => {
 };
 
 export const filterByActiveProperty = (list, isProperty = false) => {
-  if (typeof window === "undefined") return list;
+  if (typeof window === "undefined" || !Array.isArray(list)) return list || [];
   const session = getOwnerSession();
   
   let targetPropertyId = null;
@@ -160,10 +160,40 @@ export const filterByActiveProperty = (list, isProperty = false) => {
   }
 
   if (targetPropertyId) {
-    return list.filter(item => {
-      const propId = isProperty ? (item._id || item.id) : (item.property?._id || item.property || item.propertyId || item.property_id || item.property_name);
-      return String(propId) === String(targetPropertyId) || (isProperty && item.title === session?.assignedProperty?.title);
+    const targetStr = String(targetPropertyId).trim().toLowerCase();
+    
+    // Resolve property title if targetPropertyId is an ObjectId
+    let targetTitle = '';
+    try {
+      const savedProps = readJson('roomhy_properties', []);
+      if (Array.isArray(savedProps)) {
+        const targetObj = savedProps.find(p => String(p._id || p.id || '').trim().toLowerCase() === targetStr || String(p.title || p.name || '').trim().toLowerCase() === targetStr);
+        if (targetObj) {
+          targetTitle = String(targetObj.title || targetObj.name || '').trim().toLowerCase();
+        }
+      }
+    } catch (_) {}
+
+    const filtered = list.filter(item => {
+      if (!item) return false;
+      if (isProperty) {
+        const itemPropId = String(item._id || item.id || '').trim().toLowerCase();
+        const itemTitle = String(item.title || item.name || '').trim().toLowerCase();
+        return itemPropId === targetStr || itemTitle === targetStr || (targetTitle && itemTitle === targetTitle);
+      }
+      
+      // For items linked to a property (rooms, tenants, enquiries, booking requests, etc.)
+      const pId = String(item.property?._id || item.property?.id || item.property || item.propertyId || item.property_id || '').trim().toLowerCase();
+      const pName = String(item.propertyName || item.property_name || item.propertyTitle || item.title || item.propertyInfo?.name || item.propertyInfo?.title || '').trim().toLowerCase();
+
+      const matchesId = Boolean(pId && (pId === targetStr || (targetTitle && pId === targetTitle)));
+      const matchesName = Boolean(pName && (pName === targetStr || (targetTitle && pName === targetTitle)));
+
+      return matchesId || matchesName;
     });
+    
+    // Always return exact filtered list when a specific property is selected
+    return filtered;
   }
   
   return list;
@@ -338,21 +368,26 @@ export const fetchOwnerProperties = async (loginId, bypassFilter = false) => {
   const _hit = _getCached(_cacheKey);
   if (_hit) return _hit;
   let response = await fetchJson(`/api/owners/${encodeURIComponent(loginId)}/properties`);
-  let properties = (response?.properties || []).filter((item) => {
-    const candidateOwner = item?.ownerLoginId || item?.ownerId || item?.owner || "";
-    return candidateOwner && matchesOwnerLoginId(candidateOwner, loginId);
-  });
 
-  if (!bypassFilter) {
+  // When bypassFilter is true (properties page "Your Properties" view),
+  // trust the backend's result fully and skip client-side ownerLoginId filtering
+  // which can exclude valid properties due to case mismatches or ObjectId owner field.
+  let properties;
+  if (bypassFilter) {
+    properties = response?.properties || [];
+  } else {
+    properties = (response?.properties || []).filter((item) => {
+      const candidateOwner = item?.ownerLoginId || item?.ownerId || item?.owner || "";
+      return candidateOwner && matchesOwnerLoginId(candidateOwner, loginId);
+    });
     properties = filterByActiveProperty(properties, true);
   }
-
-  const session = getOwnerSession();
 
   writeJson("roomhy_properties", properties);
   _setCached(_cacheKey, properties);
   return properties;
 };
+
 
 export const fetchOwnerRooms = async (loginId, page = 1, limit = 50, skipCache = false) => {
   const normalizedId = String(loginId || "").trim().toUpperCase();

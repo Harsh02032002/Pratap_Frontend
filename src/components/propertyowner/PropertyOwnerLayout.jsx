@@ -22,7 +22,7 @@ import { LayoutDashboard,
   Settings2,
   Search, Lock, ChevronRight, Crown, Zap, Users, BookOpen, FileText, Smartphone, Wallet, PieChart, Shield, Target, Navigation, Megaphone, Coffee, Receipt, Sparkles, LinkIcon, UserPlus, AlertCircle, Calendar, HelpCircle, Building2, Image as ImageIcon } from "lucide-react";
 import { SILVER_NAV, GOLD_NAV } from './navConfig';
-import { fetchOwnerProperties } from "../../utils/propertyowner";
+import { fetchOwnerProperties, clearOwnerRuntimeSession } from "../../utils/propertyowner";
 import { getStaffPanelNav, filterNotificationsForStaff, hasStaffPermission } from "../../utils/staffAccess";
 import { cacheGet, cacheSet, cacheInvalidate } from "../../utils/cache";
 import PropertyOwnerMobileLayout from "./PropertyOwnerMobileLayout";
@@ -146,6 +146,7 @@ export default function PropertyOwnerLayout({
   const [isAccountBlocked, setIsAccountBlocked] = useState(() => {
     return owner?.isActive === false || owner?.status === 'blocked' || owner?.isBlocked === true;
   });
+  const [blockCountdown, setBlockCountdown] = useState(5);
 
   useEffect(() => {
     if (owner?.isActive === false || owner?.status === 'blocked' || owner?.isBlocked === true) {
@@ -163,6 +164,18 @@ export default function PropertyOwnerLayout({
           socket.emit('join_room', { login_id: owner.loginId, role: 'property_owner', name: owner.name || owner.loginId });
           socket.on('account_blocked', () => {
             setIsAccountBlocked(true);
+            clearOwnerRuntimeSession();
+            // countdown then redirect to login
+            let count = 5;
+            setBlockCountdown(count);
+            const t = setInterval(() => {
+              count -= 1;
+              setBlockCountdown(count);
+              if (count <= 0) {
+                clearInterval(t);
+                window.location.href = '/propertyowner/ownerlogin';
+              }
+            }, 1000);
           });
         });
       });
@@ -951,26 +964,59 @@ export default function PropertyOwnerLayout({
 
         {/* Account Blocked Full-Screen Overlay Modal */}
         {isAccountBlocked && (
-          <div className="fixed inset-0 z-[999999] bg-slate-950/85 backdrop-blur-2xl flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl max-w-md w-full p-8 text-center shadow-2xl border-2 border-rose-500 animate-in fade-in zoom-in duration-200">
-              <div className="w-16 h-16 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-4">
-                <Lock className="w-8 h-8 stroke-[2.5]" />
+          <>
+            {/* Panel blur overlay — sits below modal, above everything else */}
+            <div
+              style={{ backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)' }}
+              className="fixed inset-0 z-[99998] bg-slate-950/70 pointer-events-none"
+            />
+
+            {/* Blocked modal */}
+            <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+              <div className="bg-white rounded-3xl max-w-md w-full p-8 text-center shadow-[0_0_80px_rgba(239,68,68,0.35)] border-2 border-rose-500" style={{ animation: 'fadeInScale 0.25s ease forwards' }}>
+                {/* Pulsing red icon */}
+                <div className="relative w-20 h-20 mx-auto mb-5">
+                  <span className="absolute inset-0 rounded-full bg-rose-500 opacity-20 animate-ping" />
+                  <div className="relative w-20 h-20 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center shadow-lg">
+                    <Lock className="w-9 h-9 stroke-[2.5]" />
+                  </div>
+                </div>
+
+                <span className="text-[10px] font-black uppercase tracking-widest text-rose-600 bg-rose-50 border border-rose-200 px-3.5 py-1 rounded-full">
+                  🚨 ACCOUNT PERMANENTLY BLOCKED
+                </span>
+
+                <h2 className="text-2xl font-black text-slate-900 mt-4 mb-2">Access Denied</h2>
+                <p className="text-xs font-semibold text-slate-600 leading-relaxed mb-4">
+                  Your account has been automatically blocked due to <span className="text-rose-600 font-bold">repeated commission bypass / offline deal attempts</span>. All panel access is now revoked.
+                </p>
+
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-left text-[11px] font-semibold text-rose-800 mb-5">
+                  ⚠️ Sharing phone numbers, requesting offline payments, or bypassing Roomhy's commission is strictly prohibited and results in immediate, permanent suspension.
+                </div>
+
+                {/* Countdown bar */}
+                <div className="mb-5">
+                  <p className="text-[11px] text-slate-500 font-semibold mb-2">
+                    Logging you out in <span className="text-rose-600 font-black text-sm">{blockCountdown}s</span>
+                  </p>
+                  <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                    <div
+                      className="h-full bg-rose-500 rounded-full transition-all duration-1000"
+                      style={{ width: `${(blockCountdown / 5) * 100}%` }}
+                    />
+                  </div>
+                </div>
+
+                <a
+                  href="mailto:support@roomhy.com"
+                  className="w-full h-11 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all shadow-lg flex items-center justify-center gap-2"
+                >
+                  📧 Contact Roomhy Support
+                </a>
               </div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-rose-600 bg-rose-50 border border-rose-200 px-3.5 py-1 rounded-full">
-                PERMANENTLY BLOCKED
-              </span>
-              <h2 className="text-2xl font-black text-slate-900 mt-3 mb-2">Owner Panel Locked</h2>
-              <p className="text-xs font-semibold text-slate-600 leading-relaxed mb-4">
-                Your account has been permanently blocked due to repeated commission bypass / contact details sharing attempts.
-              </p>
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-left text-[11px] font-semibold text-rose-800 mb-6">
-                ⚠️ Platform Security Policy: Offline deals, phone number sharing, or commission bypass attempts cause automatic account locking. Once blocked, panel access cannot be restored automatically.
-              </div>
-              <a href="mailto:support@roomhy.com" className="w-full h-12 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all shadow-lg flex items-center justify-center">
-                Contact Roomhy Support
-              </a>
             </div>
-          </div>
+          </>
         )}
       </div>
     </div>

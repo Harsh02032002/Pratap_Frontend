@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import toast from "react-hot-toast";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession } from "../../utils/propertyowner";
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, filterByActiveProperty } from "../../utils/propertyowner";
 import { fetchJson } from "../../utils/api";
 import { cacheGet, cacheSet, cacheInvalidate } from "../../utils/cache";
 
@@ -36,7 +36,7 @@ export default function BookingRequestPage() {
     if (!bustCache) {
       const cached = cacheGet(cacheKey);
       if (cached && cached.length > 0) {
-        setRequests(cached); setLoading(false);
+        setRequests(filterByActiveProperty(cached, false)); setLoading(false);
         return;
       }
     } else {
@@ -47,7 +47,7 @@ export default function BookingRequestPage() {
       const response = await fetchJson(`/api/booking?owner_id=${encodeURIComponent(owner.loginId)}&status=pending`);
       const data = response?.data || [];
       if (data.length > 0) cacheSet(cacheKey, data, BOOKING_TTL);
-      setRequests(data);
+      setRequests(filterByActiveProperty(data, false));
     } catch (err) {
       console.error("Error fetching booking requests:", err);
     } finally {
