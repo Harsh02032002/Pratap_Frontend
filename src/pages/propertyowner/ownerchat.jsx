@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
 import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerTenants } from "../../utils/propertyowner";
-import { apiFetch } from "../../utils/api";
+import { apiFetch, getApiBase } from "../../utils/api";
+import { io } from "socket.io-client";
 import { Search, Send, User, MoreVertical, Loader2, MessageSquare, Wallet, Paperclip, FileText, AlertTriangle } from "lucide-react";
 
 export default function OwnerChat() {
@@ -22,7 +23,15 @@ export default function OwnerChat() {
   
   const messagesEndRef = React.useRef(null);
   const fileInputRef = React.useRef(null);
+  const socketRef = React.useRef(null);
+  const activeChatRef = React.useRef(null);
   const [debouncedSearch, setDebouncedSearch] = React.useState("");
+
+  // Keep the open conversation readable from socket handlers without
+  // re-subscribing on every switch.
+  React.useEffect(() => {
+    activeChatRef.current = activeChat;
+  }, [activeChat]);
 
   // Debounce search — used for client-side filtering only, not for polling
   React.useEffect(() => {
@@ -269,6 +278,52 @@ export default function OwnerChat() {
       setAssociatedBooking(null);
     }
   }, [activeChat]);
+
+  // Live delivery. The polls above stay as a fallback for a dropped socket,
+  // but without this the owner only saw new messages on the next 10-15s tick
+  // (or a manual refresh).
+  React.useEffect(() => {
+    if (!owner?.loginId) return undefined;
+
+    const socket = io(getApiBase(), {
+      transports: ["websocket", "polling"],
+      reconnectionAttempts: 10
+    });
+    socketRef.current = socket;
+
+    const joinOwnRoom = () => {
+      socket.emit("join_room", {
+        login_id: owner.loginId,
+        role: "property_owner",
+        name: owner.name || owner.ownerName || owner.loginId
+      });
+    };
+
+    socket.on("connect", joinOwnRoom);
+    socket.on("reconnect", joinOwnRoom);
+
+    socket.on("receive_message", (incoming) => {
+      const sender = String(incoming?.sender_login_id || "").trim().toLowerCase();
+      const open = activeChatRef.current;
+
+      // Refresh the open thread so the new message renders with the same
+      // shape/moderation flags the REST fetch produces.
+      if (open?.participant_login_id &&
+          sender === String(open.participant_login_id).trim().toLowerCase()) {
+        fetchMessages(open.participant_login_id);
+      }
+
+      // Always refresh the sidebar for previews and unread counts.
+      fetchInbox();
+    });
+
+    return () => {
+      socket.off("connect", joinOwnRoom);
+      socket.off("reconnect", joinOwnRoom);
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [owner?.loginId]);
 
   const scrollToBottom = () => {
     setTimeout(() => {

@@ -226,8 +226,10 @@ export default function WebsiteChat() {
     if (!websiteUserId || !user) return undefined;
 
     const socket = io(getApiBase(), {
-      transports: ["websocket"],
-      upgrade: false,
+      // Allow the long-polling fallback: websocket-only silently fails to
+      // connect behind proxies that do not pass the upgrade through, and the
+      // page then looks fine while never receiving anything.
+      transports: ["websocket", "polling"],
       reconnection: true
     });
     socketRef.current = socket;

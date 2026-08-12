@@ -3,6 +3,7 @@ import {
   getScopedAuthToken,
   getScopedStoredUser,
   clearScopedSession,
+  hasFabricatedSession,
   isWebsiteRoute,
   isAdminRole
 } from '../utils/authScope';
@@ -33,6 +34,15 @@ export const AuthProvider = ({ children }) => {
     // navbar show "Super Admin" for every visitor once a superadmin had signed
     // in on the same browser.
     const onWebsite = isWebsiteRoute();
+
+    // Purge a leftover fabricated session so the UI shows signed-out rather
+    // than a signed-in shell whose every request 401s.
+    if (hasFabricatedSession()) {
+      clearScopedSession();
+      setLoading(false);
+      return;
+    }
+
     const token = getScopedAuthToken();
     const parsedUser = getScopedStoredUser();
 

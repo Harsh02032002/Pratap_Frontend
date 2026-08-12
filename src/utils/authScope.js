@@ -52,16 +52,33 @@ const read = (key) => {
   }
 };
 
+// Sessions the website login used to fabricate when the backend REJECTED the
+// credentials ("demo_token_<timestamp>"). They are not JWTs, so every request
+// made with one fails — the page then looks signed in but silently renders
+// nothing. The login no longer creates these, but they persist in the
+// localStorage of anyone who hit the old code, so treat them as absent.
+const isFabricatedToken = (token) => /^demo_token_/i.test(String(token || ""));
+
 // The JWT that is valid for the current route, or null.
 export const getScopedAuthToken = (pathname = currentPath()) => {
-  if (isWebsiteRoute(pathname)) {
-    // Website: its own token only — never the panel `token`.
-    return read("website_token") || read("accessToken") || null;
-  }
+  const token = isWebsiteRoute(pathname)
+    ? // Website: its own token only — never the panel `token`.
+      read("website_token") || read("accessToken")
+    : // Panels: sessionStorage first so an owner (tab A) and their staff (tab B)
+      // can stay signed in at the same time in one browser.
+      read("token") || read("accessToken");
 
-  // Panels: sessionStorage first so an owner (tab A) and their staff (tab B)
-  // can stay signed in at the same time in one browser.
-  return read("token") || read("accessToken") || null;
+  if (!token || isFabricatedToken(token)) return null;
+  return token;
+};
+
+// True when storage holds a session that can never authenticate, so the caller
+// can clear it and show a signed-out state instead of a broken signed-in one.
+export const hasFabricatedSession = (pathname = currentPath()) => {
+  const raw = isWebsiteRoute(pathname)
+    ? read("website_token") || read("accessToken")
+    : read("token") || read("accessToken");
+  return isFabricatedToken(raw);
 };
 
 // The stored user object for the current route, or null. Never use this for
