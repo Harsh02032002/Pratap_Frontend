@@ -44,22 +44,22 @@ export const queryKeys = {
 
   tenants: {
     all: ["tenants"],
-    byOwner: (ownerLoginId) => ["tenants", "owner", ownerLoginId],
+    byOwner: (ownerLoginId, params = {}) => ["tenants", "owner", ownerLoginId, params],
   },
 
   rooms: {
     all: ["rooms"],
-    byOwner: (ownerLoginId) => ["rooms", "owner", ownerLoginId],
+    byOwner: (ownerLoginId, params = {}) => ["rooms", "owner", ownerLoginId, params],
   },
 
   electricity: {
     all: ["electricity"],
-    byOwner: (ownerLoginId) => ["electricity", "owner", ownerLoginId],
+    byOwner: (ownerLoginId, params = {}) => ["electricity", "owner", ownerLoginId, params],
   },
 
   complaints: {
     all: ["complaints"],
-    byOwner: (ownerLoginId) => ["complaints", "owner", ownerLoginId],
+    byOwner: (ownerLoginId, params = {}) => ["complaints", "owner", ownerLoginId, params],
   },
 
   rents: {

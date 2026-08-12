@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerEmployees } from "../../utils/propertyowner";
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerEmployees, getActiveOwnerPropertyId } from "../../utils/propertyowner";
 import { fetchJson } from "../../utils/api";
 import { cacheGet, cacheSet, cacheInvalidate } from "../../utils/cache";
 import { AlertCircle, Search, Loader2 } from "lucide-react";
@@ -46,7 +46,8 @@ export default function Complaints() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const compKey = `complaints:${owner.loginId}`;
+      const propertyId = getActiveOwnerPropertyId();
+      const compKey = `complaints:${owner.loginId}:${propertyId || "all"}`;
 
       // Serve cached complaints immediately
       const cachedComp = cacheGet(compKey);
@@ -59,7 +60,8 @@ export default function Complaints() {
 
       setLoading(true);
       try {
-        const compData = await fetchJson(`/api/complaints/owner/${encodeURIComponent(owner.loginId)}`);
+        const qs = propertyId ? `?propertyId=${encodeURIComponent(propertyId)}` : "";
+        const compData = await fetchJson(`/api/complaints/owner/${encodeURIComponent(owner.loginId)}${qs}`);
         const list = compData?.complaints || [];
         cacheSet(compKey, list, COMPLAINTS_TTL);
         setComplaints(list);

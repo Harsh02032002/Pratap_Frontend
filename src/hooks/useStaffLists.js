@@ -9,9 +9,10 @@ import { getActiveOwnerPropertyId } from "../utils/propertyowner";
 
 /** Complaints visible to a staff member via their owner-scoped property. */
 export function useStaffComplaints(ownerLoginId, options = {}) {
+  const propertyId = getActiveOwnerPropertyId();
   return useQuery({
-    queryKey: queryKeys.complaints.byOwner(ownerLoginId),
-    queryFn: () => getOwnerComplaints(ownerLoginId),
+    queryKey: queryKeys.complaints.byOwner(ownerLoginId, { propertyId }),
+    queryFn: () => getOwnerComplaints(ownerLoginId, { propertyId }),
     enabled: !!ownerLoginId,
     staleTime: STALE.tasks,
     ...options,
@@ -20,9 +21,10 @@ export function useStaffComplaints(ownerLoginId, options = {}) {
 
 /** Rooms visible to a staff member via their owner-scoped property. */
 export function useStaffRooms(ownerLoginId, options = {}) {
+  const propertyId = getActiveOwnerPropertyId();
   return useQuery({
-    queryKey: queryKeys.rooms.byOwner(ownerLoginId),
-    queryFn: () => getOwnerRooms(ownerLoginId),
+    queryKey: queryKeys.rooms.byOwner(ownerLoginId, { propertyId }),
+    queryFn: () => getOwnerRooms(ownerLoginId, { propertyId }),
     enabled: !!ownerLoginId,
     staleTime: STALE.properties,
     ...options,
@@ -64,10 +66,12 @@ export function useUpdateStaffVisitorPass(ownerLoginId) {
 
 /** Electricity readings for an owner-scoped staff member. */
 export function useStaffElectricity(ownerLoginId, options = {}) {
+  const propertyId = getActiveOwnerPropertyId();
   return useQuery({
-    queryKey: queryKeys.electricity.byOwner(ownerLoginId),
+    queryKey: queryKeys.electricity.byOwner(ownerLoginId, { propertyId }),
     queryFn: async () => {
-      const data = await apiFetch(`/api/electricity/owner/${ownerLoginId}`);
+      const qs = propertyId ? `?propertyId=${encodeURIComponent(propertyId)}` : "";
+      const data = await apiFetch(`/api/electricity/owner/${ownerLoginId}${qs}`);
       return data?.data || [];
     },
     enabled: !!ownerLoginId,

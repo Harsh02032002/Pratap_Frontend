@@ -3,6 +3,7 @@ import { X, Plus, Zap, RotateCw, Calendar, Edit2, Trash2 } from "lucide-react";
 import StaffLayout from "../../components/StaffLayout";
 import { toast } from "react-hot-toast";
 import { useStaffElectricity, useStaffElectricityMutations } from "../../hooks/useStaffLists";
+import { getActiveOwnerPropertyId } from "../../utils/propertyowner";
 
 const cn = (...c) => c.filter(Boolean).join(" ");
 
@@ -38,12 +39,18 @@ export default function StaffElectricityReadings() {
     isLoading,
     refetch,
   } = useStaffElectricity(parentLoginId, {
+    // The backend already scopes this list to the active property via
+    // propertyId (see useStaffElectricity). If no active property is set at
+    // all (e.g. a staff member with no assignment yet), default to showing
+    // nothing rather than every property's readings — a title-string match
+    // against assignedPropertyName isn't reliable enough to gate this alone.
     select: (list = []) => {
-      let allRooms = list;
-      if (assignedPropertyName) {
-        allRooms = allRooms.filter((r) => r.propertyTitle === assignedPropertyName);
+      const propertyId = getActiveOwnerPropertyId();
+      if (!propertyId && !assignedPropertyName) return [];
+      if (!propertyId && assignedPropertyName) {
+        return list.filter((r) => r.propertyTitle === assignedPropertyName);
       }
-      return allRooms;
+      return list;
     },
   });
   const { addReading, deleteReading } = useStaffElectricityMutations(parentLoginId);
