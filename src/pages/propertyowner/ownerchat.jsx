@@ -340,15 +340,26 @@ export default function OwnerChat() {
 
   const checkBypassAttempt = (text) => {
     if (!text) return false;
+    const trimmed = text.trim();
+    const words = trimmed.split(/\s+/);
+    const isShortChatter = words.length <= 4;
+    const shortExemptPattern = /^\s*"?\s*(de|naa|na|paise|paisa|yahan|yaan|ha|haa|haan|thik|theek|bhej|bhejo|dena|karo|kro|hi|hello|ok|okay|aata|aaya|bhai|sir|mam|rent|room|ac|non ac|single|double|sharing|mil|baat|kaise|ho|acha|achha|batao|chahiye|mileyga|milraha|kab|kitna)\s*"?\s*$/i;
+
+    const hasDigitsOrUrl = /\d{5,}|http|www|\.com|@/.test(trimmed);
+    if (isShortChatter && !hasDigitsOrUrl && shortExemptPattern.test(trimmed)) {
+      return false;
+    }
+
     const cleanDigits = String(text).replace(/[\s\-().,_/*]/g, '');
     const hasTenDigits = /\d{10}/.test(cleanDigits);
     const spacedDigits = /(\d[\s\-.,_*/]*){10,12}/g.test(text);
     const bypassKeywords = [
-      /\b(whatsapp|watsapp|watsp|wtsp|wa|wp)\b/i,
+      /\b(whatsapp|watsapp|watsp|wtsp)\b/i,
       /\b(call|phone|phn|mobile|contact|number|no|num)\s+([a-zA-Z]*\s+){0,2}(de|bhej|share|kar|kr|karo|kro|lena|le)\b/i,
-      /\b(offline|cash|direct|bypass|commission|brokerage)\b/i,
+      /\b(no\s+brokerage|save\s+commission|brokerage\s+bach|bypass\s+commission|without\s+commission)\b/i,
       /\b(pay|payment|rent|deposit|advance)\s+([a-zA-Z]*\s+){0,2}(offline|cash|direct|account)\b/i,
-      /\b(booking\s+cancel|cancel\s+booking)\b/i
+      /\b(in\s*hand|hand\s*to\s*hand|offline\s*cash|direct\s*cash)\b/i,
+      /\boffline\s+(cash|payment|deal|transfer|settlement)\b/i
     ];
     return hasTenDigits || spacedDigits || bypassKeywords.some(rx => rx.test(text));
   };

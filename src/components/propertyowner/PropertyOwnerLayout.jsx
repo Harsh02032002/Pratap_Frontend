@@ -143,6 +143,37 @@ export default function PropertyOwnerLayout({
     }
   }, []);
 
+  const [isAccountBlocked, setIsAccountBlocked] = useState(() => {
+    return owner?.isActive === false || owner?.status === 'blocked' || owner?.isBlocked === true;
+  });
+
+  useEffect(() => {
+    if (owner?.isActive === false || owner?.status === 'blocked' || owner?.isBlocked === true) {
+      setIsAccountBlocked(true);
+    }
+  }, [owner]);
+
+  useEffect(() => {
+    if (!owner?.loginId) return;
+    let socket;
+    try {
+      import('socket.io-client').then(({ io }) => {
+        import('../../utils/api').then(({ getApiBase }) => {
+          socket = io(getApiBase(), { transports: ['websocket', 'polling'] });
+          socket.emit('join_room', { login_id: owner.loginId, role: 'property_owner', name: owner.name || owner.loginId });
+          socket.on('account_blocked', () => {
+            setIsAccountBlocked(true);
+          });
+        });
+      });
+    } catch (_) {}
+
+    return () => {
+      if (socket) socket.disconnect();
+    };
+  }, [owner?.loginId]);
+
+
   useEffect(() => {
     if (owner?.loginId) {
       fetchOwnerProperties(owner.loginId, true).then(props => {
@@ -916,6 +947,30 @@ export default function PropertyOwnerLayout({
             className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 transition-opacity"
             onClick={() => setMobileOpen(false)}
           />
+        )}
+
+        {/* Account Blocked Full-Screen Overlay Modal */}
+        {isAccountBlocked && (
+          <div className="fixed inset-0 z-[999999] bg-slate-950/85 backdrop-blur-2xl flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl max-w-md w-full p-8 text-center shadow-2xl border-2 border-rose-500 animate-in fade-in zoom-in duration-200">
+              <div className="w-16 h-16 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-4">
+                <Lock className="w-8 h-8 stroke-[2.5]" />
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-widest text-rose-600 bg-rose-50 border border-rose-200 px-3.5 py-1 rounded-full">
+                PERMANENTLY BLOCKED
+              </span>
+              <h2 className="text-2xl font-black text-slate-900 mt-3 mb-2">Owner Panel Locked</h2>
+              <p className="text-xs font-semibold text-slate-600 leading-relaxed mb-4">
+                Your account has been permanently blocked due to repeated commission bypass / contact details sharing attempts.
+              </p>
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-left text-[11px] font-semibold text-rose-800 mb-6">
+                ⚠️ Platform Security Policy: Offline deals, phone number sharing, or commission bypass attempts cause automatic account locking. Once blocked, panel access cannot be restored automatically.
+              </div>
+              <a href="mailto:support@roomhy.com" className="w-full h-12 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all shadow-lg flex items-center justify-center">
+                Contact Roomhy Support
+              </a>
+            </div>
+          </div>
         )}
       </div>
     </div>
