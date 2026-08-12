@@ -65,6 +65,10 @@ const resolveHostHome = () => {
     return "/tenant/tenantdashboard";
   }
 
+  if (metaTarget === "website" || host === "roomhy.com" || host === "www.roomhy.com") {
+    return "/";
+  }
+
   if (metaTarget === "superadmin" || host === "admin.roomhy.com" || host === "www.admin.roomhy.com") {
     if (role === "superadmin" || role === "admin") return "/superadmin/superadmin";
     if (role === "manager") {
@@ -317,7 +321,7 @@ const DomainGuard = () => {
         window.location.replace(`https://app.roomhy.com${path}`);
         return;
       }
-      const isAllowed = path.startsWith("/superadmin") || path.startsWith("/employee") || path.startsWith("/staff") || path.startsWith("/digital-checkin") || path.startsWith("/website");
+      const isAllowed = path.startsWith("/superadmin") || path.startsWith("/employee") || path.startsWith("/staff") || path.startsWith("/digital-checkin") || path.startsWith("/website") || path.startsWith("/admin");
       if (!isAllowed) {
         window.location.replace("/superadmin/index");
       }
@@ -331,7 +335,7 @@ const DomainGuard = () => {
         window.location.replace(resolveHostHome());
         return;
       }
-      if (path.startsWith("/superadmin") || path.startsWith("/employee")) {
+      if (path.startsWith("/superadmin") || path.startsWith("/employee") || path.startsWith("/admin")) {
         window.location.replace(`https://admin.roomhy.com${path}`);
         return;
       }
@@ -346,8 +350,12 @@ const DomainGuard = () => {
     const isMainWebsiteDomain = host === "roomhy.com" || host === "www.roomhy.com";
     if (isMainWebsiteDomain) {
       // Redirect superadmin links on main website to admin.roomhy.com
-      if (path.startsWith("/superadmin") || path.startsWith("/admin")) {
+      if (path.startsWith("/superadmin")) {
         window.location.replace(`https://admin.roomhy.com/superadmin/index`);
+        return;
+      }
+      if (path.startsWith("/admin")) {
+        window.location.replace(`https://admin.roomhy.com/admin`);
         return;
       }
       // Redirect owner links on main website to app.roomhy.com
