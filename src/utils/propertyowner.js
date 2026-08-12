@@ -444,6 +444,9 @@ export const fetchOwnerTenants = async (loginId, skipCache = true) => {
     let tenants = response?.tenants || response?.data || [];
     tenants = filterByActiveProperty(tenants);
     writeJson("roomhy_tenants", tenants);
+    // Tag the cache with the property it was scoped to, so a stale-cache instant-render
+    // (see tenants.jsx) never shows one property's tenants while another is active.
+    writeJson("roomhy_tenants_property", getActiveOwnerPropertyId() || "all");
     _setCached(_cacheKey, tenants);
     return tenants;
   } catch (_) {
@@ -452,6 +455,7 @@ export const fetchOwnerTenants = async (loginId, skipCache = true) => {
       let tenants = Array.isArray(response) ? response : response?.tenants || response?.data || [];
       tenants = filterByActiveProperty(tenants);
       writeJson("roomhy_tenants", tenants);
+      writeJson("roomhy_tenants_property", getActiveOwnerPropertyId() || "all");
       _setCached(_cacheKey, tenants);
       return tenants;
     } catch (_) {
@@ -459,6 +463,7 @@ export const fetchOwnerTenants = async (loginId, skipCache = true) => {
       let tenants = response?.tenants || [];
       tenants = filterByActiveProperty(tenants);
       writeJson("roomhy_tenants", tenants);
+      writeJson("roomhy_tenants_property", getActiveOwnerPropertyId() || "all");
       _setCached(_cacheKey, tenants);
       return tenants;
     }

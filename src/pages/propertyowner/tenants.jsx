@@ -279,10 +279,14 @@ export default function Tenants() {
     if (!session?.loginId) { window.location.href = "/propertyowner/ownerlogin"; return; }
     setOwner(session);
     const load = async () => {
-      // Show stale localStorage data instantly so the page never feels blank
+      // Show stale localStorage data instantly so the page never feels blank — but only
+      // when it was cached for the property that's currently active. Otherwise this would
+      // briefly show a different property's tenants after switching/refreshing.
       try {
+        const cachedFor = localStorage.getItem("roomhy_tenants_property") || "";
+        const activeNow = localStorage.getItem("owner_active_property") || "all";
         const stale = JSON.parse(localStorage.getItem("roomhy_tenants") || "[]");
-        if (Array.isArray(stale) && stale.length) {
+        if (Array.isArray(stale) && stale.length && cachedFor === activeNow) {
           setTenants(stale.filter(t => t.status !== "inactive"));
           setLoading(false);
         }
