@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { X, Plus, Zap, RotateCw, Calendar, Edit2, Trash2 } from "lucide-react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession } from "../../utils/propertyowner";
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, getActiveOwnerPropertyId } from "../../utils/propertyowner";
 import { getApiBase, fetchJson } from "../../utils/api";
 import { toast } from "react-hot-toast";
 
@@ -17,6 +17,7 @@ export default function ElectricityReadings() {
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedRoom, setSelectedRoom] = useState(null);
+  const [activeProperty, setActiveProperty] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [readingForm, setReadingForm] = useState({
     billingMonth: new Date().toISOString().slice(0, 7),
@@ -29,17 +30,30 @@ export default function ElectricityReadings() {
     loadRooms(owner.loginId);
   }, []);
 
+  // Rooms + their reading history/latest come from the electricity-specific endpoint
+  // (not the generic /api/rooms/property listing, which has no knowledge of meter readings).
   const loadRooms = async (loginId) => {
     setLoading(true);
     try {
-      const data = await fetchJson(`/api/electricity/owner/${loginId}`);
-      if (data.success) {
+      const propertyId = getActiveOwnerPropertyId();
+      if (!propertyId) {
+        setRooms([]);
+        toast.error("Select an active property to view electricity readings");
+        return [];
+      }
+
+      const data = await fetchJson(`/api/electricity/owner/${encodeURIComponent(loginId)}?propertyId=${encodeURIComponent(propertyId)}`);
+      if (data.success && Array.isArray(data.data)) {
         setRooms(data.data);
+        setActiveProperty(data.data[0] ? { title: data.data[0].propertyTitle } : null);
+        return data.data;
       } else {
         toast.error("Failed to load meter data");
+        return [];
       }
     } catch (e) {
       toast.error("Error loading meter data");
+      return [];
     } finally {
       setLoading(false);
     }
@@ -72,16 +86,12 @@ export default function ElectricityReadings() {
       if (data.success) {
         toast.success("Reading saved successfully!");
         setModalOpen(false);
-        // Refresh data
-        loadRooms(owner.loginId);
 
-        // Update selected room explicitly so UI refreshes without re-selecting
+        // Refresh and re-select so the just-saved reading shows immediately
+        const updatedRooms = await loadRooms(owner.loginId);
         if (selectedRoom) {
-          const updatedRooms = await fetchJson(`/api/electricity/owner/${owner.loginId}`);
-          if (updatedRooms.success) {
-            const updatedRoom = updatedRooms.data.find(r => r.roomId === selectedRoom.roomId);
-            if (updatedRoom) setSelectedRoom(updatedRoom);
-          }
+          const updatedRoom = updatedRooms.find(r => String(r.roomNo) === String(selectedRoom.roomNo));
+          if (updatedRoom) setSelectedRoom(updatedRoom);
         }
       } else {
         toast.error(data.message || "Failed to save reading");
@@ -110,14 +120,11 @@ export default function ElectricityReadings() {
       });
       if (data.success) {
         toast.success("Reading deleted successfully!");
-        loadRooms(owner.loginId);
 
+        const updatedRooms = await loadRooms(owner.loginId);
         if (selectedRoom) {
-          const updatedRooms = await fetchJson(`/api/electricity/owner/${owner.loginId}`);
-          if (updatedRooms.success) {
-            const updatedRoom = updatedRooms.data.find(r => r.roomId === selectedRoom.roomId);
-            if (updatedRoom) setSelectedRoom(updatedRoom);
-          }
+          const updatedRoom = updatedRooms.find(r => String(r.roomNo) === String(selectedRoom.roomNo));
+          if (updatedRoom) setSelectedRoom(updatedRoom);
         }
       } else {
         toast.error(data.message || "Failed to delete reading");
@@ -183,7 +190,7 @@ export default function ElectricityReadings() {
                 <div className="flex items-center justify-between mb-2">
                   <div>
                     <p className="font-black text-slate-900 text-[15px]">Room {room.roomNo || "—"}</p>
-                    <p className="text-[11px] text-slate-500">{room.propertyTitle}</p>
+                    <p className="text-[11px] text-slate-500">{activeProperty?.title || room.propertyTitle}</p>
                   </div>
                   <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
                     <Zap className="w-5 h-5 text-amber-500" />
@@ -206,7 +213,7 @@ export default function ElectricityReadings() {
                 {selectedRoom?.roomId === room.roomId && (
                   <div className="mt-4 pt-4 border-t border-slate-100">
                     <h4 className="text-[12px] font-bold text-slate-800 mb-3">Reading History</h4>
-                    {!selectedRoom.history || selectedRoom.history.length === 0 ? (
+                    {!selectedRoom?.history || selectedRoom.history.length === 0 ? (
                       <p className="text-[11px] text-slate-500 mb-3 text-center py-2 bg-slate-50 rounded-lg">No readings recorded yet</p>
                     ) : (
                       <div className="space-y-2 mb-3 max-h-[250px] overflow-y-auto">
@@ -252,7 +259,7 @@ export default function ElectricityReadings() {
           </div>
 
           {/* Desktop 2-col Grid - hidden on mobile */}
-          <div className="hidden md:grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="hidden md:grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left: Room List */}
             <div className="rounded-2xl border border-border bg-card p-5 shadow-soft h-fit">
               <h2 className="text-[16px] font-semibold text-foreground mb-4">Rooms</h2>
@@ -271,7 +278,7 @@ export default function ElectricityReadings() {
                           ? "bg-primary text-primary-foreground"
                           : "bg-muted text-muted-foreground hover:bg-muted/80")}>
                       <div>Room {room.roomNo || "-"}</div>
-                      <div className="text-[11px] opacity-75">{room.propertyTitle}</div>
+                      <div className="text-[11px] opacity-75">{activeProperty?.title || room.propertyTitle}</div>
                     </button>
                   ))
                 )}

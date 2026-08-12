@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession } from "../../utils/propertyowner";
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, getActiveOwnerPropertyId } from "../../utils/propertyowner";
 import { fetchPayments } from "../../utils/rentCollectionApi";
 import { CheckCircle, Search, IndianRupee, TrendingUp, Calendar } from "lucide-react";
 
@@ -41,7 +41,7 @@ export default function PaymentReceivedPage() {
   const [monthFilter, setMonthFilter] = useState("all");
 
   useEffect(() => {
-    fetchPayments(owner.loginId, 300)
+    fetchPayments(owner.loginId, 300, getActiveOwnerPropertyId())
       .then(data => setPayments(data?.payments || []))
       .catch(() => setPayments([]))
       .finally(() => setLoading(false));

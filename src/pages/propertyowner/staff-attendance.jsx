@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useCallback } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerEmployees, ownerEmployeesCacheKey } from "../../utils/propertyowner";
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerEmployees, ownerEmployeesCacheKey, getActiveOwnerPropertyId } from "../../utils/propertyowner";
 import {
   CheckCircle2, Search, X, ChevronLeft, ChevronRight, ChevronDown,
   ArrowUpDown, SlidersHorizontal, MoreVertical, Calendar, Pencil, Clock,
@@ -134,8 +134,9 @@ export default function StaffAttendancePage() {
   const [menuOpen, setMenuOpen]     = useState(null);
 
   const fetchData = useCallback(async () => {
-    const EMP_KEY = ownerEmployeesCacheKey(owner.loginId, { isActive: true });
-    const ATT_KEY = `attendance:${owner.loginId}`;
+    const propertyId = getActiveOwnerPropertyId();
+    const EMP_KEY = ownerEmployeesCacheKey(owner.loginId, { isActive: true }) + `:${propertyId || "all"}`;
+    const ATT_KEY = `attendance:${owner.loginId}:${propertyId || "all"}`;
     const cachedEmp = cacheGet(EMP_KEY);
     const cachedAtt = cacheGet(ATT_KEY);
     if (cachedEmp && cachedAtt) {
@@ -151,12 +152,31 @@ export default function StaffAttendancePage() {
         cachedAtt ? Promise.resolve(cachedAtt) : apiFetch(`/api/hr/attendance/${owner.loginId}`).then(r => r?.data || []),
       ]);
 
-      setStaff(allStaff);
-      setAttendance(allAtt);
-      if (!cachedAtt && Array.isArray(allAtt)) cacheSet(ATT_KEY, allAtt, 2 * 60 * 1000);
+      // Raw employee records carry the assigned property as `assignedProperties` (an array),
+      // not a singular `assignedProperty` — filtering on the wrong field silently matched
+      // nothing, showing 0 staff regardless of which property was active.
+      const staffPropertyId = (s) => {
+        const first = Array.isArray(s.assignedProperties) ? s.assignedProperties[0] : s.assignedProperty;
+        return first?._id || first?.id || first || "";
+      };
+      const scopedStaff = propertyId
+        ? allStaff.filter(s => String(staffPropertyId(s)) === String(propertyId))
+        : allStaff;
+
+      const scopedAttendance = propertyId
+        ? allAtt.filter(a => {
+            const empId = a.employeeId?._id || a.employeeId;
+            const staff = scopedStaff.find(s => String(s._id) === String(empId));
+            return !!staff;
+          })
+        : allAtt;
+
+      setStaff(scopedStaff);
+      setAttendance(scopedAttendance);
+      if (!cachedAtt && Array.isArray(scopedAttendance)) cacheSet(ATT_KEY, scopedAttendance, 2 * 60 * 1000);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
-  }, [owner.loginId]);
+  }, [owner.loginId, getActiveOwnerPropertyId()]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 

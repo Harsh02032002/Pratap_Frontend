@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession } from "../../utils/propertyowner";
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, getActiveOwnerPropertyId } from "../../utils/propertyowner";
 import { fetchPayments } from "../../utils/rentCollectionApi";
 import { Search, Download, Eye } from "lucide-react";
 import { RentReceiptModal, buildReceiptHtml } from "../../components/propertyowner/RentReceiptModal";
@@ -26,7 +26,7 @@ export default function ReceiptsPage() {
   const [viewing, setViewing] = useState(null);
 
   useEffect(() => {
-    fetchPayments(owner.loginId, 300)
+    fetchPayments(owner.loginId, 300, getActiveOwnerPropertyId())
       .then(d => setPayments(d?.payments || []))
       .catch(() => setPayments([]))
       .finally(() => setLoading(false));
