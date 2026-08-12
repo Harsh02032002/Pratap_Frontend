@@ -408,6 +408,69 @@ const RouteChromeCleanup = () => {
   return null;
 };
 
+
+export default function App() {
+  // Categorize routes for nested layout
+  const shellRoutes = routes.filter(r => {
+    const isSuperadmin = r.path.startsWith("/superadmin/") && r.path !== "/superadmin/index";
+    const isEmployee = r.path.startsWith("/employee/") && r.path !== "/employee/index";
+    // Employees and Superadmins use the same shared shell layout
+    return isSuperadmin || isEmployee;
+  });
+
+  const standaloneRoutes = routes.filter(r => !shellRoutes.find(sr => sr.path === r.path));
+  const ownerRoutes = standaloneRoutes.filter(r => r.path.startsWith("/propertyowner/"));
+  const otherStandaloneRoutes = standaloneRoutes.filter(r => !r.path.startsWith("/propertyowner/"));
+
+  return (
+    <AuthProvider>
+      <TranslationProvider>
+        <ThemeProvider>
+          <Router>
+            <Toaster position="top-right" reverseOrder={false} />
+            <DomainGuard />
+            <InstallPWA />
+            <ManagerRouteGuard />
+            <RouteRoleGuard />
+            <StaffSessionSync />
+            <StaffRouteGuard />
+            <RouteChromeCleanup />
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                {/* Routes wrapped in SharedShell Layout */}
+                <Route element={<SharedShell />}>
+                  {shellRoutes.map(route => (
+                    <Route key={route.path} path={route.path} element={route.element} />
+                  ))}
+                </Route>
+
+                {/* Owner Panel routes — wrapped in ErrorBoundary */}
+                <Route element={<OwnerPanelShell />}>
+                  {ownerRoutes.map(route => (
+                    <Route key={route.path} path={route.path} element={route.element} />
+                  ))}
+                </Route>
+
+                {/* Other standalone routes (tenant, website, staff, etc.) */}
+                {otherStandaloneRoutes.map(route => {
+                  if (PROTECTED_TENANT_PATHS.has(route.path)) {
+                    return (
+                      <Route
+                        key={route.path}
+                        path={route.path}
+                        element={
+                          <TenantProtectedRoute>
+                            {route.element}
+                          </TenantProtectedRoute>
+                        }
+                      />
+                    );
+                  }
+                  return (
+                    <Route key={route.path} path={route.path} element={route.element} />
+                  );
+                })}
+
                 <Route path="/" element={<React.Suspense fallback={<PageLoader />}>{React.createElement(lazy(() => import('./HomePage.jsx')))}</React.Suspense>} />
                 <Route path="/superadmin" element={<Navigate to="/superadmin/index" replace />} />
                 <Route path="/employee" element={<Navigate to="/employee/areaadmin" replace />} />
