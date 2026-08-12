@@ -129,6 +129,8 @@ const routeEntries = [
   ["/superadmin/website-db", "./pages/superadmin/website-db.jsx"],
   ["/superadmin/website", "./pages/superadmin/website.jsx"],
   ["/superadmin/websiteenq", "./pages/superadmin/websiteenq.jsx"],
+  ["/superadmin/website-editor", "./pages/superadmin/WebsiteEditor.jsx"],
+  ["/superadmin/seo", "./pages/superadmin/WebsiteEditor.jsx"],
   ["/website-editor", "./pages/superadmin/WebsiteEditor.jsx"],
   ["/superadmin/user-overview", "./pages/superadmin/user-overview.jsx"],
   ["/superadmin/property-overview", "./pages/superadmin/property-overview.jsx"],

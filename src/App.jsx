@@ -513,6 +513,8 @@ export default function App() {
                 <Route path="/staff" element={<Navigate to={STAFF_HOME_PATH} replace />} />
                 <Route path="/staff/*" element={<Navigate to={STAFF_HOME_PATH} replace />} />
                 <Route path="/website" element={<Navigate to="/website/index" replace />} />
+                <Route path="/admin/login" element={<Navigate to="/superadmin/index" replace />} />
+                <Route path="/admin/index" element={<Navigate to="/superadmin/index" replace />} />
                 {/* Admin panel — force hard browser navigation so TanStack Router (admin) takes over */}
                 <Route path="/admin" element={<AdminPanelLoader />} />
                 <Route path="/admin/*" element={<AdminPanelLoader />} />
