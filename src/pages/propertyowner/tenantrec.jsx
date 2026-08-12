@@ -477,8 +477,10 @@ export default function TenantRec() {
   useEffect(() => {
     const initializeData = async () => {
       try {
-        // 1. Fetch properties first
-        const props = await fetchOwnerProperties(owner.loginId);
+        // 1. Fetch properties first — bypass the active-property filter, since onboarding
+        // a lead must be able to target whichever property that lead is actually for, not
+        // just whichever property happens to be active in the sidebar right now.
+        const props = await fetchOwnerProperties(owner.loginId, true);
         setProperties(props);
 
       // ── EDIT MODE: prefill from existing tenant ──
