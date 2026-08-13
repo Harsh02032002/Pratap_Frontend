@@ -113,6 +113,35 @@ const DetailGrid = ({ cols = 2, children }) => (
   </div>
 );
 
+// Approval is gated on the owner finishing digital KYC. The backend keeps
+// VisitData.kycStatus in sync with the owner's check-in progress and enforces the
+// same rule on POST /api/visits/approve — this is the UI half of that gate.
+const KYC_STATES = {
+  completed: { label: "KYC Completed", cls: "bg-emerald-50 text-emerald-600 border-emerald-100" },
+  sent: { label: "KYC Pending", cls: "bg-amber-50 text-amber-600 border-amber-100" },
+  not_sent: { label: "KYC Not Sent", cls: "bg-slate-100 text-slate-500 border-slate-200" },
+};
+
+const kycState = (v) => KYC_STATES[v?.kycStatus] || KYC_STATES.not_sent;
+const isKycDone = (v) => v?.kycStatus === "completed";
+
+// A visit captures rent either as one monthly figure or per room type. Fall back
+// to the cheapest room-type price so a property that *does* have pricing never
+// renders as ₹0 — and surface a real 0 as "not set" rather than a free room.
+const visitRent = (v) => {
+  const base = Number(v?.monthlyRent) || 0;
+  if (base > 0) return base;
+  const prices = (v?.roomTypes || [])
+    .map(rt => Number(rt?.pricePerBed) || Number(rt?.pricePerRoom) || 0)
+    .filter(n => n > 0);
+  return prices.length ? Math.min(...prices) : 0;
+};
+
+const formatRent = (v) => {
+  const rent = visitRent(v);
+  return rent > 0 ? `₹${rent.toLocaleString("en-IN")}/mo` : null;
+};
+
 const DetailItem = ({ label, value }) => (
   <div className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3">
     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{label}</p>
@@ -128,6 +157,15 @@ export default function Visit() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [viewingVisit, setViewingVisit] = useState(null);
+  const [actingId, setActingId] = useState(null);
+  const [ownerKyc, setOwnerKyc] = useState(null);
+  const [ownerKycLoading, setOwnerKycLoading] = useState(false);
+
+  // This component is mounted at both /superadmin/visit and /employee/visit
+  // (see pages/employee/visit.jsx). Approving publishes a property to the public
+  // site, so that action stays superadmin-only; staff get read + resend KYC.
+  const isEmployeeView = typeof window !== "undefined" && window.location.pathname.startsWith("/employee");
+  const canApprove = !isEmployeeView;
 
   // ─── Form State ─────────────────────────────────────────────────────────────
   // Owner Identity
@@ -180,10 +218,6 @@ export default function Visit() {
   const [formPhotos, setFormPhotos] = useState([]);
   const [formRoomTypes, setFormRoomTypes] = useState([]);
 
-  // Credentials
-  const [formLoginId, setFormLoginId] = useState("");
-  const [formPassword, setFormPassword] = useState("");
-
   // UI state
   const [saving, setSaving] = useState(false);
   const [openSections, setOpenSections] = useState({
@@ -215,17 +249,20 @@ export default function Visit() {
 
   useEffect(() => { loadVisits(); }, []);
 
+  // Pull the owner's submitted digital-KYC record for the details modal.
+  // GET /api/owners/:loginId already merges Owner + CheckinRecord + VisitData,
+  // so it is the one place holding everything the owner filled in.
   useEffect(() => {
-    if (currentView === "addOwner") generateCreds();
-  }, [currentView]);
-
-  const generateCreds = () => {
-    const prefix = "OWN";
-    const genId = `${prefix}${Math.floor(1000 + Math.random() * 9000)}`;
-    const password = Math.random().toString(36).slice(-8).toUpperCase();
-    setFormLoginId(genId);
-    setFormPassword(password);
-  };
+    const loginId = viewingVisit?.generatedCredentials?.loginId;
+    if (!viewingVisit || !loginId) { setOwnerKyc(null); return; }
+    let cancelled = false;
+    setOwnerKycLoading(true);
+    fetchJson(`/api/owners/${encodeURIComponent(loginId)}`)
+      .then(data => { if (!cancelled) setOwnerKyc(data?.owner || data || null); })
+      .catch(err => { if (!cancelled) { console.warn("Owner KYC fetch failed:", err.message); setOwnerKyc(null); } })
+      .finally(() => { if (!cancelled) setOwnerKycLoading(false); });
+    return () => { cancelled = true; };
+  }, [viewingVisit]);
 
   const resetForm = () => {
     setFormName(""); setFormEmail(""); setFormPhone(""); setFormOwnerCity("");
@@ -248,11 +285,17 @@ export default function Visit() {
     if (!formName || !formPhone || !formEmail || !formPropertyName) {
       return alert("Please fill required fields: Owner Name, Email, Phone, Property Name");
     }
+    // Rent drives the public listing price — a property published at ₹0 is not usable.
+    if (!(parseInt(formRent, 10) > 0)) {
+      return alert("Please enter the Monthly Rent (it is shown on the website listing).");
+    }
     setSaving(true);
     try {
-      // Step 1: Submit Visit
+      // Submit the visit report. The backend issues the owner's credentials and
+      // emails the digital-KYC link as part of this call; the property is only
+      // created and published once the owner finishes KYC and a superadmin approves.
       const visitId = `v_${Date.now()}`;
-      await fetchJson("/api/visits/submit", {
+      const submitRes = await fetchJson("/api/visits/submit", {
         method: "POST",
         headers: { ...getAuthHeader(), "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -298,48 +341,70 @@ export default function Visit() {
         }),
       });
 
-      // Step 2: Create Owner (auto-sends KYC email via backend)
-      await fetchJson("/api/owners", {
-        method: "POST",
-        headers: { ...getAuthHeader(), "Content-Type": "application/json" },
-        body: JSON.stringify({
-          loginId: formLoginId,
-          name: formName,
-          email: formEmail,
-          phone: formPhone,
-          area: formArea || formCity,
-          city: formOwnerCity || formCity,
-          locationCode: (formArea || formCity || formLoginId).toUpperCase().slice(0, 5),
-          credentials: { password: formPassword, firstTime: true },
-          checkinPassword: formPassword,
-          isActive: true,
-          role: "owner",
-        }),
-      });
-
-      // Step 3: Auto-approve the visit
-      try {
-        await fetchJson(`/api/visits/${visitId}/approve`, {
-          method: "POST",
-          headers: { ...getAuthHeader(), "Content-Type": "application/json" },
-          body: JSON.stringify({
-            approvalNotes: "Auto-approved during superadmin onboarding",
-            approvedBy: "Superadmin",
-          }),
-        });
-      } catch (approveErr) {
-        console.warn("Visit auto-approve warning:", approveErr.message);
+      if (submitRes?.kycLinkSent === false) {
+        alert(
+          `⚠️ Visit report saved, but the KYC email could not be sent to ${formEmail}.\n\n` +
+          `${submitRes?.kycLinkError || ""}\n\nUse "Resend KYC" on the report to try again.`
+        );
+      } else {
+        alert(
+          `✅ Visit report submitted!\n\nA digital KYC link has been emailed to ${formEmail}.\n\n` +
+          `Once the owner completes KYC, this report can be approved and the property published.`
+        );
       }
-
-      alert(`✅ Property Owner onboarded successfully!\n\nLogin ID: ${formLoginId}\nPassword: ${formPassword}\n\nKYC email has been sent to ${formEmail}`);
       resetForm();
       setCurrentView("list");
       loadVisits();
     } catch (err) {
-      alert(err?.message || "Failed to onboard owner");
-      console.error("Onboard error:", err);
+      alert(err?.message || "Failed to submit visit report");
+      console.error("Visit submit error:", err);
     } finally {
       setSaving(false);
+    }
+  };
+
+  // ─── KYC / Approval Actions ─────────────────────────────────────────────────
+
+  const resendKyc = async (v) => {
+    const id = v.visitId || v._id;
+    setActingId(id);
+    try {
+      const res = await fetchJson(`/api/visits/${encodeURIComponent(id)}/send-kyc-link`, {
+        method: "POST",
+        headers: { ...getAuthHeader(), "Content-Type": "application/json" },
+      });
+      alert(`✅ KYC link sent to ${v.ownerEmail || "the owner"}.${res?.loginId ? `\n\nOwner Login ID: ${res.loginId}` : ""}`);
+      loadVisits();
+    } catch (err) {
+      alert(err?.message || "Failed to send KYC link");
+    } finally {
+      setActingId(null);
+    }
+  };
+
+  const approveVisit = async (v) => {
+    const id = v.visitId || v._id;
+    if (!window.confirm(`Approve "${v.propertyName || "this property"}" and publish it on the website?`)) return;
+    setActingId(id);
+    try {
+      await fetchJson("/api/visits/approve", {
+        method: "POST",
+        headers: { ...getAuthHeader(), "Content-Type": "application/json" },
+        body: JSON.stringify({
+          visitId: id,
+          status: "approved",
+          isLiveOnWebsite: true,
+          loginId: v.generatedCredentials?.loginId || "",
+          tempPassword: v.generatedCredentials?.tempPassword || "",
+        }),
+      });
+      alert("✅ Approved. The property is now published on the website.");
+      setViewingVisit(null);
+      loadVisits();
+    } catch (err) {
+      alert(err?.message || "Failed to approve visit");
+    } finally {
+      setActingId(null);
     }
   };
 
@@ -494,7 +559,7 @@ export default function Visit() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-6">
-                      <FormField label="Monthly Rent" value={formRent} onChange={e => setFormRent(e.target.value)} placeholder="8000" prefix="₹" suffix="/mo" type="number" />
+                      <FormField label="Monthly Rent" value={formRent} onChange={e => setFormRent(e.target.value)} placeholder="8000" prefix="₹" suffix="/mo" type="number" required />
                       <FormField label="Security Deposit" value={formDeposit} onChange={e => setFormDeposit(e.target.value)} placeholder="10000" prefix="₹" type="number" />
                     </div>
 
@@ -749,19 +814,23 @@ export default function Visit() {
 
             {/* ─── Credentials Card + Actions ───────────────────────────────── */}
             <div className="bg-white rounded-b-[2rem] border border-t-0 border-slate-100 shadow-2xl p-8 space-y-6">
-              <div className="bg-slate-900 text-white p-6 rounded-2xl flex items-center justify-between shadow-xl shadow-slate-900/10">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-600/30">
-                    <Lock size={22} />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Auto Generated Credentials</p>
-                    <p className="text-sm font-bold mt-0.5">Login ID: <span className="font-mono text-blue-400 font-bold">{formLoginId}</span> • Temp Password: <span className="font-mono text-emerald-400 font-bold">{formPassword}</span></p>
-                  </div>
+              {/* Credentials are issued by the backend on submit (ROOMHY####) and emailed
+                  to the owner with the digital-KYC link, so nothing is generated here. */}
+              <div className="bg-slate-900 text-white p-6 rounded-2xl flex items-center gap-4 shadow-xl shadow-slate-900/10">
+                <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-600/30 shrink-0">
+                  <Send size={20} />
                 </div>
-                <button type="button" onClick={generateCreds} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-[9px] font-bold uppercase tracking-widest border border-slate-700 transition-all flex items-center gap-2">
-                  <RefreshCw className="w-3 h-3" /> Regenerate
-                </button>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">What happens next</p>
+                  <p className="text-sm font-bold mt-1 leading-relaxed">
+                    On submit, owner credentials are generated and a <span className="text-blue-400">digital KYC link</span> is emailed to{" "}
+                    <span className="font-mono text-emerald-400">{formEmail || "the owner"}</span>.
+                    <br />
+                    <span className="text-slate-400 font-medium">
+                      The property goes live only after the owner completes KYC and a superadmin approves this report.
+                    </span>
+                  </p>
+                </div>
               </div>
 
               <div className="flex items-center justify-between pt-4 border-t border-slate-100">
@@ -831,15 +900,16 @@ export default function Visit() {
                   <th className="p-4">Location</th>
                   <th className="p-4">Type / Rent</th>
                   <th className="p-4">Submitted By</th>
+                  <th className="p-4">KYC</th>
                   <th className="p-4">Status</th>
                   <th className="p-4 pr-6 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 text-xs font-bold text-slate-700">
                 {loading ? (
-                  <tr><td colSpan={6} className="p-8 text-center text-slate-400 font-bold uppercase tracking-widest">Loading visits...</td></tr>
+                  <tr><td colSpan={7} className="p-8 text-center text-slate-400 font-bold uppercase tracking-widest">Loading visits...</td></tr>
                 ) : filteredVisits.length === 0 ? (
-                  <tr><td colSpan={6} className="p-8 text-center text-slate-400 font-bold uppercase tracking-widest">No visit reports found</td></tr>
+                  <tr><td colSpan={7} className="p-8 text-center text-slate-400 font-bold uppercase tracking-widest">No visit reports found</td></tr>
                 ) : (
                   filteredVisits.map((v, i) => (
                     <tr key={v._id || i} className="hover:bg-slate-50/50 transition-colors">
@@ -853,11 +923,18 @@ export default function Visit() {
                       </td>
                       <td className="p-4">
                         <p className="text-slate-700 uppercase">{v.propertyType || "Hostel"}</p>
-                        <p className="text-[10px] text-blue-600 font-bold">₹{v.monthlyRent || 0}/mo</p>
+                        {formatRent(v)
+                          ? <p className="text-[10px] text-blue-600 font-bold">{formatRent(v)}</p>
+                          : <p className="text-[10px] text-amber-600 font-bold">Rent not set</p>}
                       </td>
                       <td className="p-4">
                         <p className="text-slate-700">{v.staffName || v.submittedBy || "Staff"}</p>
                         <p className="text-[10px] text-slate-400 font-normal">{new Date(v.submittedAt || Date.now()).toLocaleDateString()}</p>
+                      </td>
+                      <td className="p-4">
+                        <span className={cn("px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider border", kycState(v).cls)}>
+                          {kycState(v).label}
+                        </span>
                       </td>
                       <td className="p-4">
                         <span className={cn(
@@ -867,11 +944,35 @@ export default function Visit() {
                           {v.status || "pending"}
                         </span>
                       </td>
-                      <td className="p-4 pr-6 text-right">
-                        <button onClick={() => setViewingVisit(v)}
-                          className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold uppercase transition-all">
-                          View Details
-                        </button>
+                      <td className="p-4 pr-6">
+                        <div className="flex items-center justify-end gap-2">
+                          <button onClick={() => setViewingVisit(v)}
+                            className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold uppercase transition-all">
+                            View
+                          </button>
+                          {v.status !== "approved" && (
+                            <>
+                              <button
+                                onClick={() => resendKyc(v)}
+                                disabled={actingId === (v.visitId || v._id) || isKycDone(v)}
+                                title={isKycDone(v) ? "Owner has already completed KYC" : "Resend the digital KYC link to the owner"}
+                                className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-[10px] font-bold uppercase transition-all border border-blue-100 disabled:bg-slate-50 disabled:text-slate-300 disabled:border-slate-100 disabled:cursor-not-allowed"
+                              >
+                                Resend KYC
+                              </button>
+                              {canApprove && (
+                                <button
+                                  onClick={() => approveVisit(v)}
+                                  disabled={!isKycDone(v) || actingId === (v.visitId || v._id)}
+                                  title={isKycDone(v) ? "Approve and publish this property" : "Owner must complete digital KYC before approval"}
+                                  className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all border bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed"
+                                >
+                                  {actingId === (v.visitId || v._id) ? "..." : "Approve"}
+                                </button>
+                              )}
+                            </>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -900,6 +1001,9 @@ export default function Visit() {
                 </div>
               </div>
               <div className="flex items-center gap-3 shrink-0">
+                <span className={cn("px-3 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-wider border", kycState(viewingVisit).cls)}>
+                  {kycState(viewingVisit).label}
+                </span>
                 <span className={cn(
                   "px-3 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-wider",
                   viewingVisit.status === "approved" ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-amber-50 text-amber-600 border border-amber-100"
@@ -914,6 +1018,54 @@ export default function Visit() {
 
             {/* Body */}
             <div className="overflow-y-auto p-8 space-y-8 flex-1">
+              {/* Owner's submitted digital KYC — this is what gates approval */}
+              <DetailSection icon={ShieldCheck} title="Owner Digital KYC" color="emerald">
+                {!viewingVisit.generatedCredentials?.loginId ? (
+                  <p className="text-xs font-semibold text-slate-500 bg-slate-50 rounded-xl p-4 border border-slate-100">
+                    No KYC link has been issued for this report yet. Use “Resend KYC” to send it to the owner.
+                  </p>
+                ) : ownerKycLoading ? (
+                  <p className="text-xs font-semibold text-slate-400 bg-slate-50 rounded-xl p-4 border border-slate-100">Loading owner KYC…</p>
+                ) : (
+                  <>
+                    <DetailGrid>
+                      <DetailItem label="Owner Login ID" value={viewingVisit.generatedCredentials?.loginId} />
+                      <DetailItem label="KYC Status" value={kycState(viewingVisit).label} />
+                      <DetailItem label="Aadhaar Number" value={ownerKyc?.aadharNumber} />
+                      <DetailItem label="Aadhaar Linked Phone" value={ownerKyc?.checkinAadhaarLinkedPhone} />
+                      <DetailItem label="Date of Birth" value={ownerKyc?.checkinDob} />
+                      <DetailItem label="KYC Address" value={ownerKyc?.checkinAddress} />
+                    </DetailGrid>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-6 mb-3">Bank / Payout Details</p>
+                    <DetailGrid>
+                      <DetailItem label="Account Holder" value={ownerKyc?.checkinAccountHolderName} />
+                      <DetailItem label="Bank Name" value={ownerKyc?.checkinBankName} />
+                      <DetailItem label="Account Number" value={ownerKyc?.checkinBankAccountNumber} />
+                      <DetailItem label="IFSC Code" value={ownerKyc?.checkinIfscCode} />
+                      <DetailItem label="Branch" value={ownerKyc?.checkinBranchName} />
+                      <DetailItem label="UPI ID" value={ownerKyc?.checkinUpiId} />
+                    </DetailGrid>
+                    {(ownerKyc?.checkinOwnerPhoto || ownerKyc?.checkinAadhaarImage || ownerKyc?.checkinBankProof) && (
+                      <>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-6 mb-3">Uploaded Documents</p>
+                        <div className="flex flex-wrap gap-4">
+                          {[
+                            { src: ownerKyc?.checkinOwnerPhoto, label: "Owner Photo" },
+                            { src: ownerKyc?.checkinAadhaarImage, label: "Aadhaar" },
+                            { src: ownerKyc?.checkinBankProof, label: "Bank Proof" },
+                          ].filter(d => d.src).map((d, idx) => (
+                            <a key={idx} href={d.src} target="_blank" rel="noreferrer" className="group">
+                              <img src={d.src} alt={d.label} className="w-28 h-28 rounded-xl object-cover border border-slate-200 shadow-sm group-hover:ring-4 group-hover:ring-emerald-100 transition-all" />
+                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-2 text-center">{d.label}</p>
+                            </a>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
+              </DetailSection>
+
               <DetailSection icon={User} title="Owner Information" color="blue">
                 <DetailGrid>
                   <DetailItem label="Owner Name" value={viewingVisit.ownerName || viewingVisit.visitorName} />
@@ -927,7 +1079,7 @@ export default function Visit() {
                 <DetailGrid>
                   <DetailItem label="Property Type" value={viewingVisit.propertyType} />
                   <DetailItem label="Gender Suitability" value={viewingVisit.genderSuitability || viewingVisit.gender} />
-                  <DetailItem label="Monthly Rent" value={viewingVisit.monthlyRent ? `₹${viewingVisit.monthlyRent}/mo` : ""} />
+                  <DetailItem label="Monthly Rent" value={formatRent(viewingVisit) || "Not set"} />
                   <DetailItem label="Deposit" value={viewingVisit.deposit ? `₹${viewingVisit.deposit}` : ""} />
                 </DetailGrid>
                 {viewingVisit.description && (
@@ -1024,6 +1176,37 @@ export default function Visit() {
                 </DetailSection>
               )}
             </div>
+
+            {/* Footer actions */}
+            {viewingVisit.status !== "approved" && (
+              <div className="px-8 py-5 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between gap-4">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                  {isKycDone(viewingVisit)
+                    ? "Owner KYC complete — ready to publish"
+                    : "Waiting for the owner to complete digital KYC"}
+                </p>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => resendKyc(viewingVisit)}
+                    disabled={actingId === (viewingVisit.visitId || viewingVisit._id) || isKycDone(viewingVisit)}
+                    className="px-5 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest bg-white border border-blue-100 text-blue-600 hover:bg-blue-50 transition-all disabled:text-slate-300 disabled:border-slate-100 disabled:cursor-not-allowed"
+                  >
+                    Resend KYC
+                  </button>
+                  {canApprove && (
+                    <button
+                      onClick={() => approveVisit(viewingVisit)}
+                      disabled={!isKycDone(viewingVisit) || actingId === (viewingVisit.visitId || viewingVisit._id)}
+                      title={isKycDone(viewingVisit) ? "Approve and publish this property" : "Owner must complete digital KYC before approval"}
+                      className="px-6 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest bg-emerald-600 text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 transition-all disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      {actingId === (viewingVisit.visitId || viewingVisit._id) ? "Approving…" : "Approve & Publish"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

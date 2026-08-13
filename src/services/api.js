@@ -297,9 +297,12 @@ export const visitApi = {
 
   getVisit: (visitId) => apiFetch(`/api/visits/${encodeURIComponent(visitId)}`),
 
-  approveVisit: (visitId, approvalData) => apiFetch(`/api/visits/${encodeURIComponent(visitId)}/approve`, {
+  // Single approval path: enforces the owner-KYC gate, provisions the Owner +
+  // Property and publishes to the website. The old per-visit route did none of
+  // that and has been removed from the backend.
+  approveVisit: (visitId, approvalData) => apiFetch('/api/visits/approve', {
     method: 'POST',
-    body: JSON.stringify(approvalData || {}),
+    body: JSON.stringify({ visitId, ...(approvalData || {}) }),
   }),
 
   rejectVisit: (visitId, rejectionData) => apiFetch(`/api/visits/${encodeURIComponent(visitId)}/reject`, {

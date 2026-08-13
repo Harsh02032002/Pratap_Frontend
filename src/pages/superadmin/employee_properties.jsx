@@ -104,7 +104,7 @@ export default function EmployeePropertyApprovals() {
   const apiUrl = getApiUrl();
   const [visits, setVisits] = useState([]);
   const [propertyUnderOwner, setPropertyUnderOwner] = useState([]);
-  const [activeTab, setActiveTab] = useState("visits");
+  const [activeTab, setActiveTab] = useState("properties");
   const [search, setSearch] = useState("");
   const [currentApprovingId, setCurrentApprovingId] = useState(null);
   const [showApprove, setShowApprove] = useState(false);
@@ -140,7 +140,7 @@ export default function EmployeePropertyApprovals() {
       const token = sessionStorage.getItem("token") || localStorage.getItem("token") || "";
       const response = await fetch(`${apiUrl}/api/visits/pending`, {
         method: "GET",
-        headers: token ? { Authorization: token } : {}
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
       if (!response.ok) throw new Error("API error");
       const data = await response.json();
@@ -157,7 +157,7 @@ export default function EmployeePropertyApprovals() {
     try {
       const token = sessionStorage.getItem("token") || localStorage.getItem("token") || "";
       const ownerResponse = await fetch(`${apiUrl}/api/owners`, {
-        headers: token ? { Authorization: token } : {}
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
       if (!ownerResponse.ok) throw new Error("Failed to load owners");
 
@@ -175,7 +175,7 @@ export default function EmployeePropertyApprovals() {
             .map(async (owner) => {
               try {
                 const propertyResponse = await fetch(`${apiUrl}/api/owners/${encodeURIComponent(owner.loginId)}/properties`, {
-                  headers: token ? { Authorization: token } : {}
+                  headers: token ? { Authorization: `Bearer ${token}` } : {}
                 });
                 if (!propertyResponse.ok) return [];
                 const propertyPayload = await propertyResponse.json();
@@ -246,7 +246,7 @@ export default function EmployeePropertyApprovals() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(token ? { Authorization: token } : {})
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
         },
         body: JSON.stringify({
           visitId: currentApprovingId,
@@ -423,7 +423,7 @@ export default function EmployeePropertyApprovals() {
       const token = sessionStorage.getItem("token") || localStorage.getItem("token") || "";
       const res = await fetch(`${apiUrl}/api/visits/${encodeURIComponent(visitId)}/send-kyc-link`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...(token ? { Authorization: token } : {}) }
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) }
       });
       const data = await res.json();
       if (data.success) {
@@ -448,7 +448,7 @@ export default function EmployeePropertyApprovals() {
       try {
         const token = sessionStorage.getItem("token") || localStorage.getItem("token") || "";
         const res = await fetch(`${apiUrl}/api/owners/${encodeURIComponent(loginId)}`, {
-          headers: token ? { Authorization: token } : {}
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
         });
         if (res.ok) {
           const data = await res.json();
@@ -564,9 +564,14 @@ export default function EmployeePropertyApprovals() {
 
       <div className="bg-white rounded-2xl border border-slate-100 shadow-lg shadow-slate-200/50 overflow-hidden">
         <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between bg-slate-50 gap-4">
-          <div className="flex border-b border-slate-200 bg-white rounded-lg p-1 shadow-sm">
-            <button onClick={() => setActiveTab("visits")} className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${activeTab === "visits" ? "bg-purple-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-700 hover:bg-slate-200"}`}>Visit Reports</button>
-            <button onClick={() => setActiveTab("properties")} className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${activeTab === "properties" ? "bg-purple-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-700 hover:bg-slate-200"}`}>Property Under Owner</button>
+          {/* Visit report review + KYC + approval now lives solely on Visit Reports,
+              so there is one place to act on a report. This page keeps the
+              owner→property rollup, which exists nowhere else. */}
+          <div className="flex items-center gap-3">
+            <span className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider bg-purple-600 text-white shadow-sm">Property Under Owner</span>
+            <a href="/superadmin/visit" className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider text-slate-500 hover:text-purple-700 hover:bg-purple-50 transition-all border border-slate-200">
+              Visit Reports →
+            </a>
           </div>
           <div className="relative w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
@@ -574,155 +579,6 @@ export default function EmployeePropertyApprovals() {
           </div>
         </div>
 
-        {activeTab === "visits" ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead className="bg-slate-50 text-slate-500 text-[10px] uppercase font-bold tracking-wider border-b">
-                <tr>
-                  <th className="px-4 py-3">Visit ID</th>
-                  <th className="px-4 py-3">Visit Date & Time</th>
-                  <th className="px-4 py-3">Staff Name</th>
-                  <th className="px-4 py-3">Staff ID</th>
-                  <th className="px-4 py-3">Property Name</th>
-                  <th className="px-4 py-3">Property Type</th>
-                  <th className="px-4 py-3">Full Address</th>
-                  <th className="px-4 py-3">Area / Locality</th>
-                  <th className="px-4 py-3">Landmark</th>
-                  <th className="px-4 py-3">Nearby Location</th>
-                  <th className="px-4 py-3">Owner Name</th>
-                  <th className="px-4 py-3">Owner Contact</th>
-                  <th className="px-4 py-3">Owner Gmail</th>
-                  <th className="px-4 py-3">Gender</th>
-                  <th className="px-4 py-3 text-center">Vacant Rooms</th>
-                  <th className="px-4 py-3 text-center">Vacant Beds</th>
-                  <th className="px-4 py-3 text-center">Occupied Rooms</th>
-                  <th className="px-4 py-3 text-center">Occupied Beds</th>
-                  <th className="px-4 py-3 text-center">Student Reviews</th>
-                  <th className="px-4 py-3 text-center">Employee Rating</th>
-                  <th className="px-4 py-3 text-center">Monthly Rent</th>
-                  <th className="px-4 py-3">Amenities</th>
-                  <th className="px-4 py-3">Cleanliness</th>
-                  <th className="px-4 py-3">Owner Behaviour</th>
-                  <th className="px-4 py-3 text-center">Field Photos</th>
-                  <th className="px-4 py-3 text-center">Prof. Photos</th>
-                  <th className="px-4 py-3">Geo Status</th>
-                  <th className="px-4 py-3 text-center">Map</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">KYC Status</th>
-                  <th className="px-4 py-3">Login ID</th>
-                  <th className="px-4 py-3">Password</th>
-                  <th className="px-4 py-3 text-center">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-xs">
-                {filteredVisits.length === 0 ? (
-                  <tr>
-                    <td colSpan={33} className="px-6 py-12 text-center text-slate-400 font-bold uppercase">No pending reports found.</td>
-                  </tr>
-                ) : (
-                  filteredVisits.map((v) => {
-                    const prop = v.propertyInfo || {};
-                    const fieldPhotos = v.photos || [];
-                    const profPhotos = v.professionalPhotos || [];
-                    const amenities = (prop.amenities || v.amenities || []).length ? (prop.amenities || v.amenities).join(", ") : "-";
-                    const cleanliness = v.cleanlinessRating || v.cleanliness || "-";
-                    const ownerBehaviour = v.ownerBehaviourPublic || v.ownerBehaviour || "-";
-                    const geoOk = v.latitude && v.longitude ? "OK" : "No Geo";
-                    const loginId = v.generatedCredentials ? v.generatedCredentials.loginId || "-" : "-";
-                    const password = v.generatedCredentials ? v.generatedCredentials.tempPassword || "-" : "-";
-
-                    const kyc = v.kycStatus || "not_sent";
-                    const kycDone = kyc === "completed";
-                    const kycSent = kyc === "sent";
-                    const kycCanApprove = kycDone;
-                    const kycBadge = kycDone
-                      ? { label: "Completed", cls: "bg-green-50 text-green-700 border border-green-100" }
-                      : kycSent
-                      ? { label: "Sent", cls: "bg-yellow-50 text-yellow-700 border border-yellow-100" }
-                      : { label: "Not Sent", cls: "bg-slate-100 text-slate-500 border border-slate-200" };
-                    const isSendingKyc = kycLinkSending === (v.visitId || v._id);
-
-                    return (
-                      <tr key={v._id} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-4 py-3 font-mono text-[10px] text-slate-500">{v.visitId || v._id?.slice(-8).toUpperCase()}</td>
-                        <td className="px-4 py-3 text-slate-600 whitespace-nowrap">{v.submittedAt ? new Date(v.submittedAt).toLocaleString() : "-"}</td>
-                        <td className="px-4 py-3 font-semibold text-slate-700">{v.staffName || prop.staffName || "-"}</td>
-                        <td className="px-4 py-3 text-slate-500">{v.staffId || prop.staffId || "-"}</td>
-                        <td className="px-4 py-3"><div className="font-bold text-slate-700">{v.propertyName || prop.name || "-"}</div></td>
-                        <td className="px-4 py-3 text-slate-600">{v.propertyType || prop.propertyType || "-"}</td>
-                        <td className="px-4 py-3 text-slate-600 max-w-[200px] truncate" title={v.address || prop.address || ""}>{v.address || prop.address || "-"}</td>
-                        <td className="px-4 py-3 text-slate-600">{v.area || prop.area || "-"}</td>
-                        <td className="px-4 py-3 text-slate-600">{v.landmark || prop.landmark || "-"}</td>
-                        <td className="px-4 py-3 text-slate-600">{v.nearbyLocation || prop.nearbyLocation || "-"}</td>
-                        <td className="px-4 py-3 font-medium text-slate-700">{v.ownerName || prop.ownerName || "-"}</td>
-                        <td className="px-4 py-3 text-slate-600">{v.contactPhone || prop.contactPhone || "-"}</td>
-                        <td className="px-4 py-3 text-slate-600">{v.ownerEmail || prop.ownerEmail || "-"}</td>
-                        <td className="px-4 py-3 text-slate-500">{v.gender || "-"}</td>
-                        <td className="px-4 py-3 text-center font-semibold text-slate-700">{v.vacantRooms || prop.vacantRooms || 0}</td>
-                        <td className="px-4 py-3 text-center font-semibold text-slate-700">{v.vacantBeds || prop.vacantBeds || 0}</td>
-                        <td className="px-4 py-3 text-center font-semibold text-slate-700">{v.occupiedRooms || prop.occupiedRooms || 0}</td>
-                        <td className="px-4 py-3 text-center font-semibold text-slate-700">{v.occupiedBeds || prop.occupiedBeds || 0}</td>
-                        <td className="px-4 py-3 text-center bg-amber-50 border-x border-amber-100">
-                          <div className="flex items-center justify-center">
-                            <span className="text-sm font-bold text-amber-600">{v.studentReviewsRating ? "★".repeat(Math.floor(v.studentReviewsRating)) + "☆".repeat(5 - Math.floor(v.studentReviewsRating)) : "-"}</span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-center bg-emerald-50 border-x border-emerald-100">
-                          <div className="flex items-center justify-center">
-                            <span className="text-sm font-bold text-emerald-600">{v.employeeRating ? "★".repeat(Math.floor(v.employeeRating)) + "☆".repeat(5 - Math.floor(v.employeeRating)) : "-"}</span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-center font-bold text-slate-800">₹{v.monthlyRent || prop.monthlyRent || 0}</td>
-                        <td className="px-4 py-3 text-slate-500 max-w-[150px] truncate" title={amenities}>{amenities}</td>
-                        <td className="px-4 py-3 text-slate-500">{cleanliness}</td>
-                        <td className="px-4 py-3 text-slate-500">{ownerBehaviour}</td>
-                        <td className="px-4 py-3 text-center">
-                          <button onClick={() => viewGallery(fieldPhotos)} className="text-[10px] text-purple-600 bg-purple-50 px-2.5 py-1 rounded-lg border border-purple-200 font-bold hover:bg-purple-100 transition shadow-sm">{fieldPhotos.length}</button>
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <button onClick={() => viewGallery(profPhotos)} className="text-[10px] text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 font-bold hover:bg-blue-100 transition shadow-sm">{profPhotos.length}</button>
-                        </td>
-                        <td className="px-4 py-3 text-slate-500">{geoOk}</td>
-                        <td className="px-4 py-3 text-center">
-                          <button onClick={() => openMap(v.visitId || v._id)} className="text-[10px] font-bold px-2 py-1 bg-white hover:bg-slate-100 rounded-lg border border-slate-200 shadow-sm text-slate-600 transition" disabled={!(v.latitude && v.longitude)}>Map</button>
-                        </td>
-                        <td className="px-4 py-3 text-slate-600 capitalize">{v.status || "-"}</td>
-                        <td className="px-4 py-3">
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${kycBadge.cls}`}>{kycBadge.label}</span>
-                        </td>
-                        <td className="px-4 py-3 font-mono font-bold text-purple-700">{loginId}</td>
-                        <td className="px-4 py-3 font-mono text-slate-600">{password}</td>
-                        <td className="px-4 py-3 text-center">
-                          <div className="flex items-center justify-center gap-2">
-                            <button onClick={() => openVisitDetails(v)} className="px-3 py-1.5 bg-purple-50 border border-purple-200 text-purple-700 rounded-lg hover:bg-purple-100 transition text-[10px] font-black uppercase tracking-wider" title="View Details">Details</button>
-                            <button
-                              onClick={() => sendKycLink(v.visitId || v._id)}
-                              disabled={isSendingKyc || kycDone}
-                              className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition ${kycDone ? "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200" : isSendingKyc ? "bg-blue-50 text-blue-400 cursor-wait border border-blue-100" : "bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100"}`}
-                              title={kycDone ? "KYC already completed" : "Send KYC link to owner"}
-                            >
-                              {isSendingKyc ? "Sending..." : kycDone ? "KYC Done" : kycSent ? "Resend KYC" : "Send KYC"}
-                            </button>
-                            <button
-                              onClick={() => kycCanApprove ? openApproveModal(v.visitId || v._id) : null}
-                              disabled={!kycCanApprove}
-                              className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition border ${kycCanApprove ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100" : "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"}`}
-                              title={kycCanApprove ? "Approve property" : "Send KYC link first before approving"}
-                            >
-                              Approve
-                            </button>
-                            <button onClick={() => openActionModal("reject", v.visitId || v._id)} className="px-3 py-1.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg hover:bg-rose-100 transition text-[10px] font-black uppercase tracking-wider" title="Reject">Reject</button>
-                            <button onClick={() => openActionModal("hold", v.visitId || v._id)} className="px-3 py-1.5 bg-amber-50 border border-amber-200 text-amber-700 rounded-lg hover:bg-amber-100 transition text-[10px] font-black uppercase tracking-wider" title="Hold">Hold</button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead className="bg-slate-50 text-slate-500 text-[10px] uppercase font-bold tracking-wider border-b">
@@ -771,7 +627,6 @@ export default function EmployeePropertyApprovals() {
               </tbody>
             </table>
           </div>
-        )}
       </div>
 
       {/* Modals */}
