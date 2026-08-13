@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useSuperadminLogin } from "./useSuperadminLogin";
 import { fetchJson, getApiBase } from "../../utils/api";
 import {
@@ -201,16 +201,36 @@ export default function OwnerRequestsPage() {
         setBackendDown(false);
       }
     } catch (err) {
-      // Backend offline — don't spam, just mark as down
       setBackendDown(true);
       console.warn("Owner requests: backend unreachable");
     } finally {
-      setLoading(false);
+      if (isInitial) setLoading(false);
     }
   };
 
+  // Debounce filter changes to prevent rapid API calls
+  const debounceTimerRef = useRef(null);
+  const fetchRequestsRef = useRef(fetchRequests);
+  fetchRequestsRef.current = fetchRequests;
+
   useEffect(() => {
-    if (adminLoginId) fetchRequests(true);
+    if (!adminLoginId) return;
+    
+    // Clear any pending debounce
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    
+    // Debounce filter changes by 300ms
+    debounceTimerRef.current = setTimeout(() => {
+      fetchRequestsRef.current(true);
+    }, 300);
+    
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
   }, [adminLoginId, filter]);
 
   const handleApprove = async (req) => {

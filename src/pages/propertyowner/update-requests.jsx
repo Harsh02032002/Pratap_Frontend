@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import OwnerLayout from "../../components/OwnerLayout";
 import { getOwnerSession } from "../../utils/ownerSession";
 import { fetchJson } from "../../utils/api";
@@ -12,14 +12,44 @@ export default function UpdateRequests() {
   const [filter, setFilter] = useState("All");
   const [viewModal, setViewModal] = useState(null);
 
+  // Debounce filter changes to prevent rapid API calls
+  const debounceTimerRef = useRef(null);
+  const fetchRequestsRef = useRef(null);
+
+  const fetchRequests = useCallback(async (ownerLoginId, currentFilter) => {
+    if (!ownerLoginId) return;
+    setLoading(true);
+    try {
+      const statusParam = currentFilter !== "All" ? `?status=${currentFilter}&ownerLoginId=${encodeURIComponent(ownerLoginId)}` : `?ownerLoginId=${encodeURIComponent(ownerLoginId)}`;
+      const data = await fetchJson(`/api/owner-change-requests${statusParam}`);
+      setRequests(Array.isArray(data?.data) ? data.data : []);
+    } catch {
+      setRequests([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  fetchRequestsRef.current = fetchRequests;
+
   useEffect(() => {
     if (!owner?.loginId) return;
-    setLoading(true);
-    const statusParam = filter !== "All" ? `?status=${filter}&ownerLoginId=${encodeURIComponent(owner.loginId)}` : `?ownerLoginId=${encodeURIComponent(owner.loginId)}`;
-    fetchJson(`/api/owner-change-requests${statusParam}`)
-      .then((data) => setRequests(Array.isArray(data?.data) ? data.data : []))
-      .catch(() => setRequests([]))
-      .finally(() => setLoading(false));
+
+    // Clear any pending debounce
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // Debounce filter changes by 300ms
+    debounceTimerRef.current = setTimeout(() => {
+      fetchRequestsRef.current(owner.loginId, filter);
+    }, 300);
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
   }, [filter, owner?.loginId]);
 
   const getRelativeTime = (date) => {

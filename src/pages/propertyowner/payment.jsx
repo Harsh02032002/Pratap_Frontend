@@ -340,7 +340,6 @@ export default function Payment() {
   }, []);
 
   const [walletData, setWalletData] = useState({
-    heldBalance: 0,
     availableBalance: 0,
     walletBalance: 0,
     withdrawnBalance: 0,
@@ -359,12 +358,9 @@ export default function Payment() {
       const res = await fetchJson(`/api/wallet/owner/balance?loginId=${loginId}&t=${Date.now()}`).catch(() => null);
       if (res?.wallet) {
         const w = res.wallet;
-        // If wallet API returns 0 for available balance, fall back to dashStats total collected
-        // This covers manual/cash payments recorded by admin that may not create PaymentTransactions
-        if ((w.availableBalance || 0) === 0 && (w.heldBalance || 0) === 0) {
+        if ((w.availableBalance || 0) === 0) {
           setWalletData(prev => ({
             ...w,
-            // Keep any previously loaded balance from dashStats as fallback
             availableBalance: prev._dashFallback || 0,
             walletBalance: prev._dashFallback || 0,
           }));
@@ -807,17 +803,11 @@ export default function Payment() {
                 <h2 className="text-xl font-bold text-white">Owner Cashfree Wallet</h2>
                 <span className="px-2.5 py-0.5 bg-teal-500/20 text-teal-300 text-[11px] font-bold rounded-full border border-teal-500/30">Instant Bank Payout Active</span>
               </div>
-              <p className="text-xs text-slate-400 mt-1">Tenant payments are held in Held Balance until 1 day post move-in date, then auto-released to Available Balance.</p>
+              <p className="text-xs text-slate-400 mt-1">Tenant payments are credited directly to your Available Balance for instant withdrawal.</p>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-6">
-            <div className="border-r border-slate-700/60 pr-6">
-              <div className="text-[11px] font-bold uppercase tracking-wider text-amber-400 mb-1">🔒 Held Balance</div>
-              <div className="text-2xl font-black text-white">₹{(walletData.heldBalance || 0).toLocaleString('en-IN')}</div>
-              <div className="text-[10px] text-slate-400 mt-0.5">Releases 1 day post move-in</div>
-            </div>
-
             <div>
               <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-400 mb-1">💰 Available Balance</div>
               <div className="text-2xl font-black text-emerald-400">₹{(walletData.availableBalance || walletData.walletBalance || 0).toLocaleString('en-IN')}</div>
