@@ -406,6 +406,10 @@ export default function Tenantdashboard() {
   const apiBase = useMemo(() => getApiBase(), []);
   const [tenantUser] = useState(() => readTenantUser());
   const [tenant, setTenant] = useState(null);
+  // Alternate ID proof (Voter ID / PAN / Passport / Driving License), submitted instead of
+  // Aadhaar when onboarded without it — lives in a separate TenantKycRequest record, not
+  // on tenant.kyc, so it needs its own fetch.
+  const [altKycRequest, setAltKycRequest] = useState(null);
   const [rent, setRent] = useState(null);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -963,6 +967,11 @@ export default function Tenantdashboard() {
         await loadLedger();
         loadAnnouncements(tData.ownerLoginId);
         fetchMyComplaints(tData);
+        if (tData._id) {
+          fetchJson(`/api/tenant-kyc-requests?tenantId=${encodeURIComponent(tData._id)}`)
+            .then(r => setAltKycRequest(r?.data?.[0] || null))
+            .catch(() => setAltKycRequest(null));
+        }
       }
     }
     catch (err) { setErrorMsg(err?.body || err?.message || "Failed to load tenant dashboard."); }
@@ -2246,6 +2255,8 @@ export default function Tenantdashboard() {
                     pan={panVal}
                     name={nameOnDoc}
                     relationship={relationshipVal}
+                    altProofUrl={!maskedAadhaar ? altKycRequest?.proofFileUrl : null}
+                    altProofType={altKycRequest?.proofType}
                   />
                 )}
 
