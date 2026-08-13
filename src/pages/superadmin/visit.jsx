@@ -83,6 +83,43 @@ const SectionHeader = ({ icon: Icon, title, subtitle, open, onToggle, color = "s
   );
 };
 
+const SECTION_COLORS = {
+  slate: "bg-slate-100 text-slate-600",
+  blue: "bg-blue-50 text-blue-600 border-blue-100",
+  emerald: "bg-emerald-50 text-emerald-600 border-emerald-100",
+  amber: "bg-amber-50 text-amber-600 border-amber-100",
+  violet: "bg-violet-50 text-violet-600 border-violet-100",
+  rose: "bg-rose-50 text-rose-600 border-rose-100",
+  indigo: "bg-indigo-50 text-indigo-600 border-indigo-100",
+  cyan: "bg-cyan-50 text-cyan-600 border-cyan-100",
+  orange: "bg-orange-50 text-orange-600 border-orange-100",
+};
+
+const DetailSection = ({ icon: Icon, title, color = "slate", children }) => (
+  <div>
+    <div className="flex items-center gap-3 mb-4">
+      <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center border shadow-sm", SECTION_COLORS[color])}>
+        <Icon className="w-4 h-4" />
+      </div>
+      <p className="text-[11px] font-black text-slate-800 uppercase tracking-wider">{title}</p>
+    </div>
+    {children}
+  </div>
+);
+
+const DetailGrid = ({ cols = 2, children }) => (
+  <div className={cn("grid gap-4", cols === 3 ? "grid-cols-2 md:grid-cols-3" : cols === 4 ? "grid-cols-2 md:grid-cols-4" : "grid-cols-1 md:grid-cols-2")}>
+    {children}
+  </div>
+);
+
+const DetailItem = ({ label, value }) => (
+  <div className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3">
+    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{label}</p>
+    <p className="text-xs font-bold text-slate-700 break-words">{value || value === 0 ? String(value) : "-"}</p>
+  </div>
+);
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function Visit() {
@@ -90,6 +127,7 @@ export default function Visit() {
   const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [viewingVisit, setViewingVisit] = useState(null);
 
   // ─── Form State ─────────────────────────────────────────────────────────────
   // Owner Identity
@@ -830,7 +868,7 @@ export default function Visit() {
                         </span>
                       </td>
                       <td className="p-4 pr-6 text-right">
-                        <button onClick={() => alert(`Visit Details:\n\nProperty: ${v.propertyName}\nOwner: ${v.ownerName}\nPhone: ${v.ownerPhone}\nRent: ₹${v.monthlyRent}\nAddress: ${v.address}`)}
+                        <button onClick={() => setViewingVisit(v)}
                           className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold uppercase transition-all">
                           View Details
                         </button>
@@ -840,6 +878,152 @@ export default function Visit() {
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ VIEW DETAILS MODAL ═══ */}
+      {viewingVisit && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setViewingVisit(null)}>
+          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="p-6 bg-gradient-to-br from-slate-50 to-white border-b border-slate-100 flex items-start justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-xl shadow-slate-900/20 shrink-0">
+                  <Building2 size={24} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-slate-800 tracking-tight">{viewingVisit.propertyName || viewingVisit.propertyInfo?.name || "Unnamed Property"}</h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                    Submitted by {viewingVisit.staffName || viewingVisit.submittedBy || "Staff"} • {new Date(viewingVisit.submittedAt || Date.now()).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                <span className={cn(
+                  "px-3 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-wider",
+                  viewingVisit.status === "approved" ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-amber-50 text-amber-600 border border-amber-100"
+                )}>
+                  {viewingVisit.status || "pending"}
+                </span>
+                <button onClick={() => setViewingVisit(null)} className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-500 transition-all">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="overflow-y-auto p-8 space-y-8 flex-1">
+              <DetailSection icon={User} title="Owner Information" color="blue">
+                <DetailGrid>
+                  <DetailItem label="Owner Name" value={viewingVisit.ownerName || viewingVisit.visitorName} />
+                  <DetailItem label="Email" value={viewingVisit.ownerEmail || viewingVisit.visitorEmail} />
+                  <DetailItem label="Phone" value={viewingVisit.ownerPhone || viewingVisit.visitorPhone} />
+                  <DetailItem label="Owner City" value={viewingVisit.ownerCity} />
+                </DetailGrid>
+              </DetailSection>
+
+              <DetailSection icon={Building2} title="Property Details" color="indigo">
+                <DetailGrid>
+                  <DetailItem label="Property Type" value={viewingVisit.propertyType} />
+                  <DetailItem label="Gender Suitability" value={viewingVisit.genderSuitability || viewingVisit.gender} />
+                  <DetailItem label="Monthly Rent" value={viewingVisit.monthlyRent ? `₹${viewingVisit.monthlyRent}/mo` : ""} />
+                  <DetailItem label="Deposit" value={viewingVisit.deposit ? `₹${viewingVisit.deposit}` : ""} />
+                </DetailGrid>
+                {viewingVisit.description && (
+                  <p className="mt-4 text-xs font-semibold text-slate-600 bg-slate-50 rounded-xl p-4 border border-slate-100">{viewingVisit.description}</p>
+                )}
+              </DetailSection>
+
+              <DetailSection icon={MapPin} title="Location" color="emerald">
+                <DetailGrid>
+                  <DetailItem label="Area" value={viewingVisit.area} />
+                  <DetailItem label="City" value={viewingVisit.city} />
+                  <DetailItem label="Pincode" value={viewingVisit.pincode} />
+                  <DetailItem label="Landmark" value={viewingVisit.landmark} />
+                </DetailGrid>
+                {viewingVisit.address && (
+                  <p className="mt-4 text-xs font-semibold text-slate-600">{viewingVisit.address}</p>
+                )}
+              </DetailSection>
+
+              <DetailSection icon={BedDouble} title="Occupancy" color="amber">
+                <DetailGrid cols={3}>
+                  <DetailItem label="Vacant Rooms" value={viewingVisit.vacantRooms} />
+                  <DetailItem label="Occupied Rooms" value={viewingVisit.occupiedRooms} />
+                  <DetailItem label="Occupied Beds" value={viewingVisit.occupiedBeds} />
+                </DetailGrid>
+              </DetailSection>
+
+              {viewingVisit.amenities?.length > 0 && (
+                <DetailSection icon={Zap} title="Amenities & Features" color="violet">
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {viewingVisit.amenities.map((a, idx) => (
+                      <span key={idx} className="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-violet-50 text-violet-600 border border-violet-100">{a}</span>
+                    ))}
+                  </div>
+                  <DetailGrid cols={3}>
+                    <DetailItem label="Furnishing" value={viewingVisit.furnishing} />
+                    <DetailItem label="Ventilation" value={viewingVisit.ventilation} />
+                    <DetailItem label="Min Stay" value={viewingVisit.minStay} />
+                  </DetailGrid>
+                </DetailSection>
+              )}
+
+              {viewingVisit.roomTypes?.length > 0 && (
+                <DetailSection icon={BedDouble} title="Room Configurations" color="violet">
+                  <div className="space-y-3">
+                    {viewingVisit.roomTypes.map((rt, idx) => (
+                      <div key={idx} className="bg-slate-50 border border-slate-100 rounded-xl p-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <DetailItem label="Type" value={rt.type} />
+                        <DetailItem label="Rooms / Beds" value={`${rt.totalRooms || 0} / ${rt.totalBeds || 0}`} />
+                        <DetailItem label="Price / Bed" value={rt.pricePerBed ? `₹${rt.pricePerBed}` : ""} />
+                        <DetailItem label="Price / Room" value={rt.pricePerRoom ? `₹${rt.pricePerRoom}` : ""} />
+                      </div>
+                    ))}
+                  </div>
+                </DetailSection>
+              )}
+
+              <DetailSection icon={ShieldCheck} title="Policies" color="cyan">
+                <DetailGrid cols={4}>
+                  <DetailItem label="Visitors" value={viewingVisit.visitorsAllowed ? "Allowed" : "Not Allowed"} />
+                  <DetailItem label="Cooking" value={viewingVisit.cookingAllowed ? "Allowed" : "Not Allowed"} />
+                  <DetailItem label="Smoking" value={viewingVisit.smokingAllowed ? "Allowed" : "Not Allowed"} />
+                  <DetailItem label="Pets" value={viewingVisit.petsAllowed ? "Allowed" : "Not Allowed"} />
+                </DetailGrid>
+              </DetailSection>
+
+              {(viewingVisit.cleanlinessRating > 0 || viewingVisit.ownerBehaviour || viewingVisit.studentReviews || viewingVisit.internalRemarks) && (
+                <DetailSection icon={Star} title="Ratings & Notes" color="orange">
+                  {viewingVisit.cleanlinessRating > 0 && (
+                    <div className="flex items-center gap-2 mb-4">
+                      {[1, 2, 3, 4, 5].map(s => (
+                        <Star key={s} className={cn("w-5 h-5", s <= viewingVisit.cleanlinessRating ? "text-amber-400 fill-amber-400" : "text-slate-200")} />
+                      ))}
+                      <span className="text-xs font-bold text-slate-500 ml-1">{viewingVisit.cleanlinessRating}/5 Cleanliness</span>
+                    </div>
+                  )}
+                  <DetailGrid>
+                    <DetailItem label="Owner Behaviour" value={viewingVisit.ownerBehaviour} />
+                    <DetailItem label="Student Reviews" value={viewingVisit.studentReviews} />
+                  </DetailGrid>
+                  {viewingVisit.internalRemarks && (
+                    <p className="mt-4 text-xs font-semibold text-slate-600 bg-amber-50/50 rounded-xl p-4 border border-amber-100">{viewingVisit.internalRemarks}</p>
+                  )}
+                </DetailSection>
+              )}
+
+              {viewingVisit.photos?.length > 0 && (
+                <DetailSection icon={Camera} title="Photos" color="rose">
+                  <div className="flex flex-wrap gap-3">
+                    {viewingVisit.photos.map((url, idx) => (
+                      <img key={idx} src={url} alt="" className="w-24 h-24 rounded-xl object-cover border border-slate-100 shadow-sm" />
+                    ))}
+                  </div>
+                </DetailSection>
+              )}
+            </div>
           </div>
         </div>
       )}
