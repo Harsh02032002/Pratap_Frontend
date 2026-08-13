@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Search, RefreshCw, Send, Zap, Wallet, CreditCard,
   AlertCircle, CheckCircle2, XCircle, Loader2,
@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { fetchJson } from "../../utils/api";
 import useSEO from "../../hooks/useSEO";
-import { useSuperadminLogin } from "./useSuperadminLogin";
+
 
 const cn = (...c) => c.filter(Boolean).join(" ");
 const fmt = (n) => Number(n || 0).toLocaleString("en-IN");
@@ -383,7 +383,15 @@ function BulkTransferModal({ selectedIds, total, count, onClose, onSuccess }) {
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function Payouts() {
-  const adminLoginId = useSuperadminLogin();
+  const adminLoginId = useMemo(() => {
+    try {
+      const u = JSON.parse(sessionStorage.getItem("user") || localStorage.getItem("user") || "{}");
+      return u.loginId || u.email || "SUPERADMIN";
+    } catch {
+      return "SUPERADMIN";
+    }
+  }, []);
+
 
   useSEO({
     title: "Settlement Hub - Roomhy Super Admin",

@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useSuperadminLogin } from "./useSuperadminLogin";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { fetchJson, getApiBase } from "../../utils/api";
 import {
   CheckCircle, XCircle, Clock, ChevronDown, ChevronRight,
@@ -22,11 +21,9 @@ function Toast({ message, type, onClose }) {
   };
 
   return (
-    <div className={`fixed top-5 right-5 z-[999] flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-2xl text-sm font-bold transition-all ${colors[type] || colors.info}`}>
-      {type === "success" && <CheckCircle size={16} />}
-      {type === "error"   && <XCircle size={16} />}
+    <div className={cn("fixed bottom-6 right-6 z-50 px-5 py-3 rounded-2xl shadow-xl font-bold text-xs flex items-center gap-3 animate-in fade-in slide-in-from-bottom-3 duration-200", colors[type] || colors.info)}>
       <span>{message}</span>
-      <button onClick={onClose} className="ml-2 opacity-70 hover:opacity-100">✕</button>
+      <button onClick={onClose} className="opacity-70 hover:opacity-100 font-black">✕</button>
     </div>
   );
 }
@@ -175,7 +172,15 @@ function BankProofPreview({ url, name }) {
 
 /* ─── Main Page ───────────────────────────────────────────────── */
 export default function OwnerRequestsPage() {
-  const adminLoginId = useSuperadminLogin();
+  const adminLoginId = useMemo(() => {
+    try {
+      const u = JSON.parse(sessionStorage.getItem("user") || localStorage.getItem("user") || "{}");
+      return u.loginId || u.email || "SUPERADMIN";
+    } catch {
+      return "SUPERADMIN";
+    }
+  }, []);
+
 
   const [requests,    setRequests]    = useState([]);
   const [loading,     setLoading]     = useState(true);
