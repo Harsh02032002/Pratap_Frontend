@@ -59,6 +59,50 @@ export default function PropertyOwnerMobileLayout({
   const [profileDrawerOpen, setProfileDrawerOpen] = useState(false);
   const [switcherOpen, setSwitcherOpen] = useState(false);
 
+  const [isAccountBlocked, setIsAccountBlocked] = useState(() => {
+    return owner?.isActive === false || owner?.status === 'blocked' || owner?.isBlocked === true;
+  });
+  const [blockCountdown, setBlockCountdown] = useState(5);
+
+  useEffect(() => {
+    if (owner?.isActive === false || owner?.status === 'blocked' || owner?.isBlocked === true) {
+      setIsAccountBlocked(true);
+    }
+  }, [owner]);
+
+  useEffect(() => {
+    if (!owner?.loginId) return;
+    let socket;
+    try {
+      import('socket.io-client').then(({ io }) => {
+        import('../../utils/api').then(({ getApiBase }) => {
+          socket = io(getApiBase(), { transports: ['websocket', 'polling'] });
+          socket.emit('join_room', { login_id: owner.loginId, role: 'property_owner', name: owner.name || owner.loginId });
+          socket.on('account_blocked', () => {
+            setIsAccountBlocked(true);
+            import('../../utils/propertyowner').then(({ clearOwnerRuntimeSession }) => {
+              clearOwnerRuntimeSession();
+            }).catch(() => {});
+            let count = 5;
+            setBlockCountdown(count);
+            const t = setInterval(() => {
+              count -= 1;
+              setBlockCountdown(count);
+              if (count <= 0) {
+                clearInterval(t);
+                window.location.href = '/propertyowner/ownerlogin';
+              }
+            }, 1000);
+          });
+        });
+      });
+    } catch (_) {}
+
+    return () => {
+      if (socket) socket.disconnect();
+    };
+  }, [owner?.loginId]);
+
   // Property Switcher state — use props from parent if provided, else fall back to local state
   const [localProperties, setLocalProperties] = useState([]);
   const [localActivePropertyId, setLocalActivePropertyId] = useState('all');
@@ -93,6 +137,7 @@ export default function PropertyOwnerMobileLayout({
   }, [notifications, localClearedNotifications]);
 
   const displayNotificationCount = displayNotifications.filter(n => !n.read).length || notificationCount;
+
 
   const displayName = useMemo(() => owner?.name || owner?.ownerName || "Owner", [owner]);
   const ownerInitial = useMemo(() => String(displayName).charAt(0).toUpperCase() || "O", [displayName]);
@@ -134,7 +179,11 @@ export default function PropertyOwnerMobileLayout({
   }, [pathname]);
 
   return (
-    <div className="flex flex-col h-[100dvh] w-full bg-slate-50 font-sans relative overflow-hidden">
+    <div
+      style={isAccountBlocked ? { filter: 'blur(20px)', pointerEvents: 'none', userSelect: 'none' } : {}}
+      className="flex flex-col h-[100dvh] w-full bg-slate-50 font-sans relative overflow-hidden"
+    >
+
       
       {/* 1. PREMIUM HEADER */}
       <header className="sticky top-0 z-40 bg-white text-slate-800 px-4 py-3 flex flex-col justify-between shadow-sm shrink-0 border-b border-slate-100">
@@ -715,9 +764,58 @@ export default function PropertyOwnerMobileLayout({
           </button>
         </div>
       </div>
+
+      {/* Account Blocked Full-Screen Overlay Modal */}
+      {isAccountBlocked && (
+        <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4" style={{ background: 'rgba(10, 14, 28, 0.95)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 text-center shadow-[0_0_80px_rgba(239,68,68,0.5)] border-2 border-rose-500 relative animate-in fade-in zoom-in-95 duration-200">
+            <div className="relative w-16 h-16 mx-auto mb-4">
+              <span className="absolute inset-0 rounded-full bg-rose-500 opacity-20 animate-ping" />
+              <div className="relative w-16 h-16 rounded-2xl bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400 flex items-center justify-center shadow-lg">
+                <Lock className="w-8 h-8 stroke-[2.5]" />
+              </div>
+            </div>
+
+            <span className="text-[9px] font-black uppercase tracking-widest text-rose-600 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 px-3 py-1 rounded-full">
+              🚨 ACCOUNT PERMANENTLY BLOCKED
+            </span>
+
+            <h2 className="text-xl font-black text-slate-900 dark:text-white mt-3 mb-1">Access Denied</h2>
+            <p className="text-xs font-semibold text-slate-600 dark:text-slate-300 leading-relaxed mb-3">
+              Your account has been automatically blocked due to <span className="text-rose-600 font-bold underline">commission bypass or contact details sharing attempts</span>. All panel access is now revoked.
+            </p>
+
+            <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 rounded-xl text-left text-[10.5px] font-semibold text-rose-900 dark:text-rose-200 mb-4 space-y-1">
+              <p className="font-bold text-rose-600 dark:text-rose-400">⚠️ PERMANENT SUSPENSION NOTICE:</p>
+              <p>Sharing phone numbers, social handles, requesting offline payments, or bypassing Roomhy's platform commission is strictly prohibited. Once blocked, accounts CANNOT be unblocked.</p>
+            </div>
+
+            <div className="mb-4">
+              <p className="text-[10px] text-slate-500 font-semibold mb-1">
+                Auto-logging out in <span className="text-rose-600 font-black text-xs">{blockCountdown}s</span>
+              </p>
+              <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                <div
+                  className="h-full bg-rose-500 rounded-full transition-all duration-1000"
+                  style={{ width: `${(blockCountdown / 5) * 100}%` }}
+                />
+              </div>
+            </div>
+
+            <button
+              onClick={handleLogout}
+              className="w-full h-11 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all shadow-xl shadow-rose-600/30 flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <LogOut size={16} />
+              Logout Account Now
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
 
 // Compact grid item helper for the "More" bottom sheet
 function GridItem({ to, icon: Icon, label, active }) {

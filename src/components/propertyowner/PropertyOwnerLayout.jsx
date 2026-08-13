@@ -649,7 +649,11 @@ export default function PropertyOwnerLayout({
   }
 
   return (
-    <div className="flex h-screen w-full bg-background overflow-hidden font-sans text-foreground">
+    <div
+      style={isAccountBlocked ? { filter: 'blur(20px)', pointerEvents: 'none', userSelect: 'none' } : {}}
+      className="flex h-screen w-full bg-background overflow-hidden font-sans text-foreground"
+    >
+
       {/* Sidebar - EXACT Superadmin Style */}
       <aside className={joinClassNames(
         "w-72 h-screen bg-[#0F172A] text-slate-300 flex flex-col z-50 shrink-0 transition-transform duration-300",
@@ -964,61 +968,55 @@ export default function PropertyOwnerLayout({
 
         {/* Account Blocked Full-Screen Overlay Modal */}
         {isAccountBlocked && (
-          <>
-            {/* Panel blur overlay — sits below modal, above everything else */}
-            <div
-              style={{ backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)' }}
-              className="fixed inset-0 z-[99998] bg-slate-950/70 pointer-events-none"
-            />
-
-            {/* Blocked modal */}
-            <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
-              <div className="bg-white rounded-3xl max-w-md w-full p-8 text-center shadow-[0_0_80px_rgba(239,68,68,0.35)] border-2 border-rose-500" style={{ animation: 'fadeInScale 0.25s ease forwards' }}>
-                {/* Pulsing red icon */}
-                <div className="relative w-20 h-20 mx-auto mb-5">
-                  <span className="absolute inset-0 rounded-full bg-rose-500 opacity-20 animate-ping" />
-                  <div className="relative w-20 h-20 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center shadow-lg">
-                    <Lock className="w-9 h-9 stroke-[2.5]" />
-                  </div>
+          <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4" style={{ background: 'rgba(10, 14, 28, 0.95)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
+            <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-8 text-center shadow-[0_0_80px_rgba(239,68,68,0.5)] border-2 border-rose-500 relative animate-in fade-in zoom-in-95 duration-200">
+              {/* Pulsing red icon */}
+              <div className="relative w-20 h-20 mx-auto mb-5">
+                <span className="absolute inset-0 rounded-full bg-rose-500 opacity-20 animate-ping" />
+                <div className="relative w-20 h-20 rounded-2xl bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400 flex items-center justify-center shadow-lg">
+                  <Lock className="w-9 h-9 stroke-[2.5]" />
                 </div>
-
-                <span className="text-[10px] font-black uppercase tracking-widest text-rose-600 bg-rose-50 border border-rose-200 px-3.5 py-1 rounded-full">
-                  🚨 ACCOUNT PERMANENTLY BLOCKED
-                </span>
-
-                <h2 className="text-2xl font-black text-slate-900 mt-4 mb-2">Access Denied</h2>
-                <p className="text-xs font-semibold text-slate-600 leading-relaxed mb-4">
-                  Your account has been automatically blocked due to <span className="text-rose-600 font-bold">repeated commission bypass / offline deal attempts</span>. All panel access is now revoked.
-                </p>
-
-                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-left text-[11px] font-semibold text-rose-800 mb-5">
-                  ⚠️ Sharing phone numbers, requesting offline payments, or bypassing Roomhy's commission is strictly prohibited and results in immediate, permanent suspension.
-                </div>
-
-                {/* Countdown bar */}
-                <div className="mb-5">
-                  <p className="text-[11px] text-slate-500 font-semibold mb-2">
-                    Logging you out in <span className="text-rose-600 font-black text-sm">{blockCountdown}s</span>
-                  </p>
-                  <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                    <div
-                      className="h-full bg-rose-500 rounded-full transition-all duration-1000"
-                      style={{ width: `${(blockCountdown / 5) * 100}%` }}
-                    />
-                  </div>
-                </div>
-
-                <a
-                  href="mailto:support@roomhy.com"
-                  className="w-full h-11 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all shadow-lg flex items-center justify-center gap-2"
-                >
-                  📧 Contact Roomhy Support
-                </a>
               </div>
+
+              <span className="text-[10px] font-black uppercase tracking-widest text-rose-600 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 px-3.5 py-1 rounded-full">
+                🚨 ACCOUNT PERMANENTLY BLOCKED
+              </span>
+
+              <h2 className="text-2xl font-black text-slate-900 dark:text-white mt-4 mb-2">Access Denied</h2>
+              <p className="text-xs font-semibold text-slate-600 dark:text-slate-300 leading-relaxed mb-4">
+                Your account has been automatically blocked due to <span className="text-rose-600 font-bold underline">commission bypass or contact details sharing attempts</span>. All panel access is now revoked.
+              </p>
+
+              <div className="p-3.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 rounded-2xl text-left text-[11px] font-semibold text-rose-900 dark:text-rose-200 mb-5 space-y-1">
+                <p className="font-bold text-rose-600 dark:text-rose-400">⚠️ PERMANENT SUSPENSION NOTICE:</p>
+                <p>Sharing phone numbers, social handles, requesting offline payments, or bypassing Roomhy's platform commission is strictly prohibited. Once blocked, accounts CANNOT be unblocked.</p>
+              </div>
+
+              {/* Countdown indicator */}
+              <div className="mb-5">
+                <p className="text-[11px] text-slate-500 font-semibold mb-2">
+                  Auto-logging out in <span className="text-rose-600 font-black text-sm">{blockCountdown}s</span>
+                </p>
+                <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                  <div
+                    className="h-full bg-rose-500 rounded-full transition-all duration-1000"
+                    style={{ width: `${(blockCountdown / 5) * 100}%` }}
+                  />
+                </div>
+              </div>
+
+              <button
+                onClick={handleLogout}
+                className="w-full h-12 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all shadow-xl shadow-rose-600/30 flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <LogOut size={16} />
+                Logout Account Now
+              </button>
             </div>
-          </>
+          </div>
         )}
       </div>
     </div>
   );
 }
+

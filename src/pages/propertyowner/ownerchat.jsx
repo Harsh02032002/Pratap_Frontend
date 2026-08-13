@@ -331,8 +331,8 @@ export default function OwnerChat() {
     });
 
     socket.on("message_blocked", (data) => {
-      if (data?.warning) {
-        setBlockedMsgSnippet(data?.message || '');
+      if (data?.warning || data?.message || data?.blocked) {
+        setBlockedMsgSnippet(data?.message || 'Contact details / offline deal prohibited');
         setShowBypassWarning(true);
       }
       if (activeChatRef.current?.participant_login_id) {
@@ -377,28 +377,39 @@ export default function OwnerChat() {
 
   const checkBypassAttempt = (text) => {
     if (!text) return false;
-    const trimmed = text.trim();
-    const words = trimmed.split(/\s+/);
-    const isShortChatter = words.length <= 4;
-    const shortExemptPattern = /^\s*"?\s*(de|naa|na|paise|paisa|yahan|yaan|ha|haa|haan|thik|theek|bhej|bhejo|dena|karo|kro|hi|hello|ok|okay|aata|aaya|bhai|sir|mam|rent|room|ac|non ac|single|double|sharing|mil|baat|kaise|ho|acha|achha|batao|chahiye|mileyga|milraha|kab|kitna)\s*"?\s*$/i;
+    const rawText = String(text);
+    const trimmed = rawText.trim();
 
-    const hasDigitsOrUrl = /\d{5,}|http|www|\.com|@/.test(trimmed);
-    if (isShortChatter && !hasDigitsOrUrl && shortExemptPattern.test(trimmed)) {
-      return false;
-    }
+    // 1. Any 10+ digit sequence (formatted, spaced, or clean)
+    const cleanDigits = rawText.replace(/\D/g, '');
+    if (cleanDigits.length >= 10) return true;
 
-    const cleanDigits = String(text).replace(/[\s\-().,_/*]/g, '');
-    const hasTenDigits = /\d{10}/.test(cleanDigits);
-    const spacedDigits = /(\d[\s\-.,_*/]*){10,12}/g.test(text);
-    const bypassKeywords = [
-      /\b(whatsapp|watsapp|watsp|wtsp)\b/i,
-      /\b(call|phone|phn|mobile|contact|number|no|num)\s+([a-zA-Z]*\s+){0,2}(de|bhej|share|kar|kr|karo|kro|lena|le)\b/i,
+    // Spaced out digits e.g. "9 4 6 4 1 6 5 0 2 0" or "9464-165-020"
+    if (/(\d[\s\-.,_*/]*){10,}/.test(rawText)) return true;
+
+    // 2. Email address or URL links
+    if (/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i.test(trimmed)) return true;
+    if (/https?:\/\/|www\.[^\s]+|\.com|\.in|\.org|\.net/i.test(trimmed)) return true;
+
+    // 3. Messaging / Social handles
+    if (/\b(whatsapp|watsapp|watsp|wtsp|telegram|instagram|insta|facebook|fb|snapchat|twitter)\b/i.test(trimmed)) return true;
+
+    // 4. Contact info sharing phrases
+    const contactPhrases = [
+      /\b(call|phone|phn|mobile|contact|number|num|no)\b.*\b(de|bhej|bhejo|dena|share|kar|kr|karo|kro|do|lo|le|batao|diye|liya)\b/i,
+      /\b(de|bhej|bhejo|dena|share|kar|kr|karo|kro|do|batao)\b.*\b(call|phone|phn|mobile|contact|number|num|no)\b/i,
+      /\b(my|mera|apna|call|contact|reach|connect)\s+(number|no|num|contact|mobile|phone)\b/i,
+      /\b(call|contact)\s+(me|us|on|par|pe)\b/i,
       /\b(no\s+brokerage|save\s+commission|brokerage\s+bach|bypass\s+commission|without\s+commission)\b/i,
       /\b(pay|payment|rent|deposit|advance)\s+([a-zA-Z]*\s+){0,2}(offline|cash|direct|account)\b/i,
-      /\b(in\s*hand|hand\s*to\s*hand|offline\s*cash|direct\s*cash)\b/i,
-      /\boffline\s+(cash|payment|deal|transfer|settlement)\b/i
+      /\b(in\s*hand|hand\s*to\s*hand|offline\s*cash|direct\s*cash|cash\s*only)\b/i,
+      /\boffline\s+(cash|payment|deal|transfer|settlement)\b/i,
+      /\b(gpay|google pay|phonepe|paytm|upi|ybl|g-pay|phone-pe|bank transfer|account transfer)\b/i
     ];
-    return hasTenDigits || spacedDigits || bypassKeywords.some(rx => rx.test(text));
+
+    if (contactPhrases.some(rx => rx.test(trimmed))) return true;
+
+    return false;
   };
 
   const handleSend = async (e) => {
@@ -411,6 +422,7 @@ export default function OwnerChat() {
       setMessage("");
       return;
     }
+
 
     setIsSending(true);
     
