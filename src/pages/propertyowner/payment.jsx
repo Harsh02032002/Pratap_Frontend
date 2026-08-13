@@ -302,7 +302,22 @@ export default function Payment() {
       ]);
       const cashData = await fetchCashRequests(session._id || session.loginId).catch(() => ({ requests: [] }));
       if (tenantsData.status === "fulfilled") setTenants(tenantsData.value || []);
-      if (dashData.status === "fulfilled") setDashStats(dashData.value?.stats);
+      if (dashData.status === "fulfilled") {
+        const stats = dashData.value?.stats;
+        setDashStats(stats);
+        // Set fallback for wallet: use total paid amount from rent dashboard
+        // so admin-transferred manual payments show as Available Balance
+        const dashFallback = stats?.totalCollected || stats?.totalPaid || stats?.totalPaidAmount || 0;
+        if (dashFallback > 0) {
+          setWalletData(prev => ({
+            ...prev,
+            _dashFallback: dashFallback,
+            // Only override if currently 0
+            availableBalance: prev.availableBalance > 0 ? prev.availableBalance : dashFallback,
+            walletBalance: prev.walletBalance > 0 ? prev.walletBalance : dashFallback,
+          }));
+        }
+      }
       if (invData.status === "fulfilled") setInvoices(invData.value?.invoices || []);
       if (contactData.status === "fulfilled") setMissingContacts(contactData.value);
       setCashRequests(cashData?.requests || cashData?.cashRequests || cashData?.items || []);
@@ -340,9 +355,22 @@ export default function Payment() {
     if (!loginId) return;
     setWalletLoading(true);
     try {
-      const res = await fetchJson(`/api/wallet/owner/balance?loginId=${loginId}`).catch(() => null);
+      // Cache-bust so we always get fresh balance data
+      const res = await fetchJson(`/api/wallet/owner/balance?loginId=${loginId}&t=${Date.now()}`).catch(() => null);
       if (res?.wallet) {
-        setWalletData(res.wallet);
+        const w = res.wallet;
+        // If wallet API returns 0 for available balance, fall back to dashStats total collected
+        // This covers manual/cash payments recorded by admin that may not create PaymentTransactions
+        if ((w.availableBalance || 0) === 0 && (w.heldBalance || 0) === 0) {
+          setWalletData(prev => ({
+            ...w,
+            // Keep any previously loaded balance from dashStats as fallback
+            availableBalance: prev._dashFallback || 0,
+            walletBalance: prev._dashFallback || 0,
+          }));
+        } else {
+          setWalletData(w);
+        }
       }
     } catch (err) {
       console.error("Wallet error:", err);

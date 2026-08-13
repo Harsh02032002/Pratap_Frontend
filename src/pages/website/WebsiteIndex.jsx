@@ -88,16 +88,16 @@ const staticOfferings = [
 ];
 
 const featuredProperties = [
-  { _id: 'static1', name: 'Sunrise PG', location: 'Kota, Rajasthan', price: '₹6,500', rating: 4.8, image: 'https://picsum.photos/600/400?random=29', verified: true },
-  { _id: 'static2', name: 'Elite Hostel', location: 'Indore, MP', price: '₹5,200', rating: 4.6, image: 'https://picsum.photos/600/400?random=30', verified: true },
-  { _id: 'static3', name: 'Urban Co-Space', location: 'Sikar, Rajasthan', price: '₹8,900', rating: 4.9, image: 'https://picsum.photos/600/400?random=31', verified: true },
-  { _id: 'static4', name: 'Campus View PG', location: 'Kota, Rajasthan', price: '₹7,800', rating: 4.7, image: 'https://picsum.photos/600/400?random=32', verified: true },
-  { _id: 'static8', name: 'Royal Residency', location: 'Indore, MP', price: '₹12,500', rating: 4.5, image: 'https://picsum.photos/600/400?random=33', verified: true },
-  { _id: 'static5', name: 'Smart Stay PG', location: 'Sikar, Rajasthan', price: '₹5,800', rating: 4.4, image: 'https://picsum.photos/600/400?random=34', verified: true },
-  { _id: 'static6', name: 'Grand Hostel', location: 'Kota, Rajasthan', price: '₹4,800', rating: 4.3, image: 'https://picsum.photos/600/400?random=35', verified: true },
-  { _id: 'static7', name: 'City Center PG', location: 'Indore, MP', price: '₹6,200', rating: 4.6, image: 'https://picsum.photos/600/400?random=36', verified: true },
-  { _id: 'static9', name: 'Premium Co-Living', location: 'Sikar, Rajasthan', price: '₹10,500', rating: 4.8, image: 'https://picsum.photos/600/400?random=37', verified: true },
-  { _id: 'static10', name: 'Student Hub', location: 'Kota, Rajasthan', price: '₹5,500', rating: 4.2, image: 'https://picsum.photos/600/400?random=38', verified: true }
+  { _id: 'static1', name: 'Sunrise PG', location: 'Kota, Rajasthan', price: '₹6,500', image: 'https://picsum.photos/600/400?random=29', verified: true },
+  { _id: 'static2', name: 'Elite Hostel', location: 'Indore, MP', price: '₹5,200', image: 'https://picsum.photos/600/400?random=30', verified: true },
+  { _id: 'static3', name: 'Urban Co-Space', location: 'Sikar, Rajasthan', price: '₹8,900', image: 'https://picsum.photos/600/400?random=31', verified: true },
+  { _id: 'static4', name: 'Campus View PG', location: 'Kota, Rajasthan', price: '₹7,800', image: 'https://picsum.photos/600/400?random=32', verified: true },
+  { _id: 'static8', name: 'Royal Residency', location: 'Indore, MP', price: '₹12,500', image: 'https://picsum.photos/600/400?random=33', verified: true },
+  { _id: 'static5', name: 'Smart Stay PG', location: 'Sikar, Rajasthan', price: '₹5,800', image: 'https://picsum.photos/600/400?random=34', verified: true },
+  { _id: 'static6', name: 'Grand Hostel', location: 'Kota, Rajasthan', price: '₹4,800', image: 'https://picsum.photos/600/400?random=35', verified: true },
+  { _id: 'static7', name: 'City Center PG', location: 'Indore, MP', price: '₹6,200', image: 'https://picsum.photos/600/400?random=36', verified: true },
+  { _id: 'static9', name: 'Premium Co-Living', location: 'Sikar, Rajasthan', price: '₹10,500', image: 'https://picsum.photos/600/400?random=37', verified: true },
+  { _id: 'static10', name: 'Student Hub', location: 'Kota, Rajasthan', price: '₹5,500', image: 'https://picsum.photos/600/400?random=38', verified: true }
 ];
 
 const heroImages = [
@@ -786,12 +786,6 @@ export default function WebsiteIndex() {
                     <div>
                       <h3 className="font-bold text-gray-900 text-sm mb-0.5 line-clamp-1 group-hover:text-teal-600 transition-colors">{property.name || 'Roomhy Property'}</h3>
                       <div className="text-gray-500 text-[11px] mb-1 line-clamp-1">{property.location}</div>
-                      <div className="flex items-center gap-1.5 mb-1 text-[11px]">
-                        <div className="bg-[#1AB64F] text-white px-1 py-0.5 rounded text-[10px] font-bold flex items-center gap-0.5">
-                          {property.rating} <Star className="w-2.5 h-2.5 fill-white text-white" />
-                        </div>
-                        <span className="text-gray-500">Excellent</span>
-                      </div>
                       <div className="flex items-baseline gap-1.5">
                         <span className="text-base font-bold text-gray-900">
                           {property.monthlyRent ? `₹${property.monthlyRent.toLocaleString()}` : (property.price || '₹0')}
@@ -823,10 +817,6 @@ export default function WebsiteIndex() {
                         <img src={property.image} alt={property.name} className="w-full h-full object-cover" loading="lazy" width="144" height="96"
                           onError={(e) => { e.target.src = `https://picsum.photos/600/400?random=${Math.floor(Math.random() * 100)}`; }}
                         />
-                        <div className="absolute bottom-2 left-2 bg-white/90 backdrop-blur rounded-md px-1.5 py-0.5 flex items-center gap-1 shadow-sm">
-                          <Star className="w-2.5 h-2.5 fill-yellow-400 text-yellow-400" />
-                          <span className="text-[10px] font-bold text-gray-800">{property.rating}</span>
-                        </div>
                       </div>
                       <h3 className="font-bold text-gray-900 text-sm mb-0 line-clamp-1">{property.name || 'Roomhy Property'}</h3>
                       <div className="flex items-center text-gray-600 font-medium text-[10px] mb-0">
@@ -1043,3 +1033,4 @@ export default function WebsiteIndex() {
     </div>
   );
 }
+

@@ -33,7 +33,7 @@ export default function DigitalCheckinTenantConfirmation() {
       } catch (_) {
         window.location.href = nextUrl;
       }
-    }, 5000);
+    }, 1000);
     return () => clearTimeout(timer);
   }, [nextUrl]);
 
@@ -44,7 +44,7 @@ export default function DigitalCheckinTenantConfirmation() {
         <h1>Welcome to RoomHy</h1>
         <p>Your tenant agreement has been submitted successfully.</p>
         <p>We have sent the login link to your registered Gmail.</p>
-        <div className="meta" id="redirectText">Redirecting to login page in 5 seconds...</div>
+        <div className="meta" id="redirectText">Redirecting to login page in 1 second...</div>
         <a className="btn" href={nextUrl || "../tenant//tenant/tenantlogin"}>Go to Tenant Login Now</a>
       </div>
     </div>

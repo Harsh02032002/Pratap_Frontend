@@ -270,9 +270,8 @@ export default function BankAccountsPage() {
     }
     setSubmitLoading(true);
     try {
-      const res = await fetch("/api/owner-change-requests/submit", {
+      const data = await fetchJson("/api/owner-change-requests/submit", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ownerLoginId: owner.loginId,
           requestType: "bank_details",
@@ -281,7 +280,6 @@ export default function BankAccountsPage() {
           bankProofName,
         }),
       });
-      const data = await res.json();
       if (data.success) {
         setSuccessMsg("Bank details submitted for Superadmin approval.");
         setIsEditing(false);
@@ -289,8 +287,8 @@ export default function BankAccountsPage() {
       } else {
         setErrorMsg(data.message || "Failed to submit request.");
       }
-    } catch {
-      setErrorMsg("Error submitting request.");
+    } catch (err) {
+      setErrorMsg(err?.message || "Error submitting request.");
     } finally {
       setSubmitLoading(false);
     }

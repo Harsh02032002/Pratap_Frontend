@@ -24,7 +24,7 @@ export default function OwnerRent() {
             amount: `₹${Number(inv.totalDue || inv.rentAmount || 0).toLocaleString("en-IN")}`,
             date: inv.paymentDate ? new Date(inv.paymentDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : new Date(inv.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
             status: inv.paymentStatus === "paid" ? "Collected" : "Overdue",
-            method: inv.paymentMethod === "razorpay" ? "UPI" : inv.paymentMethod === "cash" ? "Cash" : inv.paymentMethod === "already_paid" ? "Already Paid" : inv.paymentMethod || "-",
+            method: inv.paymentMethod === "razorpay" ? "UPI" : inv.paymentMethod === "cash" ? "Cash" : inv.paymentMethod === "online" ? "Online" : inv.paymentMethod === "already_paid" ? "Already Paid" : inv.paymentMethod || "-",
             id: inv._id ? `#REC-${String(inv._id).slice(-6).toUpperCase()}` : "#REC-000",
             _id: inv._id,
             receiptAvailable: inv.paymentStatus === "paid"

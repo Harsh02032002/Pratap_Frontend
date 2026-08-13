@@ -334,6 +334,8 @@ export default function Visit() {
       }
 
       // Step 2: Create Pending Owner (triggers direct KYC email & lands in Superadmin Pending Owners)
+      // NOTE: credentials (password) are NOT sent here intentionally.
+      // Owner will receive login/password ONLY after Superadmin approves.
       await fetchJson("/api/owners", {
         method: "POST",
         headers: { ...getAuthHeader(), "Content-Type": "application/json" },
@@ -344,8 +346,6 @@ export default function Visit() {
           phone: formPhone,
           locationCode: formArea || formOwnerCity,
           city: formOwnerCity,
-          credentials: { password: formPassword, firstTime: true },
-          checkinPassword: formPassword,
           checkinBankName: formBankName,
           checkinBranchName: formBranchName,
           checkinBankAccountNumber: formBankAccountNumber,
@@ -359,7 +359,7 @@ export default function Visit() {
         })
       });
 
-      alert(`✅ Property Owner & Visit Report submitted successfully!\n\nOwner ID: ${formLoginId}\nPassword: ${formPassword}\n\nKYC email has been sent to ${formEmail}. Credentials will be emailed upon Superadmin approval.`);
+      alert(`✅ Property Owner & Visit Report submitted successfully!\n\nKYC Verification Link has been sent to ${formEmail}.\n\nLogin credentials will be issued via email only after Superadmin approves the KYC.`);
       resetForm();
       setShowAddOwnerModal(false);
       loadVisits();

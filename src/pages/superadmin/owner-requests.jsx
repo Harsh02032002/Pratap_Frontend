@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useSuperadminLogin } from "./useSuperadminLogin";
+import { fetchJson, getApiBase } from "../../utils/api";
 import {
   CheckCircle, XCircle, Clock, ChevronDown, ChevronRight,
   User, Banknote, FileCheck2, ExternalLink, ImageOff
@@ -194,8 +195,7 @@ export default function OwnerRequestsPage() {
     if (isInitial) setLoading(true);
     try {
       const statusParam = filter !== "All" ? `?status=${filter}` : "";
-      const res  = await fetch(`/api/owner-change-requests${statusParam}`);
-      const data = await res.json();
+      const data = await fetchJson(`/api/owner-change-requests${statusParam}`);
       if (data.success) {
         setRequests(data.data || []);
         setBackendDown(false);
@@ -215,12 +215,10 @@ export default function OwnerRequestsPage() {
 
   const handleApprove = async (req) => {
     try {
-      const res  = await fetch(`/api/owner-change-requests/${req._id}/approve`, {
+      const data = await fetchJson(`/api/owner-change-requests/${req._id}/approve`, {
         method:  "PUT",
-        headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ superadminLoginId: adminLoginId }),
       });
-      const data = await res.json();
       if (data.success) {
         showToast("Request approved and changes applied successfully.", "success");
         fetchRequests();
@@ -236,12 +234,10 @@ export default function OwnerRequestsPage() {
 
   const handleReject = async (req, reason) => {
     try {
-      const res  = await fetch(`/api/owner-change-requests/${req._id}/reject`, {
+      const data = await fetchJson(`/api/owner-change-requests/${req._id}/reject`, {
         method:  "PUT",
-        headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ superadminLoginId: adminLoginId, reason }),
       });
-      const data = await res.json();
       if (data.success) {
         showToast("Request rejected.", "info");
         fetchRequests();

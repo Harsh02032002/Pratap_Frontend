@@ -1596,7 +1596,7 @@ export function ReadOnlyField({ label, value, required, muted }) {
 }
 
 // ─── Identity information card ───────────────────────────────────────────────
-export function IdentityInformationCard({ aadhaar, aadhaarPhone, pan, name, relationship }) {
+export function IdentityInformationCard({ aadhaar, aadhaarPhone, pan, name, relationship, altProofUrl, altProofType }) {
   return (
     <div className={`rounded-[22px] ${HAIRLINE} bg-white p-6 sm:p-7 ${SOFT}`}>
       <div className="flex items-center gap-3">
@@ -1609,10 +1609,27 @@ export function IdentityInformationCard({ aadhaar, aadhaarPhone, pan, name, rela
         </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-5">
-        <ReadOnlyField label="Aadhaar Number" required value={aadhaar} />
-        <ReadOnlyField label="Aadhaar Linked Phone" value={aadhaarPhone} />
-      </div>
+      {altProofUrl ? (
+        // Onboarded without Aadhaar — show the alternate ID proof that was submitted
+        // instead, rather than a blank/dashed Aadhaar field.
+        <div className="mt-6">
+          <label className="block text-[10.5px] font-semibold uppercase tracking-wider text-slate-400">
+            {altProofType || "ID Proof"} Submitted
+          </label>
+          <a href={altProofUrl} target="_blank" rel="noopener noreferrer" className="mt-2 block w-fit">
+            <img
+              src={altProofUrl}
+              alt={altProofType || "ID Proof"}
+              className="w-40 h-28 object-cover rounded-[14px] border border-[#e0e2e9] hover:opacity-90 transition-opacity"
+            />
+          </a>
+        </div>
+      ) : (
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+          <ReadOnlyField label="Aadhaar Number" required value={aadhaar} />
+          <ReadOnlyField label="Aadhaar Linked Phone" value={aadhaarPhone} />
+        </div>
+      )}
       <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-5">
         <ReadOnlyField label="PAN Number (Optional)" value={pan} />
         <ReadOnlyField label="Name on Document" value={name} muted />

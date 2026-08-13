@@ -406,6 +406,9 @@ export default function Tenantdashboard() {
   const apiBase = useMemo(() => getApiBase(), []);
   const [tenantUser] = useState(() => readTenantUser());
   const [tenant, setTenant] = useState(null);
+  // Alternate ID proof (Voter ID / PAN / etc.) submitted instead of Aadhaar
+  // when onboarded without it — lives in a separate TenantKycRequest record.
+  const [altKycRequest, setAltKycRequest] = useState(null);
   const [rent, setRent] = useState(null);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -942,6 +945,18 @@ export default function Tenantdashboard() {
     }
   };
 
+  const loadAltKycRequest = async (tenantId) => {
+    if (!tenantId) return;
+    try {
+      const data = await fetchJson(`/api/tenant-kyc-requests?tenantId=${encodeURIComponent(tenantId)}`);
+      const first = data?.data?.[0] || null;
+      setAltKycRequest(first);
+    } catch {
+      // Non-fatal — tenant may simply not have an alternate proof request
+      setAltKycRequest(null);
+    }
+  };
+
   const loadAnnouncements = async (ownerLoginId) => {
     const ownerId = ownerLoginId || tenant?.ownerLoginId;
     if (!ownerId) return;
@@ -963,6 +978,7 @@ export default function Tenantdashboard() {
         await loadLedger();
         loadAnnouncements(tData.ownerLoginId);
         fetchMyComplaints(tData);
+        loadAltKycRequest(tData._id);
       }
     }
     catch (err) { setErrorMsg(err?.body || err?.message || "Failed to load tenant dashboard."); }
@@ -1084,6 +1100,17 @@ export default function Tenantdashboard() {
     window.dispatchEvent(new Event("paymentUpdated"));
   };
 
+  const ensureCashfreeLoaded = () => {
+    return new Promise((resolve) => {
+      if (window.Cashfree) return resolve(true);
+      const script = document.createElement("script");
+      script.src = "https://sdk.cashfree.com/js/v3/cashfree.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
   // ─── Payment handlers ─────────────────────────────────────────────────────────
   const handleOnlinePayment = async () => {
     const isCurrent = paymentTarget === "current";
@@ -1094,87 +1121,35 @@ export default function Tenantdashboard() {
     setActionBusy(true);
     setActionMsg("");
     try {
-      const orderData = await fetchJson("/api/rents/create-order", {
+      const targetRentId = isCurrent ? rent?._id : prevMonthObj?._id;
+      const orderData = await fetchJson("/api/payments/cashfree/create-order", {
         method: "POST",
         body: JSON.stringify({
+          bookingId: targetRentId || `rent_${loginId}_${Date.now()}`,
           amount: paymentAmount,
-          tenantId: loginId,
-          ...(isCurrent ? { currentRentId: rent?._id } : { currentRentId: null, previousRentIds: [prevMonthObj?._id] }),
-          description: isCurrent ? "Monthly Rent Payment" : `Pending Due: ${prevMonthObj?.billingMonth}`,
+          customerInfo: {
+            name: tenantUser?.name || tenant?.name || "Tenant",
+            email: tenantUser?.email || tenant?.email || "",
+            phone: tenantUser?.phone || tenant?.phone || "",
+          }
         }),
       });
+
       if (!orderData?.success)
         throw new Error(orderData?.error || orderData?.message || "Failed to create payment order.");
 
-      await ensureRazorpayLoaded();
-      const razorpay = new window.Razorpay({
-        key: orderData.key,
-        amount: orderData.order.amount,
-        currency: "INR",
-        name: "Roomhy",
-        description: "Monthly Rent Payment",
-        order_id: orderData.order?.id,
-        prefill: {
-          name: tenantUser?.name || tenant?.name || "Tenant",
-          email: tenantUser?.email || tenant?.email || "",
-          contact: tenantUser?.phone || tenant?.phone || "",
-        },
-        notes: { tenantId: loginId, rentMonth: new Date().toISOString().slice(0, 7) },
-        handler: async (response) => {
-          try {
-            const verifyResult = await fetchJson("/api/rents/verify-payment", {
-              method: "POST",
-              body: JSON.stringify({
-                tenantId: loginId,
-                rentId: isCurrent ? rent?._id : prevMonthObj?._id,
-                paidAmount: paymentAmount,
-                ...(isCurrent ? { currentRentId: rent?._id } : { currentRentId: null, previousRentIds: [prevMonthObj?._id] }),
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-              }),
-            });
-
-            await syncPaymentState();
-            setPayOpen(false);
-
-            const freshRentItem = verifyResult?.transaction || {
-              ...rent,
-              paymentMethod: "razorpay",
-              razorpay_payment_id: response.razorpay_payment_id,
-              paymentStatus: "paid",
-            };
-
-            openGenericModal(
-              "Payment Confirmation",
-              <div className="text-center">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CheckCircle className="w-8 h-8 text-green-600" />
-                </div>
-                <h4 className="text-lg font-bold text-slate-900 mb-2">Payment Successful!</h4>
-                <p className="text-sm text-slate-600 mb-6">
-                  Your rent payment has been recorded and confirmed.
-                </p>
-                <button
-                  onClick={() => downloadReceiptPdf(freshRentItem)}
-                  disabled={pdfBusy}
-                  className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-xl transition disabled:opacity-60"
-                >
-                  <Download className="w-4 h-4" />
-                  {pdfBusy ? "Generating PDF..." : "Download Receipt (PDF)"}
-                </button>
-              </div>
-            );
-          } catch (err) {
-            setActionMsg(err?.body || err?.message || "Payment record failed.");
-          }
-        },
-        modal: { ondismiss: () => setActionMsg("Payment cancelled.") },
-        theme: { color: "#2563eb" },
-      });
-      razorpay.open();
-    } catch (err) {
-      setActionMsg(err?.body || err?.message || "Failed to initiate payment.");
+      const loaded = await ensureCashfreeLoaded();
+      if (loaded && window.Cashfree && orderData.payment_session_id) {
+        const cashfree = window.Cashfree({ mode: "sandbox" });
+        cashfree.checkout({
+          paymentSessionId: orderData.payment_session_id,
+          redirectTarget: "_self"
+        });
+      } else if (orderData.payment_link || orderData.link_url) {
+        window.location.href = orderData.payment_link || orderData.link_url;
+      } else {
+        throw new Error("Could not launch Cashfree checkout session.");
+      }
     } finally {
       setActionBusy(false);
     }
@@ -2246,6 +2221,8 @@ export default function Tenantdashboard() {
                     pan={panVal}
                     name={nameOnDoc}
                     relationship={relationshipVal}
+                    altProofUrl={altKycRequest?.proofFileUrl || tenant?.kyc?.alternateProofFile || ""}
+                    altProofType={altKycRequest?.proofType || tenant?.kyc?.alternateProofType || ""}
                   />
                 )}
 

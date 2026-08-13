@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { CheckCircle, XCircle, Clock, Eye, AlertTriangle, Search } from "lucide-react";
 import { PageHeader } from "../../components/superadmin/PageHeader";
+import { fetchJson, getApiBase } from "../../utils/api";
 
 export default function TenantKycRequestsPage() {
   // Stable primitive read of the logged-in superadmin's ID — a fresh object
@@ -37,8 +38,7 @@ export default function TenantKycRequestsPage() {
     setLoading(true);
     try {
       const statusParam = filter !== "All" ? `?status=${filter}` : "";
-      const res = await fetch(`/api/tenant-kyc-requests${statusParam}`);
-      const data = await res.json();
+      const data = await fetchJson(`/api/tenant-kyc-requests${statusParam}`);
       if (data.success) {
         setRequests(data.data || []);
       }
@@ -71,16 +71,14 @@ export default function TenantKycRequestsPage() {
     const { type, request } = confirmModal;
     setSubmitting(true);
     try {
-      const res = await fetch(`/api/tenant-kyc-requests/${request._id}/${type}`, {
+      const data = await fetchJson(`/api/tenant-kyc-requests/${request._id}/${type}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
           type === "approve"
             ? { superadminLoginId: adminLoginId }
             : { superadminLoginId: adminLoginId, reason }
         )
       });
-      const data = await res.json();
       if (data.success) {
         if (type === "approve" && data.notifyError) {
           setToast({

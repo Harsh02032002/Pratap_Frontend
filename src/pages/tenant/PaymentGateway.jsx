@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { API_URL } from '../../services/api';
+import { fetchJson, getAuthHeader } from '../../utils/api';
 
 const PaymentGateway = () => {
     const [searchParams] = useSearchParams();
@@ -19,7 +19,7 @@ const PaymentGateway = () => {
     // OTP State
     const [otp, setOtp] = useState('');
     const [otpSent, setOtpSent] = useState(false);
-    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(''); // 'cash' or 'already_paid'
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(''); // 'cash' | 'already_paid_online'
 
     useEffect(() => {
         if (!token) {
@@ -40,26 +40,18 @@ const PaymentGateway = () => {
             const payload = JSON.parse(atob(token.split('.')[1]));
             if (payload?.loginId) {
                 setLoginId(payload.loginId);
-                // Auto-verify identity
                 setLoading(true);
-                fetch(`${API_URL}/api/rents/payment-page/verify-identity`, {
+                fetchJson('/api/rents/payment-page/verify-identity', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ token, enteredLoginId: payload.loginId })
                 })
-                    .then(res => res.json().then(data => ({ ok: res.ok, status: res.status, data })))
-                    .then(({ ok, status, data }) => {
-                        if (ok) {
-                            setPropertyData(data);
-                            setStep(2);
-                        } else if (status === 410 || status === 409 || status === 429) {
-                            setError(data.error || data.message);
-                            setStep(0);
-                        } else {
-                            setError(data.error || data.message || 'Verification failed.');
-                        }
+                    .then(data => {
+                        setPropertyData(data);
+                        setStep(2);
                     })
-                    .catch(() => setError('Could not connect to server.'))
+                    .catch(err => {
+                        setError(err.message || 'Could not connect to server.');
+                    })
                     .finally(() => setLoading(false));
             }
         } catch (_) {
@@ -73,29 +65,15 @@ const PaymentGateway = () => {
         setLoading(true);
 
         try {
-            const res = await fetch(`${API_URL}/api/rents/payment-page/verify-identity`, {
+            const data = await fetchJson('/api/rents/payment-page/verify-identity', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ token, enteredLoginId: loginId })
             });
-
-            const data = await res.json();
-
-            if (!res.ok) {
-                if (res.status === 410 || res.status === 409 || res.status === 429) {
-                    setError(data.error || data.message);
-                    setStep(0); // Error state block
-                } else {
-                    setError(data.error || data.message || 'Identity verification failed.');
-                }
-                setLoading(false);
-                return;
-            }
 
             setPropertyData(data);
             setStep(2); // Proceed to Payment Mode Selection
         } catch (err) {
-            setError('An error occurred. Please try again.');
+            setError(err.message || 'Identity verification failed.');
         } finally {
             setLoading(false);
         }
@@ -107,9 +85,8 @@ const PaymentGateway = () => {
 
         try {
             // 1. Get Cashfree Order / Payment Link
-            const res = await fetch(`${API_URL}/api/payments/cashfree/create-order`, {
+            const data = await fetchJson('/api/payments/cashfree/create-order', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     bookingId: propertyData?.bookingId || propertyData?._id || token,
                     amount: propertyData?.rentAmount || propertyData?.amount || 0,
@@ -120,11 +97,6 @@ const PaymentGateway = () => {
                     }
                 })
             });
-
-            const data = await res.json();
-            if (!res.ok || !data.success) {
-                throw new Error(data.message || data.error || 'Failed to initialize Cashfree payment');
-            }
 
             const paymentSessionId = data.payment_session_id;
             const paymentLink = data.payment_link || data.link_url;
@@ -148,26 +120,21 @@ const PaymentGateway = () => {
         }
     };
 
-    const handleGenerateCashOtp = async () => {
+    const handleGenerateCashOtp = async (method) => {
         setError(null);
         setLoading(true);
+        // Set payment method immediately from the parameter — avoids React
+        // state-batching issues where setState hasn't flushed yet.
+        setSelectedPaymentMethod(method || 'cash');
         try {
-            const res = await fetch(`${API_URL}/api/rents/cash-otp/generate`, {
+            const data = await fetchJson('/api/rents/cash-otp/generate', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ token })
             });
-
-            const data = await res.json();
-            if (res.ok) {
-                setOtpSent(true);
-                setSelectedPaymentMethod('cash');
-                setStep(3); // Enter OTP Mode
-            } else {
-                setError(data.error || data.message || 'Failed to generate OTP');
-            }
+            setOtpSent(true);
+            setStep(3); // Enter OTP Mode
         } catch (err) {
-            setError('Failed to reach server');
+            setError(err.message || 'Failed to generate OTP');
         } finally {
             setLoading(false);
         }
@@ -178,19 +145,18 @@ const PaymentGateway = () => {
         setError(null);
         setLoading(true);
         try {
-            const res = await fetch(`${API_URL}/api/rents/cash-otp/verify`, {
+            await fetchJson('/api/rents/cash-otp/verify', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token, otp, paymentMethod: selectedPaymentMethod })
+                // 'already_paid_online' maps to 'online' so receipts show Online Payment
+                body: JSON.stringify({
+                    token,
+                    otp,
+                    paymentMethod: selectedPaymentMethod === 'already_paid_online' ? 'online' : selectedPaymentMethod
+                })
             });
-            const data = await res.json();
-            if (res.ok) {
-                setStep(4); // Success!
-            } else {
-                setError(data.error || data.message || 'OTP verification failed');
-            }
+            setStep(4); // Success!
         } catch (err) {
-            setError('Server error.');
+            setError(err.message || 'OTP verification failed');
         } finally {
             setLoading(false);
         }
@@ -318,7 +284,7 @@ const PaymentGateway = () => {
                                 </button>
 
                                 <button
-                                    onClick={handleGenerateCashOtp}
+                                    onClick={() => handleGenerateCashOtp('cash')}
                                     disabled={loading}
                                     className="w-full relative flex items-center justify-between p-4 border border-slate-200 hover:border-slate-300 hover:bg-slate-50 rounded-xl cursor-pointer transition-colors"
                                 >
@@ -330,16 +296,13 @@ const PaymentGateway = () => {
                                 </button>
 
                                 <button
-                                    onClick={() => {
-                                        setSelectedPaymentMethod('already_paid');
-                                        handleGenerateCashOtp();
-                                    }}
+                                    onClick={() => handleGenerateCashOtp('already_paid_online')}
                                     disabled={loading}
                                     className="w-full relative flex items-center justify-between p-4 border border-green-200 bg-green-50 hover:bg-green-100 rounded-xl cursor-pointer transition-colors"
                                 >
                                     <div className="flex flex-col text-left">
-                                        <span className="font-bold text-green-900">Already Paid</span>
-                                        <span className="text-green-700 text-xs mt-1">Payment already completed to owner</span>
+                                        <span className="font-bold text-green-900">Already Paid Online</span>
+                                        <span className="text-green-700 text-xs mt-1">Payment already done online (UPI/Transfer)</span>
                                     </div>
                                     <span className="text-green-600">→</span>
                                 </button>
@@ -351,9 +314,15 @@ const PaymentGateway = () => {
                     {step === 3 && (
                         <form onSubmit={handleVerifyCashOtp} className="space-y-6">
                             <div className="text-center mb-6">
-                                <h2 className="text-xl font-bold text-slate-800">Cash Payment OTP</h2>
-                                <p className="text-slate-500 text-sm mt-1">Please ask your owner/manager for the secure 6-digit OTP sent to their registered number.</p>
-                            </div>
+                                <h2 className="text-xl font-bold text-slate-800">
+                                    {selectedPaymentMethod === 'already_paid_online' ? 'Confirm Online Payment' : 'Cash Payment OTP'}
+                                </h2>
+                                <p className="text-slate-500 text-sm mt-1">
+                                    {selectedPaymentMethod === 'already_paid_online'
+                                        ? 'Owner ko OTP dena hoga jo unke registered number par aaya hai, confirming the online payment.'
+                                        : 'Please ask your owner/manager for the secure 6-digit OTP sent to their registered number.'}
+                                </p>
+                        </div>
 
                             <div>
                                 <label className="block text-sm font-semibold text-slate-700 mb-2">6-Digit Authorization OTP</label>

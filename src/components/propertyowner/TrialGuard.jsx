@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Lock, Clock, Crown, Phone, ChevronRight, AlertTriangle, RefreshCw, CreditCard, ShieldCheck } from 'lucide-react';
+import { Lock, Clock, Crown, Phone, ChevronRight, AlertTriangle, RefreshCw, CreditCard, ShieldCheck, LogOut } from 'lucide-react';
 import { getApiBase, fetchJson } from '../../utils/api';
 import { getOwnerRuntimeSession } from '../../utils/propertyowner';
 
@@ -22,7 +22,7 @@ const loadCashfreeSDK = () => {
  * If trial is expired: shows full blur overlay + non-dismissable Cashfree payment modal.
  * If trial is active / subscribed / unconfigured: renders children normally.
  */
-export default function TrialGuard({ owner, children }) {
+export default function TrialGuard({ owner, children, onLogout }) {
   const [trialData, setTrialData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
@@ -125,6 +125,20 @@ export default function TrialGuard({ owner, children }) {
     ? new Date(trialData.trialEndDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })
     : null;
 
+  const handleLogout = () => {
+    if (typeof onLogout === 'function') {
+      onLogout();
+    } else {
+      // Fallback: clear session and redirect
+      try {
+        localStorage.removeItem('owner_session');
+        localStorage.removeItem('owner_runtime_session');
+        sessionStorage.clear();
+      } catch (_) {}
+      window.location.href = '/propertyowner/ownerlogin';
+    }
+  };
+
   return (
     <div className="relative w-full h-full min-h-screen">
       {/* Blurred children — completely non-interactive when expired */}
@@ -140,10 +154,10 @@ export default function TrialGuard({ owner, children }) {
         {children}
       </div>
 
-      {/* Strict Fullscreen Dark Overlay */}
+      {/* ── Full-Viewport Frost Overlay (covers sidebar + header too) ── */}
       <div
         className="fixed inset-0 z-[99999] flex items-center justify-center p-4"
-        style={{ background: 'rgba(10, 14, 28, 0.88)', backdropFilter: 'blur(8px)' }}
+        style={{ background: 'rgba(10, 14, 28, 0.92)', backdropFilter: 'blur(10px)' }}
       >
         <div className="w-full max-w-md mx-auto relative animate-in fade-in zoom-in-95 duration-300">
           {/* Glow effect */}
@@ -165,12 +179,12 @@ export default function TrialGuard({ owner, children }) {
               </div>
 
               <h2 className="text-2xl font-black text-white tracking-tight text-center">
-                Free Trial Period Expired
+                Subscription Expired
               </h2>
               <p className="text-slate-400 text-xs text-center mt-2 leading-relaxed">
-                {owner?.name ? `${owner.name}, your` : 'Your'} Roomhy Owner Panel trial has ended.
+                {owner?.name ? `${owner.name}, aapka` : 'Aapka'} Roomhy Owner Panel trial khatam ho gaya hai.
                 {endDateStr && <> Expired on <span className="text-red-400 font-bold">{endDateStr}</span>.</>}
-                <br />Renew your subscription online to regain immediate full access.
+                <br />Panel use karne ke liye subscription renew karein.
               </p>
             </div>
 
@@ -223,7 +237,7 @@ export default function TrialGuard({ owner, children }) {
                 ) : (
                   <>
                     <CreditCard size={18} />
-                    <span>Pay {priceDisplay} Online & Unlock Panel</span>
+                    <span>Pay {priceDisplay} Online &amp; Unlock Panel</span>
                     <ChevronRight size={16} className="opacity-70" />
                   </>
                 )}
@@ -237,6 +251,15 @@ export default function TrialGuard({ owner, children }) {
                 <Phone size={14} />
                 Need Assistance? Contact Roomhy Support
               </a>
+
+              {/* ── Logout — only escape route ── */}
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center justify-center gap-2 bg-rose-950/60 hover:bg-rose-900/80 text-rose-400 hover:text-rose-300 font-bold py-3 rounded-xl transition-all border border-rose-800/50 text-xs"
+              >
+                <LogOut size={14} />
+                Logout
+              </button>
 
               {/* Refresh Status */}
               <button

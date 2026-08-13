@@ -130,9 +130,9 @@ export default function WebsiteNavbar() {
                   </Link>
                 </div>
 
-                {/* Mobile Login / User Dropdown */}
-                <div className="flex md:hidden items-center user-dropdown-mobile relative">
-                  {isAuthenticated && user ? (
+                 {/* Mobile Login / User Dropdown */}
+                 <div className="flex md:hidden items-center user-dropdown-mobile relative">
+                   {isAuthenticated && user ? (
                     <>
                       <button
                         onClick={() => setShowUserDropdown(!showUserDropdown)}
@@ -208,9 +208,9 @@ export default function WebsiteNavbar() {
                   </button>
                 </div>
 
-                {/* Login/User Dropdown */}
-                <div className="flex items-center pl-6 ml-6 border-l border-gray-200 h-full">
-                  {isAuthenticated && user ? (
+                 {/* Login/User Dropdown */}
+                 <div className="flex items-center pl-6 ml-6 border-l border-gray-200 h-full">
+                   {isAuthenticated && user ? (
                     <div
                       className="relative user-dropdown"
                     >

@@ -7,7 +7,7 @@ import {
   Camera, Play, AlertCircle, CheckCircle2, Send, Save, Image as ImageIcon,
   Wifi, IndianRupee, Info, Clock, User, Eye, LayoutGrid, Pencil, RefreshCw
 } from "lucide-react";
-import { getApiBase, getAuthHeader, fetchCities, fetchAreas } from "../../utils/api";
+import { getApiBase, getAuthHeader, fetchCities, fetchAreas, fetchJson } from "../../utils/api";
 import { toast } from "react-hot-toast";
 import { PageHeader } from "../../components/superadmin/PageHeader";
 import LocationMapPicker from "../../components/website/LocationMapPicker";
@@ -191,15 +191,31 @@ export default function AddPropertyWizard({ propEditId, isModal, onClose }) {
   const [ownersLoading, setOwnersLoading] = useState(false);
   const ownerSearchTimeout = useRef(null);
 
+  const fetchAllOwners = async () => {
+    setOwnersLoading(true);
+    try {
+      const data = await fetchJson(`/api/owners?limit=300`);
+      const list = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : (Array.isArray(data?.owners) ? data.owners : []));
+      setOwnersList(list);
+    } catch (e) { console.error(e); }
+    finally { setOwnersLoading(false); }
+  };
+
+  useEffect(() => {
+    fetchAllOwners();
+  }, []);
+
   const fetchOwnersBySearch = (query) => {
     if (ownerSearchTimeout.current) clearTimeout(ownerSearchTimeout.current);
-    if (!query.trim()) { setOwnersList([]); setShowOwnerDropdown(false); return; }
+    if (!query.trim()) {
+      fetchAllOwners();
+      return;
+    }
     ownerSearchTimeout.current = setTimeout(async () => {
       setOwnersLoading(true);
       try {
-        const res = await fetch(`${apiUrl}/api/owners?search=${encodeURIComponent(query)}&limit=10&page=1`);
-        const data = await res.json();
-        const list = Array.isArray(data) ? data : (Array.isArray(data?.owners) ? data.owners : []);
+        const data = await fetchJson(`/api/owners?search=${encodeURIComponent(query)}&limit=10&page=1`);
+        const list = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : (Array.isArray(data?.owners) ? data.owners : []));
         setOwnersList(list);
         setShowOwnerDropdown(true);
       } catch (e) { console.error(e); }
@@ -538,7 +554,10 @@ export default function AddPropertyWizard({ propEditId, isModal, onClose }) {
           metaDescriptions,
           metaSchema
         },
-        status: "active",
+        // NOTE: Do NOT send 'status' from frontend.
+        // Backend (propertyController.js) determines status based on user role:
+        //   - Superadmin → status: 'active', isLiveOnWebsite: true
+        //   - Employee/Staff/Manager → status: 'pending_approval', isLiveOnWebsite: false (awaits superadmin approval)
       };
 
       const token = localStorage.getItem("token") || sessionStorage.getItem("token") || "";
@@ -568,14 +587,20 @@ export default function AddPropertyWizard({ propEditId, isModal, onClose }) {
   };
 
   if (submitted) {
+    const storedUserRole = (JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user") || "{}").role || "").toLowerCase();
+    const isSuperAdmin = storedUserRole === "superadmin" || storedUserRole === "admin";
     return (
       <div className="min-h-full bg-white flex items-center justify-center p-8">
         <div className="bg-white rounded-3xl p-12 border border-slate-100 shadow-2xl max-w-lg w-full text-center">
-          <div className="w-20 h-20 bg-emerald-50 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-emerald-100">
-            <CheckCircle2 className="w-10 h-10 text-emerald-600" />
+          <div className={`w-20 h-20 ${isSuperAdmin ? "bg-emerald-50" : "bg-amber-50"} rounded-3xl flex items-center justify-center mx-auto mb-6 border ${isSuperAdmin ? "border-emerald-100" : "border-amber-100"}`}>
+            <CheckCircle2 className={`w-10 h-10 ${isSuperAdmin ? "text-emerald-600" : "text-amber-500"}`} />
           </div>
-          <h2 className="text-2xl font-bold text-slate-800 mb-3 uppercase tracking-tight">{editId ? "Property Updated Successfully!" : "Property Added Successfully!"}</h2>
-          <p className="text-xs font-bold text-slate-400 mb-8 uppercase">Your listing is now live and visible to potential tenants.</p>
+          <h2 className="text-2xl font-bold text-slate-800 mb-3 uppercase tracking-tight">{editId ? "Property Updated!" : "Property Submitted!"}</h2>
+          <p className={`text-xs font-bold mb-8 uppercase tracking-wider ${isSuperAdmin ? 'text-emerald-500' : 'text-amber-500'}`}>
+            {isSuperAdmin
+              ? "Your listing is now live and visible to potential tenants."
+              : "⏳ Property submitted for Superadmin approval. It will go live once approved."}
+          </p>
           <button onClick={() => {
             if (isModal && onClose) onClose();
             else navigate("/superadmin/total-properties");
@@ -835,8 +860,8 @@ export default function AddPropertyWizard({ propEditId, isModal, onClose }) {
                             setContactName(e.target.value);
                             fetchOwnersBySearch(e.target.value);
                           }}
-                          onFocus={() => { if (ownerSearch.trim()) fetchOwnersBySearch(ownerSearch); }}
-                          placeholder="Type name to search owner..."
+                          onFocus={() => { setShowOwnerDropdown(true); if (!ownersList.length) fetchAllOwners(); }}
+                          placeholder="Select owner..."
                           className="w-full bg-transparent text-[10px] font-black text-slate-800 outline-none placeholder:text-slate-300"
                         />
                         {contactName && (
@@ -857,10 +882,10 @@ export default function AddPropertyWizard({ propEditId, isModal, onClose }) {
                               <svg className="w-3.5 h-3.5 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
                               Searching...
                             </div>
-                          ) : filteredOwners.length === 0 ? (
-                            <div className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-tight">
-                              {ownerSearch.trim() ? "No owner found" : "Type a name to search"}
-                            </div>
+                           ) : filteredOwners.length === 0 ? (
+                             <div className="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-tight">
+                               {ownersLoading ? "Loading owners..." : "No owners found"}
+                             </div>
                           ) : (
                             filteredOwners.map((owner, i) => {
                               const name = owner.name || owner.profile?.name || "";

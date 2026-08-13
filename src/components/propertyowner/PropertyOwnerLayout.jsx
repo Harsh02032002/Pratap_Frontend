@@ -949,7 +949,7 @@ export default function PropertyOwnerLayout({
           </div>
         </header>
         <main className={cn("flex-1 overflow-y-auto custom-scrollbar bg-background p-8", mainClassName)}>
-          <TrialGuard owner={owner}>
+          <TrialGuard owner={owner} onLogout={onLogout}>
             <div className={contentClassName}>{children}</div>
           </TrialGuard>
         </main>

@@ -165,7 +165,7 @@ export default function EmployeePropertyApprovals() {
       const owners = Array.isArray(ownerPayload?.owners) ? ownerPayload.owners : [];
       const ownerMap = {};
       owners.forEach((owner) => {
-        if (owner?.loginId) ownerMap[owner.loginId] = owner;
+        if (owner?.loginId) ownerMap[(owner.loginId || '').toUpperCase()] = owner;
       });
       setOwnerByLogin(ownerMap);
       const rows = (
@@ -503,7 +503,8 @@ export default function EmployeePropertyApprovals() {
   }, [propertyUnderOwner, search]);
 
   const detailsOwnerLoginId = selectedVisit?.generatedCredentials?.loginId || selectedVisit?.ownerLoginId || selectedVisit?.ownerId || "";
-  const detailsOwnerRecord = detailsOwnerFresh || (detailsOwnerLoginId ? ownerByLogin[detailsOwnerLoginId] : null);
+  const normalizedLookupId = (detailsOwnerLoginId || "").toUpperCase();
+  const detailsOwnerRecord = detailsOwnerFresh || (normalizedLookupId ? ownerByLogin[normalizedLookupId] : null);
   const detailsAadhaar = detailsOwnerRecord?.checkinAadhaarNumber || detailsOwnerRecord?.aadharNumber || detailsOwnerRecord?.aadhaarNumber || selectedVisit?.kycAadhaarNumber || "-";
   const detailsPhone = detailsOwnerRecord?.checkinPhone || detailsOwnerRecord?.checkinAadhaarLinkedPhone || detailsOwnerRecord?.phone || selectedVisit?.kycPhone || "-";
   const ownerKycDone = detailsAadhaar !== "-" || !!(

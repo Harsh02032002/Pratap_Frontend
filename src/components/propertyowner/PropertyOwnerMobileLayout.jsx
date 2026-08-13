@@ -231,7 +231,7 @@ export default function PropertyOwnerMobileLayout({
           </div>
         )}
         <div className={cn("w-full px-2.5 py-2 mobile-page-container", contentClassName)}>
-          <TrialGuard owner={owner}>
+          <TrialGuard owner={owner} onLogout={onLogout}>
             {children}
           </TrialGuard>
         </div>
