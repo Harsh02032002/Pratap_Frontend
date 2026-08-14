@@ -49,7 +49,6 @@ const staticPropertiesData = [
     latitude: 25.2138,
     longitude: 75.8648,
     propertyType: "pg", gender: "male", monthlyRent: 8000, totalRooms: 20, bedsPerRoom: 2, price: 8000,
-    rating: 4.5,
     location: "Kota",
     propertyViews: [
       { label: "Facade", images: ["https://images.pexels.com/photos/1571468/pexels-photo-1571468.jpeg?auto=compress&cs=tinysrgb&w=600"], description: "Modern Building Exterior" },
@@ -82,7 +81,6 @@ const staticPropertiesData = [
     locationCode: "IND",
     latitude: 22.7196, longitude: 75.8577,
     propertyType: "hostel", gender: "female", monthlyRent: 10000, price: 10000,
-    rating: 4.8,
     location: "Indore",
     propertyViews: [
       { label: "Facade", images: ["https://images.pexels.com/photos/1457842/pexels-photo-1457842.jpeg?auto=compress&cs=tinysrgb&w=600"], description: "Main Entrance" },
@@ -110,7 +108,6 @@ const staticPropertiesData = [
     locationCode: "JAI",
     latitude: 26.9124, longitude: 75.7873,
     propertyType: "co-living", gender: "any", monthlyRent: 12000, price: 12000,
-    rating: 4.2,
     location: "Jaipur",
     propertyViews: [
       { label: "Facade", images: ["https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=600"], description: "Modern Co-living Exterior" },

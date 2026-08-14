@@ -256,6 +256,10 @@ export default function VerificationCenter() {
         setSelectedItem(null);
         setAssignModal(null);
         loadData();
+      } else if (data.autoAssignFailed) {
+        // Auto-assignment failed - show message and keep modal open for manual selection
+        toast.error(data.message || "No employee of that area, you can assign");
+        // Don't close modal - let user manually select an employee
       } else {
         toast.error(data.message || "Assignment failed");
       }

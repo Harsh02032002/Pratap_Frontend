@@ -9,11 +9,10 @@ import {
   Camera, Map, Star, Edit3, Trash, RefreshCw,
   Sparkles, Layers, Box, Globe2, IndianRupee,
   Plus, Loader2, Save, Smartphone, Monitor, Info,
-  UserPlus, Send, Lock, ChevronDown, Wifi, ShieldCheck, FileCheck,
+  UserPlus, Send, Lock, ChevronDown, Wifi, ShieldCheck,
   UtensilsCrossed, Cigarette, PawPrint, BedDouble, DoorOpen
 } from "lucide-react";
 import { fetchJson, getAuthHeader } from "../../utils/api";
-import AddPropertyWizard from "./AddPropertyWizard";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
@@ -84,6 +83,72 @@ const SectionHeader = ({ icon: Icon, title, subtitle, open, onToggle, color = "s
   );
 };
 
+const SECTION_COLORS = {
+  slate: "bg-slate-100 text-slate-600",
+  blue: "bg-blue-50 text-blue-600 border-blue-100",
+  emerald: "bg-emerald-50 text-emerald-600 border-emerald-100",
+  amber: "bg-amber-50 text-amber-600 border-amber-100",
+  violet: "bg-violet-50 text-violet-600 border-violet-100",
+  rose: "bg-rose-50 text-rose-600 border-rose-100",
+  indigo: "bg-indigo-50 text-indigo-600 border-indigo-100",
+  cyan: "bg-cyan-50 text-cyan-600 border-cyan-100",
+  orange: "bg-orange-50 text-orange-600 border-orange-100",
+};
+
+const DetailSection = ({ icon: Icon, title, color = "slate", children }) => (
+  <div>
+    <div className="flex items-center gap-3 mb-4">
+      <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center border shadow-sm", SECTION_COLORS[color])}>
+        <Icon className="w-4 h-4" />
+      </div>
+      <p className="text-[11px] font-black text-slate-800 uppercase tracking-wider">{title}</p>
+    </div>
+    {children}
+  </div>
+);
+
+const DetailGrid = ({ cols = 2, children }) => (
+  <div className={cn("grid gap-4", cols === 3 ? "grid-cols-2 md:grid-cols-3" : cols === 4 ? "grid-cols-2 md:grid-cols-4" : "grid-cols-1 md:grid-cols-2")}>
+    {children}
+  </div>
+);
+
+// Approval is gated on the owner finishing digital KYC. The backend keeps
+// VisitData.kycStatus in sync with the owner's check-in progress and enforces the
+// same rule on POST /api/visits/approve — this is the UI half of that gate.
+const KYC_STATES = {
+  completed: { label: "KYC Completed", cls: "bg-emerald-50 text-emerald-600 border-emerald-100" },
+  sent: { label: "KYC Pending", cls: "bg-amber-50 text-amber-600 border-amber-100" },
+  not_sent: { label: "KYC Not Sent", cls: "bg-slate-100 text-slate-500 border-slate-200" },
+};
+
+const kycState = (v) => KYC_STATES[v?.kycStatus] || KYC_STATES.not_sent;
+const isKycDone = (v) => v?.kycStatus === "completed";
+
+// A visit captures rent either as one monthly figure or per room type. Fall back
+// to the cheapest room-type price so a property that *does* have pricing never
+// renders as ₹0 — and surface a real 0 as "not set" rather than a free room.
+const visitRent = (v) => {
+  const base = Number(v?.monthlyRent) || 0;
+  if (base > 0) return base;
+  const prices = (v?.roomTypes || [])
+    .map(rt => Number(rt?.pricePerBed) || Number(rt?.pricePerRoom) || 0)
+    .filter(n => n > 0);
+  return prices.length ? Math.min(...prices) : 0;
+};
+
+const formatRent = (v) => {
+  const rent = visitRent(v);
+  return rent > 0 ? `₹${rent.toLocaleString("en-IN")}/mo` : null;
+};
+
+const DetailItem = ({ label, value }) => (
+  <div className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3">
+    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{label}</p>
+    <p className="text-xs font-bold text-slate-700 break-words">{value || value === 0 ? String(value) : "-"}</p>
+  </div>
+);
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function Visit() {
@@ -91,6 +156,16 @@ export default function Visit() {
   const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [viewingVisit, setViewingVisit] = useState(null);
+  const [actingId, setActingId] = useState(null);
+  const [ownerKyc, setOwnerKyc] = useState(null);
+  const [ownerKycLoading, setOwnerKycLoading] = useState(false);
+
+  // This component is mounted at both /superadmin/visit and /employee/visit
+  // (see pages/employee/visit.jsx). Approving publishes a property to the public
+  // site, so that action stays superadmin-only; staff get read + resend KYC.
+  const isEmployeeView = typeof window !== "undefined" && window.location.pathname.startsWith("/employee");
+  const canApprove = !isEmployeeView;
 
   // ─── Form State ─────────────────────────────────────────────────────────────
   // Owner Identity
@@ -143,16 +218,6 @@ export default function Visit() {
   const [formPhotos, setFormPhotos] = useState([]);
   const [formRoomTypes, setFormRoomTypes] = useState([]);
 
-  // Credentials & Banking
-  const [formLoginId, setFormLoginId] = useState("");
-  const [formPassword, setFormPassword] = useState("");
-  const [formBankName, setFormBankName] = useState("");
-  const [formBranchName, setFormBranchName] = useState("");
-  const [formBankAccountNumber, setFormBankAccountNumber] = useState("");
-  const [formIfscCode, setFormIfscCode] = useState("");
-  const [formAccountHolderName, setFormAccountHolderName] = useState("");
-  const [formUpiId, setFormUpiId] = useState("");
-
   // UI state
   const [saving, setSaving] = useState(false);
   const [openSections, setOpenSections] = useState({
@@ -163,216 +228,44 @@ export default function Visit() {
   const toggleSection = (key) => setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
   const toggleAmenity = (a) => setFormAmenities(prev => { const n = new Set(prev); n.has(a) ? n.delete(a) : n.add(a); return n; });
 
-  // 2 Tabs State
-  const [empOwners, setEmpOwners] = useState([]);
-  const [activeTab, setActiveTab] = useState("owners"); // "owners" | "properties"
-  const [selectedOwnerDetail, setSelectedOwnerDetail] = useState(null);
-  const [editingOwner, setEditingOwner] = useState(null);
-  const [editOwnerForm, setEditOwnerForm] = useState({
-    name: "", email: "", phone: "", locationCode: "",
-    bankName: "", branchName: "", accountNumber: "", ifscCode: "", accountHolderName: "", upiId: ""
-  });
-  const [savingOwnerEdit, setSavingOwnerEdit] = useState(false);
-
   // ─── Data Loading ───────────────────────────────────────────────────────────
 
   const loadVisits = async () => {
     try {
       setLoading(true);
       const isEmpPage = window.location.pathname.startsWith("/employee");
-      const storedUser = JSON.parse(sessionStorage.getItem("user") || localStorage.getItem("user") || "{}");
-      const sid = storedUser.loginId || storedUser.employeeId || storedUser.name;
-
-      // Fetch Visits
+      const storedUser = JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user") || "{}");
       let url = "/api/visits";
-      if (isEmpPage && sid) {
+      if (isEmpPage && (storedUser.loginId || storedUser.employeeId || storedUser.name)) {
+        const sid = storedUser.loginId || storedUser.employeeId || storedUser.name;
         url += `?staffId=${encodeURIComponent(sid)}&staffName=${encodeURIComponent(storedUser.name || "")}`;
       }
-      const data = await fetchJson(url, { headers: getAuthHeader() });
+      const data = await fetchJson(url);
       const list = data?.visits || data || [];
       setVisits(list);
-
-      // Fetch Owners
-      try {
-        const ownerData = await fetchJson("/api/owners", { headers: getAuthHeader() });
-        const oList = Array.isArray(ownerData) ? ownerData : (ownerData?.owners || ownerData?.data || []);
-        if (isEmpPage && sid) {
-          const filtered = oList.filter(o =>
-            o.createdByStaffId === sid ||
-            o.addedByStaffId === sid ||
-            o.isEmployeeSubmitted ||
-            (o.locationCode && storedUser.assignedArea && o.locationCode.toLowerCase() === storedUser.assignedArea.toLowerCase())
-          );
-          setEmpOwners(filtered.length > 0 ? filtered : oList);
-        } else {
-          setEmpOwners(oList);
-        }
-      } catch (oErr) {
-        console.warn("Owners fetch warning:", oErr.message);
-      }
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
 
   useEffect(() => { loadVisits(); }, []);
 
-  const handleApproveOwner = async (owner) => {
-    if (!owner) return;
-    const loginId = owner.loginId || owner._id;
-    if (!window.confirm(`Are you sure you want to approve owner "${owner.name}" (${loginId})? Credentials will be emailed to ${owner.email}.`)) {
-      return;
-    }
-    try {
-      setLoading(true);
-      await fetchJson(`/api/owners/${encodeURIComponent(loginId)}/approve`, {
-        method: "PUT",
-        headers: { ...getAuthHeader(), "Content-Type": "application/json" }
-      });
-      alert(`✅ Owner "${owner.name}" approved successfully!\nCredentials emailed to ${owner.email}.\nThis owner is now visible in View All Property Owners.`);
-      setEmpOwners(prev => prev.map(o => {
-        if ((o.loginId && o.loginId === loginId) || o._id === loginId) {
-          return { ...o, isActive: true, status: 'approved', isEmployeeSubmitted: false };
-        }
-        return o;
-      }));
-      loadVisits();
-    } catch (err) {
-      alert(err.message || "Failed to approve owner");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSaveOwnerEdit = async (e) => {
-    e.preventDefault();
-    if (!editingOwner) return;
-    setSavingOwnerEdit(true);
-    try {
-      const id = editingOwner.loginId || editingOwner._id;
-      const payload = {
-        name: editOwnerForm.name,
-        email: editOwnerForm.email,
-        checkinEmail: editOwnerForm.email,
-        phone: editOwnerForm.phone,
-        checkinPhone: editOwnerForm.phone,
-        locationCode: editOwnerForm.locationCode,
-        area: editOwnerForm.locationCode,
-        bankName: editOwnerForm.bankName,
-        checkinBankName: editOwnerForm.bankName,
-        branchName: editOwnerForm.branchName,
-        checkinBranchName: editOwnerForm.branchName,
-        accountNumber: editOwnerForm.accountNumber,
-        checkinBankAccountNumber: editOwnerForm.accountNumber,
-        ifscCode: editOwnerForm.ifscCode,
-        checkinIfscCode: editOwnerForm.ifscCode,
-        accountHolderName: editOwnerForm.accountHolderName,
-        checkinAccountHolderName: editOwnerForm.accountHolderName,
-        upiId: editOwnerForm.upiId,
-        checkinUpiId: editOwnerForm.upiId
-      };
-
-      await fetchJson(`/api/owners/${encodeURIComponent(id)}`, {
-        method: "PATCH",
-        headers: { ...getAuthHeader(), "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-
-      alert("Owner details updated successfully!");
-      setEditingOwner(null);
-      loadVisits();
-    } catch (err) {
-      alert("Failed to update owner: " + (err.message || err));
-    } finally {
-      setSavingOwnerEdit(false);
-    }
-  };
-
+  // Pull the owner's submitted digital-KYC record for the details modal.
+  // GET /api/owners/:loginId already merges Owner + CheckinRecord + VisitData,
+  // so it is the one place holding everything the owner filled in.
   useEffect(() => {
-    if (currentView === "addOwner") generateCreds();
-  }, [currentView]);
-
-  const generateCreds = () => {
-    const genId = `ROOMHY${Math.floor(1000 + Math.random() * 9000)}`;
-    const password = Math.random().toString(36).slice(-8).toUpperCase();
-    setFormLoginId(genId);
-    setFormPassword(password);
-  };
-
-  const handleAddOwnerSubmit = async (e) => {
-    e.preventDefault();
-    if (!formName || !formPhone || !formEmail) return alert("Please fill required fields: Owner Name, Email, Phone Number");
-    setSaving(true);
-    try {
-      const storedUser = JSON.parse(sessionStorage.getItem("user") || localStorage.getItem("user") || "{}");
-      const visitId = `v_${Date.now()}`;
-
-      // Step 1: Submit Visit Report (so it appears in Superadmin & Employee Visit Reports)
-      try {
-        await fetchJson("/api/visits/submit", {
-          method: "POST",
-          headers: { ...getAuthHeader(), "Content-Type": "application/json" },
-          body: JSON.stringify({
-            visitorName: formName,
-            visitorEmail: formEmail,
-            visitorPhone: formPhone,
-            propertyName: formPropertyName || `${formName}'s Property`,
-            propertyType: "hostel",
-            city: formOwnerCity || formCity || "Indore",
-            area: formArea || formOwnerCity || "",
-            ownerName: formName,
-            ownerEmail: formEmail,
-            ownerPhone: formPhone,
-            ownerCity: formOwnerCity || formCity,
-            staffName: storedUser.name || "Staff Member",
-            staffId: storedUser.loginId || storedUser.employeeId || "STAFF",
-            status: "pending",
-            _id: visitId,
-          })
-        });
-      } catch (vErr) {
-        console.warn("Visit submit warning:", vErr.message);
-      }
-
-      // Step 2: Create Pending Owner (triggers direct KYC email & lands in Superadmin Pending Owners)
-      // NOTE: credentials (password) are NOT sent here intentionally.
-      // Owner will receive login/password ONLY after Superadmin approves.
-      await fetchJson("/api/owners", {
-        method: "POST",
-        headers: { ...getAuthHeader(), "Content-Type": "application/json" },
-        body: JSON.stringify({
-          loginId: formLoginId,
-          name: formName,
-          email: formEmail,
-          phone: formPhone,
-          locationCode: formArea || formOwnerCity,
-          city: formOwnerCity,
-          checkinBankName: formBankName,
-          checkinBranchName: formBranchName,
-          checkinBankAccountNumber: formBankAccountNumber,
-          checkinIfscCode: formIfscCode,
-          checkinAccountHolderName: formAccountHolderName,
-          checkinUpiId: formUpiId,
-          isEmployeeSubmitted: true,
-          status: 'pending_approval',
-          kycStatus: 'pending',
-          isActive: false
-        })
-      });
-
-      alert(`✅ Property Owner & Visit Report submitted successfully!\n\nKYC Verification Link has been sent to ${formEmail}.\n\nLogin credentials will be issued via email only after Superadmin approves the KYC.`);
-      resetForm();
-      setShowAddOwnerModal(false);
-      loadVisits();
-    } catch (err) {
-      alert(err.message || "Failed to add property owner.");
-    } finally {
-      setSaving(false);
-    }
-  };
+    const loginId = viewingVisit?.generatedCredentials?.loginId;
+    if (!viewingVisit || !loginId) { setOwnerKyc(null); return; }
+    let cancelled = false;
+    setOwnerKycLoading(true);
+    fetchJson(`/api/owners/${encodeURIComponent(loginId)}`)
+      .then(data => { if (!cancelled) setOwnerKyc(data?.owner || data || null); })
+      .catch(err => { if (!cancelled) { console.warn("Owner KYC fetch failed:", err.message); setOwnerKyc(null); } })
+      .finally(() => { if (!cancelled) setOwnerKycLoading(false); });
+    return () => { cancelled = true; };
+  }, [viewingVisit]);
 
   const resetForm = () => {
     setFormName(""); setFormEmail(""); setFormPhone(""); setFormOwnerCity("");
-    setFormBankName(""); setFormBranchName(""); setFormBankAccountNumber(""); setFormIfscCode(""); setFormAccountHolderName(""); setFormUpiId("");
     setFormPropertyName(""); setFormPropertyType("hostel"); setFormGender("Co-ed");
     setFormRent(""); setFormDeposit(""); setFormDescription("");
     setFormArea(""); setFormCity(""); setFormAddress(""); setFormPincode(""); setFormLandmark("");
@@ -392,11 +285,17 @@ export default function Visit() {
     if (!formName || !formPhone || !formEmail || !formPropertyName) {
       return alert("Please fill required fields: Owner Name, Email, Phone, Property Name");
     }
+    // Rent drives the public listing price — a property published at ₹0 is not usable.
+    if (!(parseInt(formRent, 10) > 0)) {
+      return alert("Please enter the Monthly Rent (it is shown on the website listing).");
+    }
     setSaving(true);
     try {
-      // Step 1: Submit Visit
+      // Submit the visit report. The backend issues the owner's credentials and
+      // emails the digital-KYC link as part of this call; the property is only
+      // created and published once the owner finishes KYC and a superadmin approves.
       const visitId = `v_${Date.now()}`;
-      await fetchJson("/api/visits/submit", {
+      const submitRes = await fetchJson("/api/visits/submit", {
         method: "POST",
         headers: { ...getAuthHeader(), "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -442,48 +341,70 @@ export default function Visit() {
         }),
       });
 
-      // Step 2: Create Owner (auto-sends KYC email via backend)
-      await fetchJson("/api/owners", {
-        method: "POST",
-        headers: { ...getAuthHeader(), "Content-Type": "application/json" },
-        body: JSON.stringify({
-          loginId: formLoginId,
-          name: formName,
-          email: formEmail,
-          phone: formPhone,
-          area: formArea || formCity,
-          city: formOwnerCity || formCity,
-          locationCode: (formArea || formCity || formLoginId).toUpperCase().slice(0, 5),
-          credentials: { password: formPassword, firstTime: true },
-          checkinPassword: formPassword,
-          isActive: true,
-          role: "owner",
-        }),
-      });
-
-      // Step 3: Auto-approve the visit
-      try {
-        await fetchJson(`/api/visits/${visitId}/approve`, {
-          method: "POST",
-          headers: { ...getAuthHeader(), "Content-Type": "application/json" },
-          body: JSON.stringify({
-            approvalNotes: "Auto-approved during superadmin onboarding",
-            approvedBy: "Superadmin",
-          }),
-        });
-      } catch (approveErr) {
-        console.warn("Visit auto-approve warning:", approveErr.message);
+      if (submitRes?.kycLinkSent === false) {
+        alert(
+          `⚠️ Visit report saved, but the KYC email could not be sent to ${formEmail}.\n\n` +
+          `${submitRes?.kycLinkError || ""}\n\nUse "Resend KYC" on the report to try again.`
+        );
+      } else {
+        alert(
+          `✅ Visit report submitted!\n\nA digital KYC link has been emailed to ${formEmail}.\n\n` +
+          `Once the owner completes KYC, this report can be approved and the property published.`
+        );
       }
-
-      alert(`✅ Property Owner onboarded successfully!\n\nLogin ID: ${formLoginId}\nPassword: ${formPassword}\n\nKYC email has been sent to ${formEmail}`);
       resetForm();
       setCurrentView("list");
       loadVisits();
     } catch (err) {
-      alert(err?.message || "Failed to onboard owner");
-      console.error("Onboard error:", err);
+      alert(err?.message || "Failed to submit visit report");
+      console.error("Visit submit error:", err);
     } finally {
       setSaving(false);
+    }
+  };
+
+  // ─── KYC / Approval Actions ─────────────────────────────────────────────────
+
+  const resendKyc = async (v) => {
+    const id = v.visitId || v._id;
+    setActingId(id);
+    try {
+      const res = await fetchJson(`/api/visits/${encodeURIComponent(id)}/send-kyc-link`, {
+        method: "POST",
+        headers: { ...getAuthHeader(), "Content-Type": "application/json" },
+      });
+      alert(`✅ KYC link sent to ${v.ownerEmail || "the owner"}.${res?.loginId ? `\n\nOwner Login ID: ${res.loginId}` : ""}`);
+      loadVisits();
+    } catch (err) {
+      alert(err?.message || "Failed to send KYC link");
+    } finally {
+      setActingId(null);
+    }
+  };
+
+  const approveVisit = async (v) => {
+    const id = v.visitId || v._id;
+    if (!window.confirm(`Approve "${v.propertyName || "this property"}" and publish it on the website?`)) return;
+    setActingId(id);
+    try {
+      await fetchJson("/api/visits/approve", {
+        method: "POST",
+        headers: { ...getAuthHeader(), "Content-Type": "application/json" },
+        body: JSON.stringify({
+          visitId: id,
+          status: "approved",
+          isLiveOnWebsite: true,
+          loginId: v.generatedCredentials?.loginId || "",
+          tempPassword: v.generatedCredentials?.tempPassword || "",
+        }),
+      });
+      alert("✅ Approved. The property is now published on the website.");
+      setViewingVisit(null);
+      loadVisits();
+    } catch (err) {
+      alert(err?.message || "Failed to approve visit");
+    } finally {
+      setActingId(null);
     }
   };
 
@@ -508,18 +429,6 @@ export default function Visit() {
       return propName.includes(q) || staffName.includes(q);
     });
   }, [visits, search]);
-
-  const filteredOwners = useMemo(() => {
-    const q = search.toLowerCase();
-    return empOwners.filter(o => {
-      const name = (o.name || "").toLowerCase();
-      const loginId = (o.loginId || "").toLowerCase();
-      const email = (o.email || "").toLowerCase();
-      const phone = (o.phone || "").toLowerCase();
-      const area = (o.locationCode || o.city || "").toLowerCase();
-      return name.includes(q) || loginId.includes(q) || email.includes(q) || phone.includes(q) || area.includes(q);
-    });
-  }, [empOwners, search]);
 
   const stats = useMemo(() => {
     const total = visits.length;
@@ -548,406 +457,441 @@ export default function Visit() {
   // RENDER
   // ═══════════════════════════════════════════════════════════════════════════
 
-  const storedUser = typeof window !== "undefined" ? JSON.parse(sessionStorage.getItem("user") || localStorage.getItem("user") || "{}") : {};
-  const userRole = (storedUser?.role || "").toLowerCase();
-  const isEmpPage = (typeof window !== "undefined" && window.location.pathname.startsWith("/employee")) || (userRole !== "superadmin" && userRole !== "admin" && (userRole === "employee" || userRole === "staff" || userRole === "areamanager"));
-  const [viewingVisit, setViewingVisit] = useState(null);
-  const [editingVisit, setEditingVisit] = useState(null);
-  const [editVisitForm, setEditVisitForm] = useState({});
-  const [savingEditVisit, setSavingEditVisit] = useState(false);
-  const [showAddOwnerModal, setShowAddOwnerModal] = useState(false);
-  const [showAddPropertyModal, setShowAddPropertyModal] = useState(false);
-
-  const handleSaveVisitEdit = async (e) => {
-    e.preventDefault();
-    if (!editingVisit?._id) return;
-    setSavingEditVisit(true);
-    try {
-      await fetchJson(`/api/visits/${editingVisit._id}`, {
-        method: "PUT",
-        headers: { ...getAuthHeader(), "Content-Type": "application/json" },
-        body: JSON.stringify(editVisitForm)
-      });
-      alert("✅ Visit report updated successfully!");
-      setEditingVisit(null);
-      loadVisits();
-    } catch (err) {
-      alert(err.message || "Failed to update visit report");
-    } finally {
-      setSavingEditVisit(false);
-    }
-  };
-
   return (
-    <div className="p-6 bg-slate-50/50 min-h-screen space-y-6">
-      {/* Header */}
+    <div className="p-6 space-y-6 bg-[#F8FAFC] min-h-full">
+      {/* Header Area */}
       <div className="flex items-center justify-between">
          <div className="flex flex-col gap-1">
             <h1 className="text-2xl font-bold text-slate-800 tracking-tight leading-none">Visit Reports</h1>
             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">View and manage property visit reports</p>
          </div>
          <div className="flex items-center gap-3">
-            <button onClick={() => { generateCreds(); setShowAddOwnerModal(true); }} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-lg shadow-blue-600/10 transition-all flex items-center gap-2 active:scale-95">
-               <UserPlus className="w-3.5 h-3.5" /> + Add Property Owner
+            <button onClick={() => { if (currentView === "addOwner") resetForm(); setCurrentView(currentView === "addOwner" ? "list" : "addOwner"); }} className={cn(
+              "px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-lg transition-all flex items-center gap-2",
+              currentView === "addOwner" ? "bg-white text-slate-600 border border-slate-100 shadow-slate-200" : "bg-slate-800 text-white shadow-slate-800/10 hover:bg-slate-900"
+            )}>
+               {currentView === "addOwner" ? <RefreshCw className="w-3.5 h-3.5" /> : <UserPlus className="w-3.5 h-3.5" />}
+               {currentView === "addOwner" ? "Back to Visits" : "Add Property Owner"}
             </button>
-            <button onClick={() => setShowAddPropertyModal(true)} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-lg shadow-emerald-600/10 transition-all flex items-center gap-2 active:scale-95">
-               <Plus className="w-3.5 h-3.5" /> + Add Property
-            </button>
+            {currentView === "list" && (
+              <button onClick={() => setCurrentView("addOwner")} className="bg-slate-800 text-white px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-lg shadow-slate-800/10 hover:bg-slate-900 transition-all flex items-center gap-2">
+                 <Plus className="w-3.5 h-3.5" /> Add New Visit
+              </button>
+            )}
          </div>
       </div>
 
-      {/* ═══ ADD PROPERTY WIZARD MODAL ═══ */}
-      {showAddPropertyModal && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in zoom-in-95 duration-200">
-          <div className="bg-white rounded-3xl w-full max-w-5xl shadow-2xl border border-slate-200/80 overflow-hidden max-h-[92vh] flex flex-col">
-            <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
-                  <Plus size={20} />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">Add Property Wizard</h3>
-                  <p className="text-xs text-slate-500">List a new property with step-by-step details</p>
-                </div>
+      {currentView === "addOwner" ? (
+        /* ═══ ADD PROPERTY OWNER — COMPREHENSIVE FORM ═══ */
+        <div className="max-w-5xl mx-auto animate-in fade-in zoom-in-95 duration-500 mt-4">
+          {/* Form Header */}
+          <div className="bg-white rounded-t-[2rem] border border-b-0 border-slate-100 shadow-2xl overflow-hidden">
+            <div className="p-8 bg-gradient-to-br from-slate-50 to-white flex items-center gap-6 border-b border-slate-100">
+              <div className="w-16 h-16 rounded-[1.5rem] bg-slate-900 text-white flex items-center justify-center shadow-2xl shadow-slate-900/30">
+                <UserPlus size={28} />
               </div>
-              <button onClick={() => setShowAddPropertyModal(false)} className="p-2 hover:bg-slate-200/60 rounded-full transition-colors">
-                <X size={20} className="text-slate-500" />
-              </button>
-            </div>
-
-            <div className="overflow-y-auto p-4 sm:p-6 flex-1">
-              <AddPropertyWizard isModal={true} onClose={() => setShowAddPropertyModal(false)} />
+              <div>
+                <h3 className="text-2xl font-bold text-slate-800 tracking-tight">Onboard Property Owner</h3>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Fill in property visit details and onboard owner with auto KYC</p>
+              </div>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* ═══ ADD PROPERTY OWNER MODAL ═══ */}
-      {showAddOwnerModal && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in zoom-in-95 duration-200">
-          <div className="bg-white rounded-3xl w-full max-w-4xl shadow-2xl border border-slate-200/80 overflow-hidden max-h-[90vh] flex flex-col">
-            <div className="p-6 sm:p-7 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100">
-                  <UserPlus size={24} />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-slate-900">Property Owner Information</h3>
-                  <p className="text-xs text-slate-500">Fill in owner details and banking info to create account.</p>
-                </div>
-              </div>
-              <button onClick={() => setShowAddOwnerModal(false)} className="p-2 hover:bg-slate-200/60 rounded-full transition-colors">
-                <X size={20} className="text-slate-500" />
-              </button>
-            </div>
+          <form onSubmit={handleOnboard}>
+            <div className="bg-white border-x border-slate-100 shadow-2xl divide-y divide-slate-50">
 
-            <form onSubmit={handleAddOwnerSubmit} className="overflow-y-auto p-6 sm:p-8 flex-1 space-y-6">
-              {/* Basic Identity Section */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-700">Owner Name *</label>
-                  <input
-                    required
-                    value={formName}
-                    onChange={e => setFormName(e.target.value)}
-                    placeholder="e.g. Rahul Sharma"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-700">Email Address *</label>
-                  <input
-                    required
-                    value={formEmail}
-                    onChange={e => setFormEmail(e.target.value)}
-                    type="email"
-                    placeholder="rahul@example.com"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-700">Phone Number *</label>
-                  <input
-                    required
-                    value={formPhone}
-                    onChange={e => setFormPhone(e.target.value)}
-                    placeholder="9876543210"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-700">Operating Area / City</label>
-                  <input
-                    value={formOwnerCity || formArea}
-                    onChange={e => { setFormOwnerCity(e.target.value); setFormArea(e.target.value); }}
-                    placeholder="e.g. Koramangala, Bangalore"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
-                  />
-                </div>
+              {/* ─── Section 1: Owner Identity ──────────────────────────────── */}
+              <div>
+                <SectionHeader icon={User} title="Owner Identity" subtitle="Primary contact information" open={openSections.owner} onToggle={() => toggleSection("owner")} color="blue" />
+                {openSections.owner && (
+                  <div className="px-8 pb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField label="Owner Name" value={formName} onChange={e => setFormName(e.target.value)} placeholder="e.g. Rahul Sharma" required />
+                    <FormField label="Email Address" value={formEmail} onChange={e => setFormEmail(e.target.value)} type="email" placeholder="rahul@example.com" required />
+                    <FormField label="Phone Number" value={formPhone} onChange={e => setFormPhone(e.target.value)} placeholder="+91 XXXX XXXXXX" prefix="+91" required />
+                    <FormField label="Owner City" value={formOwnerCity} onChange={e => setFormOwnerCity(e.target.value)} placeholder="e.g. Indore" />
+                  </div>
+                )}
               </div>
 
-              {/* Banking Details */}
-              <div className="pt-4 border-t border-slate-100 space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                    <IndianRupee size={18} />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-900">Banking & Settlement Details</h4>
-                    <p className="text-xs text-slate-400">Used for rent payouts — owner can also edit in their panel</p>
-                  </div>
-                </div>
+              {/* ─── Section 2: Property Details ────────────────────────────── */}
+              <div>
+                <SectionHeader icon={Building2} title="Property Details" subtitle="Property name, type, rent & deposit" open={openSections.property} onToggle={() => toggleSection("property")} color="indigo" />
+                {openSections.property && (
+                  <div className="px-8 pb-8 space-y-6">
+                    <FormField label="Property Name" value={formPropertyName} onChange={e => setFormPropertyName(e.target.value)} placeholder="e.g. Sunshine Boys PG" required />
+                    
+                    {/* Property Type Cards */}
+                    <div>
+                      <label className="text-[10px] font-black text-slate-400 uppercase mb-3 block tracking-widest ml-1">Property Type</label>
+                      <div className="grid grid-cols-3 gap-4">
+                        {PROPERTY_TYPES.map(pt => {
+                          const Icon = pt.icon;
+                          const active = formPropertyType === pt.value;
+                          return (
+                            <button key={pt.value} type="button" onClick={() => setFormPropertyType(pt.value)}
+                              className={cn("p-4 rounded-2xl border-2 text-left transition-all relative group",
+                                active ? "border-blue-600 bg-blue-50/50" : "border-slate-100 hover:border-slate-200"
+                              )}>
+                              {active && <div className="absolute top-3 right-3 bg-blue-600 rounded-full p-0.5 shadow-lg"><Check className="w-3 h-3 text-white" /></div>}
+                              <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center mb-3 transition-all", active ? "bg-blue-600 text-white shadow-lg" : "bg-slate-100 text-slate-400")}>
+                                <Icon className="w-4 h-4" />
+                              </div>
+                              <p className="text-[11px] font-bold text-slate-700">{pt.label}</p>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700">Bank Name</label>
-                    <input value={formBankName} onChange={e => setFormBankName(e.target.value)} placeholder="e.g. State Bank of India" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700">Branch Name</label>
-                    <input value={formBranchName} onChange={e => setFormBranchName(e.target.value)} placeholder="e.g. MG Road Branch" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700">Bank Account Number</label>
-                    <input value={formBankAccountNumber} onChange={e => setFormBankAccountNumber(e.target.value)} placeholder="e.g. 1234567890" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700">IFSC Code</label>
-                    <input value={formIfscCode} onChange={e => setFormIfscCode(e.target.value.toUpperCase())} placeholder="e.g. SBIN0001234" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700">Account Holder Name</label>
-                    <input value={formAccountHolderName} onChange={e => setFormAccountHolderName(e.target.value)} placeholder="e.g. Rahul Sharma" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700">UPI ID <span className="text-slate-400 font-normal">(Optional)</span></label>
-                    <input value={formUpiId} onChange={e => setFormUpiId(e.target.value)} placeholder="e.g. rahul@upi" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" />
-                  </div>
-                </div>
-              </div>
+                    {/* Gender Selector */}
+                    <div>
+                      <label className="text-[10px] font-black text-slate-400 uppercase mb-3 block tracking-widest ml-1">Gender Suitability</label>
+                      <div className="flex gap-3">
+                        {GENDER_OPTIONS.map(g => (
+                          <button key={g} type="button" onClick={() => setFormGender(g)}
+                            className={cn("px-5 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all",
+                              formGender === g ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-200" : "bg-slate-50 text-slate-500 border-slate-100 hover:bg-slate-100"
+                            )}>
+                            {g}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
-              {/* Generated Credentials Banner */}
-              <div className="bg-slate-900 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-white">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white border border-white/10 shrink-0">
-                    <Lock size={20} />
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Generated Owner Credentials</p>
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs font-semibold text-slate-400">ID:</span>
-                      <code className="text-sm font-mono font-bold text-white bg-slate-800 px-2.5 py-1 rounded-lg">{formLoginId || "ROOMHY4438"}</code>
-                      <span className="text-xs font-semibold text-slate-400 ml-2">Password:</span>
-                      <code className="text-sm font-mono font-bold text-blue-400 bg-slate-800 px-2.5 py-1 rounded-lg">{formPassword || "JMA5DXBQ"}</code>
+                    <div className="grid grid-cols-2 gap-6">
+                      <FormField label="Monthly Rent" value={formRent} onChange={e => setFormRent(e.target.value)} placeholder="8000" prefix="₹" suffix="/mo" type="number" required />
+                      <FormField label="Security Deposit" value={formDeposit} onChange={e => setFormDeposit(e.target.value)} placeholder="10000" prefix="₹" type="number" />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest ml-1">Description</label>
+                      <textarea rows={3} value={formDescription} onChange={e => setFormDescription(e.target.value)} placeholder="Brief property description..."
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none resize-none focus:bg-white focus:ring-4 focus:ring-blue-100 focus:border-blue-200 transition-all placeholder:text-slate-300" />
                     </div>
                   </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={generateCreds}
-                  className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 transition-colors flex items-center gap-2 shrink-0"
-                >
-                  <RefreshCw size={14} /> Re-generate
-                </button>
+                )}
               </div>
 
-              {/* Form Actions */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setShowAddOwnerModal(false)}
-                  className="px-5 py-2.5 bg-white hover:bg-slate-50 text-slate-700 font-bold rounded-xl text-xs border border-slate-200 transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-all shadow-sm flex items-center gap-2 disabled:opacity-50 active:scale-95"
-                >
-                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                  {saving ? "Submitting Request..." : "Add Property Owner"}
-                </button>
+              {/* ─── Section 3: Location ─────────────────────────────────────── */}
+              <div>
+                <SectionHeader icon={MapPin} title="Location" subtitle="Area, city, address & pincode" open={openSections.location} onToggle={() => toggleSection("location")} color="emerald" />
+                {openSections.location && (
+                  <div className="px-8 pb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField label="Area / Locality" value={formArea} onChange={e => setFormArea(e.target.value)} placeholder="e.g. Koramangala" required />
+                    <FormField label="City" value={formCity} onChange={e => setFormCity(e.target.value)} placeholder="e.g. Bangalore" required />
+                    <FormField label="Full Address" value={formAddress} onChange={e => setFormAddress(e.target.value)} placeholder="House/building, street..." className="md:col-span-2" />
+                    <FormField label="Pincode" value={formPincode} onChange={e => setFormPincode(e.target.value)} placeholder="560034" />
+                    <FormField label="Nearby Landmark" value={formLandmark} onChange={e => setFormLandmark(e.target.value)} placeholder="Near Christ University" />
+                  </div>
+                )}
               </div>
-            </form>
-          </div>
-        </div>
-      )}
 
-      {/* ═══ 2 TABS NAVIGATION: OWNER SUBMISSIONS VS PROPERTY SUBMISSIONS ═══ */}
-      <div className="flex items-center gap-3 border-b border-slate-200/80 pb-3">
-        <button
-          onClick={() => setActiveTab("owners")}
-          className={cn(
-            "px-5 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2.5 shadow-sm active:scale-95",
-            activeTab === "owners"
-              ? "bg-blue-600 text-white shadow-blue-600/20"
-              : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
-          )}
-        >
-          <UserPlus size={16} />
-          <span>Owner Submissions</span>
-          <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-extrabold", activeTab === "owners" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-700")}>
-            {empOwners.length}
-          </span>
-        </button>
+              {/* ─── Section 4: Occupancy ────────────────────────────────────── */}
+              <div>
+                <SectionHeader icon={BedDouble} title="Occupancy" subtitle="Rooms & beds info" open={openSections.occupancy} onToggle={() => toggleSection("occupancy")} color="amber" />
+                {openSections.occupancy && (
+                  <div className="px-8 pb-8 grid grid-cols-3 gap-6">
+                    <FormField label="Vacant Rooms" value={formVacantRooms} onChange={e => setFormVacantRooms(e.target.value)} placeholder="10" type="number" />
+                    <FormField label="Occupied Rooms" value={formOccupiedRooms} onChange={e => setFormOccupiedRooms(e.target.value)} placeholder="5" type="number" />
+                    <FormField label="Occupied Beds" value={formOccupiedBeds} onChange={e => setFormOccupiedBeds(e.target.value)} placeholder="12" type="number" />
+                  </div>
+                )}
+              </div>
 
-        <button
-          onClick={() => setActiveTab("properties")}
-          className={cn(
-            "px-5 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2.5 shadow-sm active:scale-95",
-            activeTab === "properties"
-              ? "bg-emerald-600 text-white shadow-emerald-600/20"
-              : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
-          )}
-        >
-          <Building2 size={16} />
-          <span>Property Submissions</span>
-          <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-extrabold", activeTab === "properties" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-700")}>
-            {visits.length}
-          </span>
-        </button>
-      </div>
+              {/* ─── Section 5: Features & Amenities ─────────────────────────── */}
+              <div>
+                <SectionHeader icon={Zap} title="Features & Amenities" subtitle="Amenities, furnishing, ventilation" open={openSections.features} onToggle={() => toggleSection("features")} color="violet" />
+                {openSections.features && (
+                  <div className="px-8 pb-8 space-y-6">
+                    {/* Amenities Chips */}
+                    <div>
+                      <label className="text-[10px] font-black text-slate-400 uppercase mb-3 block tracking-widest ml-1">Amenities</label>
+                      <div className="flex flex-wrap gap-2">
+                        {AMENITY_LIST.map(a => (
+                          <button key={a} type="button" onClick={() => toggleAmenity(a)}
+                            className={cn(
+                              "px-4 py-2 rounded-xl text-[10px] font-bold border transition-all",
+                              formAmenities.has(a)
+                                ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-200"
+                                : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50 hover:border-slate-300"
+                            )}>
+                            {a}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
-      <div className="space-y-6">
-        {/* Search & Refresh */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between gap-4">
-          <div className="flex-1 relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder={activeTab === "owners" ? "Search by owner name, login ID, phone or city..." : "Search by property name or staff member..."}
-              className="w-full bg-slate-50 border border-slate-100 rounded-xl pl-11 pr-4 py-3 text-xs font-bold text-slate-700 outline-none focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all placeholder:text-slate-300"
-            />
-          </div>
-          <button onClick={loadVisits} className="p-3 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl border border-slate-100 transition-all">
-            <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
-          </button>
-        </div>
+                    {/* Furnishing */}
+                    <div>
+                      <label className="text-[10px] font-black text-slate-400 uppercase mb-3 block tracking-widest ml-1">Furnishing</label>
+                      <div className="flex gap-3">
+                        {FURNISHING_OPTIONS.map(f => (
+                          <button key={f} type="button" onClick={() => setFormFurnishing(f)}
+                            className={cn("px-5 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all",
+                              formFurnishing === f ? "bg-violet-600 text-white border-violet-600 shadow-lg shadow-violet-200" : "bg-slate-50 text-slate-500 border-slate-100 hover:bg-slate-100"
+                            )}>
+                            {f}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
-        {/* ═══ TAB 1: OWNER SUBMISSIONS TABLE ═══ */}
-        {activeTab === "owners" ? (
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50/50 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                  <th className="p-4 pl-6">Owner Profile</th>
-                  <th className="p-4">Contact Info</th>
-                  <th className="p-4">Location / Area</th>
-                  <th className="p-4">Banking Status</th>
-                  <th className="p-4">Approval Status</th>
-                  <th className="p-4 pr-6 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50 text-xs font-bold text-slate-700">
-                {loading ? (
-                  <tr><td colSpan={6} className="p-8 text-center text-slate-400 font-bold uppercase tracking-widest">Loading owner submissions...</td></tr>
-                ) : filteredOwners.length === 0 ? (
-                  <tr><td colSpan={6} className="p-8 text-center text-slate-400 font-bold uppercase tracking-widest">No owner submissions found</td></tr>
-                ) : (
-                  filteredOwners.map((o, i) => {
-                    const isApproved = Boolean(
-                      o.status === "approved" || 
-                      (o.isActive === true && o.status !== "pending_approval" && !o.isEmployeeSubmitted)
-                    );
-                    const hasKyc = Boolean(
-                      o.kycStatus === 'verified' ||
-                      o.kycStatus === 'completed' ||
-                      (o.kyc?.status && o.kyc.status !== 'pending' && o.kyc.status !== 'requested' && o.kyc.status !== 'sent') ||
-                      o.checkinSubmittedAt ||
-                      o.checkinAadhaarNumber ||
-                      o.kyc?.aadhaarNumber ||
-                      o.checkinOwnerPhoto
-                    );
-                    return (
-                      <tr key={o._id || i} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="p-4 pl-6">
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs shrink-0 border border-blue-100">
-                              {(o.name || "O").charAt(0).toUpperCase()}
+                    <div className="grid grid-cols-3 gap-6">
+                      <FormField label="Ventilation" value={formVentilation} onChange={e => setFormVentilation(e.target.value)} placeholder="Good / Average" />
+                      <FormField label="Minimum Stay" value={formMinStay} onChange={e => setFormMinStay(e.target.value)} placeholder="e.g. 3 Months" />
+                      <FormField label="Entry / Exit" value={formEntryExit} onChange={e => setFormEntryExit(e.target.value)} placeholder="e.g. 24/7" />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* ─── Section 5.5: Room Configurations ────────────────────────── */}
+              <div>
+                <SectionHeader icon={BedDouble} title="Room Configurations" subtitle="Configure room types and pricing" open={openSections.roomTypes} onToggle={() => toggleSection("roomTypes")} color="violet" />
+                {openSections.roomTypes && (
+                  <div className="px-8 pb-8 space-y-6">
+                    <div className="space-y-4">
+                      {formRoomTypes.map((rt, idx) => (
+                        <div key={idx} className="bg-slate-50 border border-slate-100 rounded-2xl p-5 relative space-y-4">
+                          <button type="button" onClick={() => setFormRoomTypes(prev => prev.filter((_, i) => i !== idx))}
+                            className="absolute top-4 right-4 bg-rose-50 text-rose-600 p-2 rounded-xl border border-rose-100 hover:bg-rose-100 hover:text-rose-700 transition-all">
+                            <Trash className="w-3.5 h-3.5" />
+                          </button>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pr-10">
+                            <div>
+                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Room Type / Sharing</label>
+                              <input type="text" value={rt.type} onChange={e => {
+                                const newTypes = [...formRoomTypes];
+                                newTypes[idx].type = e.target.value;
+                                setFormRoomTypes(newTypes);
+                              }} placeholder="e.g. Double Sharing AC" className="w-full bg-white border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold text-slate-700 outline-none focus:border-blue-200" />
                             </div>
                             <div>
-                              <p className="font-bold text-slate-800">{o.name || "Owner"}</p>
-                              <span className="text-[10px] font-mono font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">{o.loginId || "PENDING"}</span>
+                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Description</label>
+                              <input type="text" value={rt.desc} onChange={e => {
+                                const newTypes = [...formRoomTypes];
+                                newTypes[idx].desc = e.target.value;
+                                setFormRoomTypes(newTypes);
+                              }} placeholder="e.g. Attached washroom, study desk" className="w-full bg-white border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold text-slate-700 outline-none focus:border-blue-200" />
+                            </div>
+                            <div>
+                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Occupancy (Beds per Room)</label>
+                              <input type="number" value={rt.occupancy} onChange={e => {
+                                const newTypes = [...formRoomTypes];
+                                newTypes[idx].occupancy = parseInt(e.target.value) || 1;
+                                setFormRoomTypes(newTypes);
+                              }} placeholder="e.g. 2" className="w-full bg-white border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold text-slate-700 outline-none focus:border-blue-200" />
                             </div>
                           </div>
-                        </td>
-                        <td className="p-4">
-                          <p className="text-slate-800">{o.phone || "No Phone"}</p>
-                          <p className="text-[10px] text-slate-400 font-normal">{o.email || "-"}</p>
-                        </td>
-                        <td className="p-4">
-                          <p className="text-slate-700">{o.locationCode || o.city || "-"}</p>
-                        </td>
-                        <td className="p-4">
-                          <p className="text-slate-700">{o.checkinBankName || o.bankName || "Not Linked"}</p>
-                          <p className="text-[10px] text-slate-400 font-normal">{o.checkinBankAccountNumber ? "A/C Linked" : "No A/C"}</p>
-                        </td>
-                        <td className="p-4">
-                          <span className={cn(
-                            "px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider",
-                            isApproved ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-amber-50 text-amber-600 border border-amber-100"
-                          )}>
-                            {isApproved ? "Approved Active" : "Pending Approval"}
-                          </span>
-                        </td>
-                        <td className="p-4 pr-6 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            {!isEmpPage && !isApproved && (
-                              <button
-                                onClick={() => handleApproveOwner(o)}
-                                disabled={!hasKyc}
-                                title={hasKyc ? "Approve owner & email login credentials" : "Owner must submit KYC before Superadmin approval"}
-                                className={cn(
-                                  "px-3 py-1.5 rounded-lg font-bold text-[10px] uppercase flex items-center gap-1 transition-all shadow-sm active:scale-95",
-                                  hasKyc
-                                    ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20"
-                                    : "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60"
-                                )}
-                              >
-                                <CheckCircle2 size={12} />
-                                <span>{hasKyc ? "Approve Owner" : "KYC Pending"}</span>
-                              </button>
-                            )}
-                            <button
-                              onClick={() => setSelectedOwnerDetail(o)}
-                              className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-[10px] font-bold uppercase transition-all inline-flex items-center gap-1"
-                            >
-                              <Eye size={12} /> View Details
-                            </button>
-                            <button
-                              onClick={() => {
-                                setEditingOwner(o);
-                                setEditOwnerForm({
-                                  name: o.name || "",
-                                  email: o.email || o.checkinEmail || "",
-                                  phone: o.phone || o.checkinPhone || "",
-                                  locationCode: o.locationCode || o.area || o.city || "",
-                                  bankName: o.checkinBankName || o.bankName || "",
-                                  branchName: o.checkinBranchName || o.branchName || "",
-                                  accountNumber: o.checkinBankAccountNumber || o.accountNumber || "",
-                                  ifscCode: o.checkinIfscCode || o.ifscCode || "",
-                                  accountHolderName: o.checkinAccountHolderName || o.accountHolderName || o.name || "",
-                                  upiId: o.checkinUpiId || o.upiId || ""
-                                });
-                              }}
-                              className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg text-[10px] font-bold uppercase transition-all inline-flex items-center gap-1"
-                            >
-                              <Edit3 size={12} /> Edit Owner
+
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div>
+                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Total Rooms</label>
+                              <input type="text" value={rt.totalRooms} onChange={e => {
+                                const newTypes = [...formRoomTypes];
+                                newTypes[idx].totalRooms = e.target.value;
+                                setFormRoomTypes(newTypes);
+                              }} placeholder="e.g. 5" className="w-full bg-white border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold text-slate-700 outline-none focus:border-blue-200" />
+                            </div>
+                            <div>
+                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Total Beds</label>
+                              <input type="text" value={rt.totalBeds} onChange={e => {
+                                const newTypes = [...formRoomTypes];
+                                newTypes[idx].totalBeds = e.target.value;
+                                setFormRoomTypes(newTypes);
+                              }} placeholder="e.g. 10" className="w-full bg-white border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold text-slate-700 outline-none focus:border-blue-200" />
+                            </div>
+                            <div>
+                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Price Per Bed (₹/mo)</label>
+                              <input type="text" value={rt.pricePerBed} onChange={e => {
+                                const newTypes = [...formRoomTypes];
+                                newTypes[idx].pricePerBed = e.target.value;
+                                setFormRoomTypes(newTypes);
+                              }} placeholder="e.g. 7500" className="w-full bg-white border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold text-slate-700 outline-none focus:border-blue-200" />
+                            </div>
+                            <div>
+                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Price Per Room (₹/mo)</label>
+                              <input type="text" value={rt.pricePerRoom} onChange={e => {
+                                const newTypes = [...formRoomTypes];
+                                newTypes[idx].pricePerRoom = e.target.value;
+                                setFormRoomTypes(newTypes);
+                              }} placeholder="e.g. 15000" className="w-full bg-white border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold text-slate-700 outline-none focus:border-blue-200" />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <button type="button" onClick={() => setFormRoomTypes(prev => [...prev, { type: "", desc: "", totalRooms: "", totalBeds: "", occupancy: 1, pricePerBed: "", pricePerRoom: "" }])}
+                      className="w-full py-4 border-2 border-dashed border-slate-200 hover:border-blue-300 text-slate-500 hover:text-blue-600 rounded-2xl font-bold text-xs transition-all flex items-center justify-center gap-2 bg-white">
+                      <Plus className="w-4 h-4" /> Add Room Configuration
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* ─── Section 6: Policies ──────────────────────────────────────── */}
+              <div>
+                <SectionHeader icon={ShieldCheck} title="Policies" subtitle="Visitors, cooking, smoking, pets" open={openSections.policies} onToggle={() => toggleSection("policies")} color="cyan" />
+                {openSections.policies && (
+                  <div className="px-8 pb-8">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <TogglePill label="Visitors" icon={Users} active={formVisitorsAllowed} onClick={() => setFormVisitorsAllowed(!formVisitorsAllowed)} />
+                      <TogglePill label="Cooking" icon={UtensilsCrossed} active={formCookingAllowed} onClick={() => setFormCookingAllowed(!formCookingAllowed)} />
+                      <TogglePill label="Smoking" icon={Cigarette} active={formSmokingAllowed} onClick={() => setFormSmokingAllowed(!formSmokingAllowed)} />
+                      <TogglePill label="Pets" icon={PawPrint} active={formPetsAllowed} onClick={() => setFormPetsAllowed(!formPetsAllowed)} />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* ─── Section 7: Ratings & Notes ───────────────────────────────── */}
+              <div>
+                <SectionHeader icon={Star} title="Ratings & Notes" subtitle="Cleanliness, reviews, internal remarks" open={openSections.ratings} onToggle={() => toggleSection("ratings")} color="orange" />
+                {openSections.ratings && (
+                  <div className="px-8 pb-8 space-y-6">
+                    {/* Star Rating */}
+                    <div>
+                      <label className="text-[10px] font-black text-slate-400 uppercase mb-3 block tracking-widest ml-1">Cleanliness Rating</label>
+                      <div className="flex items-center gap-2">
+                        {[1, 2, 3, 4, 5].map(s => (
+                          <button key={s} type="button" onClick={() => setFormCleanlinessRating(s)}
+                            className="transition-all hover:scale-110 active:scale-95">
+                            <Star className={cn("w-8 h-8 transition-colors", s <= formCleanlinessRating ? "text-amber-400 fill-amber-400" : "text-slate-200")} />
+                          </button>
+                        ))}
+                        <span className="ml-3 text-sm font-bold text-slate-500">{formCleanlinessRating}/5</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <FormField label="Owner Behaviour" value={formOwnerBehaviour} onChange={e => setFormOwnerBehaviour(e.target.value)} placeholder="Cooperative, Friendly..." />
+                      <FormField label="Student Reviews" value={formStudentReviews} onChange={e => setFormStudentReviews(e.target.value)} placeholder="What students say..." />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest ml-1">Internal Remarks (Private)</label>
+                      <textarea rows={3} value={formInternalRemarks} onChange={e => setFormInternalRemarks(e.target.value)} placeholder="Internal notes for superadmin only..."
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none resize-none focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all placeholder:text-slate-300" />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* ─── Section 8: Photos ────────────────────────────────────────── */}
+              <div>
+                <SectionHeader icon={Camera} title="Photos" subtitle="Property photos" open={openSections.photos} onToggle={() => toggleSection("photos")} color="rose" />
+                {openSections.photos && (
+                  <div className="px-8 pb-8 space-y-4">
+                    <div className="flex gap-3">
+                      <div className="flex-1">
+                        <FormField label="Photo URL" value={formPhotoUrl} onChange={e => setFormPhotoUrl(e.target.value)} placeholder="https://example.com/photo.jpg" />
+                      </div>
+                      <div className="flex items-end">
+                        <button type="button" onClick={addPhotoUrl}
+                          className="px-5 py-4 bg-blue-600 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg shadow-blue-200">
+                          <Plus className="w-4 h-4" /> Add
+                        </button>
+                      </div>
+                    </div>
+
+                    {formPhotos.length > 0 && (
+                      <div className="flex flex-wrap gap-3 mt-2">
+                        {formPhotos.map((url, idx) => (
+                          <div key={idx} className="relative group w-24 h-24 rounded-xl overflow-hidden border border-slate-100 shadow-sm">
+                            <img src={url} alt="" className="w-full h-full object-cover" onError={e => e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23cbd5e1' viewBox='0 0 24 24'%3E%3Cpath d='M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z'/%3E%3C/svg%3E"} />
+                            <button type="button" onClick={() => removePhoto(idx)}
+                              className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
+                              <X className="w-3 h-3" />
                             </button>
                           </div>
-                        </td>
-                      </tr>
-                    );
-                  })
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 )}
-              </tbody>
-            </table>
+              </div>
+            </div>
+
+            {/* ─── Credentials Card + Actions ───────────────────────────────── */}
+            <div className="bg-white rounded-b-[2rem] border border-t-0 border-slate-100 shadow-2xl p-8 space-y-6">
+              {/* Credentials are issued by the backend on submit (ROOMHY####) and emailed
+                  to the owner with the digital-KYC link, so nothing is generated here. */}
+              <div className="bg-slate-900 text-white p-6 rounded-2xl flex items-center gap-4 shadow-xl shadow-slate-900/10">
+                <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-600/30 shrink-0">
+                  <Send size={20} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">What happens next</p>
+                  <p className="text-sm font-bold mt-1 leading-relaxed">
+                    On submit, owner credentials are generated and a <span className="text-blue-400">digital KYC link</span> is emailed to{" "}
+                    <span className="font-mono text-emerald-400">{formEmail || "the owner"}</span>.
+                    <br />
+                    <span className="text-slate-400 font-medium">
+                      The property goes live only after the owner completes KYC and a superadmin approves this report.
+                    </span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+                <button type="button" onClick={() => { resetForm(); setCurrentView("list"); }} className="px-6 py-4 rounded-2xl text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all">
+                  Cancel
+                </button>
+                <button type="submit" disabled={saving} className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest shadow-xl shadow-blue-600/20 transition-all flex items-center gap-2">
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  {saving ? "Onboarding Owner..." : "Onboard Property Owner"}
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      ) : (
+        /* ═══ VISITS LIST VIEW ═══ */
+        <div className="space-y-6">
+          {/* Stats Bar */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Visit Reports</p>
+                <h3 className="text-2xl font-bold text-slate-800 mt-1">{stats.total}</h3>
+              </div>
+              <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                <Building2 size={24} />
+              </div>
+            </div>
+            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Approved / Onboarded</p>
+                <h3 className="text-2xl font-bold text-emerald-600 mt-1">{stats.approved}</h3>
+              </div>
+              <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                <CheckCircle2 size={24} />
+              </div>
+            </div>
+            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Pending Review</p>
+                <h3 className="text-2xl font-bold text-amber-600 mt-1">{stats.pending}</h3>
+              </div>
+              <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                <Clock size={24} />
+              </div>
+            </div>
           </div>
-        ) : (
-          /* ═══ TAB 2: PROPERTY SUBMISSIONS TABLE ═══ */
+
+          {/* Search & Actions */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between gap-4">
+            <div className="flex-1 relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+              <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by property name or staff member..."
+                className="w-full bg-slate-50 border border-slate-100 rounded-xl pl-11 pr-4 py-3 text-xs font-bold text-slate-700 outline-none focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all placeholder:text-slate-300" />
+            </div>
+            <button onClick={loadVisits} className="p-3 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl border border-slate-100 transition-all">
+              <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
+            </button>
+          </div>
+
+          {/* Table */}
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -956,15 +900,16 @@ export default function Visit() {
                   <th className="p-4">Location</th>
                   <th className="p-4">Type / Rent</th>
                   <th className="p-4">Submitted By</th>
+                  <th className="p-4">KYC</th>
                   <th className="p-4">Status</th>
                   <th className="p-4 pr-6 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 text-xs font-bold text-slate-700">
                 {loading ? (
-                  <tr><td colSpan={6} className="p-8 text-center text-slate-400 font-bold uppercase tracking-widest">Loading visits...</td></tr>
+                  <tr><td colSpan={7} className="p-8 text-center text-slate-400 font-bold uppercase tracking-widest">Loading visits...</td></tr>
                 ) : filteredVisits.length === 0 ? (
-                  <tr><td colSpan={6} className="p-8 text-center text-slate-400 font-bold uppercase tracking-widest">No property submissions found</td></tr>
+                  <tr><td colSpan={7} className="p-8 text-center text-slate-400 font-bold uppercase tracking-widest">No visit reports found</td></tr>
                 ) : (
                   filteredVisits.map((v, i) => (
                     <tr key={v._id || i} className="hover:bg-slate-50/50 transition-colors">
@@ -978,11 +923,18 @@ export default function Visit() {
                       </td>
                       <td className="p-4">
                         <p className="text-slate-700 uppercase">{v.propertyType || "Hostel"}</p>
-                        <p className="text-[10px] text-blue-600 font-bold">₹{v.monthlyRent || 0}/mo</p>
+                        {formatRent(v)
+                          ? <p className="text-[10px] text-blue-600 font-bold">{formatRent(v)}</p>
+                          : <p className="text-[10px] text-amber-600 font-bold">Rent not set</p>}
                       </td>
                       <td className="p-4">
                         <p className="text-slate-700">{v.staffName || v.submittedBy || "Staff"}</p>
                         <p className="text-[10px] text-slate-400 font-normal">{new Date(v.submittedAt || Date.now()).toLocaleDateString()}</p>
+                      </td>
+                      <td className="p-4">
+                        <span className={cn("px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider border", kycState(v).cls)}>
+                          {kycState(v).label}
+                        </span>
                       </td>
                       <td className="p-4">
                         <span className={cn(
@@ -992,33 +944,34 @@ export default function Visit() {
                           {v.status || "pending"}
                         </span>
                       </td>
-                      <td className="p-4 pr-6 text-right">
+                      <td className="p-4 pr-6">
                         <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => setViewingVisit(v)}
-                            className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-[10px] font-bold uppercase transition-all flex items-center gap-1"
-                          >
-                            <Eye size={12} /> View
+                          <button onClick={() => setViewingVisit(v)}
+                            className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold uppercase transition-all">
+                            View
                           </button>
-                          <button
-                            onClick={() => {
-                              setEditingVisit(v);
-                              setEditVisitForm({
-                                propertyName: v.propertyName || v.propertyInfo?.name || "",
-                                ownerName: v.ownerName || v.visitorName || "",
-                                ownerPhone: v.ownerPhone || v.visitorPhone || "",
-                                ownerEmail: v.ownerEmail || v.visitorEmail || "",
-                                monthlyRent: v.monthlyRent || 0,
-                                area: v.area || "",
-                                city: v.city || "",
-                                address: v.address || "",
-                                internalRemarks: v.internalRemarks || ""
-                              });
-                            }}
-                            className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg text-[10px] font-bold uppercase transition-all flex items-center gap-1"
-                          >
-                            <Edit3 size={12} /> Edit
-                          </button>
+                          {v.status !== "approved" && (
+                            <>
+                              <button
+                                onClick={() => resendKyc(v)}
+                                disabled={actingId === (v.visitId || v._id) || isKycDone(v)}
+                                title={isKycDone(v) ? "Owner has already completed KYC" : "Resend the digital KYC link to the owner"}
+                                className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-[10px] font-bold uppercase transition-all border border-blue-100 disabled:bg-slate-50 disabled:text-slate-300 disabled:border-slate-100 disabled:cursor-not-allowed"
+                              >
+                                Resend KYC
+                              </button>
+                              {canApprove && (
+                                <button
+                                  onClick={() => approveVisit(v)}
+                                  disabled={!isKycDone(v) || actingId === (v.visitId || v._id)}
+                                  title={isKycDone(v) ? "Approve and publish this property" : "Owner must complete digital KYC before approval"}
+                                  className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all border bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed"
+                                >
+                                  {actingId === (v.visitId || v._id) ? "..." : "Approve"}
+                                </button>
+                              )}
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -1027,438 +980,236 @@ export default function Visit() {
               </tbody>
             </table>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* ─── VIEW VISIT MODAL ─────────────────────────────────────────────────── */}
+      {/* ═══ VIEW DETAILS MODAL ═══ */}
       {viewingVisit && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl w-full max-w-2xl p-6 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900">{viewingVisit.propertyName || "Visit Report Details"}</h3>
-                <p className="text-xs text-slate-500">Submitted by: {viewingVisit.staffName || viewingVisit.submittedBy || "Staff"}</p>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setViewingVisit(null)}>
+          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="p-6 bg-gradient-to-br from-slate-50 to-white border-b border-slate-100 flex items-start justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-xl shadow-slate-900/20 shrink-0">
+                  <Building2 size={24} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-slate-800 tracking-tight">{viewingVisit.propertyName || viewingVisit.propertyInfo?.name || "Unnamed Property"}</h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                    Submitted by {viewingVisit.staffName || viewingVisit.submittedBy || "Staff"} • {new Date(viewingVisit.submittedAt || Date.now()).toLocaleString()}
+                  </p>
+                </div>
               </div>
-              <button onClick={() => setViewingVisit(null)} className="p-2 hover:bg-slate-100 rounded-full">
-                <X size={18} />
-              </button>
+              <div className="flex items-center gap-3 shrink-0">
+                <span className={cn("px-3 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-wider border", kycState(viewingVisit).cls)}>
+                  {kycState(viewingVisit).label}
+                </span>
+                <span className={cn(
+                  "px-3 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-wider",
+                  viewingVisit.status === "approved" ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-amber-50 text-amber-600 border border-amber-100"
+                )}>
+                  {viewingVisit.status || "pending"}
+                </span>
+                <button onClick={() => setViewingVisit(null)} className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-500 transition-all">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
-            <div className="space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                <div><span className="text-slate-400 font-bold block mb-1">Owner Name</span><span className="font-bold text-slate-900">{viewingVisit.ownerName || viewingVisit.visitorName || "N/A"}</span></div>
-                <div><span className="text-slate-400 font-bold block mb-1">Owner Phone</span><span className="font-bold text-slate-900">{viewingVisit.ownerPhone || viewingVisit.visitorPhone || "N/A"}</span></div>
-                <div><span className="text-slate-400 font-bold block mb-1">Owner Email</span><span className="font-bold text-slate-900">{viewingVisit.ownerEmail || viewingVisit.visitorEmail || "N/A"}</span></div>
-                <div><span className="text-slate-400 font-bold block mb-1">City / Area</span><span className="font-bold text-slate-900">{viewingVisit.city || viewingVisit.area || "N/A"}</span></div>
-                <div><span className="text-slate-400 font-bold block mb-1">Property Type</span><span className="font-bold text-blue-600 uppercase">{viewingVisit.propertyType || "Hostel"}</span></div>
-                <div><span className="text-slate-400 font-bold block mb-1">Monthly Rent</span><span className="font-bold text-emerald-600">₹{viewingVisit.monthlyRent || 0}/mo</span></div>
-              </div>
+            {/* Body */}
+            <div className="overflow-y-auto p-8 space-y-8 flex-1">
+              {/* Owner's submitted digital KYC — this is what gates approval */}
+              <DetailSection icon={ShieldCheck} title="Owner Digital KYC" color="emerald">
+                {!viewingVisit.generatedCredentials?.loginId ? (
+                  <p className="text-xs font-semibold text-slate-500 bg-slate-50 rounded-xl p-4 border border-slate-100">
+                    No KYC link has been issued for this report yet. Use “Resend KYC” to send it to the owner.
+                  </p>
+                ) : ownerKycLoading ? (
+                  <p className="text-xs font-semibold text-slate-400 bg-slate-50 rounded-xl p-4 border border-slate-100">Loading owner KYC…</p>
+                ) : (
+                  <>
+                    <DetailGrid>
+                      <DetailItem label="Owner Login ID" value={viewingVisit.generatedCredentials?.loginId} />
+                      <DetailItem label="KYC Status" value={kycState(viewingVisit).label} />
+                      <DetailItem label="Aadhaar Number" value={ownerKyc?.aadharNumber} />
+                      <DetailItem label="Aadhaar Linked Phone" value={ownerKyc?.checkinAadhaarLinkedPhone} />
+                      <DetailItem label="Date of Birth" value={ownerKyc?.checkinDob} />
+                      <DetailItem label="KYC Address" value={ownerKyc?.checkinAddress} />
+                    </DetailGrid>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-6 mb-3">Bank / Payout Details</p>
+                    <DetailGrid>
+                      <DetailItem label="Account Holder" value={ownerKyc?.checkinAccountHolderName} />
+                      <DetailItem label="Bank Name" value={ownerKyc?.checkinBankName} />
+                      <DetailItem label="Account Number" value={ownerKyc?.checkinBankAccountNumber} />
+                      <DetailItem label="IFSC Code" value={ownerKyc?.checkinIfscCode} />
+                      <DetailItem label="Branch" value={ownerKyc?.checkinBranchName} />
+                      <DetailItem label="UPI ID" value={ownerKyc?.checkinUpiId} />
+                    </DetailGrid>
+                    {(ownerKyc?.checkinOwnerPhoto || ownerKyc?.checkinAadhaarImage || ownerKyc?.checkinBankProof) && (
+                      <>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-6 mb-3">Uploaded Documents</p>
+                        <div className="flex flex-wrap gap-4">
+                          {[
+                            { src: ownerKyc?.checkinOwnerPhoto, label: "Owner Photo" },
+                            { src: ownerKyc?.checkinAadhaarImage, label: "Aadhaar" },
+                            { src: ownerKyc?.checkinBankProof, label: "Bank Proof" },
+                          ].filter(d => d.src).map((d, idx) => (
+                            <a key={idx} href={d.src} target="_blank" rel="noreferrer" className="group">
+                              <img src={d.src} alt={d.label} className="w-28 h-28 rounded-xl object-cover border border-slate-200 shadow-sm group-hover:ring-4 group-hover:ring-emerald-100 transition-all" />
+                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-2 text-center">{d.label}</p>
+                            </a>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
+              </DetailSection>
 
-              {viewingVisit.address && (
-                <div>
-                  <span className="text-slate-400 font-bold block mb-1">Address</span>
-                  <p className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-slate-700">{viewingVisit.address}</p>
-                </div>
-              )}
+              <DetailSection icon={User} title="Owner Information" color="blue">
+                <DetailGrid>
+                  <DetailItem label="Owner Name" value={viewingVisit.ownerName || viewingVisit.visitorName} />
+                  <DetailItem label="Email" value={viewingVisit.ownerEmail || viewingVisit.visitorEmail} />
+                  <DetailItem label="Phone" value={viewingVisit.ownerPhone || viewingVisit.visitorPhone} />
+                  <DetailItem label="Owner City" value={viewingVisit.ownerCity} />
+                </DetailGrid>
+              </DetailSection>
 
-              {viewingVisit.internalRemarks && (
-                <div>
-                  <span className="text-slate-400 font-bold block mb-1">Internal Remarks</span>
-                  <p className="p-3 bg-amber-50 rounded-xl border border-amber-100 text-amber-800">{viewingVisit.internalRemarks}</p>
-                </div>
-              )}
+              <DetailSection icon={Building2} title="Property Details" color="indigo">
+                <DetailGrid>
+                  <DetailItem label="Property Type" value={viewingVisit.propertyType} />
+                  <DetailItem label="Gender Suitability" value={viewingVisit.genderSuitability || viewingVisit.gender} />
+                  <DetailItem label="Monthly Rent" value={formatRent(viewingVisit) || "Not set"} />
+                  <DetailItem label="Deposit" value={viewingVisit.deposit ? `₹${viewingVisit.deposit}` : ""} />
+                </DetailGrid>
+                {viewingVisit.description && (
+                  <p className="mt-4 text-xs font-semibold text-slate-600 bg-slate-50 rounded-xl p-4 border border-slate-100">{viewingVisit.description}</p>
+                )}
+              </DetailSection>
 
-              {Array.isArray(viewingVisit.photos) && viewingVisit.photos.length > 0 && (
-                <div>
-                  <span className="text-slate-400 font-bold block mb-2">Visit Photos ({viewingVisit.photos.length})</span>
-                  <div className="grid grid-cols-3 gap-2">
-                    {viewingVisit.photos.map((url, idx) => (
-                      <img key={idx} src={url} alt={`Visit photo ${idx+1}`} className="w-full h-24 object-cover rounded-xl border border-slate-200" />
+              <DetailSection icon={MapPin} title="Location" color="emerald">
+                <DetailGrid>
+                  <DetailItem label="Area" value={viewingVisit.area} />
+                  <DetailItem label="City" value={viewingVisit.city} />
+                  <DetailItem label="Pincode" value={viewingVisit.pincode} />
+                  <DetailItem label="Landmark" value={viewingVisit.landmark} />
+                </DetailGrid>
+                {viewingVisit.address && (
+                  <p className="mt-4 text-xs font-semibold text-slate-600">{viewingVisit.address}</p>
+                )}
+              </DetailSection>
+
+              <DetailSection icon={BedDouble} title="Occupancy" color="amber">
+                <DetailGrid cols={3}>
+                  <DetailItem label="Vacant Rooms" value={viewingVisit.vacantRooms} />
+                  <DetailItem label="Occupied Rooms" value={viewingVisit.occupiedRooms} />
+                  <DetailItem label="Occupied Beds" value={viewingVisit.occupiedBeds} />
+                </DetailGrid>
+              </DetailSection>
+
+              {viewingVisit.amenities?.length > 0 && (
+                <DetailSection icon={Zap} title="Amenities & Features" color="violet">
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {viewingVisit.amenities.map((a, idx) => (
+                      <span key={idx} className="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-violet-50 text-violet-600 border border-violet-100">{a}</span>
                     ))}
                   </div>
-                </div>
+                  <DetailGrid cols={3}>
+                    <DetailItem label="Furnishing" value={viewingVisit.furnishing} />
+                    <DetailItem label="Ventilation" value={viewingVisit.ventilation} />
+                    <DetailItem label="Min Stay" value={viewingVisit.minStay} />
+                  </DetailGrid>
+                </DetailSection>
+              )}
+
+              {viewingVisit.roomTypes?.length > 0 && (
+                <DetailSection icon={BedDouble} title="Room Configurations" color="violet">
+                  <div className="space-y-3">
+                    {viewingVisit.roomTypes.map((rt, idx) => (
+                      <div key={idx} className="bg-slate-50 border border-slate-100 rounded-xl p-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <DetailItem label="Type" value={rt.type} />
+                        <DetailItem label="Rooms / Beds" value={`${rt.totalRooms || 0} / ${rt.totalBeds || 0}`} />
+                        <DetailItem label="Price / Bed" value={rt.pricePerBed ? `₹${rt.pricePerBed}` : ""} />
+                        <DetailItem label="Price / Room" value={rt.pricePerRoom ? `₹${rt.pricePerRoom}` : ""} />
+                      </div>
+                    ))}
+                  </div>
+                </DetailSection>
+              )}
+
+              <DetailSection icon={ShieldCheck} title="Policies" color="cyan">
+                <DetailGrid cols={4}>
+                  <DetailItem label="Visitors" value={viewingVisit.visitorsAllowed ? "Allowed" : "Not Allowed"} />
+                  <DetailItem label="Cooking" value={viewingVisit.cookingAllowed ? "Allowed" : "Not Allowed"} />
+                  <DetailItem label="Smoking" value={viewingVisit.smokingAllowed ? "Allowed" : "Not Allowed"} />
+                  <DetailItem label="Pets" value={viewingVisit.petsAllowed ? "Allowed" : "Not Allowed"} />
+                </DetailGrid>
+              </DetailSection>
+
+              {(viewingVisit.cleanlinessRating > 0 || viewingVisit.ownerBehaviour || viewingVisit.studentReviews || viewingVisit.internalRemarks) && (
+                <DetailSection icon={Star} title="Ratings & Notes" color="orange">
+                  {viewingVisit.cleanlinessRating > 0 && (
+                    <div className="flex items-center gap-2 mb-4">
+                      {[1, 2, 3, 4, 5].map(s => (
+                        <Star key={s} className={cn("w-5 h-5", s <= viewingVisit.cleanlinessRating ? "text-amber-400 fill-amber-400" : "text-slate-200")} />
+                      ))}
+                      <span className="text-xs font-bold text-slate-500 ml-1">{viewingVisit.cleanlinessRating}/5 Cleanliness</span>
+                    </div>
+                  )}
+                  <DetailGrid>
+                    <DetailItem label="Owner Behaviour" value={viewingVisit.ownerBehaviour} />
+                    <DetailItem label="Student Reviews" value={viewingVisit.studentReviews} />
+                  </DetailGrid>
+                  {viewingVisit.internalRemarks && (
+                    <p className="mt-4 text-xs font-semibold text-slate-600 bg-amber-50/50 rounded-xl p-4 border border-amber-100">{viewingVisit.internalRemarks}</p>
+                  )}
+                </DetailSection>
+              )}
+
+              {viewingVisit.photos?.length > 0 && (
+                <DetailSection icon={Camera} title="Photos" color="rose">
+                  <div className="flex flex-wrap gap-3">
+                    {viewingVisit.photos.map((url, idx) => (
+                      <img key={idx} src={url} alt="" className="w-24 h-24 rounded-xl object-cover border border-slate-100 shadow-sm" />
+                    ))}
+                  </div>
+                </DetailSection>
               )}
             </div>
 
-            <div className="flex justify-end pt-4 border-t border-slate-100">
-              <button onClick={() => setViewingVisit(null)} className="px-5 py-2.5 bg-slate-900 hover:bg-black text-white font-bold rounded-xl text-xs">
-                Close
-              </button>
-            </div>
+            {/* Footer actions */}
+            {viewingVisit.status !== "approved" && (
+              <div className="px-8 py-5 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between gap-4">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                  {isKycDone(viewingVisit)
+                    ? "Owner KYC complete — ready to publish"
+                    : "Waiting for the owner to complete digital KYC"}
+                </p>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => resendKyc(viewingVisit)}
+                    disabled={actingId === (viewingVisit.visitId || viewingVisit._id) || isKycDone(viewingVisit)}
+                    className="px-5 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest bg-white border border-blue-100 text-blue-600 hover:bg-blue-50 transition-all disabled:text-slate-300 disabled:border-slate-100 disabled:cursor-not-allowed"
+                  >
+                    Resend KYC
+                  </button>
+                  {canApprove && (
+                    <button
+                      onClick={() => approveVisit(viewingVisit)}
+                      disabled={!isKycDone(viewingVisit) || actingId === (viewingVisit.visitId || viewingVisit._id)}
+                      title={isKycDone(viewingVisit) ? "Approve and publish this property" : "Owner must complete digital KYC before approval"}
+                      className="px-6 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest bg-emerald-600 text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 transition-all disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      {actingId === (viewingVisit.visitId || viewingVisit._id) ? "Approving…" : "Approve & Publish"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
-
-      {/* ─── EDIT VISIT MODAL ─────────────────────────────────────────────────── */}
-      {editingVisit && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl w-full max-w-lg p-6 shadow-2xl space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900">Edit Visit Report</h3>
-                <p className="text-xs text-slate-500">ID: {editingVisit._id}</p>
-              </div>
-              <button onClick={() => setEditingVisit(null)} className="p-2 hover:bg-slate-100 rounded-full">
-                <X size={18} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveVisitEdit} className="space-y-4 text-xs">
-              <div>
-                <label className="block text-slate-400 font-bold uppercase mb-1">Property Name</label>
-                <input type="text" value={editVisitForm.propertyName || ""} onChange={e => setEditVisitForm({...editVisitForm, propertyName: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" required />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-400 font-bold uppercase mb-1">Owner Name</label>
-                  <input type="text" value={editVisitForm.ownerName || ""} onChange={e => setEditVisitForm({...editVisitForm, ownerName: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" />
-                </div>
-                <div>
-                  <label className="block text-slate-400 font-bold uppercase mb-1">Owner Phone</label>
-                  <input type="text" value={editVisitForm.ownerPhone || ""} onChange={e => setEditVisitForm({...editVisitForm, ownerPhone: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-400 font-bold uppercase mb-1">City / Area</label>
-                  <input type="text" value={editVisitForm.city || ""} onChange={e => setEditVisitForm({...editVisitForm, city: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" />
-                </div>
-                <div>
-                  <label className="block text-slate-400 font-bold uppercase mb-1">Monthly Rent (₹)</label>
-                  <input type="number" value={editVisitForm.monthlyRent || 0} onChange={e => setEditVisitForm({...editVisitForm, monthlyRent: parseFloat(e.target.value) || 0})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-slate-400 font-bold uppercase mb-1">Address</label>
-                <textarea value={editVisitForm.address || ""} onChange={e => setEditVisitForm({...editVisitForm, address: e.target.value})} rows={2} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-medium" />
-              </div>
-              <div>
-                <label className="block text-slate-400 font-bold uppercase mb-1">Internal Remarks</label>
-                <textarea value={editVisitForm.internalRemarks || ""} onChange={e => setEditVisitForm({...editVisitForm, internalRemarks: e.target.value})} rows={2} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-medium" />
-              </div>
-
-              <div className="flex gap-3 pt-4 border-t border-slate-100">
-                <button type="button" onClick={() => setEditingVisit(null)} className="flex-1 py-3 text-slate-600 font-bold bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">
-                  Cancel
-                </button>
-                <button type="submit" disabled={savingEditVisit} className="flex-1 py-3 bg-slate-900 hover:bg-black text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-1.5">
-                  {savingEditVisit ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />}
-                  Save Changes
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ─── VIEW OWNER DETAIL MODAL ──────────────────────────────────────────── */}
-      {selectedOwnerDetail && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in zoom-in-95 duration-200">
-          <div className="bg-white rounded-3xl w-full max-w-xl p-6 sm:p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm shrink-0 border border-blue-100">
-                  {(selectedOwnerDetail.name || "O").charAt(0).toUpperCase()}
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-slate-900">{selectedOwnerDetail.name || "Property Owner"}</h3>
-                  <span className="text-xs font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-100">ID: {selectedOwnerDetail.loginId}</span>
-                </div>
-              </div>
-              <button onClick={() => setSelectedOwnerDetail(null)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-                <X size={20} className="text-slate-500" />
-              </button>
-            </div>
-
-            <div className="space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                <div><span className="text-slate-400 font-bold block mb-1">Email Address</span><span className="font-bold text-slate-900">{selectedOwnerDetail.email || "N/A"}</span></div>
-                <div><span className="text-slate-400 font-bold block mb-1">Phone Number</span><span className="font-bold text-slate-900">{selectedOwnerDetail.phone || "N/A"}</span></div>
-                <div><span className="text-slate-400 font-bold block mb-1">Operating Area/City</span><span className="font-bold text-slate-900">{selectedOwnerDetail.locationCode || selectedOwnerDetail.city || "N/A"}</span></div>
-                <div><span className="text-slate-400 font-bold block mb-1">Account Status</span><span className="font-bold text-emerald-600 uppercase">{selectedOwnerDetail.isActive !== false ? "Approved Active" : "Pending Approval"}</span></div>
-              </div>
-
-              <div className="bg-slate-900 text-white p-5 rounded-2xl space-y-3">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Banking & Settlement Info</p>
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div><span className="text-slate-400 block mb-0.5">Bank Name</span><span className="font-bold">{selectedOwnerDetail.checkinBankName || selectedOwnerDetail.bankName || "Not Linked"}</span></div>
-                  <div><span className="text-slate-400 block mb-0.5">Branch Name</span><span className="font-bold">{selectedOwnerDetail.checkinBranchName || selectedOwnerDetail.branchName || "N/A"}</span></div>
-                  <div><span className="text-slate-400 block mb-0.5">Account Number</span><span className="font-bold font-mono text-emerald-400">{selectedOwnerDetail.checkinBankAccountNumber || selectedOwnerDetail.accountNumber || "N/A"}</span></div>
-                  <div><span className="text-slate-400 block mb-0.5">IFSC Code</span><span className="font-bold font-mono text-blue-400">{selectedOwnerDetail.checkinIfscCode || selectedOwnerDetail.ifscCode || "N/A"}</span></div>
-                  <div><span className="text-slate-400 block mb-0.5">Account Holder</span><span className="font-bold">{selectedOwnerDetail.checkinAccountHolderName || selectedOwnerDetail.accountHolderName || selectedOwnerDetail.name || "N/A"}</span></div>
-                  <div><span className="text-slate-400 block mb-0.5">UPI ID</span><span className="font-bold font-mono text-amber-400">{selectedOwnerDetail.checkinUpiId || selectedOwnerDetail.upiId || "N/A"}</span></div>
-                </div>
-              </div>
-
-              {/* ─── KYC & VERIFICATION DOCUMENTS SECTION ──────────────────────────── */}
-              <div className="bg-slate-50 border border-slate-200 p-5 rounded-2xl space-y-4">
-                <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                    <FileCheck size={14} className="text-blue-600" /> KYC & Verification Documents
-                  </p>
-                  <span className={cn(
-                    "px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase",
-                    (selectedOwnerDetail.checkinAadhaarNumber || selectedOwnerDetail.kyc?.aadhaarNumber || selectedOwnerDetail.aadhaarNumber)
-                      ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
-                      : "bg-amber-100 text-amber-700 border border-amber-200"
-                  )}>
-                    {(selectedOwnerDetail.checkinAadhaarNumber || selectedOwnerDetail.kyc?.aadhaarNumber || selectedOwnerDetail.aadhaarNumber) ? "KYC Submitted" : "KYC Pending"}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div>
-                    <span className="text-slate-400 font-bold block mb-0.5">Aadhaar Number</span>
-                    <span className="font-bold font-mono text-slate-800">
-                      {selectedOwnerDetail.checkinAadhaarNumber || selectedOwnerDetail.kyc?.aadhaarNumber || selectedOwnerDetail.aadhaarNumber || "Not Uploaded"}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 font-bold block mb-0.5">Aadhaar Linked Phone</span>
-                    <span className="font-bold text-slate-800">
-                      {selectedOwnerDetail.checkinAadhaarLinkedPhone || selectedOwnerDetail.phone || "N/A"}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Uploaded Document Previews */}
-                <div className="grid grid-cols-3 gap-3 pt-2 border-t border-slate-200/60">
-                  {/* Aadhaar Document */}
-                  <div className="space-y-1">
-                    <span className="text-[10px] text-slate-500 font-bold block">Aadhaar Front/Back</span>
-                    {(selectedOwnerDetail.checkinAadhaarImage || selectedOwnerDetail.kyc?.documentImage || selectedOwnerDetail.checkinAadhaarFront) ? (
-                      <a 
-                        href={selectedOwnerDetail.checkinAadhaarImage || selectedOwnerDetail.kyc?.documentImage || selectedOwnerDetail.checkinAadhaarFront} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="block group relative overflow-hidden rounded-xl border border-slate-200 bg-white p-1 hover:border-blue-400 transition-all"
-                      >
-                        <img 
-                          src={selectedOwnerDetail.checkinAadhaarImage || selectedOwnerDetail.kyc?.documentImage || selectedOwnerDetail.checkinAadhaarFront} 
-                          alt="Aadhaar Document" 
-                          className="w-full h-16 object-cover rounded-lg group-hover:scale-105 transition-transform" 
-                        />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold transition-opacity rounded-lg">
-                          View Doc ↗
-                        </div>
-                      </a>
-                    ) : (
-                      <div className="w-full h-16 rounded-xl border border-dashed border-slate-200 bg-white/50 flex flex-col items-center justify-center text-slate-400 text-[10px]">
-                        <span>No Document</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Bank Proof / Cheque */}
-                  <div className="space-y-1">
-                    <span className="text-[10px] text-slate-500 font-bold block">Bank Proof / Cheque</span>
-                    {(selectedOwnerDetail.checkinBankProof || selectedOwnerDetail.checkinCancelledCheque?.dataUrl) ? (
-                      <a 
-                        href={selectedOwnerDetail.checkinBankProof || selectedOwnerDetail.checkinCancelledCheque?.dataUrl} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="block group relative overflow-hidden rounded-xl border border-slate-200 bg-white p-1 hover:border-blue-400 transition-all"
-                      >
-                        <img 
-                          src={selectedOwnerDetail.checkinBankProof || selectedOwnerDetail.checkinCancelledCheque?.dataUrl} 
-                          alt="Bank Proof" 
-                          className="w-full h-16 object-cover rounded-lg group-hover:scale-105 transition-transform" 
-                        />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold transition-opacity rounded-lg">
-                          View Proof ↗
-                        </div>
-                      </a>
-                    ) : (
-                      <div className="w-full h-16 rounded-xl border border-dashed border-slate-200 bg-white/50 flex flex-col items-center justify-center text-slate-400 text-[10px]">
-                        <span>No Proof</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Owner Photo */}
-                  <div className="space-y-1">
-                    <span className="text-[10px] text-slate-500 font-bold block">Owner Photo</span>
-                    {(selectedOwnerDetail.checkinOwnerPhoto || selectedOwnerDetail.photo) ? (
-                      <a 
-                        href={selectedOwnerDetail.checkinOwnerPhoto || selectedOwnerDetail.photo} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="block group relative overflow-hidden rounded-xl border border-slate-200 bg-white p-1 hover:border-blue-400 transition-all"
-                      >
-                        <img 
-                          src={selectedOwnerDetail.checkinOwnerPhoto || selectedOwnerDetail.photo} 
-                          alt="Owner Photo" 
-                          className="w-full h-16 object-cover rounded-lg group-hover:scale-105 transition-transform" 
-                        />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold transition-opacity rounded-lg">
-                          View Photo ↗
-                        </div>
-                      </a>
-                    ) : (
-                      <div className="w-full h-16 rounded-xl border border-dashed border-slate-200 bg-white/50 flex flex-col items-center justify-center text-slate-400 text-[10px]">
-                        <span>No Photo</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-4 border-t border-slate-100">
-              <button onClick={() => setSelectedOwnerDetail(null)} className="px-5 py-2.5 bg-slate-900 hover:bg-black text-white font-bold rounded-xl text-xs transition-colors">
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ─── EDIT OWNER MODAL ─────────────────────────────────────────────────── */}
-      {editingOwner && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in zoom-in-95 duration-200">
-          <div className="bg-white rounded-3xl w-full max-w-lg p-6 sm:p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900">Edit Owner Details</h3>
-                <span className="text-xs font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-100">ID: {editingOwner.loginId}</span>
-              </div>
-              <button onClick={() => setEditingOwner(null)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-                <X size={20} className="text-slate-500" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveOwnerEdit} className="space-y-4 text-xs">
-              <div className="space-y-3">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Personal & Contact Info</p>
-                <div>
-                  <label className="block text-slate-600 font-bold mb-1">Owner Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={editOwnerForm.name}
-                    onChange={e => setEditOwnerForm({ ...editOwnerForm, name: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 font-bold"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-slate-600 font-bold mb-1">Email Address</label>
-                    <input
-                      type="email"
-                      required
-                      value={editOwnerForm.email}
-                      onChange={e => setEditOwnerForm({ ...editOwnerForm, email: e.target.value })}
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 font-bold"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-slate-600 font-bold mb-1">Phone Number</label>
-                    <input
-                      type="text"
-                      required
-                      value={editOwnerForm.phone}
-                      onChange={e => setEditOwnerForm({ ...editOwnerForm, phone: e.target.value })}
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 font-bold"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-slate-600 font-bold mb-1">Operating Area / City</label>
-                  <input
-                    type="text"
-                    value={editOwnerForm.locationCode}
-                    onChange={e => setEditOwnerForm({ ...editOwnerForm, locationCode: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 font-bold"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-3 pt-3 border-t border-slate-100">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Banking & Settlement Info</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-slate-600 font-bold mb-1">Bank Name</label>
-                    <input
-                      type="text"
-                      value={editOwnerForm.bankName}
-                      onChange={e => setEditOwnerForm({ ...editOwnerForm, bankName: e.target.value })}
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 font-bold"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-slate-600 font-bold mb-1">Branch Name</label>
-                    <input
-                      type="text"
-                      value={editOwnerForm.branchName}
-                      onChange={e => setEditOwnerForm({ ...editOwnerForm, branchName: e.target.value })}
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 font-bold"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-slate-600 font-bold mb-1">Account Number</label>
-                    <input
-                      type="text"
-                      value={editOwnerForm.accountNumber}
-                      onChange={e => setEditOwnerForm({ ...editOwnerForm, accountNumber: e.target.value })}
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 font-bold font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-slate-600 font-bold mb-1">IFSC Code</label>
-                    <input
-                      type="text"
-                      value={editOwnerForm.ifscCode}
-                      onChange={e => setEditOwnerForm({ ...editOwnerForm, ifscCode: e.target.value.toUpperCase() })}
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 font-bold font-mono"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-slate-600 font-bold mb-1">Account Holder Name</label>
-                    <input
-                      type="text"
-                      value={editOwnerForm.accountHolderName}
-                      onChange={e => setEditOwnerForm({ ...editOwnerForm, accountHolderName: e.target.value })}
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 font-bold"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-slate-600 font-bold mb-1">UPI ID</label>
-                    <input
-                      type="text"
-                      value={editOwnerForm.upiId}
-                      onChange={e => setEditOwnerForm({ ...editOwnerForm, upiId: e.target.value })}
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 font-bold font-mono"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setEditingOwner(null)}
-                  className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={savingOwnerEdit}
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-colors flex items-center gap-1.5 shadow-sm active:scale-95"
-                >
-                  {savingOwnerEdit ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                  Save Changes
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
     </div>
   );
 }
