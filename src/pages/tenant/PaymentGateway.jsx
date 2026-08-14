@@ -319,7 +319,7 @@ const PaymentGateway = () => {
                                 </h2>
                                 <p className="text-slate-500 text-sm mt-1">
                                     {selectedPaymentMethod === 'already_paid_online'
-                                        ? 'Owner ko OTP dena hoga jo unke registered number par aaya hai, confirming the online payment.'
+                                        ? 'The owner will need to provide the OTP sent to their registered number to confirm the online payment.'
                                         : 'Please ask your owner/manager for the secure 6-digit OTP sent to their registered number.'}
                                 </p>
                         </div>
