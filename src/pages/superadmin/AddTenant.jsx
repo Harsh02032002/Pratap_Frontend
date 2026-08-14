@@ -292,6 +292,8 @@ export default function AddTenant() {
         if (rent) {
           setTenancyDetails(prev => ({ ...prev, rentAmount: rent }));
         }
+        // Reset bed selection when room changes
+        setRoomAssignment(prev => ({ ...prev, bed: '' }));
       }
     }
   }, [roomAssignment.roomUnit, rooms]);
@@ -1034,11 +1036,28 @@ export default function AddTenant() {
                 })()}
                 placeholder="Select room type"
               />
-              <FormField 
+              <FormSelect 
                 label="Bed" 
                 value={roomAssignment.bed}
                 onChange={e => setRoomAssignment({...roomAssignment, bed: e.target.value})}
-                placeholder="Select bed"
+                options={(() => {
+                  const selectedRoom = rooms.find(r => r.title === roomAssignment.roomUnit);
+                  if (!selectedRoom) return [];
+                  
+                  // Use availableBeds from backend if available, otherwise generate from capacity
+                  if (selectedRoom.availableBeds && selectedRoom.availableBeds.length > 0) {
+                    return selectedRoom.availableBeds.map(bed => ({ label: `Bed ${bed}`, value: String(bed) }));
+                  }
+                  
+                  // Fallback: generate bed options from capacity
+                  const capacity = Number(selectedRoom.beds || selectedRoom.capacity || selectedRoom.totalBeds) || 1;
+                  const beds = [];
+                  for (let i = 1; i <= capacity; i++) {
+                    beds.push({ label: `Bed ${i}`, value: String(i) });
+                  }
+                  return beds;
+                })()}
+                placeholder={roomAssignment.roomUnit ? "Select bed" : "Select room first"}
               />
               <FormSelect 
                 label="Rent Agreement Type" 
@@ -1268,6 +1287,7 @@ export default function AddTenant() {
               {[
                 { label: "Tenant Name", value: basicDetails.fullName || "-" },
                 { label: "Room / Unit", value: roomAssignment.roomUnit || "-" },
+                { label: "Bed", value: roomAssignment.bed || "-" },
                 { label: "Rent Amount", value: tenancyDetails.rentAmount ? `₹${tenancyDetails.rentAmount}` : "-" },
                 { label: "Move-In Date", value: tenancyDetails.moveInDate || "-" },
                 { label: "Minimum Stay", value: tenancyDetails.minStay ? `${tenancyDetails.minStay} months` : "-" },

@@ -108,6 +108,17 @@ export default function TenantKycRequestsPage() {
     !search.trim() || (req.tenantName || "").toLowerCase().includes(search.trim().toLowerCase())
   );
 
+  // Deduplicate requests by tenantId to avoid showing the same tenant multiple times
+  const deduplicatedRequests = useMemo(() => {
+    const seen = new Set();
+    return filteredRequests.filter(req => {
+      const tenantIdStr = String(req.tenantId?._id || req.tenantId);
+      if (seen.has(tenantIdStr)) return false;
+      seen.add(tenantIdStr);
+      return true;
+    });
+  }, [filteredRequests]);
+
   if (!adminLoginId) return null;
 
   return (
@@ -166,7 +177,7 @@ export default function TenantKycRequestsPage() {
                   </td>
                 </tr>
               ) : (
-                filteredRequests.map(req => (
+                deduplicatedRequests.map(req => (
                   <tr key={req._id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-6 py-4 text-sm font-medium text-slate-600">
                       {new Date(req.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
