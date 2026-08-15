@@ -1,5 +1,5 @@
 import { fetchPropertiesLocal } from './mockApi';
-import { getScopedAuthToken } from './authScope';
+import { getScopedAuthToken, clearScopedSession } from './authScope';
 
 // ---------------------------------------------------------------------------
 // Module-level request cache
@@ -137,6 +137,9 @@ export const fetchJson = (path, options = {}) => {
         const err = new Error(errorMsg);
         err.status = res.status;
         err.body = text;
+        if (res.status === 401 && (errorMsg.includes("token invalid") || errorMsg.includes("Token expired") || errorMsg.includes("token missing"))) {
+          try { clearScopedSession(); } catch (_) {}
+        }
         throw err;
       }
       return res.json();

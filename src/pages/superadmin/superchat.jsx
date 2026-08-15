@@ -60,6 +60,7 @@ const formatClock = (value) => {
 
 const resolveChatError = (err, fallback) => {
   const status = Number(err?.status || 0);
+  if (status === 401) return "Session expired or unauthorized. Please log in again to access chats.";
   if (status === 404) return "Chat API not found. Please start/update backend server.";
   if (status >= 500) return "Backend error while loading chat. Please check server logs.";
   return err?.message || fallback;
