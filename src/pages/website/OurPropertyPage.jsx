@@ -20,6 +20,33 @@ export default function OurPropertyPage() {
   const { pathname } = useLocation();
   const activeSlug = pathname.replace(/^\/+/, '');
   useSEO({ slug: activeSlug, pageKey: 'our-property', fallbackTitle: 'Browse PGs, Hostels & Co-living Spaces - Roomhy' });
+  
+  const [seoData, setSeoData] = useState({});
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadSeoData() {
+      try {
+        if (seoCache.has(activeSlug)) {
+          setSeoData(seoCache.get(activeSlug) || {});
+          return;
+        }
+        const res = await fetchJson(`/api/seo/metadata?slug=${encodeURIComponent(activeSlug)}`);
+        if (isMounted && res?.success && res?.data) {
+          seoCache.set(activeSlug, res.data);
+          setSeoData(res.data);
+        }
+      } catch (e) {
+        // silent fail
+      }
+    }
+    if (activeSlug) {
+      loadSeoData();
+    } else {
+      setSeoData({});
+    }
+    return () => { isMounted = false; };
+  }, [activeSlug]);
   const [showFilters, setShowFilters] = useState(true);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -474,13 +501,20 @@ export default function OurPropertyPage() {
     <div className="flex items-center gap-4 mb-1">
       <div className="h-[1px] w-6 bg-[#C5A059]/40 hidden md:block"></div>
       <h1 className="text-xl md:text-4xl font-bold text-[#1A1A1A] tracking-tight">
-        {seoData.h1 ? (
+        {seoData?.h1 ? (
           <span>{seoData.h1}</span>
         ) : (
-          <>
-            {heroContent.title.replace(heroContent.titleAccent || '', '').trim()}{' '}
-            <span className="text-[#C5A059] font-serif italic font-medium">{heroContent.titleAccent || ''}</span>
-          </>
+          <span>
+            {selectedType && selectedArea && selectedCity
+              ? `${selectedType === 'PG' ? 'PG' : selectedType === 'Hostel' ? 'Hostels' : selectedType} in ${selectedArea}, ${selectedCity}`
+              : selectedType && selectedCity
+              ? `${selectedType === 'PG' ? 'PGs' : selectedType === 'Hostel' ? 'Hostels' : selectedType} in ${selectedCity}`
+              : selectedType
+              ? `${selectedType === 'PG' ? 'Paying Guest (PG) Accommodation' : selectedType === 'Hostel' ? 'Student Hostels' : selectedType === 'Co-living' ? 'Co-living Spaces' : selectedType === 'Apartment' ? 'Flats & Apartments for Rent' : selectedType}`
+              : selectedCity
+              ? `Properties in ${selectedCity}`
+              : 'Browse PGs, Hostels & Apartments'}
+          </span>
         )}
       </h1>
       <div className="h-[1px] w-6 bg-[#C5A059]/40 hidden md:block"></div>

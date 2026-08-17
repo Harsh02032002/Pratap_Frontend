@@ -30,6 +30,7 @@ const staticOfferings = [
   {
     title: 'PG',
     category: 'PG',
+    link: '/pg',
     description: 'Comfortable paying guest accommodations with all amenities',
     images: [
       'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=600&auto=format&fit=crop',
@@ -42,6 +43,7 @@ const staticOfferings = [
   {
     title: 'Hostel',
     category: 'Hostel',
+    link: '/hostels',
     description: 'Affordable hostel living for students and working professionals',
     images: [
       'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?q=80&w=600&auto=format&fit=crop',
@@ -54,6 +56,7 @@ const staticOfferings = [
   {
     title: 'Co-living',
     category: 'Co-living',
+    link: '/co-living',
     description: 'Modern co-living spaces with community and facilities',
     images: [
       'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?q=80&w=600&auto=format&fit=crop',
@@ -66,6 +69,7 @@ const staticOfferings = [
   {
     title: 'Apartment/Flats',
     category: 'Apartment',
+    link: '/apartments',
     description: 'Private apartments for individuals and small groups',
     images: [
       'https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?q=80&w=600&auto=format&fit=crop',
@@ -79,7 +83,7 @@ const staticOfferings = [
     title: 'List Property',
     category: 'List',
     description: 'Are you an owner? List your property on Roomhy for free!',
-    link: '/website/list',
+    link: '/list-property',
     images: [
       'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=600&auto=format&fit=crop',
       'https://images.unsplash.com/photo-1582408921715-18e7806365c1?q=80&w=600&auto=format&fit=crop'
@@ -602,7 +606,7 @@ export default function WebsiteIndex() {
               <div ref={offeringScrollContainerRef} className="overflow-x-auto scrollbar-hide">
                 <div className="flex gap-3 w-max px-4 py-2">
                   {offerings.map((offering) => (
-                    <div key={offering.title} onClick={() => navigate(`/website/ourproperty?type=${offering.category.toLowerCase()}`)} className="flex-shrink-0 w-32 bg-white rounded-xl overflow-hidden shadow cursor-pointer">
+                    <div key={offering.title} onClick={() => navigate(offering.link || `/website/ourproperty?type=${offering.category.toLowerCase()}`)} className="flex-shrink-0 w-32 bg-white rounded-xl overflow-hidden shadow cursor-pointer">
                       <div className="h-20 overflow-hidden relative">
                         <img src={offering.images[0]} alt={offering.title} className="w-full h-full object-cover" loading="lazy" width="128" height="80" />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
@@ -714,7 +718,7 @@ export default function WebsiteIndex() {
                   {offerings.map((offering) => (
                     <div
                       key={offering.title}
-                      onClick={() => navigate(`/website/ourproperty?type=${offering.category.toLowerCase()}`)}
+                      onClick={() => navigate(offering.link || `/website/ourproperty?type=${offering.category.toLowerCase()}`)}
                       className="flex-shrink-0 w-32 bg-white rounded-lg overflow-hidden shadow cursor-pointer"
                     >
                       <div className="h-24 overflow-hidden relative group">

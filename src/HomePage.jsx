@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, MapPin, Star, BadgeCheck, TrendingUp, ChevronLeft, ChevronRight, ChevronDown, X, Building2, Home, Users, MessageSquare, Gavel } from 'lucide-react';
+import { Search, MapPin, Star, BadgeCheck, TrendingUp, ChevronLeft, ChevronRight, ChevronDown, X, Building2, Home, Users, MessageSquare, Gavel, Plus, Minus } from 'lucide-react';
 import HowRoomhyWorks from './components/website/HowRoomhyWorks';
 import WhyRoomhy from './components/website/WhyRoomhy';
 import FindYourHome from './components/website/FindYourHome';
@@ -20,7 +20,6 @@ const cityAreas = {
   'Indore': ['Vijay Nagar', 'Bhawar Kuan', 'Rajwada', 'Palasia']
 };
 
-// Static fallback data - moved outside to prevent re-renders
 const staticCities = [
   { name: 'Kota', properties: '2,500+', image: 'https://picsum.photos/600/400?random=1' },
   { name: 'Sikar', properties: '850+', image: 'https://picsum.photos/600/400?random=7' },
@@ -31,6 +30,7 @@ const staticOfferings = [
   {
     title: 'PG',
     category: 'PG',
+    link: '/pg',
     description: 'Comfortable paying guest accommodations with all amenities',
     images: [
       'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=600&auto=format&fit=crop',
@@ -43,6 +43,7 @@ const staticOfferings = [
   {
     title: 'Hostel',
     category: 'Hostel',
+    link: '/hostels',
     description: 'Affordable hostel living for students and working professionals',
     images: [
       'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?q=80&w=600&auto=format&fit=crop',
@@ -55,6 +56,7 @@ const staticOfferings = [
   {
     title: 'Co-living',
     category: 'Co-living',
+    link: '/co-living',
     description: 'Modern co-living spaces with community and facilities',
     images: [
       'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?q=80&w=600&auto=format&fit=crop',
@@ -67,6 +69,7 @@ const staticOfferings = [
   {
     title: 'Apartment/Flats',
     category: 'Apartment',
+    link: '/apartments',
     description: 'Private apartments for individuals and small groups',
     images: [
       'https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?q=80&w=600&auto=format&fit=crop',
@@ -80,94 +83,11 @@ const staticOfferings = [
     title: 'List Property',
     category: 'List',
     description: 'Are you an owner? List your property on Roomhy for free!',
-    link: '/website/list',
+    link: '/list-property',
     images: [
       'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=600&auto=format&fit=crop',
       'https://images.unsplash.com/photo-1582408921715-18e7806365c1?q=80&w=600&auto=format&fit=crop'
     ]
-  }
-];
-
-const featuredProperties = [
-  {
-    _id: 'static1',
-    name: 'Sunrise PG',
-    location: 'Kota, Rajasthan',
-    price: '₹6,500',
-    image: 'https://picsum.photos/600/400?random=29',
-    verified: true
-  },
-  {
-    _id: 'static2',
-    name: 'Elite Hostel',
-    location: 'Indore, MP',
-    price: '₹5,200',
-    image: 'https://picsum.photos/600/400?random=30',
-    verified: true
-  },
-  {
-    _id: 'static3',
-    name: 'Urban Co-Space',
-    location: 'Sikar, Rajasthan',
-    price: '₹8,900',
-    image: 'https://picsum.photos/600/400?random=31',
-    verified: true
-  },
-  {
-    _id: 'static4',
-    name: 'Campus View PG',
-    location: 'Kota, Rajasthan',
-    price: '₹7,800',
-    image: 'https://picsum.photos/600/400?random=32',
-    verified: true
-  },
-  {
-    _id: 'static8',
-    name: 'Royal Residency',
-    location: 'Indore, MP',
-    price: '₹12,500',
-    image: 'https://picsum.photos/600/400?random=33',
-    verified: true
-  },
-  {
-    _id: 'static5',
-    name: 'Smart Stay PG',
-    location: 'Kota, Rajasthan',
-    price: '₹5,800',
-    image: 'https://picsum.photos/600/400?random=34',
-    verified: true
-  },
-  {
-    _id: 'static6',
-    name: 'Grand Hostel',
-    location: 'Kota, Rajasthan',
-    price: '₹4,800',
-    image: 'https://picsum.photos/600/400?random=35',
-    verified: true
-  },
-  {
-    _id: 'static7',
-    name: 'City Center PG',
-    location: 'Indore, MP',
-    price: '₹6,200',
-    image: 'https://picsum.photos/600/400?random=36',
-    verified: true
-  },
-  {
-    _id: 'static9',
-    name: 'Premium Co-Living',
-    location: 'Kota, Rajasthan',
-    price: '₹10,500',
-    image: 'https://picsum.photos/600/400?random=37',
-    verified: true
-  },
-  {
-    _id: 'static10',
-    name: 'Student Hub',
-    location: 'Sikar, Rajasthan',
-    price: '₹5,500',
-    image: 'https://picsum.photos/600/400?random=38',
-    verified: true
   }
 ];
 
