@@ -95,8 +95,6 @@ export default function OurPropertyPage() {
       .join(" ");
   };
 
-  const { pathname } = useLocation();
-
   const parseLocationFromPath = (path) => {
     const clean = path.replace(/^\/+|\/+$/g, '');
     const knownCities = [
