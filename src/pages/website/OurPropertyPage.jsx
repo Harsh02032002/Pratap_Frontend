@@ -130,13 +130,14 @@ export default function OurPropertyPage() {
     ];
 
     // 1. Check /{type}-in-{locationSlug}
-    const seoMatch = clean.match(/^(pg|hostels|hostel|co-living|coliving|apartments|apartment)-in-(.+)$/i);
+    const seoMatch = clean.match(/^(pg|hostels|hostel|co-living|coliving|apartments|apartment|properties|property)-in-(.+)$/i);
     if (seoMatch) {
       const rawType = seoMatch[1].toLowerCase();
       let type = 'PG';
       if (rawType.startsWith('hostel')) type = 'Hostel';
       else if (rawType.includes('coliving') || rawType.includes('co-living')) type = 'Co-living';
       else if (rawType.startsWith('apartment')) type = 'Apartment';
+      else if (rawType.startsWith('propert')) type = '';
 
       const locPart = seoMatch[2];
       const matchedCity = knownCities.find(c => locPart.endsWith('-' + c) || locPart === c);

@@ -335,6 +335,7 @@ const routeEntries = [
   ["/coliving-in-:locationSlug", "./pages/website/OurPropertyPage.jsx"],
   ["/apartments-in-:locationSlug", "./pages/website/OurPropertyPage.jsx"],
   ["/apartment-in-:locationSlug", "./pages/website/OurPropertyPage.jsx"],
+  ["/properties-in-:locationSlug", "./pages/website/OurPropertyPage.jsx"],
 
   // Static & Clean Alias Routes
   ["/blogs", "./pages/website/AboutPage.jsx"],
