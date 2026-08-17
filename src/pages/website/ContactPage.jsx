@@ -138,44 +138,35 @@ export default function ContactPage() {
 
   const renderHero = () => {
     return (
-      <div
-        className="relative w-full py-10 px-6 overflow-hidden border-b border-stone-200/50"
+      <div 
+        key="contact-hero" 
+        className="relative w-full py-8 md:py-12 px-4 md:px-8 overflow-hidden border-b border-stone-200/80 text-center"
         style={{
-          background:
-            "linear-gradient(135deg, #FFFAF5 0%, #FDFCFB 50%, #F5F7FA 100%)",
+          background: 'linear-gradient(135deg, #EAEFF5 0%, #F5F7FA 50%, #E5EDF5 100%)'
         }}
       >
-        <div
-          className="absolute inset-0 opacity-[0.03] pointer-events-none"
+        <div 
+          className="absolute inset-0 opacity-[0.25] pointer-events-none"
           style={{
-            backgroundImage:
-              'url("https://www.transparenttextures.com/patterns/pinstripe.png")',
+            backgroundImage: `radial-gradient(circle at 20% 30%, rgba(200, 215, 230, 0.4) 0%, transparent 40%), radial-gradient(circle at 80% 70%, rgba(210, 225, 240, 0.4) 0%, transparent 40%), linear-gradient(45deg, rgba(255,255,255,0.6) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.6) 75%)`,
+            backgroundSize: '100% 100%, 100% 100%, 60px 60px'
           }}
         ></div>
-
-        <div className="relative max-w-7xl mx-auto flex flex-col items-center text-center">
-          <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center mb-4">
-            <Headphones
-              size={24}
-              className="text-blue-600"
-            />
+        <div className="relative max-w-6xl mx-auto flex flex-col items-center justify-center text-center">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-[#1E293B] tracking-wider uppercase leading-tight mb-4 drop-shadow-xs">
+            GET IN TOUCH
+          </h1>
+          <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3">
+            <div className="px-3.5 py-1.5 rounded-full border border-slate-300/80 bg-white/70 backdrop-blur-xs text-slate-800 text-xs md:text-sm font-semibold tracking-wider uppercase shadow-2xs">
+              24/7 SUPPORT
+            </div>
+            <div className="px-3.5 py-1.5 rounded-full border border-slate-300/80 bg-white/70 backdrop-blur-xs text-slate-800 text-xs md:text-sm font-semibold tracking-wider uppercase shadow-2xs">
+              QUICK ASSISTANCE
+            </div>
+            <div className="px-3.5 py-1.5 rounded-full border border-slate-300/80 bg-white/70 backdrop-blur-xs text-slate-800 text-xs md:text-sm font-semibold tracking-wider uppercase shadow-2xs">
+              DIRECT HELP
+            </div>
           </div>
-
-          <div className="flex items-center gap-4 mb-2">
-            <div className="h-[1px] w-8 bg-[#C5A059]/40 hidden md:block"></div>
-
-            <h1 className="text-3xl md:text-4xl font-bold text-[#1A1A1A] tracking-tight">
-              Get in Touch
-            </h1>
-
-            <div className="h-[1px] w-8 bg-[#C5A059]/40 hidden md:block"></div>
-          </div>
-
-          <p className="text-base md:text-lg text-stone-500 font-normal opacity-90 max-w-xl mx-auto">
-            Reach out to the Roomhy team for any inquiries.
-          </p>
-
-          <div className="mt-4 w-1.5 h-1.5 rounded-full bg-[#C5A059]/30"></div>
         </div>
       </div>
     );

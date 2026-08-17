@@ -478,60 +478,70 @@ export default function OurPropertyPage() {
       <WebsiteNavbar />
 
       <main className="min-h-screen">
-{/* --- COMPACT & STYLISH PROPERTIES HEADER --- */}
+{/* --- HERO HEADER (MATCHING NEW DESIGN REFERENCE) --- */}
 {isSectionVisible('our-property-hero') && (() => {
-  const heroContent = getSectionContent('our-property-hero', {
-    title: 'Our Properties',
-    titleAccent: 'Properties',
-    subtitle: 'Find PGs, Hostels, and Co-living spaces directly without brokers.'
-  });
-  return (
-<div className="relative w-full py-1 md:py-4 px-4 md:px-6 overflow-hidden border-b border-stone-200/50" 
-     style={{
-       background: 'linear-gradient(135deg, #FFFAF5 0%, #FDFCFB 50%, #F5F7FA 100%)'
-     }}>
+  const countNum = totalCount > 0 ? totalCount : totalProperties.length;
   
-  {/* Background Pattern - Subtle Overlay */}
-  <div className="absolute inset-0 opacity-[0.03] pointer-events-none" 
-       style={{ backgroundImage: `url("https://www.transparenttextures.com/patterns/pinstripe.png")` }}>
-  </div>
+  const displayTitle = seoData?.h1 || (
+    selectedType && selectedArea && selectedCity
+      ? `${selectedType === 'PG' ? 'PG' : selectedType === 'Hostel' ? 'Hostels' : selectedType} in ${selectedArea}, ${selectedCity}`
+      : selectedType && selectedCity
+      ? `${selectedType === 'PG' ? 'PGs' : selectedType === 'Hostel' ? 'Hostels' : selectedType} in ${selectedCity}`
+      : selectedType
+      ? `${selectedType === 'PG' ? 'Paying Guest (PG) Accommodation' : selectedType === 'Hostel' ? 'Student Hostels' : selectedType === 'Co-living' ? 'Co-living Spaces' : selectedType === 'Apartment' ? 'Flats & Apartments for Rent' : selectedType}`
+      : selectedCity
+      ? `Properties in ${selectedCity}`
+      : 'Browse PGs, Hostels & Apartments'
+  );
 
-  <div className="relative max-w-7xl mx-auto flex flex-col items-center text-center">
-    
-    {/* MAIN HEADING */}
-    <div className="flex items-center gap-4 mb-1">
-      <div className="h-[1px] w-6 bg-[#C5A059]/40 hidden md:block"></div>
-      <h1 className="text-xl md:text-4xl font-bold text-[#1A1A1A] tracking-tight">
-        {seoData?.h1 ? (
-          <span>{seoData.h1}</span>
-        ) : (
-          <span>
-            {selectedType && selectedArea && selectedCity
-              ? `${selectedType === 'PG' ? 'PG' : selectedType === 'Hostel' ? 'Hostels' : selectedType} in ${selectedArea}, ${selectedCity}`
-              : selectedType && selectedCity
-              ? `${selectedType === 'PG' ? 'PGs' : selectedType === 'Hostel' ? 'Hostels' : selectedType} in ${selectedCity}`
-              : selectedType
-              ? `${selectedType === 'PG' ? 'Paying Guest (PG) Accommodation' : selectedType === 'Hostel' ? 'Student Hostels' : selectedType === 'Co-living' ? 'Co-living Spaces' : selectedType === 'Apartment' ? 'Flats & Apartments for Rent' : selectedType}`
-              : selectedCity
-              ? `Properties in ${selectedCity}`
-              : 'Browse PGs, Hostels & Apartments'}
-          </span>
-        )}
-      </h1>
-      <div className="h-[1px] w-6 bg-[#C5A059]/40 hidden md:block"></div>
+  const verifiedBadge = selectedType
+    ? `VERIFIED ${selectedType === 'PG' ? 'PGs' : selectedType === 'Hostel' ? 'HOSTELS' : selectedType.toUpperCase()}`
+    : 'VERIFIED PROPERTIES';
+
+  return (
+    <div 
+      className="relative w-full py-8 md:py-12 px-4 md:px-8 overflow-hidden border-b border-stone-200/80 text-center"
+      style={{
+        background: 'linear-gradient(135deg, #EAEFF5 0%, #F5F7FA 50%, #E5EDF5 100%)'
+      }}
+    >
+      {/* Geometric Overlay */}
+      <div 
+        className="absolute inset-0 opacity-[0.25] pointer-events-none"
+        style={{
+          backgroundImage: `radial-gradient(circle at 20% 30%, rgba(200, 215, 230, 0.4) 0%, transparent 40%), radial-gradient(circle at 80% 70%, rgba(210, 225, 240, 0.4) 0%, transparent 40%), linear-gradient(45deg, rgba(255,255,255,0.6) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.6) 75%)`,
+          backgroundSize: '100% 100%, 100% 100%, 60px 60px'
+        }}
+      ></div>
+
+      <div className="relative max-w-6xl mx-auto flex flex-col items-center justify-center text-center">
+        
+        {/* MAIN H1 TITLE (PRESERVING DYNAMIC TITLE TEXT) */}
+        <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-[#1E293B] tracking-tight leading-tight mb-4 drop-shadow-xs">
+          {displayTitle}
+        </h1>
+
+        {/* PILL BADGES ROW */}
+        <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3">
+          <div className="px-3.5 py-1.5 rounded-full border border-slate-300/80 bg-white/70 backdrop-blur-xs text-slate-800 text-xs md:text-sm font-semibold tracking-wider uppercase shadow-2xs">
+            {verifiedBadge}
+          </div>
+
+          <div className="px-3.5 py-1.5 rounded-full border border-slate-300/80 bg-white/70 backdrop-blur-xs text-slate-800 text-xs md:text-sm font-semibold tracking-wider uppercase shadow-2xs">
+            NO BROKERAGE
+          </div>
+
+          <div className="px-3.5 py-1.5 rounded-full border border-slate-300/80 bg-white/70 backdrop-blur-xs text-slate-800 text-xs md:text-sm font-semibold tracking-wider uppercase shadow-2xs">
+            DIRECT CONTACT
+          </div>
+
+          <div className="px-3.5 py-1.5 rounded-full border border-slate-300/80 bg-white/70 backdrop-blur-xs text-slate-800 text-xs md:text-sm font-semibold tracking-wider uppercase shadow-2xs">
+            {loading ? 'LOADING...' : `${countNum || 0} PROPERTIES AVAILABLE`}
+          </div>
+        </div>
+
+      </div>
     </div>
-
-    {/* Total Properties Count */}
-    <div className="mt-1 px-3 py-1 bg-white/80 backdrop-blur-sm rounded-full border border-[#C5A059]/20 inline-flex items-center gap-2">
-      <span className="text-[11px] md:text-sm font-semibold text-[#1A1A1A]">
-        {totalCount > 0 ? totalCount : (totalProperties.length > 0 ? totalProperties.length : 'Loading...')} Properties
-      </span>
-    </div>
-
-    {/* Bottom Accent Dot */}
-    <div className="mt-2 w-1 h-1 rounded-full bg-[#C5A059]/30 md:block hidden"></div>
-  </div>
-</div>
   );
 })()}
 
