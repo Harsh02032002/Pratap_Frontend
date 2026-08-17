@@ -343,7 +343,7 @@ const getStaticPropertyById = (id) => {
 };
 
 export default function PropertyDetailsPage() {
-  const { propertyId } = useParams();
+  const { propertyId, propertySlug } = useParams();
   const navigate = useNavigate();
   const [property, setProperty] = useState(null);
   const [rawPropertyId, setRawPropertyId] = useState(null); // MongoDB ObjectId
@@ -353,6 +353,16 @@ export default function PropertyDetailsPage() {
   const [loadingInstitutes, setLoadingInstitutes] = useState(false);
   const [showQuickBookingModal, setShowQuickBookingModal] = useState(false);
   const [rooms, setRooms] = useState([]);
+
+  // Helper to extract visitId or ObjectId from property slug (e.g. "roomhy-boys-pg-rh1025" -> "RH1025")
+  const extractIdFromSlug = (str) => {
+    if (!str) return '';
+    const match = str.match(/-(rh[0-9]+)$/i) || str.match(/([a-f0-9]{24})$/i);
+    if (match) return match[1].toUpperCase();
+    return str;
+  };
+
+  const targetId = extractIdFromSlug(propertySlug || propertyId);
 
   // Layout sections from CMS editor
   const [layoutSections, setLayoutSections] = useState([]);
@@ -624,10 +634,10 @@ export default function PropertyDetailsPage() {
 
         let foundProperty = null;
         try {
-          foundProperty = await fetchPropertyByVisitId(propertyId);
+          foundProperty = await fetchPropertyByVisitId(targetId);
         } catch (apiError) {
           console.warn('API failed, using static data:', apiError.message);
-          const staticProperty = getStaticPropertyById(propertyId);
+          const staticProperty = getStaticPropertyById(targetId);
           setProperty(staticProperty);
           setRawPropertyId(staticProperty._id);
           setLoading(false);

@@ -17,7 +17,9 @@ import useSEO from "../../hooks/useSEO";
 const seoCache = new Map();
 
 export default function OurPropertyPage() {
-  useSEO({ pageKey: 'our-property', fallbackTitle: 'Browse PGs, Hostels & Co-living Spaces - Roomhy' });
+  const { pathname } = useLocation();
+  const activeSlug = pathname.replace(/^\/+/, '');
+  useSEO({ slug: activeSlug, pageKey: 'our-property', fallbackTitle: 'Browse PGs, Hostels & Co-living Spaces - Roomhy' });
   const [showFilters, setShowFilters] = useState(true);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -95,6 +97,62 @@ export default function OurPropertyPage() {
 
   const { pathname } = useLocation();
 
+  const parseLocationFromPath = (path) => {
+    const clean = path.replace(/^\/+|\/+$/g, '');
+    const knownCities = [
+      'kota', 'jaipur', 'delhi', 'indore', 'bhopal',
+      'nagpur', 'sikar', 'bangalore', 'bengaluru', 'pune', 'hyderabad'
+    ];
+
+    // 1. Check /{type}-in-{locationSlug}
+    const seoMatch = clean.match(/^(pg|hostels|hostel|co-living|coliving|apartments|apartment)-in-(.+)$/i);
+    if (seoMatch) {
+      const rawType = seoMatch[1].toLowerCase();
+      let type = 'PG';
+      if (rawType.startsWith('hostel')) type = 'Hostel';
+      else if (rawType.includes('coliving') || rawType.includes('co-living')) type = 'Co-living';
+      else if (rawType.startsWith('apartment')) type = 'Apartment';
+
+      const locPart = seoMatch[2];
+      const matchedCity = knownCities.find(c => locPart.endsWith('-' + c) || locPart === c);
+      let city = '';
+      let area = '';
+
+      if (matchedCity) {
+        city = matchedCity.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        if (locPart !== matchedCity) {
+          const areaPart = locPart.slice(0, locPart.length - matchedCity.length - 1);
+          area = areaPart.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        }
+      } else {
+        const parts = locPart.split('-');
+        if (parts.length >= 2) {
+          city = parts[parts.length - 1].charAt(0).toUpperCase() + parts[parts.length - 1].slice(1);
+          area = parts.slice(0, parts.length - 1).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        } else {
+          city = parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
+        }
+      }
+      return { type, city, area };
+    }
+
+    // 2. Check general city or area routes: /:city or /:city/:area
+    const parts = clean.split('/');
+    if (parts.length === 1 && knownCities.includes(parts[0].toLowerCase())) {
+      const city = parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
+      return { type: '', city, area: '' };
+    }
+    if (parts.length === 2 && knownCities.includes(parts[0].toLowerCase())) {
+      const city = parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
+      const area = parts[1].split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      return { type: '', city, area };
+    }
+
+    return null;
+  };
+
+  const parsedLoc = parseLocationFromPath(pathname);
+
   const getTypeFromPathname = (path) => {
     if (path.startsWith('/pg')) return 'PG';
     if (path.startsWith('/hostels')) return 'Hostel';
@@ -103,16 +161,7 @@ export default function OurPropertyPage() {
     return '';
   };
 
-  const getPrefix = (path) => {
-    if (path.startsWith('/pg')) return '/pg';
-    if (path.startsWith('/hostels')) return '/hostels';
-    if (path.startsWith('/co-living')) return '/co-living';
-    if (path.startsWith('/apartments')) return '/apartments';
-    if (path.startsWith('/property')) return '/property';
-    return '/website/ourproperty';
-  };
-
-  // Get parameters from URL first (before using them in state)
+  // Get parameters from URL first
   const typeFromUrl = searchParams.get('type');
   const cityFromUrl = searchParams.get('city');
   const areaFromUrl = searchParams.get('area');
@@ -120,11 +169,11 @@ export default function OurPropertyPage() {
   const latitudeFromUrl = searchParams.get('latitude');
   const longitudeFromUrl = searchParams.get('longitude');
   
-  const initialCity = cityFromUrl || (citySlug ? humanizeSlug(citySlug) : "");
-  const initialArea = areaFromUrl || (areaSlug ? humanizeSlug(areaSlug) : "");
-  const initialType = typeFromUrl || getTypeFromPathname(pathname) || '';
+  const initialCity = cityFromUrl || parsedLoc?.city || (citySlug ? humanizeSlug(citySlug) : "");
+  const initialArea = areaFromUrl || parsedLoc?.area || (areaSlug ? humanizeSlug(areaSlug) : "");
+  const initialType = typeFromUrl || (parsedLoc ? parsedLoc.type : getTypeFromPathname(pathname)) || '';
 
-  // Filter states (after URL params are declared)
+  // Filter states
   const [selectedCity, setSelectedCity] = useState(initialCity);
   const [selectedArea, setSelectedArea] = useState(initialArea);
   const [selectedType, setSelectedType] = useState(initialType);
@@ -161,7 +210,7 @@ export default function OurPropertyPage() {
       owner_id: ownerId,
       rent_amount: parseInt(targetProp.price || targetProp.monthlyRent || targetProp.rent || bookingData.propertyPrice || 0, 10),
       area: targetProp.area || targetProp.locality || targetProp.propertyInfo?.area || targetProp.location || 'Nearby',
-                    city: targetProp.city || targetProp.propertyInfo?.city || targetProp.location || 'Kota',
+      city: targetProp.city || targetProp.propertyInfo?.city || targetProp.location || 'Kota',
       property_type: targetProp.type || targetProp.propertyType || targetProp.propertyInfo?.propertyType || 'PG',
       request_type: 'direct',
       user_id: userId,
@@ -183,145 +232,6 @@ export default function OurPropertyPage() {
     alert('Direct Booking Request Sent Successfully to Property Owner!');
     setShowDirectBookingModal(false);
   };
-
-  const [seoData, setSeoData] = useState({
-    title: "Our Properties | Roomhy",
-    description: "Find verified, broker-free PGs and hostels on Roomhy.",
-    keywords: "pg, hostel, co-living, student housing",
-    canonicalUrl: ""
-  });
-
-  // Synchronize type from path/URL changes
-  useEffect(() => {
-    const type = getTypeFromPathname(pathname) || typeFromUrl || '';
-    setSelectedType(type);
-  }, [pathname, typeFromUrl]);
-
-  // 1. Redirect old query parameter URLs to clean path parameters (301-equivalent client-side redirect)
-  useEffect(() => {
-    const qCity = searchParams.get("city");
-    const qArea = searchParams.get("area");
-    if (qCity) {
-      const citySlugified = slugify(qCity);
-      const areaSlugified = qArea ? slugify(qArea) : "";
-      const prefix = getPrefix(pathname);
-      const cleanPath = `${prefix}/${citySlugified}${
-        areaSlugified ? "/" + areaSlugified : ""
-      }`;
-      
-      const remainingParams = new URLSearchParams(searchParams);
-      remainingParams.delete("city");
-      remainingParams.delete("area");
-      const queryString = remainingParams.toString();
-      
-      navigate(`${cleanPath}${queryString ? "?" + queryString : ""}`, {
-        replace: true
-      });
-    }
-  }, [searchParams, navigate, pathname]);
-
-  // 2. Synchronize path parameters with active selection states
-  useEffect(() => {
-    if (citySlug) {
-      const hCity = humanizeSlug(citySlug);
-      if (selectedCity.toLowerCase() !== hCity.toLowerCase()) {
-        setSelectedCity(hCity);
-      }
-    } else if (!cityFromUrl) {
-      setSelectedCity("");
-    }
-  }, [citySlug, cityFromUrl]);
-
-  useEffect(() => {
-    if (areaSlug) {
-      const hArea = humanizeSlug(areaSlug);
-      if (selectedArea.toLowerCase() !== hArea.toLowerCase()) {
-        setSelectedArea(hArea);
-      }
-    } else if (!areaFromUrl) {
-      setSelectedArea("");
-    }
-  }, [areaSlug, areaFromUrl]);
-
-  // 3. Improve casing correctness based on database records
-  useEffect(() => {
-    if (citySlug && availableCities.length > 0) {
-      const exactMatch = availableCities.find((c) => slugify(c) === citySlug);
-      if (exactMatch && exactMatch !== selectedCity) {
-        setSelectedCity(exactMatch);
-      }
-    }
-  }, [citySlug, availableCities]);
-
-  useEffect(() => {
-    if (areaSlug && nearbyAreas.length > 0) {
-      const exactMatch = nearbyAreas.find((a) => slugify(a) === areaSlug);
-      if (exactMatch && exactMatch !== selectedArea) {
-        setSelectedArea(exactMatch);
-      }
-    }
-  }, [areaSlug, nearbyAreas]);
-
-  // 4. Fetch dynamic SEO metadata with memory caching
-  useEffect(() => {
-    let isMounted = true;
-    const fetchSEOMetadata = async () => {
-      const cacheKey = `${selectedCity || ""}_${selectedArea || ""}`;
-      if (seoCache.has(cacheKey)) {
-        if (isMounted) setSeoData(seoCache.get(cacheKey));
-        return;
-      }
-
-      try {
-        const queryParams = new URLSearchParams();
-        queryParams.append("pageKey", "our-property");
-        if (selectedCity) queryParams.append("city", selectedCity);
-        if (selectedArea) queryParams.append("area", selectedArea);
-
-        const slugPath = `website/ourproperty${
-          selectedCity ? "/" + slugify(selectedCity) : ""
-        }${selectedArea ? "/" + slugify(selectedArea) : ""}`;
-        queryParams.append("slug", slugPath);
-
-        const response = await axios.get(
-          `${getApiBase()}/api/seo/metadata?${queryParams.toString()}`
-        );
-        if (response.data && response.data.success && response.data.data) {
-          const { metaTitle, metaDescription, metaKeywords, canonicalUrl } =
-            response.data.data;
-          
-          const result = {
-            title: metaTitle || "Our Properties | Roomhy",
-            description: metaDescription || "Find verified, broker-free PGs and hostels on Roomhy.",
-            keywords: metaKeywords || "pg, hostel, co-living, student housing",
-            canonicalUrl: canonicalUrl || ""
-          };
-
-          seoCache.set(cacheKey, result);
-          if (isMounted) setSeoData(result);
-        }
-      } catch (err) {
-        console.warn("Failed to fetch SEO metadata:", err.message);
-      }
-    };
-
-    fetchSEOMetadata();
-    return () => {
-      isMounted = false;
-    };
-  }, [selectedCity, selectedArea]);
-
-  // 5. Mount meta tags dynamically to document head
-  useHtmlPage({
-    title: seoData.title,
-    metas: [
-      { name: "description", content: seoData.description },
-      { name: "keywords", content: seoData.keywords }
-    ],
-    links: seoData.canonicalUrl
-      ? [{ rel: "canonical", href: seoData.canonicalUrl }]
-      : []
-  });
 
   // Fetch properties and related data dynamically
   useEffect(() => {
@@ -566,8 +476,14 @@ export default function OurPropertyPage() {
     <div className="flex items-center gap-4 mb-1">
       <div className="h-[1px] w-6 bg-[#C5A059]/40 hidden md:block"></div>
       <h1 className="text-xl md:text-4xl font-bold text-[#1A1A1A] tracking-tight">
-        {heroContent.title.replace(heroContent.titleAccent || '', '').trim()}{' '}
-        <span className="text-[#C5A059] font-serif italic font-medium">{heroContent.titleAccent || ''}</span>
+        {seoData.h1 ? (
+          <span>{seoData.h1}</span>
+        ) : (
+          <>
+            {heroContent.title.replace(heroContent.titleAccent || '', '').trim()}{' '}
+            <span className="text-[#C5A059] font-serif italic font-medium">{heroContent.titleAccent || ''}</span>
+          </>
+        )}
       </h1>
       <div className="h-[1px] w-6 bg-[#C5A059]/40 hidden md:block"></div>
     </div>

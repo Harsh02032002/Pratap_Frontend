@@ -10,24 +10,25 @@ import { fetchJson } from '../utils/api';
  *   useSEO({ pageKey: 'home', fallbackTitle: 'Roomhy - PG Booking' })
  *   useSEO({ title: 'Static Title', description: 'Static desc' })  // legacy static mode
  */
-export default function useSEO({ pageKey, fallbackTitle, fallbackDescription, title, description, canonical } = {}) {
+export default function useSEO({ slug, pageKey, fallbackTitle, fallbackDescription, title, description, canonical } = {}) {
   const appliedRef = useRef(false);
 
   useEffect(() => {
-    // LEGACY STATIC MODE: if title/description passed directly (no pageKey)
-    if (!pageKey) {
+    // LEGACY STATIC MODE: if no slug and no pageKey
+    if (!slug && !pageKey) {
       if (title) document.title = title;
       applyMeta('description', description);
       applyCanonical(canonical);
       return;
     }
 
-    // DYNAMIC MODE: fetch from backend
+    // DYNAMIC MODE: fetch from backend by slug or pageKey
     let cancelled = false;
     
     async function loadSeo() {
       try {
-        const res = await fetchJson(`/api/seo/metadata?pageKey=${pageKey}`);
+        const queryParam = slug ? `slug=${encodeURIComponent(slug)}` : `pageKey=${encodeURIComponent(pageKey)}`;
+        const res = await fetchJson(`/api/seo/metadata?${queryParam}`);
         if (cancelled) return;
 
         if (res?.success && res?.data) {
@@ -43,8 +44,9 @@ export default function useSEO({ pageKey, fallbackTitle, fallbackDescription, ti
           // Description
           applyMeta('description', seo.metaDescription || fallbackDescription);
 
-          // Keywords
-          if (seo.metaKeywords) applyMeta('keywords', seo.metaKeywords);
+          // Keywords (Primary + Secondary Keywords)
+          const keywordsStr = seo.metaKeywords || (seo.primaryKeyword ? [seo.primaryKeyword, ...(seo.secondaryKeywords || [])].join(', ') : '');
+          if (keywordsStr) applyMeta('keywords', keywordsStr);
 
           // Robots
           const robotsValue = seo.robots || (seo.isIndexed === false ? 'noindex, nofollow' : 'index, follow');

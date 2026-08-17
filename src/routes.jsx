@@ -327,6 +327,22 @@ const routeEntries = [
   ["/privacy-policy", "./pages/website/WebsitePrivacy.jsx"],
   ["/terms-and-conditions", "./pages/website/WebsiteTerms.jsx"],
 
+  // Target SEO URL landing routes: /{property-type}-in-{area}-{city}
+  ["/pg-in-:locationSlug", "./pages/website/OurPropertyPage.jsx"],
+  ["/hostels-in-:locationSlug", "./pages/website/OurPropertyPage.jsx"],
+  ["/hostel-in-:locationSlug", "./pages/website/OurPropertyPage.jsx"],
+  ["/co-living-in-:locationSlug", "./pages/website/OurPropertyPage.jsx"],
+  ["/coliving-in-:locationSlug", "./pages/website/OurPropertyPage.jsx"],
+  ["/apartments-in-:locationSlug", "./pages/website/OurPropertyPage.jsx"],
+  ["/apartment-in-:locationSlug", "./pages/website/OurPropertyPage.jsx"],
+
+  // Static & Clean Alias Routes
+  ["/blogs", "./pages/website/AboutPage.jsx"],
+  ["/careers", "./pages/ComingSoon.jsx"],
+  ["/owner-dashboard", "./pages/propertyowner/admin.jsx"],
+  ["/tenant-dashboard", "./pages/tenant/tenantdashboard.jsx"],
+  ["/properties", "./pages/website/OurPropertyPage.jsx"],
+
   // Dynamic property listing/search routes
   ["/pg", "./pages/website/OurPropertyPage.jsx"],
   ["/pg/:city", "./pages/website/OurPropertyPage.jsx"],
@@ -343,6 +359,9 @@ const routeEntries = [
   ["/property", "./pages/website/OurPropertyPage.jsx"],
   ["/property/:city", "./pages/website/OurPropertyPage.jsx"],
   ["/property/:city/:area", "./pages/website/OurPropertyPage.jsx"],
+
+  // Hierarchical Property Detail Route: /{type}/{city}/{area}/{propertySlug}
+  ["/:type/:city/:area/:propertySlug", "./pages/website/PropertyDetailsPage.jsx"],
 
   ["/website/about", "./pages/website/AboutPage.jsx"],
   ["/website/contact", "./pages/website/ContactPage.jsx"],
@@ -375,6 +394,9 @@ const routeEntries = [
   ["/website/index", "./HomePage.jsx"],
   ["/website/$slug", "./pages/website/DynamicPage.jsx"],
   ["/index", "./HomePage.jsx"],
+  // General location routes (e.g. /kota, /kota/talwandi) - placed right before home/catchall
+  ["/:city", "./pages/website/OurPropertyPage.jsx"],
+  ["/:city/:area", "./pages/website/OurPropertyPage.jsx"],
   ["/coming-soon", "./pages/ComingSoon.jsx"],
   ["/", "./HomePage.jsx"],
   ["/propertyowner/room-photos", "./pages/propertyowner/room-photos.jsx"],
