@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import WebsiteNavbar from "../../components/website/WebsiteNavbar";
 import WebsiteFooter from "../../components/website/WebsiteFooter";
 import MobileBottomNav from "../../components/website/MobileBottomNav";
@@ -11,6 +11,12 @@ export default function ContactPage() {
     pageKey: "contact",
     fallbackTitle: "Contact Roomhy - Get in Touch",
   });
+
+  useEffect(() => {
+    if (window.location.pathname !== '/contact-us') {
+      window.history.replaceState(null, '', '/contact-us');
+    }
+  }, []);
 
   const [formData, setFormData] = useState({
     name: "",

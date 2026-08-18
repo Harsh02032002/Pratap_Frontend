@@ -34,7 +34,7 @@ export function useWebsiteLogin() {
       const data = await response.json().catch(() => ({}));
       if (response.ok && data.token && data.user) {
         setWebsiteSession(data.user, data.token);
-        window.location.href = "/website/index";
+        window.location.href = "/";
         return;
       }
       // Fallback session if backend API returns error or user exists in client state
@@ -45,7 +45,7 @@ export function useWebsiteLogin() {
         role: "tenant"
       };
       setWebsiteSession(fallbackUser, "demo_token_" + Date.now());
-      window.location.href = "/website/index";
+      window.location.href = "/";
       return;
     } catch {
       // Fallback session on network error or offline backend
@@ -56,7 +56,7 @@ export function useWebsiteLogin() {
         role: "tenant"
       };
       setWebsiteSession(fallbackUser, "demo_token_" + Date.now());
-      window.location.href = "/website/index";
+      window.location.href = "/";
       return;
     } finally {
       setLoading(false);

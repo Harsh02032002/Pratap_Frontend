@@ -9,6 +9,12 @@ export default function WebsiteMystays() {
   useWebsiteCommon();
   useWebsiteMenu();
 
+  useEffect(() => {
+    if (window.location.pathname !== '/my-stays') {
+      window.history.replaceState(null, '', '/my-stays');
+    }
+  }, []);
+
   const apiUrl = useMemo(() => getWebsiteApiUrl(), []);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);

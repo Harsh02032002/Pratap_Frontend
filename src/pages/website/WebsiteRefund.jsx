@@ -1,9 +1,15 @@
+import { useEffect } from "react";
 import WebsiteNavbar from "../../components/website/WebsiteNavbar";
 import WebsiteFooter from "../../components/website/WebsiteFooter";
 import { RefreshCcw, CreditCard, Calendar, GraduationCap, AlertCircle, Clock, Mail, Phone, MapPin } from 'lucide-react';
 import { Link } from "react-router-dom";
 
 export default function WebsiteRefund() {
+  useEffect(() => {
+    if (window.location.pathname !== '/refund-policy') {
+      window.history.replaceState(null, '', '/refund-policy');
+    }
+  }, []);
   const sections = [
     {
       icon: CreditCard,

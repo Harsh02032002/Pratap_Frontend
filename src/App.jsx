@@ -33,7 +33,7 @@ const PageLoader = () => (
 );
 
 const resolveHostHome = () => {
-  if (typeof window === "undefined") return "/website/index";
+  if (typeof window === "undefined") return "/";
   const host = (window.location.hostname || "").toLowerCase();
   const metaTarget = typeof document !== "undefined" ? document.querySelector('meta[name="roomhy-app-target"]')?.getAttribute('content') : null;
 
@@ -479,7 +479,8 @@ export default function App() {
                 <Route path="/staff/login" element={<Navigate to={UNIFIED_LOGIN_PATH} replace />} />
                 <Route path="/staff" element={<Navigate to={STAFF_HOME_PATH} replace />} />
                 <Route path="/staff/*" element={<Navigate to={STAFF_HOME_PATH} replace />} />
-                <Route path="/website" element={<Navigate to="/website/index" replace />} />
+                <Route path="/website" element={<Navigate to="/" replace />} />
+                <Route path="/website/index" element={<Navigate to="/" replace />} />
                 <Route path="*" element={<HtmlRedirectOrHome />} />
               </Routes>
             </Suspense>

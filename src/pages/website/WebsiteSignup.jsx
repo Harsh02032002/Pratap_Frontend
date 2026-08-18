@@ -8,6 +8,13 @@ import useSEO from "../../hooks/useSEO";
 
 export default function WebsiteSignup() {
   useSEO({ pageKey: 'register', fallbackTitle: 'Create Roomhy Account - Sign Up Free' });
+
+  useEffect(() => {
+    if (window.location.pathname !== '/register') {
+      window.history.replaceState(null, '', '/register');
+    }
+  }, []);
+
   const apiUrl = getWebsiteApiUrl();
   const [signupMode, setSignupMode] = useState(true);
 
@@ -139,7 +146,7 @@ export default function WebsiteSignup() {
       setWebsiteSession(data.user, data.token);
       showToast("Login successful!", "success");
       setTimeout(() => {
-        window.location.href = "/website/index";
+        window.location.href = "/";
       }, 800);
     } catch (err) {
       showToast("Login failed. Please try again.", "error");
@@ -223,7 +230,7 @@ export default function WebsiteSignup() {
       }
       showToast("Account created successfully!", "success");
       setTimeout(() => {
-        window.location.href = "/website/index";
+        window.location.href = "/";
       }, 900);
     } catch (err) {
       showToast(err.message || "Verification failed", "error");

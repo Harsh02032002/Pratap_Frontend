@@ -11,6 +11,12 @@ export default function ListYourPropertyPage() {
   useSEO({ pageKey: 'list-property', fallbackTitle: 'List Your Property on Roomhy - Zero Commission' });
   const owner = getOwnerRuntimeSession();
 
+  useEffect(() => {
+    if (window.location.pathname !== '/list-property') {
+      window.history.replaceState(null, '', '/list-property');
+    }
+  }, []);
+
   const [formData, setFormData] = useState({
     ownerName: owner?.name || owner?.fullName || '',
     email: owner?.email || '',

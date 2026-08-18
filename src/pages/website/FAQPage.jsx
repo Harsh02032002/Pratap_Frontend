@@ -62,6 +62,12 @@ export default function FAQPage() {
   const [layoutSections, setLayoutSections] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    if (window.location.pathname !== '/faq') {
+      window.history.replaceState(null, '', '/faq');
+    }
+  }, []);
+
   // Fetch page layout settings from DB
   useEffect(() => {
     const fetchLayout = async () => {

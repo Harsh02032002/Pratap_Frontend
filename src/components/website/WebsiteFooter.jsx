@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight, ChevronDown, Search } from "lucide-react";
 import { fetchCities, fetchAreas } from "../../utils/api.js";
 
@@ -6,41 +7,43 @@ const footerColumns = [
   {
     title: "Company",
     links: [
-      { label: "About Roomhy", href: "/website/about" },
-      { label: "Contact", href: "/website/contact" }
+      { label: "About Roomhy", href: "/about-us" },
+      { label: "Contact", href: "/contact-us" }
     ]
   },
   {
     title: "Explore",
     links: [
-      { label: "Home", href: "/website/index" },
-      { label: "Our Properties", href: "/website/ourproperty" },
-      { label: "Fast Bidding", href: "/website/fast-bidding" },
-      { label: "Post Property", href: "/website/list" }
+      { label: "Home", href: "/" },
+      { label: "Our Properties", href: "/properties" },
+      { label: "Fast Bidding", href: "/fast-bidding" },
+      { label: "Post Property", href: "/list-property" }
     ]
   },
   {
     title: "Support",
     links: [
-      { label: "My Stays", href: "/website/mystays" },
-      { label: "Refund Request", href: "/website/refund-request" },
-      { label: "Cancellation", href: "/website/cancellation" }
+      { label: "My Stays", href: "/my-stays" },
+      { label: "Refund Request", href: "/refund-request" },
+      { label: "Cancellation", href: "/cancellation" }
     ]
   },
   {
     title: "Legal",
     links: [
-      { label: "Terms & Conditions", href: "/website/terms" },
-      { label: "Privacy Policy", href: "/website/privacy" },
-      { label: "Refund Policy", href: "/website/refund" }
+      { label: "Terms & Conditions", href: "/terms-and-conditions" },
+      { label: "Privacy Policy", href: "/privacy-policy" },
+      { label: "Refund Policy", href: "/refund-policy" }
     ]
   }
 ];
 
+const slugify = (text) => text ? text.toString().toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w\-]+/g, '').replace(/\-\-+/g, '-') : '';
+
 const staticCityLinks = [
-  { name: "Kota", count: "2,500+", href: "/website/ourproperty?city=kota", areas: ["Vigyan Nagar", "Rajeev Gandhi Nagar", "Indra Vihar", "Mahaveer Nagar"] },
-  { name: "Sikar", count: "850+", href: "/website/ourproperty?city=sikar", areas: ["Piprali Road", "Subhash Chowk", "Station Road"] },
-  { name: "Indore", count: "1,800+", href: "/website/ourproperty?city=indore", areas: ["Vijay Nagar", "Bhawarkua", "Sapna Sangeeta"] },
+  { name: "Kota", count: "2,500+", href: "/properties-in-kota", areas: ["Vigyan Nagar", "Rajeev Gandhi Nagar", "Indra Vihar", "Mahaveer Nagar"] },
+  { name: "Sikar", count: "850+", href: "/properties-in-sikar", areas: ["Piprali Road", "Subhash Chowk", "Station Road"] },
+  { name: "Indore", count: "1,800+", href: "/properties-in-indore", areas: ["Vijay Nagar", "Bhawarkua", "Sapna Sangeeta"] },
 ];
 
 export default function WebsiteFooter() {
@@ -102,7 +105,7 @@ export default function WebsiteFooter() {
       <div className="container mx-auto px-4 sm:px-6 py-6 md:py-10">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-8">
           <div className="md:col-span-4 flex flex-col items-center md:items-start text-center md:text-left">
-            <a href="/website/index" className="inline-flex items-center gap-3 transition-transform hover:scale-105">
+            <Link to="/" className="inline-flex items-center gap-3 transition-transform hover:scale-105">
               <img
                 src="/website/images/logoroomhy_cropped.jpg"
                 alt="Roohmy"
@@ -112,7 +115,7 @@ export default function WebsiteFooter() {
                   e.target.src = '/website/images/logoroomhy.jpg';
                 }}
               />
-            </a>
+            </Link>
             <p className="mt-2 md:mt-4 text-sm text-gray-900 max-w-sm">
               Find student housing smarter, simpler, and broker-free with Roohmy.
             </p>
@@ -228,7 +231,7 @@ export default function WebsiteFooter() {
                     {city.areas.map((area) => (
                       <a
                         key={area}
-                        href={`/website/ourproperty?city=${encodeURIComponent(city.name.toLowerCase())}&area=${encodeURIComponent(area.toLowerCase())}`}
+                        href={`/${slugify(city.name)}/${slugify(area)}`}
                         className="text-xs px-2 py-1 bg-gray-100 hover:bg-teal-50 hover:text-teal-600 rounded text-gray-600 transition-colors"
                       >
                         {area}
@@ -280,7 +283,7 @@ export default function WebsiteFooter() {
                     {cityLinks.find(c => c.name === mobileExpandedCity)?.areas.map((area) => (
                       <a
                         key={area}
-                        href={`/website/ourproperty?city=${encodeURIComponent(mobileExpandedCity.toLowerCase())}&area=${encodeURIComponent(area.toLowerCase())}`}
+                        href={`/${slugify(mobileExpandedCity)}/${slugify(area)}`}
                         className="text-[11px] p-3 bg-gray-50 border border-gray-100 rounded-xl text-gray-700 font-bold hover:bg-teal-50 hover:text-teal-600 hover:border-teal-200 transition-all text-center"
                       >
                         {area}

@@ -1,9 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- Core Main Pages -->
   <url>
     <loc>https://roomhy.com/</loc>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://roomhy.com/properties</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://roomhy.com/pg</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://roomhy.com/hostels</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://roomhy.com/co-living</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://roomhy.com/apartments</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
   </url>
   <url>
     <loc>https://roomhy.com/about-us</loc>
@@ -35,11 +61,64 @@
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
   </url>
-  <!-- Target SEO Landing Pages -->
+
+  <!-- Popular City Category Pages -->
+  <url>
+    <loc>https://roomhy.com/pg-in-kota</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://roomhy.com/pg-in-jaipur</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://roomhy.com/pg-in-delhi</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://roomhy.com/pg-in-indore</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://roomhy.com/pg-in-bhopal</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://roomhy.com/pg-in-nagpur</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://roomhy.com/pg-in-sikar</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://roomhy.com/pg-in-bangalore</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://roomhy.com/pg-in-pune</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://roomhy.com/pg-in-hyderabad</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Popular Locality Category Pages -->
   <url>
     <loc>https://roomhy.com/pg-in-talwandi-kota</loc>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.85</priority>
   </url>
   <url>
     <loc>https://roomhy.com/hostels-in-talwandi-kota</loc>
@@ -54,7 +133,7 @@
   <url>
     <loc>https://roomhy.com/pg-in-vigyan-nagar-kota</loc>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.85</priority>
   </url>
   <url>
     <loc>https://roomhy.com/hostels-in-vigyan-nagar-kota</loc>
@@ -69,7 +148,7 @@
   <url>
     <loc>https://roomhy.com/pg-in-mahaveer-nagar-kota</loc>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.85</priority>
   </url>
   <url>
     <loc>https://roomhy.com/hostels-in-mahaveer-nagar-kota</loc>
@@ -80,5 +159,25 @@
     <loc>https://roomhy.com/co-living-in-mahaveer-nagar-kota</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://roomhy.com/pg-in-landmark-city-kota</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://roomhy.com/pg-in-indra-vihar-kota</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://roomhy.com/pg-in-rajeev-gandhi-nagar-kota</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://roomhy.com/pg-in-kunhari-kota</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
   </url>
 </urlset>

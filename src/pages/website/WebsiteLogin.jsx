@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import WebsiteNavbar from "../../components/website/WebsiteNavbar";
 import WebsiteFooter from "../../components/website/WebsiteFooter";
 import MobileBottomNav from "../../components/website/MobileBottomNav";
@@ -8,6 +8,12 @@ import useSEO from "../../hooks/useSEO";
 
 export default function WebsiteLogin() {
   useSEO({ pageKey: 'login', fallbackTitle: 'Sign In to Roomhy' });
+
+  useEffect(() => {
+    if (window.location.pathname !== '/login') {
+      window.history.replaceState(null, '', '/login');
+    }
+  }, []);
   const {
     email,
     password,

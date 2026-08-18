@@ -10,6 +10,12 @@ export default function WebsiteTerms() {
   const [layoutSections, setLayoutSections] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    if (window.location.pathname !== '/terms-and-conditions') {
+      window.history.replaceState(null, '', '/terms-and-conditions');
+    }
+  }, []);
+
   // Fetch page layout settings from DB
   useEffect(() => {
     const fetchLayout = async () => {

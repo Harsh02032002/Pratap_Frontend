@@ -13,6 +13,12 @@ const defaultCities = [
 ];
 
 export default function FastBiddingPage() {
+  useEffect(() => {
+    if (window.location.pathname !== '/fast-bidding') {
+      window.history.replaceState(null, '', '/fast-bidding');
+    }
+  }, []);
+
   const [cities, setCities] = useState([]);
   const [areas, setAreas] = useState([]);
   const [allProperties, setAllProperties] = useState([]);

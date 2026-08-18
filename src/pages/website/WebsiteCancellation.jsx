@@ -1,8 +1,14 @@
+import { useEffect } from "react";
 import WebsiteNavbar from "../../components/website/WebsiteNavbar";
 import WebsiteFooter from "../../components/website/WebsiteFooter";
 import { Ban, ShieldCheck, AlertTriangle, Users, Building2, Mail, Phone, MapPin } from 'lucide-react';
 
 export default function WebsiteCancellation() {
+  useEffect(() => {
+    if (window.location.pathname !== '/cancellation') {
+      window.history.replaceState(null, '', '/cancellation');
+    }
+  }, []);
   const sections = [
     {
       icon: Users,

@@ -29,6 +29,12 @@ export default function AboutPage() {
   const [layoutSections, setLayoutSections] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    if (window.location.pathname !== '/about-us') {
+      window.history.replaceState(null, '', '/about-us');
+    }
+  }, []);
+
   // Fetch page layout settings from DB
   useEffect(() => {
     const fetchLayout = async () => {

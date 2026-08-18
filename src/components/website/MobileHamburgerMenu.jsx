@@ -51,14 +51,14 @@ export default function MobileHamburgerMenu() {
   if (!isMobile) return null;
 
   const menuItems = [
-    { icon: Home, label: 'Home', path: '/website/index' },
-    { icon: Building2, label: 'Our Properties', path: '/website/ourproperty' },
+    { icon: Home, label: 'Home', path: '/' },
+    { icon: Building2, label: 'Our Properties', path: '/properties' },
     { icon: Gavel, label: 'Fast Bidding', path: '/website/fast-bidding' },
-    { icon: PlusCircle, label: 'List Property', path: '/website/list' },
+    { icon: PlusCircle, label: 'List Property', path: '/list-property' },
     { icon: Heart, label: 'My Stays', path: '/website/mystays' },
     { icon: MessageCircle, label: 'Chat Support', path: '/website/chat' },
-    { icon: User, label: hasUserData ? 'My Account' : 'Login / Signup', path: hasUserData ? '/website/mystays' : '/website/login' },
-    { icon: HelpCircle, label: 'FAQs', path: '/website/faq' },
+    { icon: User, label: hasUserData ? 'My Account' : 'Login / Signup', path: hasUserData ? '/website/mystays' : '/login' },
+    { icon: HelpCircle, label: 'FAQs', path: '/faq' },
     { icon: FileText, label: 'Terms & Privacy', path: '/website/terms' },
   ];
 
@@ -94,7 +94,7 @@ export default function MobileHamburgerMenu() {
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-100">
-          <Link to="/website/index" className="flex items-center gap-2" onClick={() => setIsOpen(false)}>
+          <Link to="/" className="flex items-center gap-2" onClick={() => setIsOpen(false)}>
             <img 
               src="/website/images/logoroomhy_cropped.jpg" 
               alt="Roohmy Logo" 

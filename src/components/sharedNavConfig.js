@@ -116,7 +116,7 @@ export const sharedNavConfig = {
     title: "Website",
     base: "/website",
     links: [
-      { label: "Home", to: "/website/index" },
+      { label: "Home", to: "/" },
       { label: "List", to: "/website/list" },
       { label: "Property", to: "/website/property" },
       { label: "Property New", to: "/website/property_new" },

@@ -10,6 +10,12 @@ export default function WebsitePrivacy() {
   const [layoutSections, setLayoutSections] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    if (window.location.pathname !== '/privacy-policy') {
+      window.history.replaceState(null, '', '/privacy-policy');
+    }
+  }, []);
+
   // Fetch page layout settings from DB
   useEffect(() => {
     const fetchLayout = async () => {

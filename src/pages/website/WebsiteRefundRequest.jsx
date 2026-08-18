@@ -1,10 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import WebsiteNavbar from "../../components/website/WebsiteNavbar";
 import WebsiteFooter from "../../components/website/WebsiteFooter";
 import { RefreshCcw, Send, Loader2 } from 'lucide-react';
 import { fetchJson } from "../../utils/api";
 
 export default function WebsiteRefundRequest() {
+  useEffect(() => {
+    if (window.location.pathname !== '/refund-request') {
+      window.history.replaceState(null, '', '/refund-request');
+    }
+  }, []);
+
   const [requestType, setRequestType] = useState("refund");
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
