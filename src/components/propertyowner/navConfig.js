@@ -140,7 +140,6 @@ export const PROPERTY_OWNER_NAV = [
     submenus: [
       { label: "Profile Settings", href: "/propertyowner/ownerprofile", goldOnly: false },
       { label: "Bank Accounts", href: "/propertyowner/bank-accounts", goldOnly: false },
-      { label: "Update Requests", href: "/propertyowner/update-requests", goldOnly: false },
       { label: "Data Backup", href: "/propertyowner/settings#backup", goldOnly: false },
     ]
   }

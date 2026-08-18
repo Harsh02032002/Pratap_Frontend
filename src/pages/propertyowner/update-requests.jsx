@@ -68,17 +68,13 @@ export default function UpdateRequests() {
       title="Update Requests to Admin"
       subtitle="Every profile and bank-detail change you've asked Roomhy to approve."
     >
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-2xl font-black text-slate-800 tracking-tight">Update Requests to Admin</h1>
-          <p className="mt-1 text-xs text-slate-500 font-medium">Every profile and bank-detail change you've asked Roomhy to approve.</p>
-        </div>
-        <div className="flex bg-slate-100 p-1 rounded-lg shrink-0">
+      <div className="flex justify-end mb-6">
+        <div className="flex bg-slate-100 p-1 rounded-xl shrink-0">
           {["Pending", "Approved", "Rejected", "All"].map(status => (
             <button
               key={status}
               onClick={() => setFilter(status)}
-              className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${filter === status ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${filter === status ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
             >
               {status}
             </button>
@@ -105,7 +101,9 @@ export default function UpdateRequests() {
                 </tr>
               ) : requests.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-sm font-medium text-slate-400">No {filter.toLowerCase()} requests found.</td>
+                  <td colSpan={5} className="px-6 py-8 text-center text-sm font-medium text-slate-400">
+                    {filter === "All" ? "No update requests found." : `No ${filter.toLowerCase()} requests found.`}
+                  </td>
                 </tr>
               ) : (
                 requests.map(req => {
