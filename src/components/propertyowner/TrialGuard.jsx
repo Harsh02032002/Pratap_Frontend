@@ -36,9 +36,11 @@ export default function TrialGuard({ owner, children, onLogout }) {
 
     try {
       const res = await fetch(`${getApiBase()}/api/owners/subscription-status?loginId=${encodeURIComponent(loginId)}`);
-      const data = await res.json();
-      if (data.success) {
-        setTrialData(data);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setTrialData(data);
+        }
       }
     } catch (err) {
       console.warn('[TrialGuard] Could not fetch trial status:', err);

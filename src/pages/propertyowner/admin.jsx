@@ -22,7 +22,9 @@ import {
   MessageCircle,
   ChevronRight,
   Clock,
-  AlertCircle
+  AlertCircle,
+  CheckCircle2,
+  XCircle
 } from "lucide-react";
 import { StatCard } from "../../components/propertyowner/StatCard";
 import { MobileStatCard, MobileSectionCard } from "../../components/propertyowner/MobileComponents";
@@ -1021,7 +1023,7 @@ export default function Admin() {
                         </span>
                       </div>
                       <p className="text-[11.5px] text-muted-foreground mt-0.5 truncate">
-                        {Object.entries(req.requestedChanges || {}).map(([k, v]) => `${k}: ${v}`).join(", ")} · {getRelativeTime(req.createdAt)}
+                        {Object.entries(req.requestedChanges || {}).filter(([k]) => !k.toLowerCase().includes('proof')).map(([k, v]) => `${k.replace(/([A-Z])/g, ' $1').replace(/^checkin/, '').trim()}: ${typeof v === 'object' ? (v ? JSON.stringify(v) : '') : v}`).join(", ")} · {getRelativeTime(req.createdAt)}
                       </p>
                       {isRejected && req.rejectionReason && (
                         <p className="text-[11px] font-medium text-rose-600 mt-1">
