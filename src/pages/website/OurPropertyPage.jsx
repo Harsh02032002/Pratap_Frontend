@@ -55,7 +55,7 @@ export default function OurPropertyPage() {
 
   const parseLocationFromPath = (path) => {
     const clean = (path || '').replace(/^\/+|\/+$/g, '').toLowerCase();
-    if (!clean || clean.endsWith('.xml') || clean.endsWith('.txt') || clean.includes('sitemap')) {
+    if (!clean || clean.includes('xml') || clean.includes('sitemap') || clean.includes('admin')) {
       return null;
     }
     const knownCities = [
@@ -67,6 +67,11 @@ export default function OurPropertyPage() {
     // 1. Check /{type}-in-{locationSlug} (e.g. pg-in-talwandi-kota)
     const seoMatch = clean.match(/^(pg|hostels|hostel|co-living|coliving|apartments|apartment|properties|property)-in-(.+)$/i);
     if (seoMatch) {
+      const locPart = seoMatch[2].toLowerCase();
+      if (locPart.includes('sitemap') || locPart.includes('xml')) {
+        return null;
+      }
+
       const rawType = seoMatch[1].toLowerCase();
       let type = 'PG';
       if (rawType.startsWith('hostel')) type = 'Hostel';
@@ -74,7 +79,6 @@ export default function OurPropertyPage() {
       else if (rawType.startsWith('apartment')) type = 'Apartment';
       else if (rawType.startsWith('propert')) type = '';
 
-      const locPart = seoMatch[2];
       const matchedCity = knownCities.find(c => locPart.endsWith('-' + c) || locPart === c);
       let city = '';
       let area = '';
