@@ -8,9 +8,9 @@ import {
   fetchOwnerTenants,
   downloadCsv
 } from "../../utils/propertyowner";
-import { Building, UserCog, Shield, Globe, Lock, Check, Database, Download, Landmark, Eye, EyeOff, ExternalLink, X, Loader2 } from "lucide-react";
+import { Building, UserCog, Shield, Globe, Lock, Check, Database, Download, Landmark, Eye, EyeOff, X, Loader2, Upload, FileCheck, Paperclip } from "lucide-react";
 import toast from "react-hot-toast";
-import { fetchJson } from "../../utils/api";
+import { fetchJson, getApiBase, getAuthHeader } from "../../utils/api";
 
 function FieldRow({ label, value, masked, empty }) {
   const [show, setShow] = useState(false);
@@ -63,6 +63,11 @@ export default function Settings() {
   const [exporting, setExporting] = useState(false);
   const [bankData, setBankData]       = useState(null);
   const [bankLoading, setBankLoading] = useState(true);
+  const [bankEditOpen, setBankEditOpen] = useState(false);
+  const [bankForm, setBankForm] = useState({ accountHolder: "", bankName: "", branchName: "", accountNumber: "", ifscCode: "", upiId: "" });
+  const [bankSubmitting, setBankSubmitting] = useState(false);
+  const [bankProof, setBankProof] = useState({ url: "", name: "" });
+  const [bankProofUploading, setBankProofUploading] = useState(false);
 
   const [pwModal, setPwModal] = useState(false);
   const [pwStep, setPwStep] = useState("otp"); // "otp" | "reset"
@@ -274,13 +279,128 @@ export default function Settings() {
     bankData.accountHolder || bankData.bankName || bankData.accountNumber || bankData.upiId
   );
 
+  const openBankEdit = () => {
+    setBankForm({
+      accountHolder: bankData?.accountHolder || "",
+      bankName: bankData?.bankName || "",
+      branchName: bankData?.branchName || "",
+      accountNumber: bankData?.accountNumber || "",
+      ifscCode: bankData?.ifscCode || "",
+      upiId: bankData?.upiId || "",
+    });
+    setBankProof({ url: "", name: "" });
+    setBankEditOpen(true);
+  };
+
+  const accountNumberChanged = bankForm.accountNumber !== (bankData?.accountNumber || "");
+
+  const compressImage = (file, maxDim, quality) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          const scale = maxDim / Math.max(width, height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => {
+          if (!blob) return reject(new Error('Compression failed'));
+          resolve(new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' }));
+        }, 'image/jpeg', quality);
+      };
+      img.onerror = () => reject(new Error('Could not read image'));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error('Could not read file'));
+    reader.readAsDataURL(file);
+  });
+
+  const uploadBankProof = async (file) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error("Please upload an image (photo of the passbook or cheque), not a document file.");
+      return;
+    }
+    setBankProofUploading(true);
+    try {
+      let uploadFile = file;
+      const TEN_MB = 10 * 1024 * 1024;
+      if (file.type.startsWith('image/') && file.size > TEN_MB) {
+        uploadFile = await compressImage(file, 1920, 0.8);
+        if (uploadFile.size > TEN_MB) {
+          uploadFile = await compressImage(file, 1280, 0.6);
+        }
+      }
+      const data = new FormData();
+      data.append('image', uploadFile);
+      const res = await fetch(`${getApiBase()}/api/upload`, {
+        method: 'POST',
+        body: data,
+        headers: getAuthHeader()
+      });
+      const json = await res.json();
+      if (!res.ok || !json.url) throw new Error(json.error || 'Upload failed');
+      setBankProof({ url: json.url, name: file.name });
+    } catch (err) {
+      toast.error(err.message || "Failed to upload document.");
+    } finally {
+      setBankProofUploading(false);
+    }
+  };
+
+  const submitBankUpdate = async (e) => {
+    e.preventDefault();
+    if (accountNumberChanged && !bankProof.url) {
+      toast.error("Please upload a passbook or cancelled cheque photo to verify the new account number.");
+      return;
+    }
+    setBankSubmitting(true);
+    try {
+      const requestedChanges = {
+        checkinAccountHolderName: bankForm.accountHolder,
+        checkinBankName: bankForm.bankName,
+        checkinBranchName: bankForm.branchName,
+        checkinBankAccountNumber: bankForm.accountNumber,
+        checkinIfscCode: bankForm.ifscCode,
+        checkinUpiId: bankForm.upiId,
+      };
+      if (bankProof.url) {
+        requestedChanges.checkinBankProof = bankProof.url;
+        requestedChanges.checkinBankProofName = bankProof.name;
+      }
+      const data = await fetchJson("/api/owner-change-requests/submit", {
+        method: "POST",
+        body: JSON.stringify({
+          ownerLoginId: owner.loginId,
+          requestType: "bank_details",
+          requestedChanges
+        })
+      });
+      if (data.success) {
+        toast.success("Bank details submitted for Superadmin approval.");
+        setBankEditOpen(false);
+      } else {
+        toast.error(data.message || "Failed to submit request.");
+      }
+    } catch (err) {
+      toast.error(err.message || "Failed to submit request.");
+    } finally {
+      setBankSubmitting(false);
+    }
+  };
+
   return (
     <PropertyOwnerLayout
       owner={owner}
       title="Settings"
       onLogout={() => { clearOwnerRuntimeSession(); window.location.href = "/propertyowner/ownerlogin"; }}
     >
-      {/* Header Container (gets hidden on mobile view by first-child:has(h1) CSS rule) */}
       <div className="max-w-4xl mx-auto mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="font-serif text-[38px] md:text-[44px] leading-[1.05] text-foreground">Settings</h1>
@@ -294,7 +414,6 @@ export default function Settings() {
         </button>
       </div>
 
-      {/* Main Content Container (remains visible on mobile view) */}
       <div className="max-w-4xl mx-auto space-y-6">
 
           {/* Property Settings */}
@@ -325,19 +444,21 @@ export default function Settings() {
             </div>
           </div>
 
-          {/* Payment & Banking — pulled from KYC */}
+          {/* Payment & Banking */}
           <div className="border border-border bg-card rounded-2xl p-6 shadow-soft">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-[16px] font-bold text-foreground flex items-center gap-2.5">
                 <Landmark className="w-5 h-5 text-primary" />
                 Payment &amp; Banking
               </h3>
-              <a
-                href="/propertyowner/kyc-verification"
-                className="inline-flex items-center gap-1 text-[11.5px] text-primary font-medium hover:underline"
-              >
-                Update via KYC <ExternalLink className="size-3" />
-              </a>
+              {hasBank && (
+                <button
+                  onClick={openBankEdit}
+                  className="inline-flex items-center gap-1 text-[11.5px] text-primary font-semibold hover:underline"
+                >
+                  Update
+                </button>
+              )}
             </div>
 
             {bankLoading ? (
@@ -363,7 +484,7 @@ export default function Settings() {
             {bankData?.locked && (
               <p className="text-[11.5px] text-amber-600 mt-3 flex items-center gap-1.5">
                 <Lock className="size-3" />
-                Bank details are locked by your KYC submission. Contact support to update.
+                Verified via KYC — any change you submit here still needs Superadmin approval before it takes effect.
               </p>
             )}
           </div>
@@ -450,6 +571,7 @@ export default function Settings() {
             </button>
           </div>
         </div>
+
       {/* Change Password Modal */}
       {pwModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -531,6 +653,141 @@ export default function Settings() {
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {bankEditOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 relative max-h-[90vh] overflow-y-auto">
+            <button onClick={() => setBankEditOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-5">
+              <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                <Landmark className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-[16px] text-slate-900">Update Bank Details</h3>
+                <p className="text-[11.5px] text-slate-500">Submitted for Superadmin approval before it takes effect.</p>
+              </div>
+            </div>
+
+            <form onSubmit={submitBankUpdate} className="space-y-4">
+              <div>
+                <label className="text-[10px] font-black text-slate-700 uppercase tracking-tight mb-2 block">Account Holder</label>
+                <input
+                  type="text"
+                  value={bankForm.accountHolder}
+                  onChange={e => setBankForm(p => ({ ...p, accountHolder: e.target.value }))}
+                  className="w-full h-11 px-4 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-black text-slate-700 uppercase tracking-tight mb-2 block">Bank Name</label>
+                  <input
+                    type="text"
+                    value={bankForm.bankName}
+                    onChange={e => setBankForm(p => ({ ...p, bankName: e.target.value }))}
+                    className="w-full h-11 px-4 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-slate-700 uppercase tracking-tight mb-2 block">Branch</label>
+                  <input
+                    type="text"
+                    value={bankForm.branchName}
+                    onChange={e => setBankForm(p => ({ ...p, branchName: e.target.value }))}
+                    className="w-full h-11 px-4 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-700 uppercase tracking-tight mb-2 block">Account Number</label>
+                <input
+                  type="text"
+                  value={bankForm.accountNumber}
+                  onChange={e => setBankForm(p => ({ ...p, accountNumber: e.target.value }))}
+                  className="w-full h-11 px-4 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
+                  required
+                />
+              </div>
+
+              {accountNumberChanged && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-4">
+                  <label className="text-[10px] font-black text-amber-700 uppercase tracking-tight mb-2 flex items-center gap-1.5">
+                    <Paperclip className="w-3 h-3" /> Bank Proof Required
+                  </label>
+                  <p className="text-[11px] text-amber-700/80 mb-3">
+                    You changed the account number — upload a passbook photo or cancelled cheque so Superadmin can verify it before approving.
+                  </p>
+
+                  {bankProof.url ? (
+                    <div className="flex items-center justify-between gap-3 bg-white border border-emerald-200 rounded-lg px-3 py-2.5">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <FileCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span className="text-[12px] font-semibold text-slate-700 truncate">{bankProof.name || "Document uploaded"}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setBankProof({ url: "", name: "" })}
+                        className="text-[11px] font-semibold text-rose-600 hover:underline shrink-0"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex items-center justify-center gap-2 h-11 border-2 border-dashed border-amber-300 rounded-lg text-[12px] font-semibold text-amber-700 cursor-pointer hover:bg-amber-100/50 transition-colors">
+                      {bankProofUploading ? (
+                        <><Loader2 className="w-4 h-4 animate-spin" /> Uploading...</>
+                      ) : (
+                        <><Upload className="w-4 h-4" /> Upload Passbook / Cheque</>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={bankProofUploading}
+                        onChange={e => uploadBankProof(e.target.files?.[0])}
+                      />
+                    </label>
+                  )}
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-black text-slate-700 uppercase tracking-tight mb-2 block">IFSC Code</label>
+                  <input
+                    type="text"
+                    value={bankForm.ifscCode}
+                    onChange={e => setBankForm(p => ({ ...p, ifscCode: e.target.value.toUpperCase() }))}
+                    className="w-full h-11 px-4 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-slate-700 uppercase tracking-tight mb-2 block">UPI ID</label>
+                  <input
+                    type="text"
+                    value={bankForm.upiId}
+                    onChange={e => setBankForm(p => ({ ...p, upiId: e.target.value }))}
+                    className="w-full h-11 px-4 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={bankSubmitting || bankProofUploading}
+                className="w-full h-11 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                {bankSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</> : "Submit for Approval"}
+              </button>
+            </form>
           </div>
         </div>
       )}

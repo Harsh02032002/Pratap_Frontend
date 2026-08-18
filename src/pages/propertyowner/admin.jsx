@@ -113,6 +113,7 @@ export default function Admin() {
   const [rentTotal, setRentTotal] = useState(0);
   const [enquiries, setEnquiries] = useState([]);
   const [notifications, setNotifications] = useState([]);
+  const [changeRequests, setChangeRequests] = useState([]);
   const [propertiesCount, setPropertiesCount] = useState(0);
   const [recentChats, setRecentChats] = useState([]);
   const [tenants, setTenants] = useState([]);
@@ -302,7 +303,17 @@ export default function Admin() {
     loadChartData(session.loginId, chartPeriod);
     loadCollectionStats(session._id || session.loginId);
     loadMonthlyData(session.loginId);
+    loadChangeRequests(session.loginId);
   }, []);
+
+  const loadChangeRequests = async (loginId) => {
+    try {
+      const res = await fetchJson(`/api/owner-change-requests?ownerLoginId=${encodeURIComponent(loginId)}`);
+      setChangeRequests(Array.isArray(res?.data) ? res.data : []);
+    } catch (err) {
+      // Non-critical
+    }
+  };
 
   useEffect(() => {
     if (owner?.loginId) loadChartData(owner.loginId, chartPeriod);
@@ -966,6 +977,64 @@ export default function Admin() {
             </div>
           </div>
         </div>
+
+        {/* Profile/Bank Update Requests — status of what the owner asked superadmin to change */}
+        {changeRequests.length > 0 && (
+          <div className="mt-5 rounded-2xl border border-border bg-card shadow-soft overflow-hidden">
+            <div className="px-6 py-4 border-b border-border/50 flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-[15px] text-foreground">Update Requests to Admin</h3>
+                <p className="text-[12px] text-muted-foreground mt-0.5">Status of changes you've asked Roomhy to approve</p>
+              </div>
+              {changeRequests.length > 4 && (
+                <button
+                  onClick={() => window.location.href = '/propertyowner/update-requests'}
+                  className="text-[12px] font-semibold text-teal-600 hover:opacity-70 flex items-center gap-0.5 transition-opacity"
+                >
+                  View all <ChevronRight className="size-3.5" />
+                </button>
+              )}
+            </div>
+            <div className="divide-y divide-border/40">
+              {changeRequests.slice(0, 4).map((req, i) => {
+                const status = req.status || "Pending";
+                const isApproved = status === "Approved";
+                const isRejected = status === "Rejected";
+                const badgeClass = isApproved
+                  ? "bg-emerald-50 text-emerald-600"
+                  : isRejected
+                    ? "bg-rose-50 text-rose-600"
+                    : "bg-amber-50 text-amber-600";
+                const Icon = isApproved ? CheckCircle2 : isRejected ? XCircle : Clock;
+                return (
+                  <div key={req._id || i} className="px-6 py-4 flex items-start gap-3">
+                    <div className={`size-8 rounded-full flex items-center justify-center shrink-0 ${badgeClass}`}>
+                      <Icon className="size-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[13px] font-semibold text-foreground capitalize">
+                          {(req.requestType || "profile").replace('_', ' ')} update
+                        </span>
+                        <span className={`px-1.5 py-0.5 text-[9px] font-black rounded uppercase tracking-wide shrink-0 ${badgeClass}`}>
+                          {status}
+                        </span>
+                      </div>
+                      <p className="text-[11.5px] text-muted-foreground mt-0.5 truncate">
+                        {Object.entries(req.requestedChanges || {}).map(([k, v]) => `${k}: ${v}`).join(", ")} · {getRelativeTime(req.createdAt)}
+                      </p>
+                      {isRejected && req.rejectionReason && (
+                        <p className="text-[11px] font-medium text-rose-600 mt-1">
+                          Reason: {req.rejectionReason}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
       </div>
       {/* ═══════════════════════ END DESKTOP VIEW ═══════════════════════ */}
