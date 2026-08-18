@@ -413,6 +413,7 @@ const routeEntries = [
   ["/website/index", "./HomePage.jsx"],
   ["/website/$slug", "./pages/website/DynamicPage.jsx"],
   ["/index", "./HomePage.jsx"],
+  ["/sitemap.xml", "./pages/website/SitemapViewer.jsx"],
   // General location routes (e.g. /kota, /kota/talwandi) - placed right before home/catchall
   ["/:city", "./pages/website/OurPropertyPage.jsx"],
   ["/:city/:area", "./pages/website/OurPropertyPage.jsx"],

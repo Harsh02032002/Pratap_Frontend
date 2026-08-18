@@ -54,7 +54,10 @@ export default function OurPropertyPage() {
   };
 
   const parseLocationFromPath = (path) => {
-    const clean = path.replace(/^\/+|\/+$/g, '');
+    const clean = (path || '').replace(/^\/+|\/+$/g, '').toLowerCase();
+    if (!clean || clean.endsWith('.xml') || clean.endsWith('.txt') || clean.includes('sitemap')) {
+      return null;
+    }
     const knownCities = [
       'kota', 'jaipur', 'delhi', 'indore', 'bhopal',
       'nagpur', 'sikar', 'bangalore', 'bengaluru', 'pune', 'hyderabad',
