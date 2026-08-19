@@ -676,22 +676,13 @@ export default function Tenants() {
                         <td className="px-4 py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1.5">
                             {(t.kycStatus !== "verified" && t.kycStatus !== "rejected") && (
-                              <>
-                                <button 
-                                  onClick={() => handleResendKycLink(t._id || t.id, t.name)}
-                                  className="p-1.5 text-blue-600 hover:bg-blue-50 border border-blue-200/60 rounded-lg transition-colors"
-                                  title="Resend KYC Re-upload Link via Email"
-                                >
-                                  <Send size={14} />
-                                </button>
-                                <button 
-                                  onClick={() => handleApproveKyc(t._id || t.id)}
-                                  className="inline-flex items-center gap-1 px-3 py-1.5 text-[11.5px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-xs transition-colors shrink-0"
-                                  title="Approve KYC & Activate Tenant"
-                                >
-                                  <CheckCircle size={13} /> Approve KYC
-                                </button>
-                              </>
+                              <button 
+                                onClick={() => handleResendKycLink(t._id || t.id, t.name)}
+                                className="p-1.5 text-blue-600 hover:bg-blue-50 border border-blue-200/60 rounded-lg transition-colors"
+                                title="Resend KYC Re-upload Link via Email"
+                              >
+                                <Send size={14} />
+                              </button>
                             )}
                             <button 
                               onClick={() => { setSelectedTenant(t); setModalTab("overview"); setModalOpen(true); }}
@@ -853,9 +844,6 @@ export default function Tenants() {
                             )}
                             <button onClick={() => handleResendKycLink(t._id || t.id, t.name)} className="w-8 h-8 rounded-full bg-blue-50 border border-blue-100/50 flex items-center justify-center text-blue-600 hover:bg-blue-100 transition-colors" title="Resend KYC Link">
                                <Send size={12} />
-                            </button>
-                            <button onClick={() => handleApproveKyc(t._id || t.id)} className="h-8 px-3 rounded-full bg-emerald-50 border border-emerald-100/50 text-emerald-700 flex items-center gap-1 hover:bg-emerald-100 transition-colors text-[11px] font-bold">
-                               <CheckCircle size={12} /> Approve KYC
                             </button>
                           </div>
                         ) : (
@@ -1201,20 +1189,7 @@ export default function Tenants() {
                       </div>
                     )}
 
-                    {/* Approve Action Button */}
-                    {(t.kycStatus !== "verified" && t.kycStatus !== "rejected") && (
-                      <div className="pt-2">
-                        <button
-                          onClick={() => {
-                            setModalOpen(false);
-                            handleApproveKyc(t._id || t.id);
-                          }}
-                          className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-[13px] flex items-center gap-2 shadow-sm transition-colors"
-                        >
-                          <CheckCircle size={16} /> Approve KYC & Activate Tenant Now
-                        </button>
-                      </div>
-                    )}
+
                   </div>
                 )}
 
