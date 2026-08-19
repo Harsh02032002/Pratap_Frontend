@@ -45,6 +45,16 @@ export default function OurPropertyPage() {
       .replace(/\-\-+/g, "-");
   };
 
+  const getTypeSlug = (type) => {
+    if (!type) return "properties";
+    const lower = type.toLowerCase();
+    if (lower === "pg") return "pg";
+    if (lower === "hostel" || lower === "hostels") return "hostels";
+    if (lower === "co-living" || lower === "coliving") return "co-living";
+    if (lower === "apartment" || lower === "apartments") return "apartments";
+    return slugify(type);
+  };
+
   const humanizeSlug = (s) => {
     if (!s) return "";
     return s
@@ -73,8 +83,9 @@ export default function OurPropertyPage() {
       }
 
       const rawType = seoMatch[1].toLowerCase();
-      let type = 'PG';
-      if (rawType.startsWith('hostel')) type = 'Hostel';
+      let type = '';
+      if (rawType === 'pg' || rawType.startsWith('pg')) type = 'PG';
+      else if (rawType.startsWith('hostel')) type = 'Hostel';
       else if (rawType.includes('coliving') || rawType.includes('co-living')) type = 'Co-living';
       else if (rawType.startsWith('apartment')) type = 'Apartment';
       else if (rawType.startsWith('propert')) type = '';
@@ -107,8 +118,9 @@ export default function OurPropertyPage() {
 
     if (parts.length >= 2 && typePrefixes.includes(parts[0].toLowerCase())) {
       const rawType = parts[0].toLowerCase();
-      let type = 'PG';
-      if (rawType.startsWith('hostel')) type = 'Hostel';
+      let type = '';
+      if (rawType === 'pg' || rawType.startsWith('pg')) type = 'PG';
+      else if (rawType.startsWith('hostel')) type = 'Hostel';
       else if (rawType.includes('coliving') || rawType.includes('co-living')) type = 'Co-living';
       else if (rawType.startsWith('apartment')) type = 'Apartment';
       else if (rawType.startsWith('propert')) type = '';
@@ -187,7 +199,7 @@ export default function OurPropertyPage() {
       t = 'Co-living';
     } else if (cleanPath === 'apartments' || cleanPath.startsWith('apartments-') || cleanPath.startsWith('apartments/')) {
       t = 'Apartment';
-    } else if (cleanPath === 'properties') {
+    } else if (cleanPath === 'properties' || cleanPath.startsWith('properties-') || cleanPath.startsWith('properties/')) {
       t = searchParams.get('type') || '';
     }
 
@@ -694,13 +706,13 @@ export default function OurPropertyPage() {
   <div className="max-w-7xl mx-auto flex items-center text-xs font-semibold text-slate-500 gap-2 flex-wrap">
     <Link to="/" className="hover:text-teal-600 transition-colors">Home</Link>
     <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-    <Link to={selectedType ? `/${slugify(selectedType === 'PG' ? 'pg' : selectedType === 'Hostel' ? 'hostels' : selectedType === 'Co-living' ? 'co-living' : selectedType === 'Apartment' ? 'apartments' : selectedType)}` : '/properties'} className="hover:text-teal-600 transition-colors">
+    <Link to={selectedType ? `/${getTypeSlug(selectedType)}` : '/properties'} className="hover:text-teal-600 transition-colors">
       {selectedType || 'Properties'}
     </Link>
     {selectedCity && (
       <>
         <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-        <Link to={`/${slugify(selectedType === 'PG' ? 'pg' : selectedType === 'Hostel' ? 'hostels' : selectedType === 'Co-living' ? 'co-living' : selectedType === 'Apartment' ? 'apartments' : 'properties')}-in-${slugify(selectedCity)}`} className="text-slate-800 font-bold hover:text-teal-600 transition-colors">
+        <Link to={`/${getTypeSlug(selectedType)}-in-${slugify(selectedCity)}`} className="text-slate-800 font-bold hover:text-teal-600 transition-colors">
           {selectedCity}
         </Link>
       </>
@@ -708,7 +720,7 @@ export default function OurPropertyPage() {
     {selectedArea && (
       <>
         <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-        <span className="text-teal-700 font-extrabold">{selectedType || 'PG'} in {selectedArea}, {selectedCity}</span>
+        <span className="text-teal-700 font-extrabold">{selectedType ? `${selectedType} in ` : 'Properties in '}{selectedArea}, {selectedCity}</span>
       </>
     )}
   </div>
@@ -716,7 +728,11 @@ export default function OurPropertyPage() {
 
 {/* --- DYNAMIC HERO HEADERS (MATCHING SCREENSHOTS 1, 3, 4 & 5) --- */}
 {isSectionVisible('our-property-hero') && (() => {
-  const propertyTypeName = selectedType || 'PG';
+  const displayTypeHeading = selectedType ? `${selectedType} in ` : 'Properties in ';
+  const propertyTypeName = selectedType || 'Properties';
+  const propertyTypePlural = selectedType
+    ? (selectedType === 'PG' ? 'PGs' : selectedType === 'Hostel' ? 'Hostels' : selectedType === 'Co-living' ? 'Co-living Spaces' : selectedType === 'Apartment' ? 'Apartments' : `${selectedType}s`)
+    : 'PGs, Hostels & Flats';
 
   // 1. AREA LEVEL HERO HEADER (SCREENSHOT 4 & 5)
   if (selectedCity && selectedArea) {
@@ -725,10 +741,10 @@ export default function OurPropertyPage() {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 z-10 relative">
           <div className="flex-1 text-left max-w-2xl">
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-1.5">
-              {propertyTypeName} in <span className="text-teal-600 font-bold">{selectedArea}, {selectedCity}</span>
+              {displayTypeHeading}<span className="text-teal-600 font-bold">{selectedArea}, {selectedCity}</span>
             </h1>
             <p className="text-xs md:text-sm text-slate-600 font-semibold leading-relaxed mb-3">
-              Find verified {propertyTypeName}s in {selectedArea}, {selectedCity}. Zero Brokerage. 100% Verified.
+              Find verified {propertyTypePlural} in {selectedArea}, {selectedCity}. Zero Brokerage. 100% Verified.
             </p>
 
             <div className="flex flex-wrap items-center gap-2">
@@ -777,10 +793,10 @@ export default function OurPropertyPage() {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 z-10 relative">
           <div className="flex-1 text-left max-w-2xl">
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-1.5">
-              {propertyTypeName} in <span className="text-teal-600 font-bold">{selectedCity}</span>
+              {displayTypeHeading}<span className="text-teal-600 font-bold">{selectedCity}</span>
             </h1>
             <p className="text-xs md:text-sm text-slate-600 font-semibold leading-relaxed mb-3">
-              Find verified {propertyTypeName}s in top localities of {selectedCity}. Zero Brokerage. 100% Verified.
+              Find verified {propertyTypePlural} in top localities of {selectedCity}. Zero Brokerage. 100% Verified.
             </p>
 
             <div className="flex flex-wrap items-center gap-2">
@@ -809,7 +825,7 @@ export default function OurPropertyPage() {
             <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent"></div>
             <div className="absolute bottom-3 left-3 right-3 text-white">
               <div className="text-base font-black">{selectedCity} Heritage &amp; Hub</div>
-              <div className="text-[10px] text-white/90 font-medium">Top verified PGs &amp; student stays.</div>
+              <div className="text-[10px] text-white/90 font-medium">Top verified {propertyTypePlural.toLowerCase()} &amp; student stays.</div>
             </div>
           </div>
         </div>
@@ -911,13 +927,13 @@ export default function OurPropertyPage() {
   );
 })()}
 
-{/* --- POPULAR CITIES FOR PGs SECTION (HORIZONTAL CAROUSEL SLIDER) --- */}
-{!selectedCity && selectedType && (
+{/* --- POPULAR CITIES FOR PGs/PROPERTIES SECTION (HORIZONTAL CAROUSEL SLIDER) --- */}
+{!selectedCity && (
   <section className="py-1.5 md:py-2 px-4 md:px-8 bg-white border-b border-slate-200">
     <div className="max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-1">
         <div>
-          <h2 className="text-lg md:text-xl font-black text-slate-900">Popular Cities for {selectedType || 'PG'}s</h2>
+          <h2 className="text-lg md:text-xl font-black text-slate-900">Popular Cities for {selectedType ? `${selectedType}s` : 'Properties'}</h2>
           <p className="text-[11px] text-slate-500 font-semibold">Explore top student hubs across India with zero brokerage.</p>
         </div>
         <div className="flex items-center gap-1.5">
@@ -943,16 +959,16 @@ export default function OurPropertyPage() {
         className="flex items-center gap-3 overflow-x-auto scroll-smooth scrollbar-hide py-1"
       >
         {[
-          { city: 'Kota', count: '512+ PGs', image: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=600&auto=format&fit=crop' },
-          { city: 'Jaipur', count: '320+ PGs', image: 'https://images.unsplash.com/photo-1599661046827-dacff0c0f09a?w=600&auto=format&fit=crop' },
-          { city: 'Delhi', count: '780+ PGs', image: 'https://images.unsplash.com/photo-1587474260584-136574528ed5?w=600&auto=format&fit=crop' },
-          { city: 'Indore', count: '210+ PGs', image: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=600&auto=format&fit=crop' },
-          { city: 'Bhopal', count: '190+ PGs', image: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=600&auto=format&fit=crop' },
-          { city: 'Nagpur', count: '150+ PGs', image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=600&auto=format&fit=crop' },
-          { city: 'Sikar', count: '120+ PGs', image: 'https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?w=600&auto=format&fit=crop' },
-          { city: 'Bangalore', count: '600+ PGs', image: 'https://images.unsplash.com/photo-1596178065887-1198b6148b2b?w=600&auto=format&fit=crop' },
-          { city: 'Pune', count: '430+ PGs', image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=600&auto=format&fit=crop' },
-          { city: 'Hyderabad', count: '380+ PGs', image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&auto=format&fit=crop' },
+          { city: 'Kota', count: '512+ Properties', image: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=600&auto=format&fit=crop' },
+          { city: 'Jaipur', count: '320+ Properties', image: 'https://images.unsplash.com/photo-1599661046827-dacff0c0f09a?w=600&auto=format&fit=crop' },
+          { city: 'Delhi', count: '780+ Properties', image: 'https://images.unsplash.com/photo-1587474260584-136574528ed5?w=600&auto=format&fit=crop' },
+          { city: 'Indore', count: '210+ Properties', image: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=600&auto=format&fit=crop' },
+          { city: 'Bhopal', count: '190+ Properties', image: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=600&auto=format&fit=crop' },
+          { city: 'Nagpur', count: '150+ Properties', image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=600&auto=format&fit=crop' },
+          { city: 'Sikar', count: '120+ Properties', image: 'https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?w=600&auto=format&fit=crop' },
+          { city: 'Bangalore', count: '600+ Properties', image: 'https://images.unsplash.com/photo-1596178065887-1198b6148b2b?w=600&auto=format&fit=crop' },
+          { city: 'Pune', count: '430+ Properties', image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=600&auto=format&fit=crop' },
+          { city: 'Hyderabad', count: '380+ Properties', image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&auto=format&fit=crop' },
         ].map((item) => {
           const dynamicCount = (() => {
             if (!allRawProperties || allRawProperties.length === 0) return item.count;
@@ -960,30 +976,30 @@ export default function OurPropertyPage() {
               const pCity = (p.city || p.propertyInfo?.city || '').toLowerCase();
               const matchesCity = pCity === item.city.toLowerCase();
               const pType = (p.type || p.propertyType || p.property_type || '').toLowerCase();
-              const targetType = (selectedType || 'PG').toLowerCase();
-              const matchesType = pType === targetType || (targetType === 'pg' && pType.includes('pg'));
+              const targetType = (selectedType || '').toLowerCase();
+              const matchesType = !targetType || pType === targetType || (targetType === 'pg' && pType.includes('pg'));
               return matchesCity && matchesType;
             }).length;
-            return matchCount > 0 ? `${matchCount}+ ${selectedType || 'PG'}s` : item.count;
+            return matchCount > 0 ? `${matchCount}+ ${selectedType ? `${selectedType}s` : 'Properties'}` : item.count;
           })();
 
           return (
             <Link
               key={item.city}
-              to={`/${slugify(selectedType || 'pg')}-in-${slugify(item.city)}`}
+              to={`/${getTypeSlug(selectedType)}-in-${slugify(item.city)}`}
               className="w-[180px] sm:w-[195px] flex-shrink-0 group bg-slate-50 rounded-xl overflow-hidden border border-slate-200 shadow-2xs hover:shadow-md transition-all duration-300 flex flex-col justify-between"
             >
               <div className="h-20 overflow-hidden relative">
                 <img
                   src={item.image}
-                  alt={`${selectedType || 'PG'} in ${item.city}`}
+                  alt={`${selectedType || 'Properties'} in ${item.city}`}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 to-transparent"></div>
               </div>
               <div className="p-2 bg-white">
                 <h3 className="font-extrabold text-slate-900 text-xs sm:text-sm group-hover:text-teal-600 transition-colors truncate">
-                  {selectedType || 'PG'} in {item.city}
+                  {selectedType ? `${selectedType} in ` : 'Properties in '}{item.city}
                 </h3>
                 <p className="text-[10px] font-semibold text-slate-500 mt-0.5">{dynamicCount}</p>
               </div>
@@ -995,13 +1011,13 @@ export default function OurPropertyPage() {
   </section>
 )}
 
-{/* --- EXPLORE PGs BY LOCALITIES SECTION (HORIZONTAL CAROUSEL SLIDER) --- */}
-{!selectedCity && selectedType && (
+{/* --- EXPLORE PGs/PROPERTIES BY LOCALITIES SECTION (HORIZONTAL CAROUSEL SLIDER) --- */}
+{!selectedCity && (
   <section className="py-1.5 md:py-2 px-4 md:px-8 bg-[#F8FAFC] border-b border-slate-200">
     <div className="max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-1">
         <div>
-          <h2 className="text-lg md:text-xl font-black text-slate-900">Explore {selectedType || 'PG'}s by Localities</h2>
+          <h2 className="text-lg md:text-xl font-black text-slate-900">Explore {selectedType ? `${selectedType}s` : 'Properties'} by Localities</h2>
           <p className="text-[11px] text-slate-500 font-semibold">Find stays right next to your coaching institute or college.</p>
         </div>
         <div className="flex items-center gap-1.5">
@@ -1027,14 +1043,14 @@ export default function OurPropertyPage() {
         className="flex items-center gap-3 overflow-x-auto scroll-smooth scrollbar-hide py-1"
       >
         {[
-          { area: 'Talwandi', city: 'Kota', count: '102+ PGs', image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&auto=format&fit=crop' },
-          { area: 'Vigyan Nagar', city: 'Kota', count: '88+ PGs', image: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&auto=format&fit=crop' },
-          { area: 'Landmark City', city: 'Kota', count: '67+ PGs', image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=600&auto=format&fit=crop' },
-          { area: 'Mahaveer Nagar', city: 'Kota', count: '74+ PGs', image: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=600&auto=format&fit=crop' },
-          { area: 'Indra Vihar', city: 'Kota', count: '54+ PGs', image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&auto=format&fit=crop' },
-          { area: 'Rajeev Gandhi Nagar', city: 'Kota', count: '48+ PGs', image: 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=600&auto=format&fit=crop' },
-          { area: 'Kunhari', city: 'Kota', count: '41+ PGs', image: 'https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?w=600&auto=format&fit=crop' },
-          { area: 'Pratap Nagar', city: 'Jaipur', count: '56+ PGs', image: 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=600&auto=format&fit=crop' },
+          { area: 'Talwandi', city: 'Kota', count: '102+ Properties', image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&auto=format&fit=crop' },
+          { area: 'Vigyan Nagar', city: 'Kota', count: '88+ Properties', image: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&auto=format&fit=crop' },
+          { area: 'Landmark City', city: 'Kota', count: '67+ Properties', image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=600&auto=format&fit=crop' },
+          { area: 'Mahaveer Nagar', city: 'Kota', count: '74+ Properties', image: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=600&auto=format&fit=crop' },
+          { area: 'Indra Vihar', city: 'Kota', count: '54+ Properties', image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&auto=format&fit=crop' },
+          { area: 'Rajeev Gandhi Nagar', city: 'Kota', count: '48+ Properties', image: 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=600&auto=format&fit=crop' },
+          { area: 'Kunhari', city: 'Kota', count: '41+ Properties', image: 'https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?w=600&auto=format&fit=crop' },
+          { area: 'Pratap Nagar', city: 'Jaipur', count: '56+ Properties', image: 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=600&auto=format&fit=crop' },
         ].map((item) => {
           const dynamicAreaCount = (() => {
             if (!allRawProperties || allRawProperties.length === 0) return item.count;
@@ -1044,17 +1060,17 @@ export default function OurPropertyPage() {
               const matchesArea = pArea.includes(item.area.toLowerCase()) || item.area.toLowerCase().includes(pArea);
               const matchesCity = !item.city || pCity === item.city.toLowerCase();
               const pType = (p.type || p.propertyType || p.property_type || '').toLowerCase();
-              const targetType = (selectedType || 'PG').toLowerCase();
-              const matchesType = pType === targetType || (targetType === 'pg' && pType.includes('pg'));
+              const targetType = (selectedType || '').toLowerCase();
+              const matchesType = !targetType || pType === targetType || (targetType === 'pg' && pType.includes('pg'));
               return matchesArea && matchesCity && matchesType;
             }).length;
-            return matchCount > 0 ? `${matchCount}+ ${selectedType || 'PG'}s` : item.count;
+            return matchCount > 0 ? `${matchCount}+ ${selectedType ? `${selectedType}s` : 'Properties'}` : item.count;
           })();
 
           return (
             <Link
               key={item.area}
-              to={`/${slugify(selectedType || 'pg')}-in-${slugify(item.area)}-${slugify(item.city)}`}
+              to={`/${getTypeSlug(selectedType)}-in-${slugify(item.area)}-${slugify(item.city)}`}
               className="w-[180px] sm:w-[195px] flex-shrink-0 group bg-white rounded-xl overflow-hidden border border-slate-200 shadow-2xs hover:shadow-md transition-all duration-300 flex flex-col justify-between"
             >
               <div className="h-20 overflow-hidden relative">
@@ -1079,8 +1095,8 @@ export default function OurPropertyPage() {
   </section>
 )}
 
-{/* --- CAN'T DECIDE WHICH PG IS RIGHT FOR YOU CALLBACK FORM BANNER (SCREENSHOT 2) --- */}
-{!selectedCity && selectedType && (
+{/* --- CAN'T DECIDE WHICH STAY IS RIGHT FOR YOU CALLBACK FORM BANNER --- */}
+{!selectedCity && (
   <section className="py-10 px-4 md:px-8 bg-gradient-to-r from-teal-500/10 via-emerald-500/5 to-teal-500/10 border-b border-slate-200">
     <div className="max-w-7xl mx-auto bg-white rounded-3xl p-6 md:p-8 shadow-xl border border-teal-100 flex flex-col lg:flex-row items-center justify-between gap-8">
       <div className="flex-1">
@@ -1089,15 +1105,15 @@ export default function OurPropertyPage() {
           <span>Fast Bidding &amp; Custom Help</span>
         </div>
         <h2 className="text-2xl sm:text-3xl font-black text-slate-900 leading-tight">
-          Can't Decide Which {selectedType || 'PG'} is <span className="text-teal-600">Right for You?</span>
+          Can't Decide Which {selectedType ? selectedType : 'Property'} is <span className="text-teal-600">Right for You?</span>
         </h2>
         <p className="text-xs sm:text-sm text-slate-600 font-medium mt-2 max-w-lg">
-          Submit your details, bid your budget, and let Roomhy find the best matching {selectedType || 'PG'} for you.
+          Submit your details, bid your budget, and let Roomhy find the best matching {selectedType ? selectedType.toLowerCase() : 'stay'} for you.
         </p>
 
         <div className="mt-6 flex flex-wrap gap-4 text-xs font-extrabold text-slate-700">
           <div className="flex items-center gap-1.5"><Check className="w-4 h-4 text-teal-600" /> You Bid Your Budget</div>
-          <div className="flex items-center gap-1.5"><Check className="w-4 h-4 text-teal-600" /> Best Matching PGs</div>
+          <div className="flex items-center gap-1.5"><Check className="w-4 h-4 text-teal-600" /> Best Matching Stays</div>
           <div className="flex items-center gap-1.5"><Check className="w-4 h-4 text-teal-600" /> Zero Brokerage</div>
           <div className="flex items-center gap-1.5"><Check className="w-4 h-4 text-teal-600" /> 100% Verified</div>
         </div>
@@ -1107,7 +1123,7 @@ export default function OurPropertyPage() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            alert("Thank you! Our Roomhy advisor will contact you within 15 minutes with best matching PGs.");
+            alert("Thank you! Our Roomhy advisor will contact you within 15 minutes with best matching stays.");
           }}
           className="grid grid-cols-1 sm:grid-cols-2 gap-3"
         >
@@ -1153,7 +1169,7 @@ export default function OurPropertyPage() {
               className="w-full py-3 bg-teal-600 hover:bg-teal-700 text-white font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
             >
               <Send className="w-4 h-4" />
-              <span>Submit &amp; Find My {selectedType || 'PG'}</span>
+              <span>Submit &amp; Find My {selectedType ? selectedType : 'Property'}</span>
             </button>
           </div>
         </form>
@@ -1229,7 +1245,7 @@ export default function OurPropertyPage() {
         {getCityPopularAreas().map(area => (
           <Link
             key={area}
-            to={`/${slugify(selectedType || 'pg')}-in-${slugify(area)}-${slugify(selectedCity)}`}
+            to={`/${getTypeSlug(selectedType)}-in-${slugify(area)}-${slugify(selectedCity)}`}
             className="flex-shrink-0 px-4 py-2.5 bg-slate-50 hover:bg-teal-50 border border-slate-200 hover:border-teal-300 rounded-2xl text-xs font-extrabold text-slate-800 hover:text-teal-700 transition-all flex items-center gap-2"
           >
             <MapPin className="w-3.5 h-3.5 text-teal-600" />
@@ -1744,9 +1760,7 @@ export default function OurPropertyPage() {
                   ];
                   const bgImg = areaImages[idx % areaImages.length];
 
-                  const targetAreaUrl = selectedType
-                    ? `/${slugify(selectedType === 'PG' ? 'pg' : selectedType === 'Hostel' ? 'hostels' : selectedType === 'Co-living' ? 'co-living' : selectedType === 'Apartment' ? 'apartments' : selectedType)}-in-${aSlug}-${cSlug}`
-                    : `/properties-in-${aSlug}-${cSlug}`;
+                  const targetAreaUrl = `/${getTypeSlug(selectedType)}-in-${aSlug}-${cSlug}`;
 
                   return (
                     <Link

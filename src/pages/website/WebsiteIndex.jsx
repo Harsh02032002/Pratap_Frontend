@@ -12,6 +12,7 @@ import MobileHamburgerMenu from '../../components/website/MobileHamburgerMenu';
 import MobilePropertiesSection from '../../components/website/MobilePropertiesSection';
 import MobileVideoSection from '../../components/website/MobileVideoSection';
 import { fetchCities, fetchProperties, trackPropertyClick } from '../../utils/api';
+import useSEO from '../../hooks/useSEO';
 
 const cityAreas = {
   'Kota': ['Vigyan Nagar', 'Rajeev Gandhi Nagar', 'Indra Vihar', 'Mahaveer Nagar'],
@@ -188,6 +189,11 @@ const heroImages = [
 ];
 
 export default function WebsiteIndex() {
+  useSEO({ 
+    pageKey: 'home', 
+    fallbackTitle: 'Top PGs, Hostels & Co-living in India | Roomhy.com',
+    fallbackDescription: 'Discover 100% verified student PGs, hostels, and flats across India. Enjoy zero brokerage, fully furnished rooms, homemade meals, and easy budget bidding.'
+  });
   const navigate = useNavigate();
   const [cities, setCities] = useState(staticCities);
   const [cityAreasMap, setCityAreasMap] = useState(cityAreas);

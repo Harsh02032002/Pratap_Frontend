@@ -60,25 +60,25 @@ export default function WebsiteNavbar() {
       <div className="sticky top-0 z-50 flex flex-col">
         {/* Top Row: Main Navbar */}
         <nav className="bg-white border-b border-gray-100 shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 md:px-8">
+          <div className="w-full px-3 sm:px-4 md:px-6">
             <div className="flex items-center justify-between h-16 w-full">
               {/* Left: Logo */}
-              <div className="flex items-center">
+              <div className="flex-1 flex items-center justify-start">
                 <Link to="/" className="flex items-center space-x-2 group">
                   <img 
-                    src="/website/images/logoroomhy_cropped.jpg" 
+                    src="/website/roomhy_logo.jpeg" 
                     alt="Roomhy Logo" 
-                    className="h-8 md:h-10 w-auto transition-transform group-hover:scale-105"
+                    className="h-9 md:h-11 max-h-11 w-auto object-contain transition-transform group-hover:scale-105"
                     onError={(e) => {
                       e.target.onerror = null;
-                      e.target.src = '/website/images/logoroomhy.jpg';
+                      e.target.src = '/website/roomhy_logo.jpeg';
                     }}
                   />
                 </Link>
               </div>
 
               {/* Center: Navigation Links */}
-              <div className="hidden md:flex items-center justify-center space-x-6 text-sm font-semibold text-gray-700">
+              <div className="hidden md:flex flex-1 items-center justify-center space-x-6 text-sm font-semibold text-gray-700">
                 <Link to="/" className="hover:text-teal-600 transition-colors">Home</Link>
                 <div className="w-px h-5 bg-gray-200"></div>
                 <Link to="/properties" className="hover:text-teal-600 transition-colors">Properties</Link>
@@ -91,7 +91,7 @@ export default function WebsiteNavbar() {
               </div>
 
               {/* Right: Utilities */}
-              <div className="hidden md:flex items-center space-x-4 text-sm font-semibold text-gray-700">
+              <div className="hidden md:flex flex-1 items-center justify-end space-x-4 text-sm font-semibold text-gray-700">
                 <Link to="/list-property" className="flex items-center space-x-1.5 hover:text-teal-600 transition-colors px-3 py-1.5 border border-gray-200 rounded-lg hover:border-teal-500">
                   <Building2 className="w-4 h-4 text-teal-600" />
                   <span>List your property</span>

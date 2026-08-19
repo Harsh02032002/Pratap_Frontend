@@ -107,12 +107,12 @@ export default function WebsiteFooter() {
           <div className="md:col-span-4 flex flex-col items-center md:items-start text-center md:text-left">
             <Link to="/" className="inline-flex items-center gap-3 transition-transform hover:scale-105">
               <img
-                src="/website/images/logoroomhy_cropped.jpg"
-                alt="Roohmy"
-                className="h-10 w-auto"
+                src="/website/roomhy_logo.jpeg"
+                alt="Roomhy Logo"
+                className="h-10 md:h-12 w-auto object-contain"
                 onError={(e) => {
                   e.target.onerror = null;
-                  e.target.src = '/website/images/logoroomhy.jpg';
+                  e.target.src = '/website/roomhy_logo.jpeg';
                 }}
               />
             </Link>

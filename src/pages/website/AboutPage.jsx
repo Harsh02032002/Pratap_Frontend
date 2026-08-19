@@ -25,7 +25,11 @@ const valueColors = [
 const valueIcons = [Zap, Heart, Rocket, Shield];
 
 export default function AboutPage() {
-  useSEO({ pageKey: 'about', fallbackTitle: 'About Roomhy - Simple & Stress-Free Property Experience' });
+  useSEO({ 
+    pageKey: 'about', 
+    fallbackTitle: 'About Us | Zero Brokerage Student Stays | Roomhy.com',
+    fallbackDescription: "Learn about Roomhy.com's mission to provide 100% verified, broker-free student and professional living across India with transparent budget bidding."
+  });
   const [layoutSections, setLayoutSections] = useState([]);
   const [loading, setLoading] = useState(true);
 

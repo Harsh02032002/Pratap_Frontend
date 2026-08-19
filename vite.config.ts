@@ -64,7 +64,7 @@ export default defineConfig(({ mode }) => {
       }
       if (target === 'website') {
         return html
-          .replace(/<title>.*?<\/title>/, '<title>RoomHy.com - India\'s #1 PG, Hostel & Co-living Platform | Zero Brokerage</title>')
+          .replace(/<title>.*?<\/title>/, '<title>Top PGs, Hostels & Co-living in India | Roomhy.com</title>')
           .replace('</head>', '  <meta name="roomhy-app-target" content="website" />\n  </head>');
       }
       return html;

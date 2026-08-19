@@ -7,7 +7,11 @@ import { User, Mail, Phone, Lock, ArrowRight, CheckCircle2, Sparkles, Building2,
 import useSEO from "../../hooks/useSEO";
 
 export default function WebsiteSignup() {
-  useSEO({ pageKey: 'register', fallbackTitle: 'Create Roomhy Account - Sign Up Free' });
+  useSEO({ 
+    pageKey: 'register', 
+    fallbackTitle: 'Create an Account | Sign Up on Roomhy.com',
+    fallbackDescription: 'Sign up on Roomhy.com to discover verified student stays, place live bids on your budget, and connect directly with verified property owners.'
+  });
 
   useEffect(() => {
     if (window.location.pathname !== '/register') {

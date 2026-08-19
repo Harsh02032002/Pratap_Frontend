@@ -7,7 +7,11 @@ import { Mail, Lock, ArrowRight, ShieldCheck, UserCheck, Star, Eye, EyeOff } fro
 import useSEO from "../../hooks/useSEO";
 
 export default function WebsiteLogin() {
-  useSEO({ pageKey: 'login', fallbackTitle: 'Sign In to Roomhy' });
+  useSEO({ 
+    pageKey: 'login', 
+    fallbackTitle: 'Login to Your Account | Tenant & Owner | Roomhy.com',
+    fallbackDescription: 'Login to your Roomhy.com account to manage bookings, track live bids, connect directly with property owners, or access your owner dashboard.'
+  });
 
   useEffect(() => {
     if (window.location.pathname !== '/login') {

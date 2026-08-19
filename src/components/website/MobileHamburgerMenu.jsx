@@ -96,12 +96,12 @@ export default function MobileHamburgerMenu() {
         <div className="flex items-center justify-between p-4 border-b border-gray-100">
           <Link to="/" className="flex items-center gap-2" onClick={() => setIsOpen(false)}>
             <img 
-              src="/website/images/logoroomhy_cropped.jpg" 
-              alt="Roohmy Logo" 
-              className="h-8 w-auto"
+              src="/website/roomhy_logo.jpeg" 
+              alt="Roomhy Logo" 
+              className="h-9 w-auto object-contain"
               onError={(e) => {
                 e.target.onerror = null;
-                e.target.src = '/website/images/logoroomhy.jpg';
+                e.target.src = '/website/roomhy_logo.jpeg';
               }}
             />
           </Link>

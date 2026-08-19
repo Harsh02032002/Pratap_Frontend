@@ -9,7 +9,8 @@ import useSEO from "../../hooks/useSEO";
 export default function ContactPage() {
   useSEO({
     pageKey: "contact",
-    fallbackTitle: "Contact Roomhy - Get in Touch",
+    fallbackTitle: "Contact Us | 24/7 Support & Help | Roomhy.com",
+    fallbackDescription: "Get in touch with the Roomhy.com support team. Contact us for booking assistance, owner listings, cancellations, refunds, or general queries."
   });
 
   useEffect(() => {

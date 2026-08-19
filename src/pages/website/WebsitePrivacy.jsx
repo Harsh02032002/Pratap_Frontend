@@ -6,7 +6,11 @@ import { fetchJson } from "../../utils/api";
 import useSEO from "../../hooks/useSEO";
 
 export default function WebsitePrivacy() {
-  useSEO({ pageKey: 'privacy', fallbackTitle: 'Privacy Policy - Roomhy' });
+  useSEO({ 
+    pageKey: 'privacy', 
+    fallbackTitle: 'Privacy Policy | User Data Protection | Roomhy.com',
+    fallbackDescription: "Read Roomhy.com's privacy policy to understand how we collect, use, and protect your personal data, booking details, and browsing information securely."
+  });
   const [layoutSections, setLayoutSections] = useState([]);
   const [loading, setLoading] = useState(true);
 

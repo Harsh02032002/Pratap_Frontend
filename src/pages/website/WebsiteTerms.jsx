@@ -6,7 +6,11 @@ import { fetchJson } from "../../utils/api";
 import useSEO from "../../hooks/useSEO";
 
 export default function WebsiteTerms() {
-  useSEO({ pageKey: 'terms', fallbackTitle: 'Terms & Conditions - Roomhy Platform' });
+  useSEO({ 
+    pageKey: 'terms', 
+    fallbackTitle: 'Terms and Conditions | User Agreement | Roomhy.com',
+    fallbackDescription: "Review Roomhy.com's terms and conditions covering platform usage, booking rules, bidding policies, payments, and tenant-owner guidelines."
+  });
   const [layoutSections, setLayoutSections] = useState([]);
   const [loading, setLoading] = useState(true);
 

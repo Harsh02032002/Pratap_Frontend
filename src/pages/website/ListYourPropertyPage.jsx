@@ -8,7 +8,11 @@ import { getOwnerRuntimeSession } from '../../utils/propertyowner';
 import useSEO from '../../hooks/useSEO';
 
 export default function ListYourPropertyPage() {
-  useSEO({ pageKey: 'list-property', fallbackTitle: 'List Your Property on Roomhy - Zero Commission' });
+  useSEO({ 
+    pageKey: 'list-property', 
+    fallbackTitle: 'List Your Property for Free | Hostels & PGs | Roomhy.com',
+    fallbackDescription: 'List your PG, hostel, co-living space, or apartment on Roomhy.com for free. Connect directly with verified student tenants and maximize your occupancy.'
+  });
   const owner = getOwnerRuntimeSession();
 
   useEffect(() => {
