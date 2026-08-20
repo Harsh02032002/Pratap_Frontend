@@ -379,7 +379,9 @@ export default function Settings() {
         body: JSON.stringify({
           ownerLoginId: owner.loginId,
           requestType: "bank_details",
-          requestedChanges
+          requestedChanges,
+          bankProofUrl: bankProof.url,
+          bankProofName: bankProof.name,
         })
       });
       if (data.success) {
