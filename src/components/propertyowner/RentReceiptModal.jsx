@@ -22,7 +22,7 @@ export function buildReceiptHtml(r) {
   const originalRent = r.amount || r.rentAmount || 0;
   const penalty = r.penalty || 0;
   const electricity = r.electricity || 0;
-  const advanceCharge = r.advanceChargeAmount || r.advanceCharge || r.moveInCharges || r.moveInCharge || r.move_in_charges || 0;
+  const advanceCharge = r.advanceChargeAmount || r.advanceCharge || r.moveInCharges || r.moveInCharge || r.move_in_charges || r._raw?.advanceChargeAmount || r._raw?.invoiceId?.advanceChargeAmount || r._raw?.tenantId?.digitalCheckin?.agreementDetails?.advanceCharge || 0;
   const totalDue = originalRent + penalty + electricity + advanceCharge;
   const paidAmt = (r.paid && r.paid > 0) ? r.paid : (r.paidAmount || totalDue);
   const balance = Math.max(0, totalDue - paidAmt);
@@ -198,7 +198,7 @@ export function RentReceiptModal({ receipt, onClose }) {
   const originalRent = receipt.amount || receipt.rentAmount || 0;
   const penalty = receipt.penalty || 0;
   const electricity = receipt.electricity || 0;
-  const advanceCharge = receipt.advanceChargeAmount || receipt.advanceCharge || receipt.moveInCharges || receipt.moveInCharge || receipt.move_in_charges || 0;
+  const advanceCharge = receipt.advanceChargeAmount || receipt.advanceCharge || receipt.moveInCharges || receipt.moveInCharge || receipt.move_in_charges || receipt._raw?.advanceChargeAmount || receipt._raw?.invoiceId?.advanceChargeAmount || receipt._raw?.tenantId?.digitalCheckin?.agreementDetails?.advanceCharge || 0;
   // Always compute fresh from components — receipt.totalDue may be stale (saved before electricity was added)
   const totalDue = (originalRent + penalty + electricity + advanceCharge) || receipt.totalDue || 0;
   const paidAmt = receipt.paid ?? (receipt.paidAmount ?? originalRent);
