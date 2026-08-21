@@ -14,6 +14,23 @@ export default function DigitalCheckinTenantPayment() {
   const [otp, setOtp] = useState("");
   const [selectedMethod, setSelectedMethod] = useState("");
   const [loading, setLoading] = useState(false);
+  const [countdown, setCountdown] = useState(3);
+
+  useEffect(() => {
+    if (step === "success") {
+      const interval = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            window.location.href = "/tenant/tenantlogin";
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [step]);
 
   useEffect(() => {
     if (!token) return;
@@ -113,7 +130,23 @@ export default function DigitalCheckinTenantPayment() {
 
   if (step === "error") return wrap(<div style={{ textAlign: "center" }}><div style={{ fontSize: 40, marginBottom: 12 }}>❌</div><p style={{ color: "#dc2626", fontSize: 14 }}>{error}</p></div>);
 
-  if (step === "success") return wrap(<div style={{ textAlign: "center", padding: "16px 0" }}><div style={{ fontSize: 48, marginBottom: 12 }}>🎉</div><h2 style={{ color: "#111", marginBottom: 8 }}>Payment Successful!</h2><p style={{ color: "#6b7280", fontSize: 14, marginBottom: 24 }}>Your onboarding is complete. Login credentials will be sent to your email.</p><a href="/tenant/tenantlogin" style={{ display: "inline-block", background: "#1a237e", color: "#fff", padding: "12px 28px", borderRadius: 7, fontWeight: 700, textDecoration: "none", fontSize: 14 }}>Go to Tenant Portal</a></div>);
+  if (step === "success") return wrap(
+    <div style={{ textAlign: "center", padding: "16px 0" }}>
+      <div style={{ fontSize: 48, marginBottom: 12 }}>🎉</div>
+      <h2 style={{ color: "#111", marginBottom: 8 }}>Payment Successful!</h2>
+      <p style={{ color: "#6b7280", fontSize: 14, marginBottom: 16 }}>
+        Your onboarding is complete. Login credentials have been sent to your registered phone/email.
+      </p>
+      <p style={{ color: "#1a237e", fontSize: 13, fontWeight: 700, marginBottom: 24, background: "#e8eaf6", padding: "8px 14px", borderRadius: 6, display: "inline-block" }}>
+        Opening Tenant Login in {countdown} second{countdown !== 1 ? 's' : ''}...
+      </p>
+      <div>
+        <a href="/tenant/tenantlogin" style={{ display: "inline-block", background: "#1a237e", color: "#fff", padding: "12px 28px", borderRadius: 7, fontWeight: 700, textDecoration: "none", fontSize: 14 }}>
+          Go to Tenant Login Now
+        </a>
+      </div>
+    </div>
+  );
 
   if (step === "otp") return wrap(<>
     {error && <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", color: "#dc2626", padding: "10px 14px", borderRadius: 6, marginBottom: 16, fontSize: 13 }}>{error}</div>}

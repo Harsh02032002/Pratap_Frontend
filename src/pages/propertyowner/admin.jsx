@@ -24,7 +24,8 @@ import {
   Clock,
   AlertCircle,
   CheckCircle2,
-  XCircle
+  XCircle,
+  UserCog
 } from "lucide-react";
 import { StatCard } from "../../components/propertyowner/StatCard";
 import { MobileStatCard, MobileSectionCard } from "../../components/propertyowner/MobileComponents";
@@ -43,6 +44,7 @@ import {
 } from "../../utils/propertyowner";
 import { fetchRentDashboard } from "../../utils/rentCollectionApi";
 import { cacheGet, cacheSet } from "../../utils/cache";
+import { STAFF_HOME_PATH } from "../../utils/staffAccess";
 
 const _chartCache = new Map(); // loginId → { thisWeek, growth, timestamp }
 const CHART_CACHE_TTL = 7 * 60 * 1000; // 7 minutes
@@ -76,7 +78,7 @@ function MiniSparkline({ data, color, gradientId }) {
   if (!data?.length) return null;
   return (
     <div style={{ width: 80, height: 38, flexShrink: 0 }}>
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
         <AreaChart data={data} margin={{ top: 2, right: 0, bottom: 2, left: 0 }}>
           <defs>
             <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
@@ -1218,6 +1220,56 @@ export default function Admin() {
             ))}
           </div>
         </MobileSectionCard>
+
+        {/* 7b. Update Requests to Admin */}
+        {changeRequests.length > 0 && (
+          <MobileSectionCard
+            title="Update Requests to Admin"
+            actionText={changeRequests.length > 4 ? "View all" : undefined}
+            onAction={changeRequests.length > 4 ? () => window.location.href = '/propertyowner/update-requests' : undefined}
+          >
+            <div className="space-y-3">
+              {changeRequests.slice(0, 4).map((req, i) => {
+                const status = req.status || "Pending";
+                const isApproved = status === "Approved";
+                const isRejected = status === "Rejected";
+                const badgeClass = isApproved
+                  ? "bg-emerald-50 text-emerald-600"
+                  : isRejected
+                    ? "bg-rose-50 text-rose-600"
+                    : "bg-amber-50 text-amber-600";
+                const Icon = isApproved ? CheckCircle2 : isRejected ? XCircle : Clock;
+                return (
+                  <div key={req._id || i} className="border-b border-slate-50 last:border-0 pb-3 last:pb-0">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${badgeClass}`}>
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-[13px] font-bold text-slate-900 capitalize truncate">
+                            {(req.requestType || "profile").replace('_', ' ')} update
+                          </h4>
+                          <span className={`px-1.5 py-0.5 text-[8px] font-black rounded uppercase tracking-wider shrink-0 ${badgeClass}`}>
+                            {status}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-0.5 truncate">
+                          {Object.entries(req.requestedChanges || {}).map(([k, v]) => `${k}: ${v}`).join(", ")}
+                        </p>
+                      </div>
+                    </div>
+                    {isRejected && req.rejectionReason && (
+                      <p className="text-[11px] text-rose-600 mt-2 bg-rose-50 rounded-lg px-2.5 py-1.5">
+                        Reason: {req.rejectionReason}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </MobileSectionCard>
+        )}
 
         {/* 8. Recent Payments */}
         <MobileSectionCard title="Recent Payments" actionText="View history" onAction={() => window.location.href = '/propertyowner/collection-report'}>

@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
 import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerTenants } from "../../utils/propertyowner";
 import { fetchJson } from "../../utils/api";
-import { ShieldCheck, Search, AlertTriangle, CheckCircle2, BadgeCheck, CreditCard, Download, Printer } from "lucide-react";
+import { fetchPayments } from "../../utils/rentCollectionApi";
+import { ShieldCheck, Search, AlertTriangle, CheckCircle2, BadgeCheck, CreditCard, Download, Printer, Home } from "lucide-react";
 
 const fmt = (n) => "₹" + (Number(n || 0)).toLocaleString("en-IN");
 const OVERRIDES_KEY = "roomhy_security_deposit_overrides";
@@ -235,11 +236,28 @@ export default function SecurityDepositsPage() {
     } catch (_) {}
   }, [depositOverrides]);
 
+  const [moveInCharges, setMoveInCharges] = useState({});
+
   useEffect(() => {
     fetchOwnerTenants(owner.loginId)
       .then(data => setTenants(Array.isArray(data) ? data : []))
       .catch(() => setTenants([]))
       .finally(() => setLoading(false));
+  }, [owner.loginId]);
+
+  useEffect(() => {
+    fetchPayments(owner.loginId, 300)
+      .then(data => {
+        const map = {};
+        (data?.payments || []).forEach(p => {
+          const id = String(p.tenantId || "");
+          if (id && p.advanceChargeAmount > 0 && !map[id]) {
+            map[id] = { amount: p.advanceChargeAmount, paymentDate: p.paymentDate };
+          }
+        });
+        setMoveInCharges(map);
+      })
+      .catch(() => setMoveInCharges({}));
   }, [owner.loginId]);
 
   useEffect(() => {
@@ -293,10 +311,11 @@ export default function SecurityDepositsPage() {
           status,
           joinDate: merged.joinDate || merged.checkInDate || merged.createdAt || "",
           phone: merged.phone || "",
-          email: merged.email || ""
+          email: merged.email || "",
+          moveInCharge: moveInCharges[String(merged._id || merged.id || "")] || null
         };
       });
-  }, [tenants, depositOverrides]);
+  }, [tenants, depositOverrides, moveInCharges]);
 
   const filtered = useMemo(() => {
     const q = debouncedSearch.trim().toLowerCase();
@@ -387,6 +406,27 @@ export default function SecurityDepositsPage() {
     } catch (err) {
       console.warn("Could not persist deposit update, keeping local confirmation:", err?.message);
     }
+  };
+
+  const viewReceipt = (d) => {
+    setReceipt({
+      receiptId: makeReceiptId(d._id),
+      tenantId: d._id,
+      tenantName: d.name,
+      roomNo: d.roomNo,
+      propertyName: d.propertyTitle || d.property?.title || "Property",
+      required: d.required,
+      previousPaid: 0,
+      paidNow: d.paid,
+      addedAmount: d.paid,
+      balance: d.balance,
+      paymentMode: "full",
+      stage: d.stage,
+      kycStatus: d.kycStatus,
+      agreementSigned: d.agreementSigned,
+      issuedAt: new Date().toISOString()
+    });
+    setReceiptModalOpen(true);
   };
 
   const openReceiptWindow = (receiptData) => {
@@ -516,8 +556,8 @@ export default function SecurityDepositsPage() {
                     <td className="px-6 py-4 font-bold text-foreground">Room {d.roomNo}</td>
                     <td className="px-6 py-4 text-muted-foreground">{d.required > 0 ? fmt(d.required) : <span className="italic text-muted-foreground/60">Not set</span>}</td>
                     <td className="px-6 py-4">
-                      <div className="font-bold text-emerald-600">{fmt(d.paid)}</div>
-                      <div className="text-[11px] text-muted-foreground">{paidPct}% of deposit</div>
+                      <div className="font-bold text-emerald-600">{fmt(d.moveInCharge ? d.moveInCharge.amount : d.paid)}</div>
+                      <div className="text-[11px] text-muted-foreground">{d.moveInCharge ? "Move-in charge paid" : `${paidPct}% of deposit`}</div>
                     </td>
                     <td className="px-6 py-4 font-semibold text-rose-600">{d.balance > 0 ? fmt(d.balance) : <span className="text-emerald-600">—</span>}</td>
                     <td className="px-6 py-4 text-muted-foreground">
@@ -525,13 +565,6 @@ export default function SecurityDepositsPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col gap-1.5">
-                        <span className={`inline-flex w-fit px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${toneClasses[st.tone]}`}>
-                          {st.label}
-                        </span>
-                        <div className="flex flex-wrap gap-1.5 text-[10.5px]">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border ${d.kycStatus ? "bg-blue-50 text-blue-600 border-blue-100" : "bg-muted text-muted-foreground border-border"}`}>
-                            <BadgeCheck className="size-3" /> {d.kycStatus || "KYC pending"}
-                          </span>
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border ${d.agreementSigned ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-muted text-muted-foreground border-border"}`}>
                             <CheckCircle2 className="size-3" /> {d.agreementSigned ? "Agreement signed" : "Agreement pending"}
                           </span>
