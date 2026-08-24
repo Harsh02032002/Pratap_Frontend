@@ -572,8 +572,7 @@ export default function SecurityDepositsPage() {
                             <CreditCard className="size-3" /> {d.stage === "complete" ? "Deposit complete" : d.stage === "partial" ? "Deposit partial" : "Deposit none"}
                           </span>
                         </div>
-                      </div>
-                    </td>
+                      </td>
                     <td className="px-6 py-4 text-right">
                       <button
                         onClick={() => openPaymentModal(d)}
