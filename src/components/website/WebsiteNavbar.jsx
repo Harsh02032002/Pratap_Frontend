@@ -78,10 +78,12 @@ export default function WebsiteNavbar() {
               </div>
 
               {/* Center: Navigation Links */}
-              <div className="hidden md:flex flex-1 items-center justify-center space-x-6 text-sm font-semibold text-gray-700">
+              <div className="hidden md:flex flex-1 items-center justify-center space-x-5 text-sm font-semibold text-gray-700">
                 <Link to="/" className="hover:text-teal-600 transition-colors">Home</Link>
                 <div className="w-px h-5 bg-gray-200"></div>
                 <Link to="/properties" className="hover:text-teal-600 transition-colors">Properties</Link>
+                <div className="w-px h-5 bg-gray-200"></div>
+                <Link to="/cities" className={`hover:text-teal-600 transition-colors ${pathname.startsWith('/cities') ? 'text-teal-600 font-extrabold' : ''}`}>Cities</Link>
                 <div className="w-px h-5 bg-gray-200"></div>
                 <Link to="/faq" className="hover:text-teal-600 transition-colors">FAQ</Link>
                 <div className="w-px h-5 bg-gray-200"></div>

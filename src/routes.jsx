@@ -353,7 +353,10 @@ const routeEntries = [
   ["/blogs", "./pages/website/AboutPage.jsx"],
   ["/careers", "./pages/ComingSoon.jsx"],
   ["/owner-dashboard", "./pages/propertyowner/admin.jsx"],
-  ["/tenant-dashboard", "./pages/tenant/tenantdashboard.jsx"],
+  ["/cities", "./pages/website/AllCitiesPage.jsx"],
+  ["/all-cities", "./pages/website/AllCitiesPage.jsx"],
+  ["/localities", "./pages/website/AllLocalitiesPage.jsx"],
+  ["/all-localities", "./pages/website/AllLocalitiesPage.jsx"],
   ["/properties", "./pages/website/OurPropertyPage.jsx"],
 
   // Dynamic property listing/search routes
