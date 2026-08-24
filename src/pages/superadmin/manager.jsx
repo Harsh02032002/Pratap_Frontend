@@ -617,9 +617,15 @@ export default function Manager() {
                           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Area</label>
                           <select value={formArea} onChange={e => setFormArea(e.target.value)} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all outline-none shadow-sm appearance-none">
                              <option value="">Select Area</option>
-                             {areas.filter(a => a.cityName === formCity || a.city === formCity).map(a => (
-                               <option key={a.id || a.name} value={a.name}>{a.name}</option>
-                             ))}
+                             {areas
+                                .filter(a => {
+                                  if (!formCity) return true;
+                                  const aCityName = typeof a.city === 'object' ? (a.city?.name || '') : (a.city || '');
+                                  return a.cityName === formCity || aCityName === formCity;
+                                })
+                                .map(a => (
+                                  <option key={a._id || a.id || a.name} value={a.name}>{a.name}</option>
+                                ))}
                           </select>
                        </div>
 

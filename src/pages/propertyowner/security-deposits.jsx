@@ -3,7 +3,7 @@ import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLay
 import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerTenants } from "../../utils/propertyowner";
 import { fetchJson } from "../../utils/api";
 import { fetchPayments } from "../../utils/rentCollectionApi";
-import { ShieldCheck, Search, AlertTriangle, CheckCircle2, Download, Printer, Home } from "lucide-react";
+import { ShieldCheck, Search, AlertTriangle, CheckCircle2, CreditCard, Download, Printer, Home } from "lucide-react";
 
 const fmt = (n) => "₹" + (Number(n || 0)).toLocaleString("en-IN");
 const OVERRIDES_KEY = "roomhy_security_deposit_overrides";
@@ -235,6 +235,21 @@ export default function SecurityDepositsPage() {
   }, [owner.loginId]);
 
   useEffect(() => {
+    fetchPayments(owner.loginId, 300)
+      .then(data => {
+        const map = {};
+        (data?.payments || []).forEach(p => {
+          const id = String(p.tenantId || "");
+          if (id && p.advanceChargeAmount > 0 && !map[id]) {
+            map[id] = { amount: p.advanceChargeAmount, paymentDate: p.paymentDate };
+          }
+        });
+        setMoveInCharges(map);
+      })
+      .catch(() => setMoveInCharges({}));
+  }, [owner.loginId]);
+
+  useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300);
     return () => clearTimeout(timer);
   }, [search]);
@@ -260,8 +275,14 @@ export default function SecurityDepositsPage() {
       .filter(t => !t.checkoutDate)
       .map(t => {
         const merged = mergeTenantDepositState(t);
+        const moveInCharge = moveInCharges[String(merged._id || merged.id || "")] || null;
         const required = Number(merged.securityDepositTotal || 0);
-        const paid = Number(merged.securityDepositPaid || 0);
+        const depositPaid = Number(merged.securityDepositPaid || 0);
+        // A tenant's move-in charge often covers (or exceeds) their configured
+        // deposit in one lump payment — when it's the bigger of the two, that's
+        // the real amount held from this tenant, not the separately-tracked
+        // deposit field. Whichever is larger drives Paid/Balance/Total Held.
+        const paid = Math.max(depositPaid, Number(moveInCharge?.amount || 0));
         const balance = Number(merged.securityDepositBalance ?? Math.max(0, required - paid));
         const stage = required === 0 ? "none" : paid <= 0 ? "none" : paid >= required ? "complete" : "partial";
 
@@ -277,7 +298,7 @@ export default function SecurityDepositsPage() {
           joinDate: merged.joinDate || merged.checkInDate || merged.createdAt || "",
           phone: merged.phone || "",
           email: merged.email || "",
-          moveInCharge: moveInCharges[String(merged._id || merged.id || "")] || null
+          moveInCharge
         };
       });
   }, [tenants, depositOverrides, moveInCharges]);
@@ -520,8 +541,15 @@ export default function SecurityDepositsPage() {
                     <td className="px-6 py-4 font-bold text-foreground">Room {d.roomNo}</td>
                     <td className="px-6 py-4 text-muted-foreground">{d.required > 0 ? fmt(d.required) : <span className="italic text-muted-foreground/60">Not set</span>}</td>
                     <td className="px-6 py-4">
-                      <div className="font-bold text-emerald-600">{fmt(d.moveInCharge ? d.moveInCharge.amount : d.paid)}</div>
-                      <div className="text-[11px] text-muted-foreground">{d.moveInCharge ? "Move-in charge paid" : `${paidPct}% of deposit`}</div>
+                      {/* d.paid is already the larger of deposit-paid vs move-in
+                          charge (computed once in the deposits memo above) — the
+                          same value "Total Held" sums, so this always matches. */}
+                      <div className="font-bold text-emerald-600">{fmt(d.paid)}</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        {d.moveInCharge && d.moveInCharge.amount > Number(d.securityDepositPaid || 0)
+                          ? "Covered by move-in charge"
+                          : `${paidPct}% of deposit`}
+                      </div>
                     </td>
                     <td className="px-6 py-4 font-semibold text-rose-600">{d.balance > 0 ? fmt(d.balance) : <span className="text-emerald-600">—</span>}</td>
                     <td className="px-6 py-4 text-muted-foreground">
@@ -534,6 +562,12 @@ export default function SecurityDepositsPage() {
                         </span>
                         <span className={`inline-flex items-center gap-1 w-fit px-2 py-0.5 rounded-full border text-[10.5px] ${d.moveInCharge ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-muted text-muted-foreground border-border"}`}>
                           <Home className="size-3" /> {d.moveInCharge ? `Move-in ₹${d.moveInCharge.amount.toLocaleString("en-IN")} paid` : "Move-in not paid"}
+                        </span>
+                        <span className={`inline-flex items-center gap-1 w-fit px-2 py-0.5 rounded-full border text-[10.5px] ${d.agreementSigned ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-muted text-muted-foreground border-border"}`}>
+                          <CheckCircle2 className="size-3" /> {d.agreementSigned ? "Agreement signed" : "Agreement pending"}
+                        </span>
+                        <span className={`inline-flex items-center gap-1 w-fit px-2 py-0.5 rounded-full border text-[10.5px] ${d.stage === "complete" ? "bg-emerald-50 text-emerald-600 border-emerald-100" : d.stage === "partial" ? "bg-amber-50 text-amber-600 border-amber-100" : "bg-rose-50 text-rose-600 border-rose-100"}`}>
+                          <CreditCard className="size-3" /> {d.stage === "complete" ? "Deposit complete" : d.stage === "partial" ? "Deposit partial" : "Deposit none"}
                         </span>
                       </div>
                     </td>

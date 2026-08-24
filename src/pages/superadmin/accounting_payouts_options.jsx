@@ -35,12 +35,16 @@ export default function PayoutsOptions() {
     finally { setLoading(false); }
   };
 
+  const resolveBankName = (owner) => owner?.profile?.bankName || owner?.bankName || owner?.checkinBankName || "";
+  const resolveAccountNumber = (owner) => owner?.profile?.accountNumber || owner?.accountNumber || owner?.checkinBankAccountNumber || "";
+  const resolveIfscCode = (owner) => owner?.profile?.ifscCode || owner?.ifscCode || owner?.checkinIfscCode || "";
+
   const openEdit = (owner) => {
     setEditingOwner(owner);
-    setPayoutMode(owner.profile?.payoutMode || "manual");
-    setBankName(owner.profile?.bankName || "");
-    setAccountNumber(owner.profile?.accountNumber || "");
-    setIfscCode(owner.profile?.ifscCode || "");
+    setPayoutMode(owner?.profile?.payoutMode || "manual");
+    setBankName(resolveBankName(owner));
+    setAccountNumber(resolveAccountNumber(owner));
+    setIfscCode(resolveIfscCode(owner));
     setSuccessMsg("");
     setErrorMsg("");
   };
@@ -77,8 +81,8 @@ export default function PayoutsOptions() {
   );
 
   const totalWallet = owners.reduce((s, o) => s + (o.walletBalance || 0), 0);
-  const withBank = owners.filter(o => o.profile?.accountNumber).length;
-  const autoCount = owners.filter(o => o.profile?.payoutMode === "auto").length;
+  const withBank = owners.filter(o => resolveAccountNumber(o)).length;
+  const autoCount = owners.filter(o => o?.profile?.payoutMode === "auto").length;
 
   return (
     <div className="space-y-6">
@@ -207,9 +211,9 @@ export default function PayoutsOptions() {
                     </td>
                     <td className="py-3 text-center font-bold text-slate-700">{fmt(o.walletBalance)}</td>
                     <td className="py-3 text-center">
-                      {o.profile?.accountNumber ? (
+                      {resolveAccountNumber(o) ? (
                         <p className="text-[9px] font-mono font-bold text-slate-600 bg-slate-50 px-2 py-1 rounded border border-slate-100 shadow-sm inline-block">
-                          {o.profile.bankName || "Bank"} ••••{String(o.profile.accountNumber).slice(-4)}
+                          {(resolveBankName(o) || "Bank")} ••••{String(resolveAccountNumber(o)).slice(-4)}
                         </p>
                       ) : (
                         <span className="text-[8px] font-bold px-2 py-0.5 rounded-lg border bg-rose-50 text-rose-600 border-rose-100 uppercase">

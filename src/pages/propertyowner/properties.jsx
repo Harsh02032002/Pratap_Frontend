@@ -575,7 +575,7 @@ function PropertyEditModal({ property, owner, apiBase, onClose, onSuccess }) {
       const base = typeof getApiBase === "function" ? getApiBase() : apiBase;
       const res = await fetch(`${base}/api/properties/${property._id}/owner-edit-request`, {
         method:  "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeader() },
         body:    JSON.stringify({ updatedData: payload, reason: form.reason, ownerLoginId: owner?.loginId }),
       });
       const json = await res.json();

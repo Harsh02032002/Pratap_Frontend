@@ -129,6 +129,8 @@ const routeEntries = [
   ["/superadmin/website-db", "./pages/superadmin/website-db.jsx"],
   ["/superadmin/website", "./pages/superadmin/website.jsx"],
   ["/superadmin/websiteenq", "./pages/superadmin/websiteenq.jsx"],
+  ["/superadmin/website-editor", "./pages/superadmin/WebsiteEditor.jsx"],
+  ["/superadmin/seo", "./pages/superadmin/WebsiteEditor.jsx"],
   ["/website-editor", "./pages/superadmin/WebsiteEditor.jsx"],
   ["/superadmin/user-overview", "./pages/superadmin/user-overview.jsx"],
   ["/superadmin/property-overview", "./pages/superadmin/property-overview.jsx"],
@@ -138,6 +140,10 @@ const routeEntries = [
 
   // Employee Routes (dynamically mapped to superadmin components)
   ["/employee/index", "./pages/employee/index.jsx"],
+  ["/employee/visit", "./pages/employee/visit.jsx"],
+  ["/employee/visits", "./pages/employee/visit.jsx"],
+  ["/employee/visit-report", "./pages/employee/visit.jsx"],
+  ["/employee/visit-reports", "./pages/employee/visit.jsx"],
 
 
   // Property Owner Routes
@@ -193,7 +199,6 @@ const routeEntries = [
   ["/hostelowner/reports", "./pages/owner-panel/reports.jsx"],
 
   // Tenant Routes
-  ["/tenant/tenantagreement", "./pages/tenant/tenantagreement.jsx"],
   ["/tenant/tenantchat", "./pages/tenant/tenantchat.jsx"],
   ["/tenant/tenantcomplints", "./pages/tenant/tenantcomplints.jsx"],
   ["/tenant/tenantdashboard", "./pages/tenant/tenantdashboard.jsx"],
@@ -312,28 +317,69 @@ const routeEntries = [
   ["/about-us", "./pages/website/AboutPage.jsx"],
   ["/contact-us", "./pages/website/ContactPage.jsx"],
   ["/list-property", "./pages/website/ListYourPropertyPage.jsx"],
+  ["/post-property", "./pages/website/ListYourPropertyPage.jsx"],
+  ["/website/post-property", "./pages/website/ListYourPropertyPage.jsx"],
+  ["/website/list-property", "./pages/website/ListYourPropertyPage.jsx"],
   ["/login", "./pages/website/WebsiteLogin.jsx"],
   ["/register", "./pages/website/WebsiteSignup.jsx"],
   ["/faq", "./pages/website/FAQPage.jsx"],
   ["/privacy-policy", "./pages/website/WebsitePrivacy.jsx"],
   ["/terms-and-conditions", "./pages/website/WebsiteTerms.jsx"],
 
+  // Target SEO URL landing routes: /{property-type}-in-{area}-{city}
+  ["/pg-in-:locationSlug", "./pages/website/OurPropertyPage.jsx"],
+  ["/hostels-in-:locationSlug", "./pages/website/OurPropertyPage.jsx"],
+  ["/hostel-in-:locationSlug", "./pages/website/OurPropertyPage.jsx"],
+  ["/co-living-in-:locationSlug", "./pages/website/OurPropertyPage.jsx"],
+  ["/coliving-in-:locationSlug", "./pages/website/OurPropertyPage.jsx"],
+  ["/apartments-in-:locationSlug", "./pages/website/OurPropertyPage.jsx"],
+  ["/apartment-in-:locationSlug", "./pages/website/OurPropertyPage.jsx"],
+  ["/properties-in-:locationSlug", "./pages/website/OurPropertyPage.jsx"],
+
+  // Static & Clean Alias Routes (Matching Core Static Pages)
+  ["/about-us", "./pages/website/AboutPage.jsx"],
+  ["/contact-us", "./pages/website/ContactPage.jsx"],
+  ["/list-property", "./pages/website/ListYourPropertyPage.jsx"],
+  ["/login", "./pages/website/WebsiteLogin.jsx"],
+  ["/register", "./pages/website/WebsiteSignup.jsx"],
+  ["/faq", "./pages/website/FAQPage.jsx"],
+  ["/privacy-policy", "./pages/website/WebsitePrivacy.jsx"],
+  ["/terms-and-conditions", "./pages/website/WebsiteTerms.jsx"],
+  ["/fast-bidding", "./pages/website/FastBiddingPage.jsx"],
+  ["/my-stays", "./pages/website/WebsiteMystays.jsx"],
+  ["/refund-request", "./pages/website/WebsiteRefundRequest.jsx"],
+  ["/cancellation", "./pages/website/WebsiteCancellation.jsx"],
+  ["/refund-policy", "./pages/website/WebsiteRefund.jsx"],
+  ["/blogs", "./pages/website/AboutPage.jsx"],
+  ["/careers", "./pages/ComingSoon.jsx"],
+  ["/owner-dashboard", "./pages/propertyowner/admin.jsx"],
+  ["/tenant-dashboard", "./pages/tenant/tenantdashboard.jsx"],
+  ["/properties", "./pages/website/OurPropertyPage.jsx"],
+
   // Dynamic property listing/search routes
   ["/pg", "./pages/website/OurPropertyPage.jsx"],
+  ["/pg-in-:slug", "./pages/website/OurPropertyPage.jsx"],
   ["/pg/:city", "./pages/website/OurPropertyPage.jsx"],
   ["/pg/:city/:area", "./pages/website/OurPropertyPage.jsx"],
   ["/hostels", "./pages/website/OurPropertyPage.jsx"],
+  ["/hostels-in-:slug", "./pages/website/OurPropertyPage.jsx"],
   ["/hostels/:city", "./pages/website/OurPropertyPage.jsx"],
   ["/hostels/:city/:area", "./pages/website/OurPropertyPage.jsx"],
   ["/co-living", "./pages/website/OurPropertyPage.jsx"],
+  ["/co-living-in-:slug", "./pages/website/OurPropertyPage.jsx"],
   ["/co-living/:city", "./pages/website/OurPropertyPage.jsx"],
   ["/co-living/:city/:area", "./pages/website/OurPropertyPage.jsx"],
   ["/apartments", "./pages/website/OurPropertyPage.jsx"],
+  ["/apartments-in-:slug", "./pages/website/OurPropertyPage.jsx"],
   ["/apartments/:city", "./pages/website/OurPropertyPage.jsx"],
   ["/apartments/:city/:area", "./pages/website/OurPropertyPage.jsx"],
   ["/property", "./pages/website/OurPropertyPage.jsx"],
+  ["/properties-in-:slug", "./pages/website/OurPropertyPage.jsx"],
   ["/property/:city", "./pages/website/OurPropertyPage.jsx"],
   ["/property/:city/:area", "./pages/website/OurPropertyPage.jsx"],
+
+  // Hierarchical Property Detail Route: /{type}/{city}/{area}/{propertySlug}
+  ["/:type/:city/:area/:propertySlug", "./pages/website/PropertyDetailsPage.jsx"],
 
   ["/website/about", "./pages/website/AboutPage.jsx"],
   ["/website/contact", "./pages/website/ContactPage.jsx"],
@@ -366,6 +412,10 @@ const routeEntries = [
   ["/website/index", "./HomePage.jsx"],
   ["/website/$slug", "./pages/website/DynamicPage.jsx"],
   ["/index", "./HomePage.jsx"],
+  ["/sitemap.xml", "./pages/website/SitemapViewer.jsx"],
+  // General location routes (e.g. /kota, /kota/talwandi) - placed right before home/catchall
+  ["/:city", "./pages/website/OurPropertyPage.jsx"],
+  ["/:city/:area", "./pages/website/OurPropertyPage.jsx"],
   ["/coming-soon", "./pages/ComingSoon.jsx"],
   ["/", "./HomePage.jsx"],
   ["/propertyowner/room-photos", "./pages/propertyowner/room-photos.jsx"],
@@ -391,6 +441,25 @@ const routeEntries = [
   ["/manager/dashboard", "./pages/manager/dashboard.jsx"],
 ];
 
+const lazyWithRetry = (importFn) =>
+  lazy(async () => {
+    const storageKey = 'chunk_reload_attempted';
+    try {
+      const module = await importFn();
+      sessionStorage.removeItem(storageKey);
+      return module;
+    } catch (error) {
+      console.warn('Failed to load dynamic chunk module, auto-refreshing page:', error);
+      const isRefreshed = sessionStorage.getItem(storageKey);
+      if (!isRefreshed) {
+        sessionStorage.setItem(storageKey, 'true');
+        window.location.reload();
+        return new Promise(() => {});
+      }
+      throw error;
+    }
+  });
+
 const buildRouteElement = (modulePath) => {
   const loader = allModules[modulePath];
 
@@ -398,7 +467,7 @@ const buildRouteElement = (modulePath) => {
     throw new Error(`Missing route module: ${modulePath}`);
   }
 
-  const Component = lazy(loader);
+  const Component = lazyWithRetry(loader);
   return <Component />;
 };
 

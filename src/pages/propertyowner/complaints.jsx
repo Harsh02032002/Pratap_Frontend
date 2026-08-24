@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerEmployees, getActiveOwnerPropertyId } from "../../utils/propertyowner";
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerEmployees, getActiveOwnerPropertyId, fetchOwnerProperties } from "../../utils/propertyowner";
 import { fetchJson } from "../../utils/api";
 import { cacheGet, cacheSet, cacheInvalidate } from "../../utils/cache";
-import { AlertCircle, Search, Loader2 } from "lucide-react";
+import { AlertCircle, Search, Loader2, Building2 } from "lucide-react";
 import { MobileEmptyState } from "../../components/propertyowner/MobileComponents";
 import toast from "react-hot-toast";
 
@@ -29,6 +29,7 @@ export default function Complaints() {
   const [search, setSearch] = useState("");
   const [complaints, setComplaints] = useState([]);
   const [staffList, setStaffList] = useState([]);
+  const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
@@ -55,6 +56,7 @@ export default function Complaints() {
         setComplaints(cachedComp);
         setLoading(false);
         fetchOwnerEmployees(owner.loginId).then(setStaffList).catch(() => {});
+        fetchOwnerProperties(owner.loginId).then(setProperties).catch(() => {});
         return;
       }
 
@@ -77,6 +79,25 @@ export default function Complaints() {
         setStaffList(staff);
       } catch {
         // Staff list unavailable — assign dropdown will be empty, not a blocker
+      }
+      // Fetch properties for property name mapping
+      try {
+        const props = await fetchOwnerProperties(owner.loginId);
+        setProperties(props);
+
+        // DEBUG: Log staff structure to diagnose property assignment
+        const staff = await fetchOwnerEmployees(owner.loginId);
+        if (staff.length > 0) {
+          console.log("Staff data structure:", {
+            firstStaff: staff[0],
+            hasAssignedProperty: !!staff[0]?.assignedProperty,
+            hasAssignedPropertyId: !!staff[0]?.assignedPropertyId,
+            hasAssignedProperties: !!staff[0]?.assignedProperties,
+            allStaffKeys: Object.keys(staff[0] || {})
+          });
+        }
+      } catch {
+        // Properties unavailable — will show property IDs instead
       }
     };
     fetchData();
@@ -177,12 +198,58 @@ export default function Complaints() {
     }
   };
 
+  const activePropertyId = getActiveOwnerPropertyId();
+  const showPropertyColumn = !activePropertyId;
+
+  const getPropertyName = (propId) => {
+    if (!propId) return "—";
+    const prop = properties.find(p => String(p._id) === String(propId));
+    return prop?.title || prop?.propertyName || "Unknown";
+  };
+
+  const getStaffForProperty = (propId) => {
+    if (!propId) return staffList;
+
+    // STRICT filtering: Only show staff assigned to THIS property
+    // Checks: assignedProperty, assignedPropertyId, assignedProperties[0]
+    return staffList.filter(s => {
+      const staffPropId = s.assignedProperty || s.assignedPropertyId;
+      const staffPropFromArray = Array.isArray(s.assignedProperties) && s.assignedProperties[0]
+        ? (s.assignedProperties[0]._id || s.assignedProperties[0].id || s.assignedProperties[0])
+        : null;
+
+      const effectiveStaffPropId = staffPropId || staffPropFromArray;
+
+      // If staff has no property assigned, exclude them (strict mode)
+      if (!effectiveStaffPropId) return false;
+
+      // Only return staff from this specific property
+      return String(effectiveStaffPropId) === String(propId);
+    });
+    // NO FALLBACK - if no staff match, return empty array (user will see empty dropdown)
+  };
+
+  const getStaffForSelectedComplaints = () => {
+    const selectedComplaints = filtered.filter(c => selectedIds.has(c._id));
+    const propertyIds = new Set(selectedComplaints.map(c => String(c.propertyId || c.property || "")));
+
+    // If all selected complaints are from the same property, show staff for that property
+    if (propertyIds.size === 1 && Array.from(propertyIds)[0]) {
+      const propId = Array.from(propertyIds)[0];
+      const propertyStaff = getStaffForProperty(propId);
+      // Return property staff if available, otherwise all staff
+      return propertyStaff;
+    }
+    // If from different properties or no property, show all staff (mixed selection)
+    return staffList;
+  };
+
   const filtered = complaints.filter(c => {
     const cStatus = (c.status || "Open").toLowerCase().replace(" ", "-");
     const matchesTab = tab === "all" || cStatus === tab || (tab === "in-progress" && cStatus === "taken");
     const term = search.toLowerCase();
-    const matchesSearch = !search || 
-      (c.tenantName || "").toLowerCase().includes(term) || 
+    const matchesSearch = !search ||
+      (c.tenantName || "").toLowerCase().includes(term) ||
       (c.category || "").toLowerCase().includes(term) ||
       (c.description || "").toLowerCase().includes(term);
     return matchesTab && matchesSearch;
@@ -240,6 +307,7 @@ export default function Complaints() {
                      />
                   </th>
                   <th className="px-4 py-3 font-semibold">Tenant</th>
+                  {showPropertyColumn && <th className="px-4 py-3 font-semibold">Property</th>}
                   <th className="px-4 py-3 font-semibold">Room</th>
                   <th className="px-4 py-3 font-semibold">Category</th>
                   <th className="px-4 py-3 font-semibold">Priority</th>
@@ -250,7 +318,7 @@ export default function Complaints() {
                 </tr></thead>
                 <tbody className="divide-y divide-border">
                   {filtered.length === 0 ? (
-                     <tr><td colSpan="9" className="px-4 py-8 text-center text-muted-foreground">No complaints found.</td></tr>
+                     <tr><td colSpan={showPropertyColumn ? "10" : "9"} className="px-4 py-8 text-center text-muted-foreground">No complaints found.</td></tr>
                   ) : filtered.map(c => (
                     <tr key={c._id} className="hover:bg-muted/40 transition-colors cursor-pointer"
                       onClick={() => {
@@ -278,6 +346,14 @@ export default function Complaints() {
                         {c.tenantName}
                         {c.escalated && <span className="ml-2 text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full font-bold">ESCALATED</span>}
                       </td>
+                      {showPropertyColumn && (
+                        <td className="px-4 py-3 text-sm">
+                          <div className="flex items-center gap-1.5">
+                            <Building2 className="size-4 text-blue-600" />
+                            <span className="font-medium text-blue-900">{getPropertyName(c.propertyId || c.property)}</span>
+                          </div>
+                        </td>
+                      )}
                       <td className="px-4 py-3 text-muted-foreground">{c.roomNo}</td>
                       <td className="px-4 py-3 text-foreground">{c.category}</td>
                       <td className="px-4 py-3">
@@ -288,13 +364,13 @@ export default function Complaints() {
                       </td>
                       <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                         {c.status !== "Resolved" ? (
-                          <select 
-                            value={c.assignedStaffId || ""} 
+                          <select
+                            value={c.assignedStaffId || ""}
                             onChange={(e) => assignStaff(c._id, e.target.value)}
                             className="bg-muted border border-border text-[11px] rounded px-2 py-1 outline-none"
                           >
                             <option value="">-- Assign Staff --</option>
-                            {staffList.map(s => <option key={s._id} value={s._id}>{s.name} ({s.role})</option>)}
+                            {getStaffForProperty(c.propertyId || c.property).map(s => <option key={s._id} value={s._id}>{s.name} ({s.role})</option>)}
                           </select>
                         ) : (
                           <span className="text-[11.5px] font-medium text-muted-foreground">{c.assignedStaffName || "Unassigned"}</span>
@@ -446,7 +522,7 @@ export default function Complaints() {
                 className="bg-slate-800 border border-slate-700 text-white text-[11px] font-bold rounded-xl px-3 py-2 outline-none cursor-pointer"
               >
                 <option value="">-- Select Staff --</option>
-                {staffList.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
+                {getStaffForSelectedComplaints().map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
               </select>
             </div>
             <button

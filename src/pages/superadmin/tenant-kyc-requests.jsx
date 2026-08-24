@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { CheckCircle, XCircle, Clock, Eye, AlertTriangle, Search } from "lucide-react";
 import { PageHeader } from "../../components/superadmin/PageHeader";
+import { fetchJson, getApiBase } from "../../utils/api";
 
 export default function TenantKycRequestsPage() {
   // Stable primitive read of the logged-in superadmin's ID — a fresh object
@@ -37,8 +38,7 @@ export default function TenantKycRequestsPage() {
     setLoading(true);
     try {
       const statusParam = filter !== "All" ? `?status=${filter}` : "";
-      const res = await fetch(`/api/tenant-kyc-requests${statusParam}`);
-      const data = await res.json();
+      const data = await fetchJson(`/api/tenant-kyc-requests${statusParam}`);
       if (data.success) {
         setRequests(data.data || []);
       }
@@ -71,16 +71,14 @@ export default function TenantKycRequestsPage() {
     const { type, request } = confirmModal;
     setSubmitting(true);
     try {
-      const res = await fetch(`/api/tenant-kyc-requests/${request._id}/${type}`, {
+      const data = await fetchJson(`/api/tenant-kyc-requests/${request._id}/${type}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
           type === "approve"
             ? { superadminLoginId: adminLoginId }
             : { superadminLoginId: adminLoginId, reason }
         )
       });
-      const data = await res.json();
       if (data.success) {
         if (type === "approve" && data.notifyError) {
           setToast({
@@ -109,6 +107,17 @@ export default function TenantKycRequestsPage() {
   const filteredRequests = requests.filter(req =>
     !search.trim() || (req.tenantName || "").toLowerCase().includes(search.trim().toLowerCase())
   );
+
+  // Deduplicate requests by tenantId to avoid showing the same tenant multiple times
+  const deduplicatedRequests = useMemo(() => {
+    const seen = new Set();
+    return filteredRequests.filter(req => {
+      const tenantIdStr = String(req.tenantId?._id || req.tenantId);
+      if (seen.has(tenantIdStr)) return false;
+      seen.add(tenantIdStr);
+      return true;
+    });
+  }, [filteredRequests]);
 
   if (!adminLoginId) return null;
 
@@ -168,7 +177,7 @@ export default function TenantKycRequestsPage() {
                   </td>
                 </tr>
               ) : (
-                filteredRequests.map(req => (
+                deduplicatedRequests.map(req => (
                   <tr key={req._id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-6 py-4 text-sm font-medium text-slate-600">
                       {new Date(req.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}

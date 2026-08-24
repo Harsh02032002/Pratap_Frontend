@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import WebsiteNavbar from "../../components/website/WebsiteNavbar";
 import WebsiteFooter from "../../components/website/WebsiteFooter";
 import MobileBottomNav from "../../components/website/MobileBottomNav";
@@ -7,7 +7,17 @@ import { Mail, Lock, ArrowRight, ShieldCheck, UserCheck, Star, Eye, EyeOff } fro
 import useSEO from "../../hooks/useSEO";
 
 export default function WebsiteLogin() {
-  useSEO({ pageKey: 'login', fallbackTitle: 'Sign In to Roomhy' });
+  useSEO({ 
+    pageKey: 'login', 
+    fallbackTitle: 'Login to Your Account | Tenant & Owner | Roomhy.com',
+    fallbackDescription: 'Login to your Roomhy.com account to manage bookings, track live bids, connect directly with property owners, or access your owner dashboard.'
+  });
+
+  useEffect(() => {
+    if (window.location.pathname !== '/login') {
+      window.history.replaceState(null, '', '/login');
+    }
+  }, []);
   const {
     email,
     password,

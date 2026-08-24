@@ -78,6 +78,22 @@ export default function Tenantlogin() {
       storeAuth(data);
       window.location.href = resolvePanelPath("tenant", "tenantdashboard");
     } catch (err) {
+      let loginMsg = "Login failed.";
+      try {
+        const parsed = JSON.parse(err?.body || "{}");
+        loginMsg = parsed?.message || parsed?.error || err?.message || loginMsg;
+      } catch (_) {
+        loginMsg = err?.message || loginMsg;
+      }
+
+      // Only a rejected/unknown credential (401/404) is worth re-checking against
+      // the temp-password path below — any other failure (network, 5xx, etc.) must
+      // surface as a real error, never silently proceed.
+      if (err.status !== 401 && err.status !== 404) {
+        setErrorMsg(loginMsg);
+        return;
+      }
+
       try {
         await fetchJson("/api/auth/tenant/verify-temp", {
           method: "POST",
@@ -85,17 +101,10 @@ export default function Tenantlogin() {
         });
         setStep("setPassword");
       } catch (verifyErr) {
-        // Fallback session when backend API is offline or returns error
-        const normId = String(loginId || "").trim().toUpperCase();
-        const mockTenant = {
-          _id: "t_" + Date.now(),
-          loginId: normId,
-          name: "Tenant User",
-          role: "tenant"
-        };
-        storeAuth({ user: mockTenant, token: "tenant_token_" + Date.now() });
-        window.location.href = resolvePanelPath("tenant", "tenantdashboard");
-        return;
+        // Temp-password check also failed — this is a genuine invalid login.
+        // Never fabricate a session here; that would silently bypass auth
+        // and skip the forced password-change step entirely.
+        setErrorMsg("Invalid login ID or password.");
       }
     } finally {
       setLoading(false);
@@ -119,7 +128,7 @@ export default function Tenantlogin() {
         body: JSON.stringify({ loginId, tempPassword: password, newPassword })
       });
       storeAuth(data);
-      window.location.href = resolvePanelPath("tenant", "tenantagreement");
+      window.location.href = resolvePanelPath("tenant", "tenantdashboard");
     } catch (err) {
       setErrorMsg(err?.body || err?.message || "Failed to update password.");
     } finally {

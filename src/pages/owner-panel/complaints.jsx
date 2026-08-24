@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from "react";
 import OwnerLayout from "../../components/OwnerLayout";
 import { AlertCircle, Clock, CheckCircle2, Home, User, Filter, ArrowRight, Loader2 } from "lucide-react";
-import { getOwnerRuntimeSession } from "../../utils/propertyowner";
+import { getOwnerRuntimeSession, getActiveOwnerPropertyId } from "../../utils/propertyowner";
 import { fetchJson } from "../../utils/api";
+import { getOwnerComplaints } from "../../api/complaints";
 import { toast } from "react-hot-toast";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
@@ -22,10 +23,9 @@ export default function OwnerComplaints() {
   const loadComplaints = async () => {
     try {
       setLoading(true);
-      const data = await fetchJson(`/api/complaints/owner/${owner.loginId}`);
-      if (data && data.complaints) {
-        setComplaints(data.complaints);
-      }
+      const propertyId = getActiveOwnerPropertyId();
+      const data = await getOwnerComplaints(owner.loginId, { propertyId });
+      setComplaints(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Error fetching complaints:", err);
     } finally {

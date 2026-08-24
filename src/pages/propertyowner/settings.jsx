@@ -390,7 +390,11 @@ export default function Settings() {
         body: JSON.stringify({
           ownerLoginId: owner.loginId,
           requestType: "bank_details",
-          requestedChanges
+          requestedChanges,
+          // Sent top-level as well as nested inside requestedChanges
+          // (checkinBankProof/-Name above) so both API contracts are satisfied.
+          bankProofUrl: bankProof.url,
+          bankProofName: bankProof.name,
         })
       });
       if (data.success) {
@@ -412,7 +416,6 @@ export default function Settings() {
       title="Settings"
       onLogout={() => { clearOwnerRuntimeSession(); window.location.href = "/propertyowner/ownerlogin"; }}
     >
-      {/* Header Container (gets hidden on mobile view by first-child:has(h1) CSS rule) */}
       <div className="max-w-4xl mx-auto mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="font-serif text-[38px] md:text-[44px] leading-[1.05] text-foreground">Settings</h1>
@@ -426,7 +429,6 @@ export default function Settings() {
         </button>
       </div>
 
-      {/* Main Content Container (remains visible on mobile view) */}
       <div className="max-w-4xl mx-auto space-y-6">
 
           {/* Property Settings */}
@@ -584,6 +586,7 @@ export default function Settings() {
             </button>
           </div>
         </div>
+
       {/* Change Password Modal */}
       {pwModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">

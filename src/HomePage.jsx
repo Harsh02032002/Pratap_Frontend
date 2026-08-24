@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, MapPin, Star, BadgeCheck, TrendingUp, ChevronLeft, ChevronRight, ChevronDown, X, Building2, Home, Users, MessageSquare, Gavel } from 'lucide-react';
+import { Search, MapPin, Star, BadgeCheck, TrendingUp, ChevronLeft, ChevronRight, ChevronDown, X, Building2, Home, Users, MessageSquare, Gavel, Plus, Minus } from 'lucide-react';
 import HowRoomhyWorks from './components/website/HowRoomhyWorks';
 import WhyRoomhy from './components/website/WhyRoomhy';
 import FindYourHome from './components/website/FindYourHome';
@@ -20,7 +20,6 @@ const cityAreas = {
   'Indore': ['Vijay Nagar', 'Bhawar Kuan', 'Rajwada', 'Palasia']
 };
 
-// Static fallback data - moved outside to prevent re-renders
 const staticCities = [
   { name: 'Kota', properties: '2,500+', image: 'https://picsum.photos/600/400?random=1' },
   { name: 'Sikar', properties: '850+', image: 'https://picsum.photos/600/400?random=7' },
@@ -31,6 +30,7 @@ const staticOfferings = [
   {
     title: 'PG',
     category: 'PG',
+    link: '/pg',
     description: 'Comfortable paying guest accommodations with all amenities',
     images: [
       'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=600&auto=format&fit=crop',
@@ -43,6 +43,7 @@ const staticOfferings = [
   {
     title: 'Hostel',
     category: 'Hostel',
+    link: '/hostels',
     description: 'Affordable hostel living for students and working professionals',
     images: [
       'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?q=80&w=600&auto=format&fit=crop',
@@ -55,6 +56,7 @@ const staticOfferings = [
   {
     title: 'Co-living',
     category: 'Co-living',
+    link: '/co-living',
     description: 'Modern co-living spaces with community and facilities',
     images: [
       'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?q=80&w=600&auto=format&fit=crop',
@@ -67,6 +69,7 @@ const staticOfferings = [
   {
     title: 'Apartment/Flats',
     category: 'Apartment',
+    link: '/apartments',
     description: 'Private apartments for individuals and small groups',
     images: [
       'https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?q=80&w=600&auto=format&fit=crop',
@@ -80,104 +83,11 @@ const staticOfferings = [
     title: 'List Property',
     category: 'List',
     description: 'Are you an owner? List your property on Roomhy for free!',
-    link: '/website/list',
+    link: '/list-property',
     images: [
       'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=600&auto=format&fit=crop',
       'https://images.unsplash.com/photo-1582408921715-18e7806365c1?q=80&w=600&auto=format&fit=crop'
     ]
-  }
-];
-
-const featuredProperties = [
-  {
-    _id: 'static1',
-    name: 'Sunrise PG',
-    location: 'Kota, Rajasthan',
-    price: '₹6,500',
-    rating: 4.8,
-    image: 'https://picsum.photos/600/400?random=29',
-    verified: true
-  },
-  {
-    _id: 'static2',
-    name: 'Elite Hostel',
-    location: 'Indore, MP',
-    price: '₹5,200',
-    rating: 4.6,
-    image: 'https://picsum.photos/600/400?random=30',
-    verified: true
-  },
-  {
-    _id: 'static3',
-    name: 'Urban Co-Space',
-    location: 'Sikar, Rajasthan',
-    price: '₹8,900',
-    rating: 4.9,
-    image: 'https://picsum.photos/600/400?random=31',
-    verified: true
-  },
-  {
-    _id: 'static4',
-    name: 'Campus View PG',
-    location: 'Kota, Rajasthan',
-    price: '₹7,800',
-    rating: 4.7,
-    image: 'https://picsum.photos/600/400?random=32',
-    verified: true
-  },
-  {
-    _id: 'static8',
-    name: 'Royal Residency',
-    location: 'Indore, MP',
-    price: '₹12,500',
-    rating: 4.5,
-    image: 'https://picsum.photos/600/400?random=33',
-    verified: true
-  },
-  {
-    _id: 'static5',
-    name: 'Smart Stay PG',
-    location: 'Kota, Rajasthan',
-    price: '₹5,800',
-    rating: 4.4,
-    image: 'https://picsum.photos/600/400?random=34',
-    verified: true
-  },
-  {
-    _id: 'static6',
-    name: 'Grand Hostel',
-    location: 'Sikar, Rajasthan',
-    price: '₹4,800',
-    rating: 4.3,
-    image: 'https://picsum.photos/600/400?random=35',
-    verified: true
-  },
-  {
-    _id: 'static7',
-    name: 'City Center PG',
-    location: 'Indore, MP',
-    price: '₹6,200',
-    rating: 4.6,
-    image: 'https://picsum.photos/600/400?random=36',
-    verified: true
-  },
-  {
-    _id: 'static9',
-    name: 'Premium Co-Living',
-    location: 'Kota, Rajasthan',
-    price: '₹10,500',
-    rating: 4.8,
-    image: 'https://picsum.photos/600/400?random=37',
-    verified: true
-  },
-  {
-    _id: 'static10',
-    name: 'Student Hub',
-    location: 'Sikar, Rajasthan',
-    price: '₹5,500',
-    rating: 4.2,
-    image: 'https://picsum.photos/600/400?random=38',
-    verified: true
   }
 ];
 
@@ -190,26 +100,7 @@ const liveBiddingProperties = [
     timeLeft: '2h 15m',
     image: 'https://picsum.photos/600/400?random=41',
     verified: true
-  },
-  {
-    name: 'Elite Hostel',
-    location: 'Indore',
-    price: '₹5,200',
-    currentBid: '₹5,100',
-    timeLeft: '45m',
-    image: 'https://picsum.photos/600/400?random=42',
-    verified: true
-  },
-  {
-    name: 'Urban Co-Space',
-    location: 'Sikar',
-    price: '₹8,900',
-    currentBid: '₹8,500',
-    timeLeft: '1h 30m',
-    image: 'https://picsum.photos/600/400?random=43',
-    verified: true,
-    girlsOnly: true
-  },
+  }
 ];
 
 const heroImages = [
@@ -221,13 +112,14 @@ const heroImages = [
 export default function HomePage() {
   useSEO({ pageKey: 'home', fallbackTitle: 'Roomhy - Find Your Student Home' });
   const navigate = useNavigate();
+
   // State for dynamic data
   const [cities, setCities] = useState([]);
   const [cityAreasMap, setCityAreasMap] = useState(cityAreas);
   const [offerings, setOfferings] = useState([]);
   const [trendingProperties, setTrendingProperties] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Search states
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -238,16 +130,36 @@ export default function HomePage() {
 
   // Hero image slideshow state
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-
   const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
   const typeDropdownRef = useRef(null);
-
-  // Floating Search State for Mobile
   const [isFloatingSearchVisible, setIsFloatingSearchVisible] = useState(false);
+
+  // Carousels state
+  const [cityStartIndex, setCityStartIndex] = useState(0);
+  const citiesPerView = 4;
+  const [mobileCityIndex, setMobileCityIndex] = useState(0);
+
+  const [trendingStartIndex, setTrendingStartIndex] = useState(0);
+  const trendingPerView = 5;
+
+  const [offeringSelectedImage, setOfferingSelectedImage] = useState({});
+  const [mobileOfferingIndex, setMobileOfferingIndex] = useState(0);
+  const [mobileImageIndex, setMobileImageIndex] = useState(0);
+
+  const offeringScrollContainerRef = useRef(null);
+  const trendingScrollContainerRef = useRef(null);
+  const citiesScrollContainerRef = useRef(null);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prev) => (prev + 1) % heroImages.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
-      if (window.innerWidth < 768) { // Mobile only
+      if (window.innerWidth < 768) {
         setIsFloatingSearchVisible(window.scrollY > 350);
       } else {
         setIsFloatingSearchVisible(false);
@@ -257,7 +169,6 @@ export default function HomePage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Recently Viewed Properties
   const [recentlyViewed, setRecentlyViewed] = useState([]);
 
   useEffect(() => {
@@ -266,78 +177,47 @@ export default function HomePage() {
         const stored = JSON.parse(localStorage.getItem('recentlyViewed') || '[]');
         const now = Date.now();
         const oneDay = 24 * 60 * 60 * 1000;
-        
-        // Filter out items older than 24 hours
         const validItems = stored.filter(item => (now - item.timestamp) < oneDay);
-        
-        // Sort by timestamp descending
         validItems.sort((a, b) => b.timestamp - a.timestamp);
-        
-        // Save strictly the non-expired items (hides the section completely if empty)
         setRecentlyViewed(validItems);
-        
-        // Update storage with cleaned items
-        if (validItems.length !== stored.length) {
-          localStorage.setItem('recentlyViewed', JSON.stringify(validItems));
-        }
       } catch (err) {
         console.error('Error loading recently viewed:', err);
       }
     };
-    
     loadRecentlyViewed();
-    
-    // Check every hour for expiration
-    const interval = setInterval(loadRecentlyViewed, 60 * 60 * 1000);
-    return () => clearInterval(interval);
   }, []);
 
-  // Helper function to get city images dynamically
-  const getCityImage = (cityName) => {
-    const cityImages = {
-      'Kota': 'https://picsum.photos/600/400?random=1',
-      'Sikar': 'https://picsum.photos/600/400?random=7',
-      'Indore': 'https://picsum.photos/600/400?random=2'
-    };
-    return cityImages[cityName] || 'https://picsum.photos/600/400?random=1';
-  };
-
-  // Fetch dynamic data
+  // Fetch dynamic data for Cities, Offerings, and Trending Properties
   useEffect(() => {
     const loadData = async () => {
       try {
-        // STATIC MODE: using static cities only (Kota, Sikar, Indore)
-        // Dynamic fetch disabled for now
-        // const citiesData = await fetchCities();
-        // if (citiesData && citiesData.length > 0) {
-        //   const formattedCities = citiesData.map((city, index) => ({
-        //     name: city.name || city,
-        //     properties: typeof city.propertyCount === 'number' ? `${city.propertyCount}` : staticCities[index]?.properties || '0',
-        //     image: city.imageUrl || city.image || staticCities[index]?.image || getCityImage(city.name)
-        //   }));
-        //   setCities(formattedCities);
-        // } else {
-          setCities(staticCities);
-        // }
-
+        setCities(staticCities);
         setOfferings(staticOfferings);
 
-        // STATIC MODE: using featured properties only
-        // const allProperties = await fetchProperties();
-        // if (allProperties && allProperties.length > 0) {
-        //   const filteredProperties = allProperties.filter(p => {
-        //     const name = (p.name || p.property_name || '').toLowerCase();
-        //     return !name.includes('jhvhhjhjv') && !name.includes('test');
-        //   });
-        //   setTrendingProperties(filteredProperties);
-        // } else {
-          setTrendingProperties(featuredProperties);
-        // }
+        try {
+          const allProperties = await fetchProperties();
+          if (allProperties && allProperties.length > 0) {
+            const formattedProperties = allProperties.map(p => ({
+              _id: p._id || p.visitId || p.id,
+              name: p.propertyName || p.property_name || p.propertyInfo?.name || p.name || 'Roomhy Property',
+              location: `${p.area || p.propertyInfo?.area ? (p.area || p.propertyInfo?.area) + ', ' : ''}${p.city || p.propertyInfo?.city || 'Kota'}`,
+              monthlyRent: p.monthlyRent || p.rent || p.propertyInfo?.rent || 8000,
+              image: p.featuredImage || p.images?.[0] || p.propertyInfo?.photos?.[0] || 'https://images.pexels.com/photos/1571468/pexels-photo-1571468.jpeg?auto=compress&cs=tinysrgb&w=600',
+              verified: true
+            }));
+            setTrendingProperties(formattedProperties);
+          } else {
+            setTrendingProperties([]);
+          }
+        } catch (err) {
+          console.error('Error fetching properties:', err);
+          setTrendingProperties([]);
+        }
       } catch (error) {
         console.error('Error loading homepage data:', error);
         setCities(staticCities);
         setOfferings(staticOfferings);
-        setTrendingProperties(featuredProperties);
+        setTrendingProperties([]);
       } finally {
         setLoading(false);
       }
@@ -346,98 +226,17 @@ export default function HomePage() {
     loadData();
   }, []);
 
-  // Search handler - uses already-loaded state, no API calls
-  const handleSearch = (query) => {
-    if (!query.trim()) {
-      setSearchResults([]);
-      setShowSearchDropdown(false);
-      return;
-    }
-
-    setIsSearching(true);
-    const lowerQuery = query.toLowerCase();
-
-    try {
-      const results = [];
-
-      // 1. Search by City
-      const cityMatches = cities.filter(city =>
-        city.name?.toLowerCase().includes(lowerQuery)
-      ).map(city => ({
-        type: 'city',
-        title: city.name,
-        subtitle: `${city.properties || '1000+'} properties`,
-        link: `/website/ourproperty?city=${encodeURIComponent(city.name.toLowerCase())}`,
-        icon: 'MapPin'
-      }));
-      results.push(...cityMatches);
-
-      // 2. Search by Property Name using already-loaded trendingProperties
-      const propertyMatches = trendingProperties.filter(prop => {
-        const propName = prop.propertyName || prop.property_name || prop.name || '';
-        return propName.toLowerCase().includes(lowerQuery);
-      }).slice(0, 5).map(prop => ({
-        type: 'property',
-        title: prop.propertyName || prop.property_name || prop.name,
-        subtitle: `${prop.city || prop.location || ''} - ${prop.propertyType || prop.type || 'Property'}`,
-        link: `/website/property-details/${prop._id || prop.visitId}`,
-        icon: 'Building2'
-      }));
-      results.push(...propertyMatches);
-
-      // 3. Search by Property Type
-      const typeMatches = offerings.filter(offering =>
-        offering.title?.toLowerCase().includes(lowerQuery) ||
-        offering.category?.toLowerCase().includes(lowerQuery)
-      ).map(offering => ({
-        type: 'type',
-        title: offering.title,
-        subtitle: `Find ${offering.title} accommodations`,
-        link: `/website/ourproperty?type=${encodeURIComponent(offering.category.toLowerCase())}`,
-        icon: 'Home'
-      }));
-      results.push(...typeMatches);
-
-      setSearchResults(results.slice(0, 8));
-      setShowSearchDropdown(true);
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  // Debounced search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (searchQuery) {
-        handleSearch(searchQuery);
-      }
-    }, 300);
-    
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-
-  // Handle search submit
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     setHasSearched(true);
-    
-    // Build query parameters
     const params = new URLSearchParams();
-    if (searchQuery.trim()) {
-      params.append('search', searchQuery.trim());
-    }
-    if (selectedType) {
-      params.append('type', selectedType.toLowerCase());
-    }
-    
+    if (searchQuery.trim()) params.append('search', searchQuery.trim());
+    if (selectedType) params.append('type', selectedType.toLowerCase());
     const queryString = params.toString();
-    const navigateUrl = queryString ? `/website/ourproperty?${queryString}` : '/website/ourproperty';
-    
-    navigate(navigateUrl);
+    navigate(queryString ? `/website/ourproperty?${queryString}` : '/website/ourproperty');
     setShowSearchDropdown(false);
   };
 
-  // Click outside to close dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (showSearchDropdown && !event.target.closest('.search-container')) {
@@ -450,35 +249,7 @@ export default function HomePage() {
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showSearchDropdown]);
-
-
-
-  // Cities carousel state
-  const [cityStartIndex, setCityStartIndex] = useState(0);
-  const citiesPerView = 4;
-  const [mobileCityIndex, setMobileCityIndex] = useState(0); // Mobile: 1 row (4 cities) at a time
-
-  // Trending properties carousel state
-  const [trendingStartIndex, setTrendingStartIndex] = useState(0);
-  const trendingPerView = 5;
-
-  // What We Offer - selected image index for each offering
-  const [offeringSelectedImage, setOfferingSelectedImage] = useState({});
-  const [mobileOfferingIndex, setMobileOfferingIndex] = useState(0); // Mobile: 1 offering at a time
-  const [mobileImageIndex, setMobileImageIndex] = useState(0); // Mobile: current image index
-  
-  // Refs for scroll containers
-  const offeringScrollContainerRef = useRef(null);
-  const trendingScrollContainerRef = useRef(null);
-  const citiesScrollContainerRef = useRef(null);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentImageIndex((prev) => (prev + 1) % heroImages.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
+  }, [showSearchDropdown, isTypeDropdownOpen]);
 
   const nextCities = () => {
     setCityStartIndex((prev) => 
@@ -533,7 +304,6 @@ export default function HomePage() {
 
   // Mobile carousel helpers
   const canShowNextMobileCity = mobileCityIndex + 4 < cities.length;
-  const canShowPrevMobileCity = mobileCityIndex > 0;
   const canShowNextMobileOffering = mobileOfferingIndex + 3 < offerings.length;
   const canShowPrevMobileOffering = mobileOfferingIndex > 0;
   const visibleMobileCities = cities.slice(mobileCityIndex, mobileCityIndex + 4);
@@ -717,7 +487,7 @@ export default function HomePage() {
                   const areas = cityAreasMap[city] || [];
                   return (
                   <div key={city} className="relative group h-full flex items-center">
-                    <Link to={`/website/ourproperty?city=${encodeURIComponent(city)}`} className="flex items-center space-x-1 hover:text-black cursor-pointer h-full">
+                    <Link to={`/${city.toLowerCase().replace(/\s+/g, '-')}`} className="flex items-center space-x-1 hover:text-black cursor-pointer h-full">
                       <span>{city}</span>
                       <ChevronDown className="w-3.5 h-3.5 text-gray-400 group-hover:text-black transition-colors" />
                     </Link>
@@ -728,7 +498,7 @@ export default function HomePage() {
                         {areas.map((area) => (
                           <Link
                             key={area}
-                            to={`/website/ourproperty?city=${encodeURIComponent(city)}&area=${encodeURIComponent(area)}`}
+                            to={`/${city.toLowerCase().replace(/\s+/g, '-')}/${area.toLowerCase().replace(/\s+/g, '-')}`}
                             className="block px-4 py-2 text-xs text-gray-600 hover:bg-teal-50 hover:text-teal-600 transition-colors"
                           >
                             {area}
@@ -984,12 +754,6 @@ export default function HomePage() {
                       <div className="text-gray-500 text-[11px] mb-1 line-clamp-1">
                         {property.location}
                       </div>
-                      <div className="flex items-center gap-1.5 mb-1 text-[11px]">
-                        <div className="bg-[#1AB64F] text-white px-1 py-0.5 rounded text-[10px] font-bold flex items-center gap-0.5">
-                          {property.rating} <Star className="w-2.5 h-2.5 fill-white text-white" />
-                        </div>
-                        <span className="text-gray-500">Excellent</span>
-                      </div>
                       <div className="flex items-baseline gap-1.5">
                         <span className="text-base font-bold text-gray-900">
                           {property.monthlyRent ? `₹${property.monthlyRent.toLocaleString()}` : (property.price || '₹0')}
@@ -1029,25 +793,6 @@ export default function HomePage() {
                       onClick={() => property._id && trackPropertyClick(property._id)}
                       className="flex-shrink-0 w-36 block active:scale-95 transition-transform"
                     >
-                      {/* Standalone image with rating badge */}
-                      <div className="relative h-24 rounded-2xl overflow-hidden shadow-md mb-2">
-                        <img
-                          src={property.image}
-                          alt={property.name}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                          width="144"
-                          height="96"
-                          onError={(e) => {
-                            e.target.src = `https://picsum.photos/600/400?random=${Math.floor(Math.random() * 100)}`;
-                          }}
-                        />
-                        {/* Rating badge - bottom left on image */}
-                        <div className="absolute bottom-2 left-2 bg-white/90 backdrop-blur rounded-md px-1.5 py-0.5 flex items-center gap-1 shadow-sm">
-                          <Star className="w-2.5 h-2.5 fill-yellow-400 text-yellow-400" />
-                          <span className="text-[10px] font-bold text-gray-800">{property.rating}</span>
-                        </div>
-                      </div>
                       {/* Plain text below image — no card box */}
                       <h3 className="font-bold text-gray-900 text-sm mb-0 line-clamp-1">{property.name || property.property_name || 'Roomhy Property'}</h3>
                       <div className="flex items-center text-gray-600 font-medium text-[10px] mb-0">
@@ -1312,4 +1057,5 @@ export default function HomePage() {
     </div>
   );
 }
+
 

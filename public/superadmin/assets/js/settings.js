@@ -3,14 +3,14 @@ lucide.createIcons();
         // Auth check
         const user = JSON.parse(localStorage.getItem('user') || 'null');
         if (!user || user.role !== 'superadmin') {
-            window.location.href = '/superadmin/superadmin/superadmin/index';
+            window.location.href = '/superadmin/index';
         }
 
         // Logout handler
         document.getElementById('logoutBtn').addEventListener('click', (e) => {
             e.preventDefault();
             localStorage.removeItem('user');
-            window.location.href = '/superadmin/superadmin/superadmin/index';
+            window.location.href = '/superadmin/index';
         });
 
         // Mobile menu functionality

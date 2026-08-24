@@ -20,7 +20,6 @@ const PROTECTED_TENANT_PATHS = new Set([
   "/tenant/tenantdashboard",
   "/tenant/tenantcomplints",
   "/tenant/tenantchat",
-  "/tenant/tenantagreement",
 ]);
 
 const PageLoader = () => (
@@ -33,8 +32,9 @@ const PageLoader = () => (
 );
 
 const resolveHostHome = () => {
-  if (typeof window === "undefined") return "/website/index";
+  if (typeof window === "undefined") return "/";
   const host = (window.location.hostname || "").toLowerCase();
+  const metaTarget = typeof document !== "undefined" ? document.querySelector('meta[name="roomhy-app-target"]')?.getAttribute('content') : null;
 
   const readStoredUser = () => {
     const keys = ["user", "staff_user", "manager_user"];
@@ -67,13 +67,18 @@ const resolveHostHome = () => {
   // Staff (owner-scoped employees, including wardens) live in `staff_session`,
   // not any of the keys readStoredUser()/getOwnerSession() check — without this,
   // any redirect to "/" bounces a logged-in staff member to the public website
-  // instead of back into their dashboard.
+  // instead of back into their dashboard. Runs before the domain/metaTarget
+  // checks below so a signed-in staff member is never sent to the public site.
   const staffSession = getStaffSession();
   if (staffSession?.loginId && !owner?.loginId) {
     return STAFF_HOME_PATH;
   }
 
-  if (host === "admin.roomhy.com" || host === "www.admin.roomhy.com") {
+  if (metaTarget === "website" || host === "roomhy.com" || host === "www.roomhy.com") {
+    return "/";
+  }
+
+  if (metaTarget === "superadmin" || host === "admin.roomhy.com" || host === "www.admin.roomhy.com") {
     if (role === "superadmin" || role === "admin") return "/superadmin/superadmin";
     if (role === "manager") {
       const hasManagerSession =
@@ -85,23 +90,13 @@ const resolveHostHome = () => {
     if (role === "areamanager" || role === "employee") return "/employee/areaadmin";
     return "/superadmin/index";
   }
-  if (host === "app.roomhy.com" || host === "www.app.roomhy.com") {
+  if (metaTarget === "propertyowner" || host === "app.roomhy.com" || host === "www.app.roomhy.com") {
     if (owner?.loginId) return "/propertyowner/admin";
     return "/propertyowner/index";
   }
 
-  // On localhost — default to website homepage for normal users/visitors
+  // On localhost — root URL '/' ALWAYS loads the Main Website Homepage
   if (isLocalhost) {
-    if (role === "superadmin" || role === "admin") return "/superadmin/superadmin";
-    if (role === "manager") {
-      const hasManagerSession =
-        !!sessionStorage.getItem("managerToken") ||
-        !!localStorage.getItem("managerToken") ||
-        !!localStorage.getItem("managerData");
-      if (hasManagerSession) return "/propertyowner/admin";
-    }
-    if (role === "areamanager" || role === "employee") return "/employee/areaadmin";
-    if (owner?.loginId) return "/propertyowner/admin";
     return "/";
   }
 
@@ -331,6 +326,10 @@ const DomainGuard = () => {
         window.location.replace(resolveHostHome());
         return;
       }
+      if (path.startsWith("/propertyowner") || path.startsWith("/tenant")) {
+        window.location.replace(`https://app.roomhy.com${path}`);
+        return;
+      }
       const isAllowed = path.startsWith("/superadmin") || path.startsWith("/employee") || path.startsWith("/staff") || path.startsWith("/digital-checkin") || path.startsWith("/website");
       if (!isAllowed) {
         window.location.replace("/superadmin/index");
@@ -345,6 +344,10 @@ const DomainGuard = () => {
         window.location.replace(resolveHostHome());
         return;
       }
+      if (path.startsWith("/superadmin") || path.startsWith("/employee")) {
+        window.location.replace(`https://admin.roomhy.com${path}`);
+        return;
+      }
       const isAllowed = path.startsWith("/propertyowner") || path.startsWith("/tenant") || path.startsWith("/digital-checkin") || path.startsWith("/manager") || path.startsWith("/staff") || path.startsWith("/payment") || path.startsWith("/website");
       if (!isAllowed) {
         window.location.replace("/propertyowner/index");
@@ -352,32 +355,24 @@ const DomainGuard = () => {
       return;
     }
 
-    // 3. Fallback for main website domain (roomhy.com) and others
-    const allowedWebsiteRoutes = [
-      "/website",
-      "/website-editor",
-      "/about-us",
-      "/contact-us",
-      "/list-property",
-      "/login",
-      "/register",
-      "/faq",
-      "/privacy-policy",
-      "/terms-and-conditions",
-      "/pg",
-      "/hostels",
-      "/co-living",
-      "/apartments",
-      "/property",
-      "/payment",           // ← FIXED: tokenized payment gateway from onboarding email
-      "/visitor-verify",   // ← FIXED: visitor pass verification QR links
-      "/digital-checkin",  // ← FIXED: tenant onboarding checkin flow
-      "/admin"
-    ];
-
-    if (!allowedWebsiteRoutes.some(route => path.startsWith(route))) {
-      if (path === "/" || path === "") {
-        // Root — let the router handle it (shows HomePage)
+    // 3. Fallback for main website domain (roomhy.com). Public token routes
+    // (/payment, /visitor-verify, /digital-checkin, /website) already returned
+    // early above, so they are never caught by these cross-domain redirects.
+    const isMainWebsiteDomain = host === "roomhy.com" || host === "www.roomhy.com";
+    if (isMainWebsiteDomain) {
+      // Redirect superadmin links on main website to admin.roomhy.com
+      if (path.startsWith("/superadmin")) {
+        window.location.replace(`https://admin.roomhy.com/superadmin/index`);
+        return;
+      }
+      // Redirect owner links on main website to app.roomhy.com
+      if (path.startsWith("/propertyowner")) {
+        window.location.replace(`https://app.roomhy.com/propertyowner/index`);
+        return;
+      }
+      // Redirect tenant links on main website to app.roomhy.com
+      if (path.startsWith("/tenant")) {
+        window.location.replace(`https://app.roomhy.com/tenant/tenantlogin`);
         return;
       }
     }
@@ -422,31 +417,6 @@ const RouteChromeCleanup = () => {
   }, [location.pathname]);
 
   return null;
-};
-
-// Admin panel loader — when React Router intercepts /admin* routes,
-// force a hard browser navigation so admin.html (TanStack Router app) loads.
-// This only triggers on SPA-link clicks; direct URL navigation is handled by
-// the dev server (admin.html entry) or Vercel rewrites in production.
-const AdminPanelLoader = () => {
-  React.useEffect(() => {
-    // Sirf ek baar redirect — loop rokne ke liye sessionStorage use karo
-    const key = 'admin_redirect_attempted';
-    if (!sessionStorage.getItem(key)) {
-      sessionStorage.setItem(key, '1');
-      window.location.replace(window.location.href);
-    }
-    // Cleanup when admin loads successfully
-    return () => sessionStorage.removeItem(key);
-  }, []);
-  return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ width: 32, height: 32, border: '4px solid #e2e8f0', borderTop: '4px solid #0ea5e9', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
-        <p style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Loading Admin Panel…</p>
-      </div>
-    </div>
-  );
 };
 
 
@@ -520,10 +490,8 @@ export default function App() {
                 <Route path="/staff/login" element={<Navigate to={UNIFIED_LOGIN_PATH} replace />} />
                 <Route path="/staff" element={<Navigate to={STAFF_HOME_PATH} replace />} />
                 <Route path="/staff/*" element={<Navigate to={STAFF_HOME_PATH} replace />} />
-                <Route path="/website" element={<Navigate to="/website/index" replace />} />
-                {/* Admin panel — force hard browser navigation so TanStack Router (admin) takes over */}
-                <Route path="/admin" element={<AdminPanelLoader />} />
-                <Route path="/admin/*" element={<AdminPanelLoader />} />
+                <Route path="/website" element={<Navigate to="/" replace />} />
+                <Route path="/website/index" element={<Navigate to="/" replace />} />
                 <Route path="*" element={<HtmlRedirectOrHome />} />
               </Routes>
             </Suspense>

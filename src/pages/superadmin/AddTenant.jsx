@@ -292,6 +292,8 @@ export default function AddTenant() {
         if (rent) {
           setTenancyDetails(prev => ({ ...prev, rentAmount: rent }));
         }
+        // Reset bed selection when room changes
+        setRoomAssignment(prev => ({ ...prev, bed: '' }));
       }
     }
   }, [roomAssignment.roomUnit, rooms]);
@@ -355,11 +357,17 @@ export default function AddTenant() {
     
     setSubmitting(true);
     try {
+      const selectedProp = properties.find(p => String(p._id || p.id) === String(roomAssignment.propertyId));
+      const targetOwnerLoginId = selectedProp?.ownerLoginId || selectedProp?.owner_id || selectedProp?.owner?.loginId || selectedProp?.ownerId || "";
+      const targetPropertyTitle = selectedProp?.title || selectedProp?.name || selectedProp?.propertyName || "";
+
       const payload = {
         name: basicDetails.fullName,
         email: basicDetails.email,
         phone: basicDetails.phone,
         propertyId: roomAssignment.propertyId,
+        ownerLoginId: targetOwnerLoginId,
+        propertyTitle: targetPropertyTitle,
         roomNo: roomAssignment.roomUnit,
         bedNo: roomAssignment.bed,
         moveInDate: tenancyDetails.moveInDate,
@@ -396,7 +404,12 @@ export default function AddTenant() {
           permanentAddress: basicDetails.permanentAddress
         },
         status: "pending",
-        kycStatus: "pending_verification" // New status for owner verification
+        kycStatus: "pending_verification", // New status for owner verification
+        // Mirrors the flag the owner-creation flow sends (superadmin/owner.jsx)
+        // so the backend can mark this account as needing a forced password
+        // change on first login, same as it already does for owners.
+        credentials: { firstTime: true },
+        firstTime: true
       };
 
       const res = await fetch(`${apiUrl}/api/tenants/assign`, {
@@ -487,32 +500,86 @@ export default function AddTenant() {
     }
   };
 
-  // Parse Aadhaar OCR text and extract relevant fields
+  // Parse Aadhaar OCR text and extract relevant fields (Full Name, Father's Name, DOB, Gender, Aadhaar No, Address)
   const parseAadhaarText = (text, side) => {
     const data = {};
-    const lines = text.split('\n').map(line => line.trim()).filter(line => line);
+    if (!text) return data;
+    const lines = text.split('\n').map(line => line.trim()).filter(Boolean);
+
+    // Helper: Extract Father's/Guardian Name from text (S/O, D/O, W/O, C/O, Father)
+    const extractFatherName = (rawText) => {
+      if (!rawText) return "";
+      const match = rawText.match(/(?:s\/o|d\/o|w\/o|c\/o|father(?:'s)?(?:\s*name)?[:\s]*)\s*([a-zA-Z\s\.]{2,40})/i);
+      if (match && match[1]) {
+        let name = match[1].trim();
+        name = name.split(/,|house|h\.?no|flat|plot|near|sector|road|street|village|post|dist|district|pin|\d/i)[0].trim();
+        name = name.replace(/[^a-zA-Z\s\.]/g, '').trim();
+        if (name.length >= 2 && !/government|india|authority|unique|identification|aadhaar/i.test(name)) {
+          return name;
+        }
+      }
+      return "";
+    };
+
+    // Helper: Extract Full Name from front image
+    const extractFullName = (rawText) => {
+      if (!rawText) return "";
+      const rawLines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
+
+      // 1. Check for explicit Name: pattern
+      for (const line of rawLines) {
+        const nameMatch = line.match(/(?:name|naam)[:\s]+([a-zA-Z\s\.]{2,40})/i);
+        if (nameMatch && nameMatch[1]) {
+          const candidate = nameMatch[1].replace(/[^a-zA-Z\s]/g, '').trim();
+          if (candidate.length >= 2 && !/government|india|authority|unique|identification|aadhaar/i.test(candidate)) {
+            return candidate;
+          }
+        }
+      }
+
+      // 2. Look above DOB / Gender line
+      let dobOrGenderIdx = -1;
+      for (let i = 0; i < rawLines.length; i++) {
+        const l = rawLines[i].toLowerCase();
+        if (l.includes('dob') || l.includes('date of birth') || l.includes('birth') || l.includes('female') || l.includes('male') || l.includes('gender')) {
+          dobOrGenderIdx = i;
+          break;
+        }
+      }
+
+      const headerKeywords = /government|india|unique|identification|authority|aadhaar|enrolment|help|www|download|mob|issue|male|female|dob|date|birth|father|husband|address|card/i;
+
+      if (dobOrGenderIdx > 0) {
+        for (let i = dobOrGenderIdx - 1; i >= 0; i--) {
+          const candidate = rawLines[i].replace(/[^a-zA-Z\s]/g, '').trim();
+          if (candidate.length >= 3 && candidate.split(/\s+/).length >= 1 && !headerKeywords.test(candidate)) {
+            return candidate;
+          }
+        }
+      }
+
+      // 3. Fallback: First line with 2-4 alphabetic words that is not header
+      for (const line of rawLines) {
+        const candidate = line.replace(/[^a-zA-Z\s]/g, '').trim();
+        const words = candidate.split(/\s+/).filter(Boolean);
+        if (words.length >= 2 && words.length <= 4 && candidate.length >= 4 && !headerKeywords.test(candidate)) {
+          return candidate;
+        }
+      }
+
+      return "";
+    };
 
     if (side === 'front') {
-      // Try to extract name (usually appears after "Name" or similar)
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        if (line.toLowerCase().includes('name') && i + 1 < lines.length) {
-          data.fullName = lines[i + 1].replace(/[^a-zA-Z\s]/g, '').trim();
-          break;
-        }
-      }
-      
-      // Try to extract Father's Name
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        if (line.toLowerCase().includes('father') || line.toLowerCase().includes('s/o') || line.toLowerCase().includes('d/o')) {
-          const nextLine = lines[i + 1] || '';
-          data.fatherName = nextLine.replace(/[^a-zA-Z\s]/g, '').trim();
-          break;
-        }
-      }
+      // Extract Full Name
+      const name = extractFullName(text);
+      if (name) data.fullName = name;
 
-      // Try to extract Gender
+      // Extract Father's Name (if present on front)
+      const father = extractFatherName(text);
+      if (father) data.fatherName = father;
+
+      // Extract Gender
       if (/\b(female|महिला)\b/i.test(text)) {
         data.gender = "Female";
       } else if (/\b(male|पुरुष)\b/i.test(text)) {
@@ -521,29 +588,34 @@ export default function AddTenant() {
         data.gender = "Other";
       }
 
-      // Try to extract DOB and format to YYYY-MM-DD
-      const dobMatch = text.match(/(?:dob|date\s*of\s*birth|d\.?\s*o\.?\s*b\.?)[:\s]+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})/i) || text.match(/\b(\d{2})[\/\-](\d{2})[\/\-](\d{4})\b/);
+      // Extract DOB
+      const dobMatch = text.match(/(?:dob|date\s*of\s*birth|d\.?\s*o\.?\s*b\.?|birth)[:\s]*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})/i) || text.match(/\b(\d{2})[\/\-](\d{2})[\/\-](\d{4})\b/);
       if (dobMatch) {
-        const parts = dobMatch[0].match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+        const rawDob = dobMatch[1] || dobMatch[0];
+        const parts = rawDob.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
         if (parts) {
           const [, d, m, y] = parts;
           data.dob = `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
         }
       }
 
-      // Try to extract Aadhaar number
+      // Extract Aadhaar number
       const aadhaarMatch = text.match(/[2-9]\d{3}[\s\-]?\d{4}[\s\-]?\d{4}/) || text.replace(/[\s\-]/g, "").match(/[2-9]\d{11}/);
       if (aadhaarMatch) {
         data.idProofNumber = aadhaarMatch[0].replace(/[\s\-]/g, '');
       }
     } else if (side === 'back') {
-      // Back side usually has address
+      // Extract Father's / Relative Name from Back (D/O, S/O, W/O, C/O)
+      const father = extractFatherName(text);
+      if (father) data.fatherName = father;
+
+      // Extract Address
       const addressLines = [];
       let foundAddress = false;
       
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
-        if (line.toLowerCase().includes('address') || line.toLowerCase().includes('पता') || line.toLowerCase().includes('s/o') || line.toLowerCase().includes('d/o') || line.toLowerCase().includes('w/o') || foundAddress) {
+        if (line.toLowerCase().includes('address') || line.toLowerCase().includes('पता') || line.toLowerCase().includes('s/o') || line.toLowerCase().includes('d/o') || line.toLowerCase().includes('w/o') || line.toLowerCase().includes('c/o') || foundAddress) {
           foundAddress = true;
           if (!line.toLowerCase().includes('address') && !line.toLowerCase().includes('पता') && line.length > 3) {
             addressLines.push(line);
@@ -969,11 +1041,28 @@ export default function AddTenant() {
                 })()}
                 placeholder="Select room type"
               />
-              <FormField 
+              <FormSelect 
                 label="Bed" 
                 value={roomAssignment.bed}
                 onChange={e => setRoomAssignment({...roomAssignment, bed: e.target.value})}
-                placeholder="Select bed"
+                options={(() => {
+                  const selectedRoom = rooms.find(r => r.title === roomAssignment.roomUnit);
+                  if (!selectedRoom) return [];
+                  
+                  // Use availableBeds from backend if available, otherwise generate from capacity
+                  if (selectedRoom.availableBeds && selectedRoom.availableBeds.length > 0) {
+                    return selectedRoom.availableBeds.map(bed => ({ label: `Bed ${bed}`, value: String(bed) }));
+                  }
+                  
+                  // Fallback: generate bed options from capacity
+                  const capacity = Number(selectedRoom.beds || selectedRoom.capacity || selectedRoom.totalBeds) || 1;
+                  const beds = [];
+                  for (let i = 1; i <= capacity; i++) {
+                    beds.push({ label: `Bed ${i}`, value: String(i) });
+                  }
+                  return beds;
+                })()}
+                placeholder={roomAssignment.roomUnit ? "Select bed" : "Select room first"}
               />
               <FormSelect 
                 label="Rent Agreement Type" 
@@ -1203,6 +1292,7 @@ export default function AddTenant() {
               {[
                 { label: "Tenant Name", value: basicDetails.fullName || "-" },
                 { label: "Room / Unit", value: roomAssignment.roomUnit || "-" },
+                { label: "Bed", value: roomAssignment.bed || "-" },
                 { label: "Rent Amount", value: tenancyDetails.rentAmount ? `₹${tenancyDetails.rentAmount}` : "-" },
                 { label: "Move-In Date", value: tenancyDetails.moveInDate || "-" },
                 { label: "Minimum Stay", value: tenancyDetails.minStay ? `${tenancyDetails.minStay} months` : "-" },

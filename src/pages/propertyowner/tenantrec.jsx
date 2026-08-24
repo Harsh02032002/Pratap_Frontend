@@ -11,7 +11,7 @@ import {
 import { getApiBase, fetchJson, getAuthHeader } from "../../utils/api";
 import { toast } from "react-hot-toast";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerProperties, clearOwnerFetchCache } from "../../utils/propertyowner";
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerProperties, clearOwnerFetchCache, getActiveOwnerPropertyId } from "../../utils/propertyowner";
 import Tesseract from "tesseract.js";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
@@ -164,6 +164,11 @@ const MultiSourceUpload = ({ value, onUpload, error }) => {
     await onUpload(file);
   };
 
+  // A previously-uploaded document is a URL string; a freshly-picked file is
+  // never stored here (value only ever holds the server URL), so this also
+  // covers "already on file from a prior save" in edit mode.
+  const isImageUrl = typeof value === "string" && /^(https?:|data:|blob:)/.test(value) && !/\.pdf($|\?)/i.test(value);
+
   return (
     <>
       {showCamera && (
@@ -177,28 +182,45 @@ const MultiSourceUpload = ({ value, onUpload, error }) => {
         <input ref={photosRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
         <input ref={filesRef} type="file" accept="image/*,.pdf" className="hidden" onChange={handleFileChange} />
 
-        <div
-          onClick={() => setShowMenu(s => !s)}
-          className={cn(
-            "w-full h-24 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer transition-all hover:bg-muted/10",
-            error ? "border-rose-300 bg-rose-50/30" : "border-border hover:border-primary/40"
-          )}
-        >
-          {value ? (
-            <div className="flex items-center gap-3">
-              <CheckCircle2 className="w-6 h-6 text-emerald-500" />
-              <span className="text-[11.5px] font-bold text-slate-600">ID Proof Uploaded Successfully</span>
+        {value ? (
+          <div className={cn(
+            "w-full rounded-2xl border-2 overflow-hidden transition-all",
+            error ? "border-rose-300 bg-rose-50/30" : "border-emerald-200 bg-emerald-50/20"
+          )}>
+            <div className="relative h-24 bg-slate-100 flex items-center justify-center">
+              {isImageUrl ? (
+                <img src={value} alt="Uploaded document" className="w-full h-full object-cover" />
+              ) : (
+                <div className="flex items-center gap-3">
+                  <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+                  <span className="text-[11.5px] font-bold text-slate-600">Document on file</span>
+                </div>
+              )}
             </div>
-          ) : (
-            <>
-              <Upload className="w-5 h-5 text-slate-400 transition-colors" />
-              <div className="text-center">
-                <p className="text-[10px] font-black text-slate-600 uppercase">Click to upload document</p>
-                <p className="text-[8px] font-bold text-slate-400 mt-1 uppercase">PNG, JPG, PDF up to 5MB</p>
-              </div>
-            </>
-          )}
-        </div>
+            <button
+              type="button"
+              onClick={() => setShowMenu(s => !s)}
+              className="w-full flex items-center justify-center gap-1.5 py-2 bg-white hover:bg-slate-50 border-t border-border transition-colors"
+            >
+              <RefreshCw className="w-3.5 h-3.5 text-blue-600" />
+              <span className="text-[10px] font-black text-blue-600 uppercase tracking-wide">Update Upload</span>
+            </button>
+          </div>
+        ) : (
+          <div
+            onClick={() => setShowMenu(s => !s)}
+            className={cn(
+              "w-full h-24 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer transition-all hover:bg-muted/10",
+              error ? "border-rose-300 bg-rose-50/30" : "border-border hover:border-primary/40"
+            )}
+          >
+            <Upload className="w-5 h-5 text-slate-400 transition-colors" />
+            <div className="text-center">
+              <p className="text-[10px] font-black text-slate-600 uppercase">Click to upload document</p>
+              <p className="text-[8px] font-bold text-slate-400 mt-1 uppercase">PNG, JPG, PDF up to 5MB</p>
+            </div>
+          </div>
+        )}
 
         {showMenu && (
           <>
@@ -456,7 +478,6 @@ export default function TenantRec() {
     advanceChargeAmount: ""
   });
 
-
   // Section 4: Additional Details
   const [additionalDetails, setAdditionalDetails] = useState({
     occupation: "",
@@ -473,6 +494,10 @@ export default function TenantRec() {
   const [newTenant, setNewTenant] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [editTenantId, setEditTenantId] = useState(null);
+  // Set when editing a tenant who belongs to a different property than the one
+  // currently active in the sidebar — blocks the form instead of silently letting
+  // the owner edit/move a tenant they switched away from.
+  const [propertyMismatch, setPropertyMismatch] = useState(null);
 
   useEffect(() => {
     const initializeData = async () => {
@@ -483,95 +508,130 @@ export default function TenantRec() {
         const props = await fetchOwnerProperties(owner.loginId, true);
         setProperties(props);
 
-      // ── EDIT MODE: prefill from existing tenant ──
-      const urlParams = new URLSearchParams(window.location.search);
-      const editId = urlParams.get('edit');
-      if (editId) {
-        setEditMode(true);
-        setEditTenantId(editId);
-        try {
-          const res = await fetchJson(`/api/tenants/${editId}`);
-          const t = res?.tenant || res?.data || res;
-          if (t) {
-            // ── KYC / ID Proof ──
-            const kycIdProofType = t.kyc?.idProof || t.idProof?.type || t.idProofType || "Aadhaar Card";
-            const kycIdProofNumber = t.kyc?.aadhaarNumber || t.idProof?.number || t.idProofNumber || "";
-            const kycIdProofFile = t.kyc?.idProofFile || t.kyc?.aadhaarFront || t.idProof?.file || t.idProofFile || null;
+        // ── EDIT MODE: prefill from existing tenant ──
+        const urlParams = new URLSearchParams(window.location.search);
+        const editId = urlParams.get('edit');
+        if (editId) {
+          setEditMode(true);
+          setEditTenantId(editId);
+          try {
+            const res = await fetchJson(`/api/tenants/${editId}`);
+            const t = res?.tenant || res?.data || res;
+            if (t) {
+              // Block editing a tenant who belongs to a property other than the one
+              // currently active in the sidebar — otherwise a stale ?edit= link (or
+              // switching properties mid-flow) silently opens/edits the wrong tenant.
+              const activePropId = getActiveOwnerPropertyId();
+              if (activePropId) {
+                const tenantPropId = String(t.property?._id || t.property?.id || t.propertyId || t.property || "").trim().toLowerCase();
+                const tenantPropName = String(t.propertyTitle || t.propertyName || t.property?.title || "").trim().toLowerCase();
+                const activePropObj = props.find(p => String(p._id || p.id || "").trim().toLowerCase() === String(activePropId).trim().toLowerCase());
+                const activePropIdNorm = String(activePropId).trim().toLowerCase();
+                const activePropTitleNorm = String(activePropObj?.title || activePropObj?.name || "").trim().toLowerCase();
+                const belongsToActiveProperty = Boolean(
+                  tenantPropId && (tenantPropId === activePropIdNorm || (activePropTitleNorm && tenantPropName === activePropTitleNorm))
+                );
+                if (!belongsToActiveProperty) {
+                  setPropertyMismatch({
+                    tenantName: t.name || t.fullName || "This tenant",
+                    tenantPropertyName: t.propertyTitle || t.propertyName || t.property?.title || "a different property",
+                    activePropertyName: activePropObj?.title || activePropObj?.name || "the active property",
+                  });
+                  return;
+                }
+              }
 
-            setBasicDetails(prev => ({
-              ...prev,
-              fullName: t.name || t.fullName || "",
-              email: t.email || t.gmail || "",
-              phone: t.phone || t.mobile || "",
-              dob: t.dob ? new Date(t.dob).toISOString().split('T')[0] : "",
-              gender: t.gender || "",
-              idProofType: kycIdProofType,
-              idProofNumber: kycIdProofNumber,
-              idProofFile: kycIdProofFile,
-            }));
-            setRoomAssignment(prev => ({
-              ...prev,
-              propertyId: t.property?._id || t.propertyId || t.property || "",
-              building: t.building || "",
-              floor: t.floor || "",
-              roomUnit: t.roomNo || t.room?.title || "",
-              roomType: t.accommodationType || t.room?.type || t.roomType || "",
-              bed: t.bedNo ? String(t.bedNo) : "",
-              rentAgreementType: t.rentAgreementType || "Standard",
-              propertyAddress: t.propertyAddress || "",
-            }));
+              // The plain tenant record doesn't reliably carry the full kyc
+              // sub-document — fetch it separately and merge on top, same
+              // pattern as tenant-docs.jsx, so existing Aadhaar uploads prefill
+              // instead of forcing the owner to re-upload on every edit.
+              let kyc = t.kyc || {};
+              try {
+                const kycRes = await fetchJson(`/api/tenants/${editId}/kyc`);
+                if (kycRes?.success && kycRes?.kyc) kyc = { ...kyc, ...kycRes.kyc };
+              } catch (_) {
+                // KYC endpoint unavailable — fall back to whatever the tenant record already had
+              }
 
-            // ── Billing fields: try direct fields first, then digitalCheckin.agreementDetails ──
-            const agd = t.digitalCheckin?.agreementDetails || {};
-            setTenancyDetails(prev => ({
-              ...prev,
-              baseRoomRent: String(t.baseRoomRent || ""),
-              rentAmount: String(t.agreedRent || t.digitalCheckin?.profile?.agreedRent || ""),
-              depositAmount: String(t.securityDepositTotal ?? agd.securityDeposit ?? ""),
-              moveInDate: t.moveInDate ? new Date(t.moveInDate).toISOString().split('T')[0] : "",
-              minStay: String(t.minStay || agd.minimumStayDuration || "11"),
-              noticePeriod: String(t.noticePeriod || agd.noticePeriodDays || "30"),
-              rentDueDate: String(t.rentDueDate || agd.licenseFeeDueDate || "5"),
-              paymentFrequency: t.paymentFrequency || "Monthly",
-              lateFee: String(t.lateFee || ""),
-              licenseDuration: String(t.licenseDuration || agd.licenseDuration || ""),
-              moveOutCharges: String(t.moveOutCharges ?? agd.moveOutCharges ?? "0"),
-              noticePeriodCharges: String(t.noticePeriodCharges ?? agd.noticePeriodCharges ?? "0"),
-              inclusions: t.inclusions || agd.inclusions || "",
-              gstCharges: String(t.gstCharges ?? agd.gstCharges ?? "0"),
-              advanceCharge: String(t.advanceCharge ?? t.advanceChargeAmount ?? agd.advanceCharge ?? agd.advanceChargeAmount ?? "0"),
-              advanceChargeAmount: String(t.advanceCharge ?? t.advanceChargeAmount ?? agd.advanceCharge ?? agd.advanceChargeAmount ?? "0"),
-            }));
+              const docs = t.digitalCheckin?.documents || {};
 
-            // ── Emergency Contact: DB stores as emergencyContact.{name,phone,relationship} ──
-            setAdditionalDetails(prev => ({
-              ...prev,
-              occupation: t.occupation || t.additional?.occupation || "",
-              company: t.company || t.additional?.company || "",
-              emergencyName:  t.emergencyContact?.name  || t.additional?.emergencyName  || t.emergencyName  || "",
-              emergencyPhone: t.emergencyContact?.phone || t.additional?.emergencyPhone || t.emergencyPhone || "",
-              relationship:   t.emergencyContact?.relationship || t.additional?.relationship || t.relationship || "",
-              permanentAddress: t.permanentAddress || t.additional?.permanentAddress || "",
-              remarks: t.remarks || t.additional?.remarks || "",
-            }));
+              // ── KYC / ID Proof ──
+              const kycIdProofType = kyc.idProof || t.idProof?.type || t.idProofType || "Aadhaar Card";
+              const kycIdProofNumber = kyc.aadhaarNumber || t.idProof?.number || t.idProofNumber || "";
+              const existingFront = docs.aadhaarFrontUrl || kyc.aadhaarFront || kyc.idProofFile || t.aadhaarFront || t.idProof?.file || t.idProofFile || null;
+              const existingBack = docs.aadhaarBackUrl || kyc.aadhaarBack || t.aadhaarBack || null;
+
+              setBasicDetails(prev => ({
+                ...prev,
+                fullName: t.name || t.fullName || "",
+                email: t.email || t.gmail || "",
+                phone: t.phone || t.mobile || "",
+                dob: t.dob ? new Date(t.dob).toISOString().split('T')[0] : "",
+                gender: t.gender || "",
+                idProofType: kycIdProofType,
+                idProofNumber: kycIdProofNumber,
+                idProofFile: existingFront,
+                aadhaarFront: existingFront,
+                aadhaarBack: existingBack,
+              }));
+              setRoomAssignment(prev => ({
+                ...prev,
+                propertyId: t.property?._id || t.propertyId || t.property || "",
+                building: t.building || "",
+                floor: t.floor || "",
+                roomUnit: t.roomNo || t.room?.title || "",
+                roomType: t.accommodationType || t.room?.type || t.roomType || "",
+                bed: t.bedNo ? String(t.bedNo) : "",
+                rentAgreementType: t.rentAgreementType || "Standard",
+                propertyAddress: t.propertyAddress || "",
+              }));
+
+              const agd = t.digitalCheckin?.agreementDetails || {};
+              setTenancyDetails(prev => ({
+                ...prev,
+                baseRoomRent: String(t.baseRoomRent || ""),
+                rentAmount: String(t.agreedRent || t.digitalCheckin?.profile?.agreedRent || ""),
+                depositAmount: String(t.securityDepositTotal ?? agd.securityDeposit ?? ""),
+                moveInDate: t.moveInDate ? new Date(t.moveInDate).toISOString().split('T')[0] : "",
+                minStay: String(t.minStay || agd.minimumStayDuration || "11"),
+                noticePeriod: String(t.noticePeriod || agd.noticePeriodDays || "30"),
+                rentDueDate: String(t.rentDueDate || agd.licenseFeeDueDate || "5"),
+                paymentFrequency: t.paymentFrequency || "Monthly",
+                lateFee: String(t.lateFee || ""),
+                licenseDuration: String(t.licenseDuration || agd.licenseDuration || ""),
+                moveOutCharges: String(t.moveOutCharges ?? agd.moveOutCharges ?? "0"),
+                noticePeriodCharges: String(t.noticePeriodCharges ?? agd.noticePeriodCharges ?? "0"),
+                inclusions: t.inclusions || agd.inclusions || "",
+                gstCharges: String(t.gstCharges ?? agd.gstCharges ?? "0"),
+                advanceCharge: String(t.advanceCharge ?? t.advanceChargeAmount ?? agd.advanceCharge ?? agd.advanceChargeAmount ?? "0"),
+                advanceChargeAmount: String(t.advanceCharge ?? t.advanceChargeAmount ?? agd.advanceCharge ?? agd.advanceChargeAmount ?? "0"),
+              }));
+
+              setAdditionalDetails(prev => ({
+                ...prev,
+                occupation: t.occupation || t.additional?.occupation || "",
+                company: t.company || t.additional?.company || "",
+                emergencyName: t.emergencyContact?.name || t.additional?.emergencyName || t.emergencyName || "",
+                emergencyPhone: t.emergencyContact?.phone || t.additional?.emergencyPhone || t.emergencyPhone || "",
+                relationship: t.emergencyContact?.relationship || t.additional?.relationship || t.relationship || "",
+                permanentAddress: t.permanentAddress || t.additional?.permanentAddress || "",
+                remarks: t.remarks || t.additional?.remarks || "",
+              }));
+            }
+          } catch (err) {
+            console.error('Failed to load tenant for edit:', err);
+            toast.error('Could not load tenant data');
           }
-        } catch (err) {
-          console.error('Failed to load tenant for edit:', err);
-          toast.error('Could not load tenant data');
+          return;
         }
-        return; // skip normal URL param processing below
-      }
 
-      // 2. Parse URL query params (normal add mode)
-      const pId = urlParams.get('propertyId');
-
+        const pId = urlParams.get('propertyId');
         const room = urlParams.get('room');
         const nameParam = urlParams.get('name') || urlParams.get('fullName');
         const emailParam = urlParams.get('email');
         const phoneParam = urlParams.get('phone');
         const depositParam = urlParams.get('deposit') || urlParams.get('depositAmount') || urlParams.get('bookingAmount') || urlParams.get('paidAmount');
 
-        // 3. Set basic details
         if (nameParam || emailParam || phoneParam) {
           setBasicDetails(prev => ({
             ...prev,
@@ -581,7 +641,6 @@ export default function TenantRec() {
           }));
         }
 
-        // 4. Set tenancy details
         if (depositParam) {
           setTenancyDetails(prev => ({
             ...prev,
@@ -589,11 +648,10 @@ export default function TenantRec() {
           }));
         }
 
-        // 5. Select property and room
         if (pId) {
           let matchedProp = props.find(p => p._id === pId || p.visitId === pId || p.propertyId === pId);
           let resolvedPropertyId = matchedProp ? matchedProp._id : pId;
-          
+
           if (!matchedProp) {
             try {
               const approvedPropData = await fetchJson(`/api/approved-properties/${pId}`);
@@ -609,7 +667,7 @@ export default function TenantRec() {
               console.error("Could not resolve approved property ID:", fetchErr);
             }
           }
-          
+
           setRoomAssignment(prev => ({
             ...prev,
             propertyId: resolvedPropertyId,
@@ -629,7 +687,6 @@ export default function TenantRec() {
   }, [owner.loginId]);
 
   useEffect(() => {
-    // Load rooms for selected property
     if (!roomAssignment.propertyId) {
       setRooms([]);
       return;
@@ -637,10 +694,8 @@ export default function TenantRec() {
     let active = true;
     const loadRooms = async () => {
       try {
-        console.log("DEBUG loadRooms: propertyId =", roomAssignment.propertyId, "properties =", properties);
         const data = await fetchJson(`/api/rooms/property/${roomAssignment.propertyId}?unassigned=true`);
         if (!active) return;
-        console.log("DEBUG loadRooms: API returned data =", data);
         let roomList = [];
         if (Array.isArray(data)) {
           roomList = data;
@@ -648,11 +703,8 @@ export default function TenantRec() {
           roomList = data.rooms;
         }
 
-        // Fallback generator
         if (roomList.length === 0) {
-          console.log("DEBUG loadRooms: roomList is empty, trying fallback generator...");
           const selectedProp = properties.find(p => p._id === roomAssignment.propertyId || p.visitId === roomAssignment.propertyId || p.propertyId === roomAssignment.propertyId);
-          console.log("DEBUG loadRooms: selectedProp =", selectedProp);
           if (selectedProp && Array.isArray(selectedProp.roomTypes)) {
             selectedProp.roomTypes.forEach(rt => {
               const count = parseInt(rt.totalRooms) || 0;
@@ -671,11 +723,6 @@ export default function TenantRec() {
           }
         }
 
-        // Final fallback: the property-scoped endpoint can return nothing when the
-        // room records are linked to the owner (ownerLoginId) rather than to this
-        // exact property _id. Pull the owner's rooms — the same endpoint the Rooms
-        // pages use — and keep the ones for the selected property (or all, if the
-        // room records carry no property reference to filter on).
         if (roomList.length === 0 && owner?.loginId) {
           try {
             const ownerData = await fetchJson(`/api/rooms/owner/${owner.loginId}`);
@@ -687,13 +734,12 @@ export default function TenantRec() {
             roomList = ownerRooms.filter(r => {
               const rpId = String(r.propertyId || r.property?._id || r.property || r.property_id || "");
               const rpName = String(r.propertyName || r.property?.title || r.property?.name || "").trim().toLowerCase();
-              if (!rpId && !rpName) return true; // room carries no property reference → include
+              if (!rpId && !rpName) return true;
               return rpId === pid || (!!pName && rpName === pName);
             });
-          } catch (_) { /* keep roomList as-is */ }
+          } catch (_) {}
         }
 
-        console.log("DEBUG loadRooms: final roomList =", roomList);
         setRooms(roomList);
 
         const selectedPropObj = properties.find(p => p._id === roomAssignment.propertyId || p.visitId === roomAssignment.propertyId || p.propertyId === roomAssignment.propertyId);
@@ -707,7 +753,6 @@ export default function TenantRec() {
           }
         }
 
-        // Auto-fill logic if a room is already selected via URL
         if (roomAssignment.roomUnit) {
           const selectedRoom = roomList.find(r => r.title === roomAssignment.roomUnit);
           if (selectedRoom) {
@@ -780,7 +825,6 @@ export default function TenantRec() {
   const handleSubmit = async () => {
     if (submitting) return;
 
-    // Run validation checks
     const newErrors = {};
     if (!basicDetails.fullName) newErrors.fullName = "Name is required";
     if (!basicDetails.email) newErrors.email = "Email is required";
@@ -850,6 +894,7 @@ export default function TenantRec() {
         phone: basicDetails.phone,
         propertyId: roomAssignment.propertyId,
         propertyTitle: selectedPropObj?.title || "",
+        ownerLoginId: selectedPropObj?.ownerLoginId || selectedPropObj?.owner_id || owner.loginId,
         roomNo: roomAssignment.roomUnit || [roomAssignment.floor, roomAssignment.roomType].filter(Boolean).join(" - ") || roomAssignment.floor,
         bedNo: roomAssignment.bed,
         floor: roomAssignment.floor,
@@ -893,18 +938,20 @@ export default function TenantRec() {
         additional: additionalDetails,
       };
 
-
       let res;
       if (editMode && editTenantId) {
-        // UPDATE existing tenant
         res = await fetch(`${apiUrl}/api/tenants/${editTenantId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json", ...getAuthHeader() },
           body: JSON.stringify(payload),
         });
       } else {
-        // ADD new tenant
         payload.status = "pending";
+        // Mirrors the flag the owner-creation flow sends (superadmin/owner.jsx)
+        // so the backend can mark this account as needing a forced password
+        // change on first login, same as it already does for owners.
+        payload.credentials = { firstTime: true };
+        payload.firstTime = true;
         res = await fetch(`${apiUrl}/api/tenants/assign`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -934,10 +981,8 @@ export default function TenantRec() {
     }
   };
 
-
   const handlePhotoUpload = async (file) => {
     if (!file) return;
-
     const loadingToast = toast.loading("Uploading ID Proof...");
     const data = new FormData();
     data.append("image", file);
@@ -1017,11 +1062,9 @@ export default function TenantRec() {
       const text = result?.data?.text || "";
       console.log("OCR Front text:", text);
 
-      // Extract Aadhaar Number
       const aadhaarMatch = text.match(/[2-9]\d{3}[\s\-]?\d{4}[\s\-]?\d{4}/) || text.replace(/[\s\-]/g, "").match(/[2-9]\d{11}/);
       const aadhaarNum = aadhaarMatch ? aadhaarMatch[0].replace(/[\s\-]/g, "") : "";
 
-      // Extract DOB
       let dobVal = "";
       const dobMatch = text.match(/(?:dob|date\s*of\s*birth|d\.?\s*o\.?\s*b\.?)[:\s]+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})/i) || text.match(/\b(\d{2})[\/\-](\d{2})[\/\-](\d{4})\b/);
       if (dobMatch) {
@@ -1032,17 +1075,14 @@ export default function TenantRec() {
         }
       }
 
-      // Extract Gender
       let genderVal = "";
       if (/\b(female|महिला)\b/i.test(text)) genderVal = "Female";
       else if (/\b(male|पुरुष)\b/i.test(text)) genderVal = "Male";
       else if (/\b(transgender)\b/i.test(text)) genderVal = "Other";
 
-      // Extract Name from Aadhaar Front
       let extractedName = "";
       const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
 
-      // Tier 1: Check for explicit "Name:" tag
       for (const line of lines) {
         const match = line.match(/^(?:name|naam|नाम)[:\s]+([A-Za-z.\s]{2,40})/i);
         if (match) {
@@ -1051,7 +1091,6 @@ export default function TenantRec() {
         }
       }
 
-      // Tier 2: Look for line above DOB / Gender / Aadhaar Number anchor
       if (!extractedName) {
         let anchorIdx = lines.findIndex(l => /(?:dob|date\s*of\s*birth|d\.o\.b|gender|male|female|year\s*of\s*birth|\d{2}[\/-]\d{2}[\/-]\d{4})/i.test(l));
         if (anchorIdx === -1) {
@@ -1077,7 +1116,6 @@ export default function TenantRec() {
         }
       }
 
-      // Tier 3: Fallback - grab first valid non-header English line
       if (!extractedName) {
         for (const line of lines) {
           const clean = line.replace(/[^A-Za-z\s]/g, " ").replace(/\s+/g, " ").trim();
@@ -1090,7 +1128,6 @@ export default function TenantRec() {
         }
       }
 
-      // Format Name: Title Case
       if (extractedName) {
         extractedName = extractedName
           .split(" ")
@@ -1101,7 +1138,6 @@ export default function TenantRec() {
         
         if (extractedName.length < 2) extractedName = "";
       }
-
 
       setBasicDetails(prev => ({
         ...prev,
@@ -1131,7 +1167,6 @@ export default function TenantRec() {
       const text = result?.data?.text || "";
       console.log("OCR Back text:", text);
 
-      // Extract Address
       let extractedAddress = "";
       const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
       let addrIdx = lines.findIndex(l => /(?:address|पता|s\/o|d\/o|w\/o|c\/o)[:\s]/i.test(l));
@@ -1149,7 +1184,6 @@ export default function TenantRec() {
         }
       }
 
-      // Extract Father / Guardian / Husband Name & Relationship
       let fatherName = "";
       let relationType = "";
       const relMatch = text.match(/(?:s\/o|d\/o|w\/o|c\/o|son\s+of|daughter\s+of|wife\s+of|care\s+of|father['’]?s?\s+name|father|fathername|पिता|संरक्षक)[:\s]+([A-Za-z.\s]{2,40})/i);
@@ -1165,27 +1199,23 @@ export default function TenantRec() {
         }
       }
 
-      // Clean & Sanitize Permanent Address
       if (extractedAddress) {
         let clean = extractedAddress
           .replace(/(?:s\/o|d\/o|w\/o|c\/o|son\s+of|daughter\s+of|wife\s+of|care\s+of)[:\s]+[A-Za-z.\s]{2,40}(?:,|\n|$)/gi, "")
           .replace(/\b(?:address|पता|addr)[:\s,.-]*/gi, "")
           .replace(/^[:\s,.-]+/, "");
 
-        // Trim after 6-digit pincode if present
         const pinMatch = clean.match(/\b(\d{6})\b/);
         if (pinMatch) {
           const pIdx = clean.indexOf(pinMatch[0]);
           clean = clean.substring(0, pIdx + 6);
         }
 
-        // Clean noise tokens
         clean = clean
           .replace(/\b(?:le|GT|eg|Cat|GEA|dx|AE|ie|Le|peels|fi|v|i|s|Sar\s+a|vi)\b/gi, " ")
           .replace(/[^a-zA-Z0-9\s#\/\-\.,]/g, " ")
           .replace(/\s+/g, " ");
 
-        // Deduplicate comma-separated parts & remove leftover Address tag
         const rawParts = clean.split(",").map(p => p.trim()).filter(Boolean);
         const uniqueParts = [];
         const seen = new Set();
@@ -1214,11 +1244,6 @@ export default function TenantRec() {
       } else {
         toast.success("Aadhaar Back uploaded!");
       }
-
-
-
-
-
 
       setBasicDetails(prev => ({
         ...prev,
@@ -1269,7 +1294,6 @@ export default function TenantRec() {
     }
   };
 
-
   return (
     <PropertyOwnerLayout
       owner={owner}
@@ -1303,7 +1327,6 @@ export default function TenantRec() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Form Sections */}
         <div className="lg:col-span-8 space-y-8">
           {isMobile && (
             <div className="flex gap-2 border-b border-slate-100 pb-3 mb-6 overflow-x-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
@@ -1508,12 +1531,9 @@ export default function TenantRec() {
               const matchesSelected = roomAssignment.roomUnit && (r.title === roomAssignment.roomUnit || r.number === roomAssignment.roomUnit || r.roomNo === roomAssignment.roomUnit);
               if (matchesSelected) return true;
 
-              // Filter out unavailable or deleted rooms (status=inactive is the Room model default — it controls public listing, not assignability)
               if (r.isAvailable === false || r.isDeleted === true) {
                 return false;
               }
-              // Filter out rooms with no vacant beds
-              // A bed is vacant if it's not explicitly occupied and has no tenant assigned
               const bedsList = toLegacyBeds(r);
               return bedsList.some(b => {
                 const s = String(b.status || '').toLowerCase().trim();
@@ -1965,10 +1985,37 @@ export default function TenantRec() {
                 </div>
               </div>
 
-            </div>{/* end scrollable sticky wrapper */}
+            </div>
           </div>
         )}
       </div>
+
+      {/* Property Mismatch Modal — tenant belongs to a property other than the active one */}
+      {propertyMismatch && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in" />
+          <div className="relative w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl p-8 animate-in zoom-in duration-300">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-20 h-20 rounded-full bg-amber-50 flex items-center justify-center mb-6">
+                <AlertCircle className="w-10 h-10 text-amber-500" />
+              </div>
+              <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight mb-2">Tenant Not In This Property</h2>
+              <p className="text-[12.5px] text-slate-500 mb-8 leading-relaxed">
+                <span className="font-bold text-slate-700">{propertyMismatch.tenantName}</span> belongs to{" "}
+                <span className="font-bold text-slate-700">{propertyMismatch.tenantPropertyName}</span>, not the currently
+                active property (<span className="font-bold text-slate-700">{propertyMismatch.activePropertyName}</span>).
+                Switch to that property to edit this tenant.
+              </p>
+              <button
+                onClick={() => navigate("/propertyowner/admin")}
+                className="w-full py-4 rounded-2xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest shadow-xl shadow-slate-200 hover:bg-slate-800 transition-all"
+              >
+                Cancel &amp; Go to Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Success Modal */}
       {showSuccess && newTenant && (

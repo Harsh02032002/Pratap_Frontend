@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ListPlus, Send, CheckCircle, Loader, User, Mail, Phone, MapPin, Home, Plus, X, Image as ImageIcon, MapPinned } from 'lucide-react';
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
 import { fetchJson, getApiBase, getAuthHeader } from '../../utils/api';
-import { clearOwnerRuntimeSession, getOwnerRuntimeSession } from "../../utils/propertyowner";
+import { clearOwnerFetchCache, clearOwnerRuntimeSession, getOwnerRuntimeSession } from "../../utils/propertyowner";
 import LocationMapPicker from '../../components/website/LocationMapPicker';
 
 export default function AddPropertyWizard() {
@@ -85,8 +85,9 @@ export default function AddPropertyWizard() {
           throw new Error(text || `HTTP error ${res.status}`);
         }
 
-        if (!res.ok) throw new Error(json.error || 'Upload failed');
-        if (json.url) uploadedUrls.push(json.url);
+        if (!res.ok) throw new Error(json?.error || json?.message || `HTTP error ${res.status}`);
+        const imgUrl = json?.url || json?.secure_url || json?.filePath || json?.location;
+        if (imgUrl) uploadedUrls.push(imgUrl);
       }
 
       if (target === 'images') {
@@ -186,6 +187,9 @@ export default function AddPropertyWizard() {
         method: 'POST',
         body: JSON.stringify(propertyData)
       });
+
+      // Clear in-memory cache so properties page shows the new listing immediately
+      clearOwnerFetchCache(owner?.loginId);
 
       setShowSuccess(true);
       setFormData({

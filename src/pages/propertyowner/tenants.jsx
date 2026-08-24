@@ -86,6 +86,9 @@ export default function Tenants() {
   // Tenants with a Pending alternate-ID-proof request — they're waiting on
   // Superadmin, so an Aadhaar-OTP completion reminder doesn't apply to them.
   const [pendingKycRequestTenantIds, setPendingKycRequestTenantIds] = useState(new Set());
+  // Alternate ID proof (Voter ID / PAN / Passport / Driving License) submitted in place of
+  // Aadhaar — lives on a separate TenantKycRequest record, keyed by tenantId.
+  const [altKycRequestByTenantId, setAltKycRequestByTenantId] = useState(new Map());
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingTenant, setEditingTenant] = useState(null);
   const [editForm, setEditForm] = useState({
@@ -308,11 +311,19 @@ export default function Tenants() {
       }
 
       try {
-        const kycReqRes = await fetchJson(`/api/tenant-kyc-requests?ownerLoginId=${encodeURIComponent(session.loginId)}&status=Pending`);
+        // Fetched without a status filter — tenants added without Aadhaar upload their
+        // alternate ID proof (Voter ID / PAN / Passport / Driving License) onto this
+        // TenantKycRequest record rather than tenant.kyc, so it must be looked up here
+        // or the Documents tab has nothing to fall back to when Aadhaar is missing.
+        const kycReqRes = await fetchJson(`/api/tenant-kyc-requests?ownerLoginId=${encodeURIComponent(session.loginId)}`);
+        const allReqs = kycReqRes?.data || [];
         const ids = new Set(
-          (kycReqRes?.data || []).map(r => (r.tenantId && typeof r.tenantId === "object" ? r.tenantId._id : r.tenantId))
+          allReqs.filter(r => r.status === "Pending").map(r => (r.tenantId && typeof r.tenantId === "object" ? r.tenantId._id : r.tenantId))
         );
         setPendingKycRequestTenantIds(ids);
+        setAltKycRequestByTenantId(new Map(
+          allReqs.map(r => [String(r.tenantId && typeof r.tenantId === "object" ? r.tenantId._id : r.tenantId), r])
+        ));
       } catch (_) {
         // Non-critical — the completion-request button just won't be disabled.
       }
@@ -929,6 +940,14 @@ export default function Tenants() {
         const aadhaarFront = getFileUrl(kyc.aadhaarFront);
         const aadhaarBack  = getFileUrl(kyc.aadhaarBack);
 
+        // No Aadhaar on file — fall back to whatever alternate ID proof (Voter ID / PAN /
+        // Passport / Driving License) the tenant submitted instead, so the Documents tab
+        // shows that document rather than leaving the section blank.
+        const hasAadhaar   = !!(kyc.aadhaarNumber || aadhaarFront || aadhaarBack || kyc.aadharFile);
+        const altKycReq    = altKycRequestByTenantId.get(String(t._id || t.id));
+        const altProofUrl  = hasAadhaar ? null : getFileUrl(altKycReq?.proofFileUrl || kyc.alternateProofFile);
+        const altProofType = altKycReq?.proofType || kyc.alternateProofType || "Other";
+
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-foreground/60 backdrop-blur-sm">
             <div className="bg-card rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[92vh]">
@@ -1130,6 +1149,23 @@ export default function Tenants() {
                                   </a>
                                 </div>
                               )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Alternate ID Proof — shown only when there's no Aadhaar on file */}
+                        {altProofUrl && (
+                          <div>
+                            <div className="text-[11px] text-muted-foreground mb-2 uppercase tracking-wide">{altProofType}</div>
+                            <div className="flex flex-col gap-1 w-fit">
+                              <a href={altProofUrl} target="_blank" rel="noopener noreferrer">
+                                <img
+                                  src={altProofUrl}
+                                  alt={altProofType}
+                                  className="h-32 w-52 object-cover rounded-lg border border-border hover:opacity-90 transition-opacity cursor-zoom-in"
+                                  onError={(e) => { e.currentTarget.style.display = "none"; }}
+                                />
+                              </a>
                             </div>
                           </div>
                         )}

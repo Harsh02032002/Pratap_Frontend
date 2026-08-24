@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import WebsiteNavbar from "../../components/website/WebsiteNavbar";
 import WebsiteFooter from "../../components/website/WebsiteFooter";
 import MobileBottomNav from "../../components/website/MobileBottomNav";
-import { Target, Shield, Heart, Zap, Rocket, Globe, TrendingUp, Users, Building2, Info, Handshake } from 'lucide-react';
+import { Target, Shield, Heart, Zap, Rocket, Globe, TrendingUp, Users, Building2, Info, Handshake, Search, Sparkles, Quote, ArrowRight } from 'lucide-react';
 import { fetchJson } from "../../utils/api";
 import useSEO from "../../hooks/useSEO";
 
@@ -25,9 +25,19 @@ const valueColors = [
 const valueIcons = [Zap, Heart, Rocket, Shield];
 
 export default function AboutPage() {
-  useSEO({ pageKey: 'about', fallbackTitle: 'About Roomhy - Our Story & Mission' });
+  useSEO({ 
+    pageKey: 'about', 
+    fallbackTitle: 'About Us | Zero Brokerage Student Stays | Roomhy.com',
+    fallbackDescription: "Learn about Roomhy.com's mission to provide 100% verified, broker-free student and professional living across India with transparent budget bidding."
+  });
   const [layoutSections, setLayoutSections] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (window.location.pathname !== '/about-us') {
+      window.history.replaceState(null, '', '/about-us');
+    }
+  }, []);
 
   // Fetch page layout settings from DB
   useEffect(() => {
@@ -78,28 +88,110 @@ export default function AboutPage() {
       subtitle: 'Our Story & Mission'
     });
     return (
-      <div key="about-hero" className="relative w-full py-5 md:py-10 px-4 md:px-6 overflow-hidden border-b border-stone-200/50" 
-           style={{ background: 'linear-gradient(135deg, #FFFAF5 0%, #FDFCFB 50%, #F5F7FA 100%)' }}>
-        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" 
-             style={{ backgroundImage: `url("https://www.transparenttextures.com/patterns/pinstripe.png")` }}>
-        </div>
-        <div className="relative max-w-7xl mx-auto flex flex-col items-center text-center">
-          <div className="w-8 h-8 md:w-12 md:h-12 rounded-xl bg-amber-100 flex items-center justify-center mb-2 md:mb-4">
-            <Info size={18} className="text-amber-600 md:w-6 md:h-6" />
+      <div 
+        key="about-hero" 
+        className="relative w-full py-8 md:py-12 px-4 md:px-8 overflow-hidden border-b border-stone-200/80 text-center"
+        style={{
+          background: 'linear-gradient(135deg, #EAEFF5 0%, #F5F7FA 50%, #E5EDF5 100%)'
+        }}
+      >
+        <div 
+          className="absolute inset-0 opacity-[0.25] pointer-events-none"
+          style={{
+            backgroundImage: `radial-gradient(circle at 20% 30%, rgba(200, 215, 230, 0.4) 0%, transparent 40%), radial-gradient(circle at 80% 70%, rgba(210, 225, 240, 0.4) 0%, transparent 40%), linear-gradient(45deg, rgba(255,255,255,0.6) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.6) 75%)`,
+            backgroundSize: '100% 100%, 100% 100%, 60px 60px'
+          }}
+        ></div>
+        <div className="relative max-w-6xl mx-auto flex flex-col items-center justify-center text-center">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-[#1E293B] tracking-wider uppercase leading-tight mb-4 drop-shadow-xs">
+            {(content.title || 'ABOUT US').toUpperCase()}
+          </h1>
+          <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3">
+            <div className="px-3.5 py-1.5 rounded-full border border-slate-300/80 bg-white/70 backdrop-blur-xs text-slate-800 text-xs md:text-sm font-semibold tracking-wider uppercase shadow-2xs">
+              OUR MISSION
+            </div>
+            <div className="px-3.5 py-1.5 rounded-full border border-slate-300/80 bg-white/70 backdrop-blur-xs text-slate-800 text-xs md:text-sm font-semibold tracking-wider uppercase shadow-2xs">
+              VERIFIED SPACES
+            </div>
+            <div className="px-3.5 py-1.5 rounded-full border border-slate-300/80 bg-white/70 backdrop-blur-xs text-slate-800 text-xs md:text-sm font-semibold tracking-wider uppercase shadow-2xs">
+              ZERO BROKERAGE
+            </div>
           </div>
-          <div className="flex items-center gap-2 md:gap-4 mb-1 md:mb-2">
-            <div className="h-[1px] w-6 md:w-8 bg-[#C5A059]/40 hidden md:block"></div>
-            <h1 className="text-lg md:text-4xl font-bold text-[#1A1A1A] tracking-tight">
-              {content.title}
-            </h1>
-            <div className="h-[1px] w-6 md:w-8 bg-[#C5A059]/40 hidden md:block"></div>
-          </div>
-          <p className="text-xs md:text-lg text-stone-500 font-normal opacity-90 max-w-xl mx-auto">
-            {content.subtitle}
-          </p>
-          <div className="mt-2 md:mt-4 w-1.5 h-1.5 rounded-full bg-[#C5A059]/30"></div>
         </div>
       </div>
+    );
+  };
+
+  const renderAboutStory = () => {
+    return (
+      <section key="about-story" className="py-10 md:py-16 px-4 md:px-8 max-w-6xl mx-auto">
+        {/* Lead Purpose Banner */}
+        <div className="text-center mb-10 md:mb-14">
+          <p className="text-amber-600 font-semibold text-xs md:text-sm uppercase tracking-wider mb-2">Simple & Stress-Free</p>
+          <h2 className="text-xl md:text-3xl font-extrabold text-stone-900 leading-snug mb-4 max-w-3xl mx-auto">
+            At Roomhy, we believe finding the right place to stay should be simple and stress-free.
+          </h2>
+          <p className="text-stone-600 text-sm md:text-base leading-relaxed max-w-3xl mx-auto">
+            We created Roomhy to make the process of discovering and managing properties easier for everyone. Whether you are looking for a comfortable place to stay or you are a property owner looking to manage your property, Roomhy brings everything together in one place.
+          </p>
+        </div>
+
+        {/* Feature Cards Grid (Owners & Seekers) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 md:mb-12">
+          {/* Property Owners */}
+          <div className="bg-white p-6 md:p-8 rounded-2xl border border-stone-200/80 shadow-sm hover:border-amber-300 transition-all">
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center mb-4">
+              <Building2 size={22} />
+            </div>
+            <h3 className="text-lg md:text-xl font-bold text-stone-900 mb-2">For Property Owners</h3>
+            <p className="text-stone-600 text-xs md:text-sm leading-relaxed">
+              We provide simple tools to add and manage properties, keep information updated, and handle day-to-day property activities more easily.
+            </p>
+          </div>
+
+          {/* Property Seekers */}
+          <div className="bg-white p-6 md:p-8 rounded-2xl border border-stone-200/80 shadow-sm hover:border-teal-300 transition-all">
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-teal-50 text-teal-600 border border-teal-100 flex items-center justify-center mb-4">
+              <Search size={22} />
+            </div>
+            <h3 className="text-lg md:text-xl font-bold text-stone-900 mb-2">For Property Seekers</h3>
+            <p className="text-stone-600 text-xs md:text-sm leading-relaxed">
+              Roomhy makes it easier to explore available options, check the details, and find a place that suits their needs.
+            </p>
+          </div>
+        </div>
+
+        {/* Goal & Growth Pill Boxes */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 md:mb-12">
+          <div className="p-6 rounded-2xl bg-amber-50/50 border border-amber-100">
+            <div className="flex items-center gap-2 mb-2">
+              <Target className="text-amber-600" size={18} />
+              <h4 className="text-sm md:text-base font-bold text-stone-900">Our Goal</h4>
+            </div>
+            <p className="text-stone-600 text-xs md:text-sm leading-relaxed">
+              We are building Roomhy with a simple goal — to make the property experience easier, more convenient, and more reliable.
+            </p>
+          </div>
+
+          <div className="p-6 rounded-2xl bg-teal-50/50 border border-teal-100">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp className="text-teal-600" size={18} />
+              <h4 className="text-sm md:text-base font-bold text-stone-900">As We Grow</h4>
+            </div>
+            <p className="text-stone-600 text-xs md:text-sm leading-relaxed">
+              As we grow, we continue to improve the platform based on what property owners and customers actually need.
+            </p>
+          </div>
+        </div>
+
+        {/* Calm Light Signature Quote Banner */}
+        <div className="relative rounded-2xl p-6 md:p-10 text-center bg-gradient-to-r from-amber-50 via-amber-50/40 to-stone-50 border border-amber-200/70 shadow-sm">
+          <Quote className="text-amber-400 mx-auto mb-3 opacity-50" size={32} />
+          <p className="text-base md:text-xl font-bold italic text-stone-800 leading-relaxed max-w-3xl mx-auto">
+            "Roomhy is more than just a property platform. It is our effort to make finding and managing a place feel a little easier."
+          </p>
+        </div>
+      </section>
     );
   };
 
@@ -278,10 +370,19 @@ export default function AboutPage() {
     );
   };
 
-  const defaultOrder = ['about-hero', 'vision', 'mission', 'values', 'stats', 'team'];
-  const activeOrder = layoutSections.length > 0
+  const defaultOrder = ['about-hero', 'about-story', 'vision', 'mission', 'values', 'stats', 'team'];
+  let activeOrder = layoutSections.length > 0
     ? layoutSections.map(s => s.id)
     : defaultOrder;
+
+  if (activeOrder.length > 0 && !activeOrder.includes('about-story')) {
+    const heroIdx = activeOrder.indexOf('about-hero');
+    if (heroIdx !== -1) {
+      activeOrder.splice(heroIdx + 1, 0, 'about-story');
+    } else {
+      activeOrder.unshift('about-story');
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -297,6 +398,7 @@ export default function AboutPage() {
             if (!isSectionVisible(sectionId)) return null;
             switch (sectionId) {
               case 'about-hero': return renderHero();
+              case 'about-story': return renderAboutStory();
               case 'vision': return renderVision();
               case 'mission': return renderMission();
               case 'values': return renderValues();

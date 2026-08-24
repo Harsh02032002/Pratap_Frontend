@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerTenants } from "../../utils/propertyowner";
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerTenants, filterByActiveProperty, getActiveOwnerPropertyId } from "../../utils/propertyowner";
 import { fetchJson } from "../../utils/api";
 import toast from "react-hot-toast";
 import {
@@ -30,7 +30,7 @@ export default function WhatsApp() {
 
   useEffect(() => {
     fetchOwnerTenants(owner.loginId)
-      .then(list => setTenants(list || []))
+      .then(list => setTenants(filterByActiveProperty(list || [], false)))
       .catch(() => {})
       .finally(() => setLoadingTenants(false));
   }, [owner.loginId]);
@@ -70,6 +70,7 @@ export default function WhatsApp() {
           ownerName,
           message: message.trim(),
           recipientGroup: group,
+          propertyId: getActiveOwnerPropertyId() || undefined,
         }),
       });
       setResults(data);

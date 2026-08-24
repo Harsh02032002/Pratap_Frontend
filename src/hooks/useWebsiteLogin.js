@@ -34,7 +34,7 @@ export function useWebsiteLogin() {
       const data = await response.json().catch(() => ({}));
       if (response.ok && data.token && data.user) {
         setWebsiteSession(data.user, data.token);
-        window.location.href = "/website/index";
+        window.location.href = "/";
         return;
       }
 

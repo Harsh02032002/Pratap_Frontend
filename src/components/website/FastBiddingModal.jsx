@@ -150,40 +150,54 @@ export default function FastBiddingModal({ isOpen, onClose, initialData = {} }) 
   useEffect(() => {
     if (!form.city) { setAreas([]); return; }
     
-    // Find selected city object to get its ID and name
-    const selectedCityObj = cities.find(c => (typeof c === 'object' ? (c.name || c.cityName || '') : c) === form.city);
+    const selectedCityObj = cities.find(c => (typeof c === 'object' ? (c.name || c.cityName || '') : c).toLowerCase().trim() === form.city.toLowerCase().trim());
     const selectedCityId = selectedCityObj?._id || selectedCityObj?.id || '';
     const cityLower = form.city.toLowerCase().trim();
+
+    // Helper to extract property localities for this city
+    const getPropertyLocalities = () => {
+      return (allProperties || [])
+        .filter(p => {
+          const pCity = String(p.city || p.propertyInfo?.city || p.cityName || '').toLowerCase().trim();
+          return pCity === cityLower || pCity.includes(cityLower) || cityLower.includes(pCity);
+        })
+        .map(p => p.locality || p.area || p.propertyInfo?.area || p.propertyInfo?.locality || '')
+        .filter(Boolean);
+    };
 
     fetchAreas()
       .then(allAreas => {
         const filtered = allAreas.filter(a => {
           if (typeof a === 'string') {
-            // String areas: check if they contain the city name as a word
             return a.toLowerCase().includes(cityLower);
           }
           
-          // Object areas: match by city ID (most reliable) or city name
-          const cityIdStr = String(a.cityId || a.city?._id || a.city || '').trim();
-          const cityNameInArea = (a.cityName || a.city?.name || '').toLowerCase().trim();
+          const cityIdStr = String(a.cityId || a.city?._id || (typeof a.city === 'object' ? a.city?._id : '') || '').trim();
+          const cityNameInArea = String(
+            (typeof a.city === 'string' ? a.city : a.city?.name) || 
+            a.cityName || 
+            a.city_name || 
+            ''
+          ).toLowerCase().trim();
 
-          // Primary: exact ID match
-          if (selectedCityId && cityIdStr === selectedCityId) return true;
-          // Secondary: city name exact match
+          if (selectedCityId && cityIdStr === String(selectedCityId).trim()) return true;
           if (cityNameInArea === cityLower) return true;
-          // Tertiary: city name contains match
-          if (cityNameInArea.includes(cityLower) || cityLower.includes(cityNameInArea)) return true;
+          if (cityNameInArea && (cityNameInArea.includes(cityLower) || cityLower.includes(cityNameInArea))) return true;
 
           return false;
         });
-        // Extract area name strings, deduplicate
-        const areaNames = [...new Set(
-          filtered.map(a => typeof a === 'string' ? a : (a.name || a.areaName || '')).filter(Boolean)
-        )];
-        setAreas(areaNames);
+
+        const areaNames = filtered.map(a => typeof a === 'string' ? a : (a.name || a.areaName || a.title || '')).filter(Boolean);
+        const propAreas = getPropertyLocalities();
+        const combined = [...new Set([...areaNames, ...propAreas])];
+
+        setAreas(combined);
       })
-      .catch(() => setAreas([]));
-  }, [form.city, cities]);
+      .catch(() => {
+        const propAreas = [...new Set(getPropertyLocalities())];
+        setAreas(propAreas);
+      });
+  }, [form.city, cities, allProperties]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;

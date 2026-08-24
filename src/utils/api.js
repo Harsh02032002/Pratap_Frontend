@@ -1,5 +1,6 @@
 import { fetchPropertiesLocal } from './mockApi';
-import { getScopedAuthToken } from './authScope';
+import { getScopedAuthToken, clearScopedSession } from './authScope';
+import { normalizeTierKey, composeTieredPropertyName } from './propertyTiers';
 
 // ---------------------------------------------------------------------------
 // Module-level request cache
@@ -137,6 +138,9 @@ export const fetchJson = (path, options = {}) => {
         const err = new Error(errorMsg);
         err.status = res.status;
         err.body = text;
+        if (res.status === 401 && (errorMsg.includes("token invalid") || errorMsg.includes("Token expired") || errorMsg.includes("token missing"))) {
+          try { clearScopedSession(); } catch (_) {}
+        }
         throw err;
       }
       return res.json();
@@ -191,11 +195,13 @@ export const fetchAreas = async () => {
 
 // Static properties for Vercel deployment
 const staticPropertiesList = [
+  // KOTA PROPERTIES
   {
     _id: "static1",
-    property_name: "Roomhy Boys PG - Kota",
-    propertyName: "Roomhy Boys PG - Kota",
+    property_name: "Roomhy Boys PG - Talwandi",
+    propertyName: "Roomhy Boys PG - Talwandi",
     city: "Kota",
+    area: "Talwandi",
     address: "Talwandi, Kota, Rajasthan 324005",
     propertyType: "pg",
     monthlyRent: 8000,
@@ -204,71 +210,140 @@ const staticPropertiesList = [
     owner_phone: "9000000001",
     owner_id: "ROOMHY9999",
     gender: "male",
+    beds: 2,
     status: "active",
     isPublished: true,
-    images: [
-      "https://images.pexels.com/photos/1571468/pexels-photo-1571468.jpeg?auto=compress&cs=tinysrgb&w=600",
-      "https://images.pexels.com/photos/271618/pexels-photo-271618.jpeg?auto=compress&cs=tinysrgb&w=600",
-      "https://images.pexels.com/photos/1743229/pexels-photo-1743229.jpeg?auto=compress&cs=tinysrgb&w=600",
-      "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=600"
-    ],
-    propertyViews: [
-      { 
-        label: "Facade", 
-        images: [
-          "https://picsum.photos/800/600?random=1001",
-          "https://picsum.photos/800/600?random=1002",
-          "https://picsum.photos/800/600?random=1003",
-          "https://picsum.photos/800/600?random=1004"
-        ] 
-      },
-      { 
-        label: "Reception", 
-        images: [
-          "https://picsum.photos/800/600?random=2001",
-          "https://picsum.photos/800/600?random=2002"
-        ] 
-      },
-      { 
-        label: "Room", 
-        images: [
-          "https://picsum.photos/800/600?random=3001",
-          "https://picsum.photos/800/600?random=3002",
-          "https://picsum.photos/800/600?random=3003"
-        ] 
-      },
-      { 
-        label: "Common Area", 
-        images: [
-          "https://picsum.photos/800/600?random=4001",
-          "https://picsum.photos/800/600?random=4002"
-        ] 
-      },
-      { 
-        label: "Mess/Food", 
-        images: [
-          "https://picsum.photos/800/600?random=5001",
-          "https://picsum.photos/800/600?random=5002"
-        ] 
-      }
-    ],
-    amenities: [
-      { title: "High-Speed WiFi", description: "24/7 unlimited internet access", icon: "wifi" },
-      { title: "Air Conditioning", description: "Centralized AC in all rooms", icon: "ac" },
-      { title: "Food Included", description: "3 meals + tea/coffee", icon: "food" },
-      { title: "Laundry Service", description: "Weekly pickup and delivery", icon: "laundry" },
-      { title: "Parking", description: "Secure bike and car parking", icon: "parking" },
-      { title: "Gym", description: "Fully equipped fitness center", icon: "gym" },
-      { title: "TV Room", description: "LCD TV with cable connection", icon: "tv" },
-      { title: "Power Backup", description: "24/7 generator backup", icon: "power" }
-    ],
+    images: ["https://images.pexels.com/photos/1571468/pexels-photo-1571468.jpeg?auto=compress&cs=tinysrgb&w=600"],
     featuredImage: "https://images.pexels.com/photos/1571468/pexels-photo-1571468.jpeg?auto=compress&cs=tinysrgb&w=600"
   },
   {
+    _id: "static1b",
+    property_name: "Roomhy Luxury Girls Hostel - Talwandi",
+    propertyName: "Roomhy Luxury Girls Hostel - Talwandi",
+    city: "Kota",
+    area: "Talwandi",
+    address: "Sector 2, Talwandi, Kota, Rajasthan 324005",
+    propertyType: "hostel",
+    monthlyRent: 9500,
+    rent: 9500,
+    owner_name: "Verified Owner",
+    owner_phone: "9000000011",
+    owner_id: "ROOMHY9999",
+    gender: "female",
+    beds: 3,
+    status: "active",
+    isPublished: true,
+    images: ["https://images.pexels.com/photos/1457842/pexels-photo-1457842.jpeg?auto=compress&cs=tinysrgb&w=600"],
+    featuredImage: "https://images.pexels.com/photos/1457842/pexels-photo-1457842.jpeg?auto=compress&cs=tinysrgb&w=600"
+  },
+  {
+    _id: "static1c",
+    property_name: "Roomhy Student Living - Vigyan Nagar",
+    propertyName: "Roomhy Student Living - Vigyan Nagar",
+    city: "Kota",
+    area: "Vigyan Nagar",
+    address: "Vigyan Nagar Main Road, Kota, Rajasthan 324005",
+    propertyType: "pg",
+    monthlyRent: 7500,
+    rent: 7500,
+    owner_name: "Verified Owner",
+    owner_phone: "9000000012",
+    owner_id: "ROOMHY9999",
+    gender: "male",
+    beds: 2,
+    status: "active",
+    isPublished: true,
+    images: ["https://images.pexels.com/photos/271618/pexels-photo-271618.jpeg?auto=compress&cs=tinysrgb&w=600"],
+    featuredImage: "https://images.pexels.com/photos/271618/pexels-photo-271618.jpeg?auto=compress&cs=tinysrgb&w=600"
+  },
+  {
+    _id: "static1d",
+    property_name: "Roomhy Allen Residency - Landmark City",
+    propertyName: "Roomhy Allen Residency - Landmark City",
+    city: "Kota",
+    area: "Landmark City",
+    address: "Kunhari Landmark City, Kota, Rajasthan 324008",
+    propertyType: "co-living",
+    monthlyRent: 11000,
+    rent: 11000,
+    owner_name: "Verified Owner",
+    owner_phone: "9000000013",
+    owner_id: "ROOMHY9999",
+    gender: "co-ed",
+    beds: 4,
+    status: "active",
+    isPublished: true,
+    images: ["https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=600"],
+    featuredImage: "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=600"
+  },
+  {
+    _id: "static1e",
+    property_name: "Roomhy Co-Living Hub - Mahaveer Nagar",
+    propertyName: "Roomhy Co-Living Hub - Mahaveer Nagar",
+    city: "Kota",
+    area: "Mahaveer Nagar",
+    address: "Mahaveer Nagar 1st, Kota, Rajasthan 324005",
+    propertyType: "co-living",
+    monthlyRent: 8500,
+    rent: 8500,
+    owner_name: "Verified Owner",
+    owner_phone: "9000000014",
+    owner_id: "ROOMHY9999",
+    gender: "co-ed",
+    beds: 2,
+    status: "active",
+    isPublished: true,
+    images: ["https://images.pexels.com/photos/2062426/pexels-photo-2062426.jpeg?auto=compress&cs=tinysrgb&w=600"],
+    featuredImage: "https://images.pexels.com/photos/2062426/pexels-photo-2062426.jpeg?auto=compress&cs=tinysrgb&w=600"
+  },
+  {
+    _id: "static1f",
+    property_name: "Roomhy Girls PG - Indra Vihar",
+    propertyName: "Roomhy Girls PG - Indra Vihar",
+    city: "Kota",
+    area: "Indra Vihar",
+    address: "Indra Vihar, Kota, Rajasthan 324005",
+    propertyType: "pg",
+    monthlyRent: 9000,
+    rent: 9000,
+    owner_name: "Verified Owner",
+    owner_phone: "9000000015",
+    owner_id: "ROOMHY9999",
+    gender: "female",
+    beds: 2,
+    status: "active",
+    isPublished: true,
+    images: ["https://images.pexels.com/photos/279719/pexels-photo-279719.jpeg?auto=compress&cs=tinysrgb&w=600"],
+    featuredImage: "https://images.pexels.com/photos/279719/pexels-photo-279719.jpeg?auto=compress&cs=tinysrgb&w=600"
+  },
+  {
+    _id: "static1g",
+    property_name: "Roomhy Riverfront Hostel - Kunhari",
+    propertyName: "Roomhy Riverfront Hostel - Kunhari",
+    city: "Kota",
+    area: "Kunhari",
+    address: "Kunhari, Kota, Rajasthan 324008",
+    propertyType: "hostel",
+    monthlyRent: 7000,
+    rent: 7000,
+    owner_name: "Verified Owner",
+    owner_phone: "9000000016",
+    owner_id: "ROOMHY9999",
+    gender: "male",
+    beds: 2,
+    status: "active",
+    isPublished: true,
+    images: ["https://images.pexels.com/photos/1743229/pexels-photo-1743229.jpeg?auto=compress&cs=tinysrgb&w=600"],
+    featuredImage: "https://images.pexels.com/photos/1743229/pexels-photo-1743229.jpeg?auto=compress&cs=tinysrgb&w=600"
+  },
+
+  // INDORE PROPERTIES
+  {
     _id: "static2",
-    property_name: "Roomhy Girls Hostel - Indore",
-    propertyName: "Roomhy Girls Hostel - Indore",
+    property_name: "Roomhy Girls Hostel - Vijay Nagar",
+    propertyName: "Roomhy Girls Hostel - Vijay Nagar",
     city: "Indore",
+    area: "Vijay Nagar",
     address: "Vijay Nagar, Indore, Madhya Pradesh 452010",
     propertyType: "hostel",
     monthlyRent: 10000,
@@ -277,72 +352,80 @@ const staticPropertiesList = [
     owner_phone: "9000000002",
     owner_id: "ROOMHY9999",
     gender: "female",
+    beds: 3,
     status: "active",
     isPublished: true,
-    images: [
-      "https://images.pexels.com/photos/1457842/pexels-photo-1457842.jpeg?auto=compress&cs=tinysrgb&w=600",
-      "https://images.pexels.com/photos/279719/pexels-photo-279719.jpeg?auto=compress&cs=tinysrgb&w=600",
-      "https://images.pexels.com/photos/164595/pexels-photo-164595.jpeg?auto=compress&cs=tinysrgb&w=600",
-      "https://images.pexels.com/photos/271624/pexels-photo-271624.jpeg?auto=compress&cs=tinysrgb&w=600"
-    ],
-    propertyViews: [
-      { 
-        label: "Facade", 
-        images: [
-          "https://picsum.photos/800/600?random=1101",
-          "https://picsum.photos/800/600?random=1102",
-          "https://picsum.photos/800/600?random=1103"
-        ] 
-      },
-      { 
-        label: "Reception", 
-        images: [
-          "https://picsum.photos/800/600?random=2101",
-          "https://picsum.photos/800/600?random=2102"
-        ] 
-      },
-      { 
-        label: "Room", 
-        images: [
-          "https://picsum.photos/800/600?random=3101",
-          "https://picsum.photos/800/600?random=3102",
-          "https://picsum.photos/800/600?random=3103",
-          "https://picsum.photos/800/600?random=3104"
-        ] 
-      },
-      { 
-        label: "Common Area", 
-        images: [
-          "https://picsum.photos/800/600?random=4101",
-          "https://picsum.photos/800/600?random=4102"
-        ] 
-      },
-      { 
-        label: "Mess/Food", 
-        images: [
-          "https://picsum.photos/800/600?random=5101",
-          "https://picsum.photos/800/600?random=5102",
-          "https://picsum.photos/800/600?random=5103"
-        ] 
-      }
-    ],
-    amenities: [
-      { title: "High-Speed WiFi", description: "24/7 unlimited internet access", icon: "wifi" },
-      { title: "Air Conditioning", description: "Centralized AC in all rooms", icon: "ac" },
-      { title: "Food Included", description: "3 meals + evening snacks", icon: "food" },
-      { title: "Laundry Service", description: "Daily pickup and delivery", icon: "laundry" },
-      { title: "Parking", description: "Secure two-wheeler parking", icon: "parking" },
-      { title: "Gym", description: "Basic fitness equipment", icon: "gym" },
-      { title: "TV Room", description: "Common area with entertainment", icon: "tv" },
-      { title: "Power Backup", description: "Inverter backup for all rooms", icon: "power" }
-    ],
+    images: ["https://images.pexels.com/photos/1457842/pexels-photo-1457842.jpeg?auto=compress&cs=tinysrgb&w=600"],
     featuredImage: "https://images.pexels.com/photos/1457842/pexels-photo-1457842.jpeg?auto=compress&cs=tinysrgb&w=600"
   },
   {
+    _id: "static2b",
+    property_name: "Roomhy Luxury PG - Sapna Sangeeta",
+    propertyName: "Roomhy Luxury PG - Sapna Sangeeta",
+    city: "Indore",
+    area: "Sapna Sangeeta",
+    address: "Sapna Sangeeta Road, Indore, Madhya Pradesh 452001",
+    propertyType: "pg",
+    monthlyRent: 8500,
+    rent: 8500,
+    owner_name: "Verified Owner",
+    owner_phone: "9000000021",
+    owner_id: "ROOMHY9999",
+    gender: "co-ed",
+    beds: 2,
+    status: "active",
+    isPublished: true,
+    images: ["https://images.pexels.com/photos/1571468/pexels-photo-1571468.jpeg?auto=compress&cs=tinysrgb&w=600"],
+    featuredImage: "https://images.pexels.com/photos/1571468/pexels-photo-1571468.jpeg?auto=compress&cs=tinysrgb&w=600"
+  },
+  {
+    _id: "static2c",
+    property_name: "Roomhy Prime Co-living - Palasia",
+    propertyName: "Roomhy Prime Co-living - Palasia",
+    city: "Indore",
+    area: "Palasia",
+    address: "Old Palasia, Indore, Madhya Pradesh 452001",
+    propertyType: "co-living",
+    monthlyRent: 12000,
+    rent: 12000,
+    owner_name: "Verified Owner",
+    owner_phone: "9000000022",
+    owner_id: "ROOMHY9999",
+    gender: "co-ed",
+    beds: 3,
+    status: "active",
+    isPublished: true,
+    images: ["https://images.pexels.com/photos/276724/pexels-photo-276724.jpeg?auto=compress&cs=tinysrgb&w=600"],
+    featuredImage: "https://images.pexels.com/photos/276724/pexels-photo-276724.jpeg?auto=compress&cs=tinysrgb&w=600"
+  },
+  {
+    _id: "static2d",
+    property_name: "Roomhy Student PG - Bhawarkua",
+    propertyName: "Roomhy Student PG - Bhawarkua",
+    city: "Indore",
+    area: "Bhawarkua",
+    address: "Bhawarkua Main Square, Indore, Madhya Pradesh 452001",
+    propertyType: "pg",
+    monthlyRent: 7000,
+    rent: 7000,
+    owner_name: "Verified Owner",
+    owner_phone: "9000000023",
+    owner_id: "ROOMHY9999",
+    gender: "male",
+    beds: 2,
+    status: "active",
+    isPublished: true,
+    images: ["https://images.pexels.com/photos/164595/pexels-photo-164595.jpeg?auto=compress&cs=tinysrgb&w=600"],
+    featuredImage: "https://images.pexels.com/photos/164595/pexels-photo-164595.jpeg?auto=compress&cs=tinysrgb&w=600"
+  },
+
+  // JAIPUR PROPERTIES
+  {
     _id: "static3",
-    property_name: "Roomhy Co-living - Jaipur",
-    propertyName: "Roomhy Co-living - Jaipur",
+    property_name: "Roomhy Co-living - Malviya Nagar",
+    propertyName: "Roomhy Co-living - Malviya Nagar",
     city: "Jaipur",
+    area: "Malviya Nagar",
     address: "Malviya Nagar, Jaipur, Rajasthan 302017",
     propertyType: "co-living",
     monthlyRent: 12000,
@@ -350,27 +433,103 @@ const staticPropertiesList = [
     owner_name: "Verified Owner",
     owner_phone: "9000000003",
     owner_id: "ROOMHY9999",
-    gender: "any",
+    gender: "co-ed",
+    beds: 3,
     status: "active",
     isPublished: true,
-    images: [
-      "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=600",
-      "https://images.pexels.com/photos/276724/pexels-photo-276724.jpeg?auto=compress&cs=tinysrgb&w=600",
-      "https://images.pexels.com/photos/2062426/pexels-photo-2062426.jpeg?auto=compress&cs=tinysrgb&w=600",
-      "https://images.pexels.com/photos/271618/pexels-photo-271618.jpeg?auto=compress&cs=tinysrgb&w=600"
-    ],
-    propertyViews: [
-      { label: "Facade", images: ["https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=600"] },
-      { label: "Lobby", images: ["https://images.pexels.com/photos/276724/pexels-photo-276724.jpeg?auto=compress&cs=tinysrgb&w=600"] },
-      { label: "Kitchen", images: ["https://images.pexels.com/photos/2062426/pexels-photo-2062426.jpeg?auto=compress&cs=tinysrgb&w=600"] }
-    ],
+    images: ["https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=600"],
     featuredImage: "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=600"
   },
   {
+    _id: "static3b",
+    property_name: "Roomhy Executive PG - Vaishali Nagar",
+    propertyName: "Roomhy Executive PG - Vaishali Nagar",
+    city: "Jaipur",
+    area: "Vaishali Nagar",
+    address: "Vaishali Nagar, Jaipur, Rajasthan 302021",
+    propertyType: "pg",
+    monthlyRent: 10500,
+    rent: 10500,
+    owner_name: "Verified Owner",
+    owner_phone: "9000000031",
+    owner_id: "ROOMHY9999",
+    gender: "male",
+    beds: 2,
+    status: "active",
+    isPublished: true,
+    images: ["https://images.pexels.com/photos/271618/pexels-photo-271618.jpeg?auto=compress&cs=tinysrgb&w=600"],
+    featuredImage: "https://images.pexels.com/photos/271618/pexels-photo-271618.jpeg?auto=compress&cs=tinysrgb&w=600"
+  },
+  {
+    _id: "static3c",
+    property_name: "Roomhy Student Hostel - Mansarovar",
+    propertyName: "Roomhy Student Hostel - Mansarovar",
+    city: "Jaipur",
+    area: "Mansarovar",
+    address: "Mansarovar, Jaipur, Rajasthan 302020",
+    propertyType: "hostel",
+    monthlyRent: 8000,
+    rent: 8000,
+    owner_name: "Verified Owner",
+    owner_phone: "9000000032",
+    owner_id: "ROOMHY9999",
+    gender: "co-ed",
+    beds: 2,
+    status: "active",
+    isPublished: true,
+    images: ["https://images.pexels.com/photos/1457842/pexels-photo-1457842.jpeg?auto=compress&cs=tinysrgb&w=600"],
+    featuredImage: "https://images.pexels.com/photos/1457842/pexels-photo-1457842.jpeg?auto=compress&cs=tinysrgb&w=600"
+  },
+
+  // SIKAR PROPERTIES
+  {
+    _id: "static_sikar1",
+    property_name: "Roomhy Coaching PG - Piprali Road",
+    propertyName: "Roomhy Coaching PG - Piprali Road",
+    city: "Sikar",
+    area: "Piprali Road",
+    address: "Piprali Road, Sikar, Rajasthan 332001",
+    propertyType: "pg",
+    monthlyRent: 6500,
+    rent: 6500,
+    owner_name: "Verified Owner",
+    owner_phone: "9000000041",
+    owner_id: "ROOMHY9999",
+    gender: "male",
+    beds: 2,
+    status: "active",
+    isPublished: true,
+    images: ["https://images.pexels.com/photos/1571468/pexels-photo-1571468.jpeg?auto=compress&cs=tinysrgb&w=600"],
+    featuredImage: "https://images.pexels.com/photos/1571468/pexels-photo-1571468.jpeg?auto=compress&cs=tinysrgb&w=600"
+  },
+  {
+    _id: "static_sikar2",
+    property_name: "Roomhy Student Hostel - Nawalgarh Road",
+    propertyName: "Roomhy Student Hostel - Nawalgarh Road",
+    city: "Sikar",
+    area: "Nawalgarh Road",
+    address: "Nawalgarh Road, Sikar, Rajasthan 332001",
+    propertyType: "hostel",
+    monthlyRent: 7000,
+    rent: 7000,
+    owner_name: "Verified Owner",
+    owner_phone: "9000000042",
+    owner_id: "ROOMHY9999",
+    gender: "co-ed",
+    beds: 3,
+    status: "active",
+    isPublished: true,
+    images: ["https://images.pexels.com/photos/1743229/pexels-photo-1743229.jpeg?auto=compress&cs=tinysrgb&w=600"],
+    featuredImage: "https://images.pexels.com/photos/1743229/pexels-photo-1743229.jpeg?auto=compress&cs=tinysrgb&w=600"
+  },
+
+  // DELHI PROPERTIES
+  {
     _id: "static4",
-    property_name: "Roomhy Apartments - Delhi",
-    propertyName: "Roomhy Apartments - Delhi",
+    property_name: "Roomhy Apartments - Dwarka",
+    propertyName: "Roomhy Apartments - Dwarka",
     city: "Delhi",
+    area: "Dwarka",
     address: "Dwarka, New Delhi, Delhi 110075",
     propertyType: "apartment",
     monthlyRent: 25000,
@@ -378,23 +537,42 @@ const staticPropertiesList = [
     owner_name: "Verified Owner",
     owner_phone: "9000000004",
     owner_id: "ROOMHY9999",
-    gender: "any",
+    gender: "co-ed",
+    beds: 3,
     status: "active",
     isPublished: true,
-    images: [
-      "https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg?auto=compress&cs=tinysrgb&w=600",
-      "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=600",
-      "https://images.pexels.com/photos/1457842/pexels-photo-1457842.jpeg?auto=compress&cs=tinysrgb&w=600",
-      "https://images.pexels.com/photos/1571463/pexels-photo-1571463.jpeg?auto=compress&cs=tinysrgb&w=600"
-    ],
+    images: ["https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg?auto=compress&cs=tinysrgb&w=600"],
     featuredImage: "https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg?auto=compress&cs=tinysrgb&w=600"
   },
   {
+    _id: "static4b",
+    property_name: "Roomhy Student Hub - Laxmi Nagar",
+    propertyName: "Roomhy Student Hub - Laxmi Nagar",
+    city: "Delhi",
+    area: "Laxmi Nagar",
+    address: "Laxmi Nagar, New Delhi, Delhi 110092",
+    propertyType: "pg",
+    monthlyRent: 9000,
+    rent: 9000,
+    owner_name: "Verified Owner",
+    owner_phone: "9000000051",
+    owner_id: "ROOMHY9999",
+    gender: "male",
+    beds: 2,
+    status: "active",
+    isPublished: true,
+    images: ["https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=600"],
+    featuredImage: "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=600"
+  },
+
+  // BHOPAL PROPERTIES
+  {
     _id: "static5",
-    property_name: "Roomhy Student PG - Bhopal",
-    propertyName: "Roomhy Student PG - Bhopal",
+    property_name: "Roomhy Student PG - MP Nagar",
+    propertyName: "Roomhy Student PG - MP Nagar",
     city: "Bhopal",
-    address: "MP Nagar, Bhopal, Madhya Pradesh 462016",
+    area: "MP Nagar",
+    address: "MP Nagar Zone 2, Bhopal, Madhya Pradesh 462016",
     propertyType: "pg",
     monthlyRent: 6000,
     rent: 6000,
@@ -402,14 +580,10 @@ const staticPropertiesList = [
     owner_phone: "9000000005",
     owner_id: "ROOMHY9999",
     gender: "male",
+    beds: 2,
     status: "active",
     isPublished: true,
-    images: [
-      "https://images.pexels.com/photos/1571468/pexels-photo-1571468.jpeg?auto=compress&cs=tinysrgb&w=600",
-      "https://images.pexels.com/photos/1743229/pexels-photo-1743229.jpeg?auto=compress&cs=tinysrgb&w=600",
-      "https://images.pexels.com/photos/271618/pexels-photo-271618.jpeg?auto=compress&cs=tinysrgb&w=600",
-      "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=600"
-    ],
+    images: ["https://images.pexels.com/photos/1571468/pexels-photo-1571468.jpeg?auto=compress&cs=tinysrgb&w=600"],
     featuredImage: "https://images.pexels.com/photos/1571468/pexels-photo-1571468.jpeg?auto=compress&cs=tinysrgb&w=600"
   },
   {
@@ -417,6 +591,7 @@ const staticPropertiesList = [
     property_name: "Roomhy Luxury PG - Nagpur",
     propertyName: "Roomhy Luxury PG - Nagpur",
     city: "Nagpur",
+    area: "Civil Lines",
     address: "Civil Lines, Nagpur, Maharashtra 440001",
     propertyType: "pg",
     monthlyRent: 15000,
@@ -425,14 +600,10 @@ const staticPropertiesList = [
     owner_phone: "9000000006",
     owner_id: "ROOMHY9999",
     gender: "male",
+    beds: 2,
     status: "active",
     isPublished: true,
-    images: [
-      "https://images.pexels.com/photos/271624/pexels-photo-271624.jpeg?auto=compress&cs=tinysrgb&w=600",
-      "https://images.pexels.com/photos/1743229/pexels-photo-1743229.jpeg?auto=compress&cs=tinysrgb&w=600",
-      "https://images.pexels.com/photos/1457842/pexels-photo-1457842.jpeg?auto=compress&cs=tinysrgb&w=600",
-      "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=600"
-    ],
+    images: ["https://images.pexels.com/photos/271624/pexels-photo-271624.jpeg?auto=compress&cs=tinysrgb&w=600"],
     featuredImage: "https://images.pexels.com/photos/271624/pexels-photo-271624.jpeg?auto=compress&cs=tinysrgb&w=600"
   },
   {
@@ -440,6 +611,7 @@ const staticPropertiesList = [
     property_name: "Roomhy Working Women PG - Jodhpur",
     propertyName: "Roomhy Working Women PG - Jodhpur",
     city: "Jodhpur",
+    area: "Paota",
     address: "Paota, Jodhpur, Rajasthan 342001",
     propertyType: "pg",
     monthlyRent: 9000,
@@ -448,14 +620,10 @@ const staticPropertiesList = [
     owner_phone: "9000000007",
     owner_id: "ROOMHY9999",
     gender: "female",
+    beds: 2,
     status: "active",
     isPublished: true,
-    images: [
-      "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=600",
-      "https://images.pexels.com/photos/2360673/pexels-photo-2360673.jpeg?auto=compress&cs=tinysrgb&w=600",
-      "https://images.pexels.com/photos/271618/pexels-photo-271618.jpeg?auto=compress&cs=tinysrgb&w=600",
-      "https://images.pexels.com/photos/1743229/pexels-photo-1743229.jpeg?auto=compress&cs=tinysrgb&w=600"
-    ],
+    images: ["https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=600"],
     featuredImage: "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=600"
   },
   {
@@ -463,7 +631,8 @@ const staticPropertiesList = [
     property_name: "Roomhy Budget PG - Mumbai",
     propertyName: "Roomhy Budget PG - Mumbai",
     city: "Mumbai",
-    address: "Andheri, Mumbai, Maharashtra 400053",
+    area: "Andheri",
+    address: "Andheri West, Mumbai, Maharashtra 400053",
     propertyType: "pg",
     monthlyRent: 7000,
     rent: 7000,
@@ -471,14 +640,10 @@ const staticPropertiesList = [
     owner_phone: "9000000008",
     owner_id: "ROOMHY9999",
     gender: "male",
+    beds: 2,
     status: "active",
     isPublished: true,
-    images: [
-      "https://images.pexels.com/photos/1571463/pexels-photo-1571463.jpeg?auto=compress&cs=tinysrgb&w=600",
-      "https://images.pexels.com/photos/1743229/pexels-photo-1743229.jpeg?auto=compress&cs=tinysrgb&w=600",
-      "https://images.pexels.com/photos/271618/pexels-photo-271618.jpeg?auto=compress&cs=tinysrgb&w=600",
-      "https://images.pexels.com/photos/1457842/pexels-photo-1457842.jpeg?auto=compress&cs=tinysrgb&w=600"
-    ],
+    images: ["https://images.pexels.com/photos/1571463/pexels-photo-1571463.jpeg?auto=compress&cs=tinysrgb&w=600"],
     featuredImage: "https://images.pexels.com/photos/1571463/pexels-photo-1571463.jpeg?auto=compress&cs=tinysrgb&w=600"
   },
   {
@@ -486,7 +651,8 @@ const staticPropertiesList = [
     property_name: "Roomhy Executive Hostel - Bangalore",
     propertyName: "Roomhy Executive Hostel - Bangalore",
     city: "Bangalore",
-    address: "Electronic City, Bangalore, Karnataka 560100",
+    area: "Electronic City",
+    address: "Electronic City Phase 1, Bangalore, Karnataka 560100",
     propertyType: "hostel",
     monthlyRent: 18000,
     rent: 18000,
@@ -494,14 +660,10 @@ const staticPropertiesList = [
     owner_phone: "9000000009",
     owner_id: "ROOMHY9999",
     gender: "male",
+    beds: 3,
     status: "active",
     isPublished: true,
-    images: [
-      "https://images.pexels.com/photos/1457847/pexels-photo-1457847.jpeg?auto=compress&cs=tinysrgb&w=600",
-      "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=600",
-      "https://images.pexels.com/photos/1743229/pexels-photo-1743229.jpeg?auto=compress&cs=tinysrgb&w=600",
-      "https://images.pexels.com/photos/271624/pexels-photo-271624.jpeg?auto=compress&cs=tinysrgb&w=600"
-    ],
+    images: ["https://images.pexels.com/photos/1457847/pexels-photo-1457847.jpeg?auto=compress&cs=tinysrgb&w=600"],
     featuredImage: "https://images.pexels.com/photos/1457847/pexels-photo-1457847.jpeg?auto=compress&cs=tinysrgb&w=600"
   },
   {
@@ -509,6 +671,7 @@ const staticPropertiesList = [
     property_name: "Roomhy Family PG - Chennai",
     propertyName: "Roomhy Family PG - Chennai",
     city: "Chennai",
+    area: "T Nagar",
     address: "T Nagar, Chennai, Tamil Nadu 600017",
     propertyType: "pg",
     monthlyRent: 13000,
@@ -516,34 +679,53 @@ const staticPropertiesList = [
     owner_name: "Verified Owner",
     owner_phone: "9000000010",
     owner_id: "ROOMHY9999",
-    gender: "any",
+    gender: "co-ed",
+    beds: 2,
     status: "active",
     isPublished: true,
-    images: [
-      "https://images.pexels.com/photos/1743229/pexels-photo-1743229.jpeg?auto=compress&cs=tinysrgb&w=600",
-      "https://images.pexels.com/photos/1571468/pexels-photo-1571468.jpeg?auto=compress&cs=tinysrgb&w=600",
-      "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=600",
-      "https://images.pexels.com/photos/1457842/pexels-photo-1457842.jpeg?auto=compress&cs=tinysrgb&w=600"
-    ],
-    featuredImage: "https://images.pexels.com/photos/1743229/pexels-photo-1743229.jpeg?auto=compress&cs=tinysrgb&w=600"
+    images: ["https://images.pexels.com/photos/271618/pexels-photo-271618.jpeg?auto=compress&cs=tinysrgb&w=600"],
+    featuredImage: "https://images.pexels.com/photos/271618/pexels-photo-271618.jpeg?auto=compress&cs=tinysrgb&w=600"
   }
 ];
+
+// The backend's gender field defaults to the placeholder "any" when nothing
+// was ever explicitly set — that's not a real answer, so treat it the same
+// as missing and let the category-derived value (below) fill in instead.
+const _explicitGender = (g) => {
+  const s = String(g || '').trim();
+  return s && s.toLowerCase() !== 'any' ? s : '';
+};
+
+// Maps the "Boys PG / Girls PG / Co-living" category picked in the Add/Edit
+// Property wizard onto the Male/Female/Co-ed vocabulary the public site's
+// gender badge and filter already use.
+const _categoryToGender = (category) => {
+  const s = String(category || '').toLowerCase();
+  if (s.includes('girl')) return 'Female';
+  if (s.includes('boy')) return 'Male';
+  if (s.includes('co-living') || s.includes('coliving')) return 'Co-ed';
+  return '';
+};
 
 // Shared property formatter — used by fetchProperties and fetchPropertyByVisitId
 const _formatProperty = (p) => {
   const imagesArray = p.images || p.photos || p.propertyInfo?.photos || [];
   const firstImage = imagesArray[0] || `https://picsum.photos/800/600?random=${Math.floor(Math.random() * 100)}`;
+  const tier = normalizeTierKey(p.tier);
+  const plainName = p.property_name || p.propertyName || p.propertyInfo?.name || 'Property';
+  const displayName = composeTieredPropertyName(tier, plainName);
   return {
     ...p,
     _id: String(p._id || p.visitId || ''),
     visitId: p.visitId || p._id,
-    property_name: p.property_name || p.propertyName || p.propertyInfo?.name || 'Property',
-    name: p.property_name || p.propertyName || p.propertyInfo?.name || 'Property',
+    tier,
+    property_name: displayName,
+    name: displayName,
     city: p.city || p.propertyInfo?.city || 'Unknown',
     location: p.propertyInfo?.area ? `${p.propertyInfo.area}, ${p.city || p.propertyInfo?.city}` : (p.city || p.propertyInfo?.city || 'Unknown'),
     owner_name: p.owner_name || p.ownerName || p.generatedCredentials?.ownerName || p.approvedBy || 'Verified Owner',
     owner_phone: p.owner_phone || p.contactPhone || p.ownerPhone || p.propertyInfo?.phone || '9000000000',
-    propertyName: p.propertyName || p.property_name || p.propertyInfo?.name || 'Property',
+    propertyName: displayName,
     propertyType: p.propertyType || p.property_type || p.propertyInfo?.propertyType || 'PG',
     monthlyRent: p.monthlyRent || p.rent || p.propertyInfo?.rent || 5000,
     image: firstImage,
@@ -557,7 +739,7 @@ const _formatProperty = (p) => {
     })(),
     owner_id: p.owner_id || p.ownerLoginId || p.generatedCredentials?.loginId || p.ownerLoginId,
     isPremium: p.isPremium || p.is_premium || p.propertyInfo?.isPremium || false,
-    gender: p.gender || p.genderSuitability || p.propertyInfo?.genderSuitability || 'Co-ed'
+    gender: _explicitGender(p.gender) || _explicitGender(p.genderSuitability) || _explicitGender(p.propertyInfo?.genderSuitability) || _categoryToGender(p.propertyCategory) || 'Co-ed'
   };
 };
 
@@ -570,7 +752,11 @@ export const fetchProperties = async () => {
   }
   try {
     const data = await _fetchCached('/api/approved-properties/public/approved');
-    const properties = Array.isArray(data) ? data : data?.properties || data?.data || [];
+    let properties = Array.isArray(data) ? data : data?.properties || data?.data || [];
+    if (properties.length === 0 && Array.isArray(staticPropertiesList) && staticPropertiesList.length > 0) {
+      console.warn('Backend returned 0 properties, falling back to staticPropertiesList');
+      properties = staticPropertiesList;
+    }
     const totalCount = data?.total || properties.length;
     const formattedProperties = properties.map(_formatProperty);
     formattedProperties.total = totalCount;

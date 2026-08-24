@@ -14,13 +14,15 @@ const TTL = {
 };
 
 // ── Dashboard ────────────────────────────────────────────────────────────────
-export function fetchRentDashboard(ownerId, force = false) {
-  const key = `dashboard:${ownerId}`;
+export function fetchRentDashboard(ownerId, force = false, propertyId = "") {
+  const key = `dashboard:${ownerId}:${propertyId || "all"}`;
   if (!force) {
     const hit = cacheGet(key);
     if (hit) return Promise.resolve(hit);
   }
-  return fetchJson(`${rentCollectionBase()}/dashboard?ownerId=${encodeURIComponent(ownerId)}`)
+  const qs = new URLSearchParams({ ownerId });
+  if (propertyId) qs.set("propertyId", propertyId);
+  return fetchJson(`${rentCollectionBase()}/dashboard?${qs.toString()}`)
     .then(data => cacheSet(key, data, TTL.DASHBOARD));
 }
 

@@ -22,7 +22,7 @@ import { LayoutDashboard,
   Settings2,
   Search, Lock, ChevronRight, Crown, Zap, Users, BookOpen, FileText, Smartphone, Wallet, PieChart, Shield, Target, Navigation, Megaphone, Coffee, Receipt, Sparkles, LinkIcon, UserPlus, AlertCircle, Calendar, HelpCircle, Building2, Image as ImageIcon } from "lucide-react";
 import { SILVER_NAV, GOLD_NAV } from './navConfig';
-import { fetchOwnerProperties } from "../../utils/propertyowner";
+import { fetchOwnerProperties, clearOwnerRuntimeSession } from "../../utils/propertyowner";
 import { getStaffPanelNav, filterNotificationsForStaff, hasStaffPermission } from "../../utils/staffAccess";
 import { cacheGet, cacheSet, cacheInvalidate } from "../../utils/cache";
 import PropertyOwnerMobileLayout from "./PropertyOwnerMobileLayout";
@@ -143,6 +143,50 @@ export default function PropertyOwnerLayout({
     }
   }, []);
 
+  const [isAccountBlocked, setIsAccountBlocked] = useState(() => {
+    return owner?.isActive === false || owner?.status === 'blocked' || owner?.isBlocked === true;
+  });
+  const [blockCountdown, setBlockCountdown] = useState(5);
+
+  useEffect(() => {
+    if (owner?.isActive === false || owner?.status === 'blocked' || owner?.isBlocked === true) {
+      setIsAccountBlocked(true);
+    }
+  }, [owner]);
+
+  useEffect(() => {
+    if (!owner?.loginId) return;
+    let socket;
+    try {
+      import('socket.io-client').then(({ io }) => {
+        import('../../utils/api').then(({ getApiBase }) => {
+          socket = io(getApiBase(), { transports: ['websocket', 'polling'] });
+          socket.emit('join_room', { login_id: owner.loginId, role: 'property_owner', name: owner.name || owner.loginId });
+          socket.on('account_blocked', () => {
+            setIsAccountBlocked(true);
+            clearOwnerRuntimeSession();
+            // countdown then redirect to login
+            let count = 5;
+            setBlockCountdown(count);
+            const t = setInterval(() => {
+              count -= 1;
+              setBlockCountdown(count);
+              if (count <= 0) {
+                clearInterval(t);
+                window.location.href = '/propertyowner/ownerlogin';
+              }
+            }, 1000);
+          });
+        });
+      });
+    } catch (_) {}
+
+    return () => {
+      if (socket) socket.disconnect();
+    };
+  }, [owner?.loginId]);
+
+
   useEffect(() => {
     if (owner?.loginId) {
       fetchOwnerProperties(owner.loginId, true).then(props => {
@@ -178,10 +222,14 @@ export default function PropertyOwnerLayout({
   const visibleQuickActions = isStaffProxy
     ? QUICK_ACTIONS.filter(a => a.perm && hasStaffPermission(owner, a.perm)).map(a => ({ ...a, to: a.staffTo || a.to }))
     : QUICK_ACTIONS;
+  // A property blocked by superadmin review must never be switchable into —
+  // it's rejected, not just temporarily unavailable, so it's excluded from
+  // the list entirely rather than shown disabled.
+  const verifiedProperties = properties.filter(p => p.status !== "blocked");
   const assignedPropId = owner?.assignedProperty ? String(owner.assignedProperty) : "";
   const switcherProperties = (isStaffProxy && assignedPropId)
-    ? properties.filter(p => String(p._id || p.id) === assignedPropId)
-    : properties;
+    ? verifiedProperties.filter(p => String(p._id || p.id) === assignedPropId)
+    : verifiedProperties;
   const allowAllProperties = !isStaffProxy;
 
   useEffect(() => {
@@ -605,7 +653,11 @@ export default function PropertyOwnerLayout({
   }
 
   return (
-    <div className="flex h-screen w-full bg-background overflow-hidden font-sans text-foreground">
+    <div
+      style={isAccountBlocked ? { filter: 'blur(20px)', pointerEvents: 'none', userSelect: 'none' } : {}}
+      className="flex h-screen w-full bg-background overflow-hidden font-sans text-foreground"
+    >
+
       {/* Sidebar - EXACT Superadmin Style */}
       <aside className={joinClassNames(
         "w-72 h-screen bg-[#0F172A] text-slate-300 flex flex-col z-50 shrink-0 transition-transform duration-300",
@@ -905,7 +957,7 @@ export default function PropertyOwnerLayout({
           </div>
         </header>
         <main className={cn("flex-1 overflow-y-auto custom-scrollbar bg-background p-8", mainClassName)}>
-          <TrialGuard owner={owner}>
+          <TrialGuard owner={owner} onLogout={onLogout}>
             <div className={contentClassName}>{children}</div>
           </TrialGuard>
         </main>
@@ -917,7 +969,58 @@ export default function PropertyOwnerLayout({
             onClick={() => setMobileOpen(false)}
           />
         )}
+
+        {/* Account Blocked Full-Screen Overlay Modal */}
+        {isAccountBlocked && (
+          <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4" style={{ background: 'rgba(10, 14, 28, 0.95)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
+            <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-8 text-center shadow-[0_0_80px_rgba(239,68,68,0.5)] border-2 border-rose-500 relative animate-in fade-in zoom-in-95 duration-200">
+              {/* Pulsing red icon */}
+              <div className="relative w-20 h-20 mx-auto mb-5">
+                <span className="absolute inset-0 rounded-full bg-rose-500 opacity-20 animate-ping" />
+                <div className="relative w-20 h-20 rounded-2xl bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400 flex items-center justify-center shadow-lg">
+                  <Lock className="w-9 h-9 stroke-[2.5]" />
+                </div>
+              </div>
+
+              <span className="text-[10px] font-black uppercase tracking-widest text-rose-600 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 px-3.5 py-1 rounded-full">
+                🚨 ACCOUNT PERMANENTLY BLOCKED
+              </span>
+
+              <h2 className="text-2xl font-black text-slate-900 dark:text-white mt-4 mb-2">Access Denied</h2>
+              <p className="text-xs font-semibold text-slate-600 dark:text-slate-300 leading-relaxed mb-4">
+                Your account has been automatically blocked due to <span className="text-rose-600 font-bold underline">commission bypass or contact details sharing attempts</span>. All panel access is now revoked.
+              </p>
+
+              <div className="p-3.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 rounded-2xl text-left text-[11px] font-semibold text-rose-900 dark:text-rose-200 mb-5 space-y-1">
+                <p className="font-bold text-rose-600 dark:text-rose-400">⚠️ PERMANENT SUSPENSION NOTICE:</p>
+                <p>Sharing phone numbers, social handles, requesting offline payments, or bypassing Roomhy's platform commission is strictly prohibited. Once blocked, accounts CANNOT be unblocked.</p>
+              </div>
+
+              {/* Countdown indicator */}
+              <div className="mb-5">
+                <p className="text-[11px] text-slate-500 font-semibold mb-2">
+                  Auto-logging out in <span className="text-rose-600 font-black text-sm">{blockCountdown}s</span>
+                </p>
+                <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                  <div
+                    className="h-full bg-rose-500 rounded-full transition-all duration-1000"
+                    style={{ width: `${(blockCountdown / 5) * 100}%` }}
+                  />
+                </div>
+              </div>
+
+              <button
+                onClick={handleLogout}
+                className="w-full h-12 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all shadow-xl shadow-rose-600/30 flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <LogOut size={16} />
+                Logout Account Now
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
+

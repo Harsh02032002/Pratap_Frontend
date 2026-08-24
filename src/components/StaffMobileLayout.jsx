@@ -72,7 +72,8 @@ function useStaffNotifications(staff) {
 
         // Assigned open complaints
         if (hasStaffPermission(staff, "Complaints") && parentId) {
-          const res = await fetch(`${base}/api/complaints/owner/${parentId}`, { headers }).catch(() => null);
+          const assignedProp = staff?.assignedProperty ? `?propertyId=${encodeURIComponent(staff.assignedProperty)}` : "";
+          const res = await fetch(`${base}/api/complaints/owner/${parentId}${assignedProp}`, { headers }).catch(() => null);
           if (res && res.ok) {
             const data = await res.json();
             const arr = Array.isArray(data) ? data : (data?.complaints || data?.data || []);

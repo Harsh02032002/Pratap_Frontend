@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession } from "../../utils/propertyowner";
-import { 
-  Users, Search, Plus, Trash2, Edit3, 
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, getActiveOwnerPropertyId } from "../../utils/propertyowner";
+import {
+  Users, Search, Plus, Trash2, Edit3,
   CheckCircle2, AlertCircle, Phone, Sparkles
 } from "lucide-react";
 import { apiFetch } from "../../utils/api";
+import { getOwnerComplaints } from "../../api/complaints";
 import { cacheGet, cacheSet } from "../../utils/cache";
 
 export default function AssignedStaffPage() {
@@ -24,15 +25,16 @@ export default function AssignedStaffPage() {
   }, [owner.loginId]);
 
   const fetchStaffWorkload = async () => {
-    const CACHE_KEY = `assigned:${owner.loginId}`;
+    const propertyId = getActiveOwnerPropertyId();
+    const CACHE_KEY = `assigned:${owner.loginId}:${propertyId || "all"}`;
     const cached = cacheGet(CACHE_KEY);
     if (cached) { setStaff(cached); setLoading(false); return; }
     try {
       setLoading(true);
       const [empData, compData, maintData, attData] = await Promise.all([
         apiFetch(`/api/employees?parentLoginId=${owner.loginId}`),
-        apiFetch(`/api/complaints/owner/${owner.loginId}`),
-        apiFetch(`/api/maintenance/owner/${owner.loginId}`),
+        getOwnerComplaints(owner.loginId, { propertyId }).then(d => ({ complaints: d })),
+        apiFetch(`/api/maintenance/owner/${owner.loginId}${propertyId ? `?propertyId=${encodeURIComponent(propertyId)}` : ""}`),
         apiFetch(`/api/hr/attendance/${owner.loginId}`)
       ]);
 

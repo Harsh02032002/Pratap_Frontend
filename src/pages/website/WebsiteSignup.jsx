@@ -7,17 +7,28 @@ import { User, Mail, Phone, Lock, ArrowRight, CheckCircle2, Sparkles, Building2,
 import useSEO from "../../hooks/useSEO";
 
 export default function WebsiteSignup() {
-  useSEO({ pageKey: 'register', fallbackTitle: 'Create Roomhy Account - Sign Up Free' });
+  useSEO({ 
+    pageKey: 'register', 
+    fallbackTitle: 'Create an Account | Sign Up on Roomhy.com',
+    fallbackDescription: 'Sign up on Roomhy.com to discover verified student stays, place live bids on your budget, and connect directly with verified property owners.'
+  });
+
+  useEffect(() => {
+    if (window.location.pathname !== '/register') {
+      window.history.replaceState(null, '', '/register');
+    }
+  }, []);
+
   const apiUrl = getWebsiteApiUrl();
   const [signupMode, setSignupMode] = useState(true);
-  
+
   // Login state
   const [loginEmail, setLoginEmail] = useState("");
   const [loginOtp, setLoginOtp] = useState("");
   const [loginCodeSent, setLoginCodeSent] = useState(false);
   const [loadingLoginSend, setLoadingLoginSend] = useState(false);
   const [loadingLoginVerify, setLoadingLoginVerify] = useState(false);
-  
+
   // Signup state
   const [signup, setSignup] = useState({
     firstName: "",
@@ -32,7 +43,7 @@ export default function WebsiteSignup() {
   const [loadingCreate, setLoadingCreate] = useState(false);
   const [loadingVerify, setLoadingVerify] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  
+
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
   const [signupDelivery, setSignupDelivery] = useState({ email: true, whatsapp: false, sms: false, demoOtp: "" });
@@ -139,7 +150,7 @@ export default function WebsiteSignup() {
       setWebsiteSession(data.user, data.token);
       showToast("Login successful!", "success");
       setTimeout(() => {
-        window.location.href = "/website/index";
+        window.location.href = "/";
       }, 800);
     } catch (err) {
       showToast("Login failed. Please try again.", "error");
@@ -162,7 +173,7 @@ export default function WebsiteSignup() {
       return;
     }
     if (!/^\d{10}$/.test(payload.phone)) {
-      showToast("Enter a valid 10-digit 8764425030", "error");
+      showToast("Enter a valid 10-digit phone number", "error");
       return;
     }
     setLoadingCreate(true);
@@ -223,7 +234,7 @@ export default function WebsiteSignup() {
       }
       showToast("Account created successfully!", "success");
       setTimeout(() => {
-        window.location.href = "/website/index";
+        window.location.href = "/";
       }, 900);
     } catch (err) {
       showToast(err.message || "Verification failed", "error");
@@ -239,23 +250,23 @@ export default function WebsiteSignup() {
       <main className="flex-grow flex items-center justify-center py-8 px-4 sm:px-6 lg:px-8 relative overflow-hidden min-h-[calc(100vh-80px)]">
         {/* Background Decorative Elements */}
         <div className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-hidden">
-            <div className="absolute top-[-10%] left-[-5%] w-[500px] h-[500px] bg-teal-50 rounded-full blur-3xl opacity-60"></div>
-            <div className="absolute bottom-[-10%] right-[-5%] w-[400px] h-[400px] bg-rose-50 rounded-full blur-3xl opacity-60"></div>
+          <div className="absolute top-[-10%] left-[-5%] w-[500px] h-[500px] bg-teal-50 rounded-full blur-3xl opacity-60"></div>
+          <div className="absolute bottom-[-10%] right-[-5%] w-[400px] h-[400px] bg-rose-50 rounded-full blur-3xl opacity-60"></div>
         </div>
 
         <div className="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-2 bg-white rounded-3xl shadow-2xl overflow-hidden relative z-10 border border-gray-100 my-auto">
-          
+
           {/* Left Side: Marketing & Benefits */}
           <div className="hidden lg:flex flex-col justify-between p-8 lg:p-10 bg-gradient-to-br from-teal-900 to-gray-900 text-white relative">
-            <div className="absolute inset-0 opacity-20 pointer-events-none" 
-                 style={{ backgroundImage: `url("https://www.transparenttextures.com/patterns/pinstripe.png")` }}>
+            <div className="absolute inset-0 opacity-20 pointer-events-none"
+              style={{ backgroundImage: `url("https://www.transparenttextures.com/patterns/pinstripe.png")` }}>
             </div>
-            
+
             <div className="relative">
               <h1 className="text-3xl font-extrabold tracking-tight mb-4 leading-tight mt-4">
                 Join the <span className="text-teal-400">future</span> of student housing in India.
               </h1>
-              
+
               <div className="space-y-6 mt-8">
                 <div className="flex gap-4">
                   <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
@@ -288,12 +299,12 @@ export default function WebsiteSignup() {
             </div>
 
             <div className="relative mt-auto pt-10 border-t border-white/10">
-               <div className="space-y-2">
-                  <p className="text-xl font-serif italic text-teal-100 opacity-90 leading-relaxed">
-                    "Your study years are for building a <span className="text-teal-400">future</span>. Let us handle building you a home."
-                  </p>
-                  <div className="w-10 h-1 bg-teal-500/30 rounded-full mt-4"></div>
-               </div>
+              <div className="space-y-2">
+                <p className="text-xl font-serif italic text-teal-100 opacity-90 leading-relaxed">
+                  "Your study years are for building a <span className="text-teal-400">future</span>. Let us handle building you a home."
+                </p>
+                <div className="w-10 h-1 bg-teal-500/30 rounded-full mt-4"></div>
+              </div>
             </div>
           </div>
 
@@ -312,32 +323,32 @@ export default function WebsiteSignup() {
               // SIGNUP FORM
               <form onSubmit={handleSignupSubmit} className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
-                   <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">First Name</label>
-                      <div className="relative group">
-                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                          <User className="h-4 w-4 text-gray-400 group-focus-within:text-teal-500 transition-colors" />
-                        </div>
-                        <input
-                          type="text"
-                          required
-                          className="block w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all outline-none"
-                          placeholder="Harsh"
-                          value={signup.firstName}
-                          onChange={(e) => setSignup({ ...signup, firstName: e.target.value })}
-                        />
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">First Name</label>
+                    <div className="relative group">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                        <User className="h-4 w-4 text-gray-400 group-focus-within:text-teal-500 transition-colors" />
                       </div>
-                   </div>
-                   <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">Last Name</label>
                       <input
                         type="text"
-                        className="block w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all outline-none"
-                        placeholder="Kaur"
-                        value={signup.lastName}
-                        onChange={(e) => setSignup({ ...signup, lastName: e.target.value })}
+                        required
+                        className="block w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all outline-none"
+                        placeholder="Harsh"
+                        value={signup.firstName}
+                        onChange={(e) => setSignup({ ...signup, firstName: e.target.value })}
                       />
-                   </div>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">Last Name</label>
+                    <input
+                      type="text"
+                      className="block w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all outline-none"
+                      placeholder="Kaur"
+                      value={signup.lastName}
+                      onChange={(e) => setSignup({ ...signup, lastName: e.target.value })}
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-1">
@@ -350,15 +361,16 @@ export default function WebsiteSignup() {
                       type="email"
                       required
                       className="block w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all outline-none"
-                      placeholder="hello@roomhy.com"
+                      placeholder="team@roomhy.com"
                       value={signup.email}
                       onChange={(e) => setSignup({ ...signup, email: e.target.value })}
                     />
                   </div>
                 </div>
 
+
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">8764425030</label>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">Phone Number</label>
                   <div className="relative group">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                       <Phone className="h-4 w-4 text-gray-400 group-focus-within:text-teal-500 transition-colors" />
@@ -374,6 +386,7 @@ export default function WebsiteSignup() {
                     />
                   </div>
                 </div>
+
 
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">Password</label>
@@ -403,8 +416,8 @@ export default function WebsiteSignup() {
                 {verificationVisible && (
                   <div className="space-y-2.5 p-3 bg-teal-50 rounded-2xl border border-teal-100 animate-in fade-in zoom-in-95">
                     <p className="text-[10px] text-teal-800 font-medium text-center">
-                       Code sent to your email 
-                       {signupDelivery.whatsapp ? " & WhatsApp" : signupDelivery.sms ? " & SMS" : ""}.
+                      Code sent to your email
+                      {signupDelivery.whatsapp ? " & WhatsApp" : signupDelivery.sms ? " & SMS" : ""}.
                     </p>
                     <input
                       type="text"
@@ -438,22 +451,22 @@ export default function WebsiteSignup() {
                 )}
 
                 {!verificationVisible && (
-                    <button
-                      type="submit"
-                      disabled={loadingCreate || secondsLeft > 0}
-                      className="group w-full py-3 bg-gray-900 hover:bg-black text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 transform hover:-translate-y-0.5 active:translate-y-0 disabled:bg-gray-400 text-sm mt-1"
-                    >
-                      {secondsLeft > 0 ? (
-                        `Locked (Wait ${formatTime(secondsLeft)})`
-                      ) : loadingCreate ? (
-                         <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      ) : (
-                        <>
-                          Create My Account
-                          <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                        </>
-                      )}
-                    </button>
+                  <button
+                    type="submit"
+                    disabled={loadingCreate || secondsLeft > 0}
+                    className="group w-full py-3 bg-gray-900 hover:bg-black text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 transform hover:-translate-y-0.5 active:translate-y-0 disabled:bg-gray-400 text-sm mt-1"
+                  >
+                    {secondsLeft > 0 ? (
+                      `Locked (Wait ${formatTime(secondsLeft)})`
+                    ) : loadingCreate ? (
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    ) : (
+                      <>
+                        Create My Account
+                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      </>
+                    )}
+                  </button>
                 )}
 
                 <p className="text-center mt-3 pt-1 text-xs text-gray-500">
@@ -470,7 +483,7 @@ export default function WebsiteSignup() {
             ) : (
               // LOGIN FORM (Simplified for Signup page toggle)
               <form onSubmit={loginCodeSent ? handleLoginVerify : handleLoginRequestCode} className="space-y-6">
-                 <div className="space-y-1.5">
+                <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">Email Address</label>
                   <div className="relative group">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -479,7 +492,7 @@ export default function WebsiteSignup() {
                     <input
                       type="email"
                       className="block w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all outline-none"
-                      placeholder="hello@roomhy.com"
+                      placeholder="team@roomhy.com"
                       value={loginEmail}
                       onChange={(e) => setLoginEmail(e.target.value)}
                     />
@@ -519,10 +532,10 @@ export default function WebsiteSignup() {
                   {loginCodeSent
                     ? (loadingLoginVerify ? "Verifying..." : "Verify & Login")
                     : secondsLeft > 0
-                    ? `Locked (Wait ${formatTime(secondsLeft)})`
-                    : (loadingLoginSend ? "Sending Code..." : "Send Login Code")}
+                      ? `Locked (Wait ${formatTime(secondsLeft)})`
+                      : (loadingLoginSend ? "Sending Code..." : "Send Login Code")}
                 </button>
-                
+
                 <p className="text-center mt-6 text-xs text-gray-500">
                   Don't have an account?{" "}
                   <button

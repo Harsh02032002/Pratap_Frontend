@@ -154,17 +154,10 @@ export default function Ownerlogin() {
         });
         setStep("setPassword");
       } catch (verifyErr) {
-        // Fallback session when backend API is offline or returns error
-        const normLoginId = String(loginId || "").trim().toUpperCase();
-        const mockOwner = {
-          _id: "o_" + Date.now(),
-          loginId: normLoginId,
-          name: "Owner User",
-          role: "owner"
-        };
-        storeAuth({ user: mockOwner, token: "owner_token_" + Date.now() });
-        window.location.href = resolvePanelPath("propertyowner", "admin");
-        return;
+        // Temp-password check also failed — this is a genuine invalid login.
+        // Never fabricate a session here; that would silently bypass auth
+        // and skip the forced password-change step entirely.
+        setErrorMsg("Invalid login ID or password.");
       }
     } finally {
       setLoading(false);

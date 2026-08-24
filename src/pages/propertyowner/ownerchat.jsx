@@ -205,6 +205,18 @@ export default function OwnerChat() {
 
       let conversations = res?.conversations || [];
 
+      // Filter out owner-to-owner and owner-to-superadmin conversations.
+      // Keep only tenants (email-based IDs, roomhyweb* IDs) and unknown parties.
+      const OWNER_LOGIN_PATTERN = /^ROOMHY\d{4,}$/i;
+      const SUPERADMIN_PATTERN = /^(superadmin|super_admin|admin)$/i;
+      conversations = conversations.filter(c => {
+        const pid = String(c.participant_login_id || '').trim();
+        // Exclude other owner accounts and superadmin
+        if (OWNER_LOGIN_PATTERN.test(pid) && pid.toUpperCase() !== owner.loginId.toUpperCase()) return false;
+        if (SUPERADMIN_PATTERN.test(pid)) return false;
+        return true;
+      });
+
       if (tenants && Array.isArray(tenants)) {
         const existingLoginIds = new Set(conversations.map(c => c.participant_login_id));
         const newConversations = tenants
@@ -228,6 +240,7 @@ export default function OwnerChat() {
       setLoadingInbox(false);
     }
   };
+
 
   const fetchMessages = async (targetUserId) => {
     try {
@@ -317,9 +330,33 @@ export default function OwnerChat() {
       fetchInbox();
     });
 
+    socket.on("message_blocked", (data) => {
+      if (data?.warning || data?.message || data?.blocked) {
+        setBlockedMsgSnippet(data?.message || 'Contact details / offline deal prohibited');
+        setShowBypassWarning(true);
+      }
+      if (activeChatRef.current?.participant_login_id) {
+        fetchMessages(activeChatRef.current.participant_login_id);
+      }
+    });
+
+    socket.on("account_blocked", () => {
+      // Panel blur & redirect handled by PropertyOwnerLayout,
+      // but also trigger here as fallback in case that socket missed it
+      import('../../utils/propertyowner').then(({ clearOwnerRuntimeSession }) => {
+        clearOwnerRuntimeSession();
+      }).catch(() => {});
+      setTimeout(() => {
+        window.location.href = '/propertyowner/ownerlogin';
+      }, 4000);
+    });
+
     return () => {
       socket.off("connect", joinOwnRoom);
       socket.off("reconnect", joinOwnRoom);
+      socket.off("receive_message");
+      socket.off("message_blocked");
+      socket.off("account_blocked");
       socket.disconnect();
       socketRef.current = null;
     };
@@ -340,17 +377,39 @@ export default function OwnerChat() {
 
   const checkBypassAttempt = (text) => {
     if (!text) return false;
-    const cleanDigits = String(text).replace(/[\s\-().,_/*]/g, '');
-    const hasTenDigits = /\d{10}/.test(cleanDigits);
-    const spacedDigits = /(\d[\s\-.,_*/]*){10,12}/g.test(text);
-    const bypassKeywords = [
-      /\b(whatsapp|watsapp|watsp|wtsp|wa|wp)\b/i,
-      /\b(call|phone|phn|mobile|contact|number|no|num)\s+([a-zA-Z]*\s+){0,2}(de|bhej|share|kar|kr|karo|kro|lena|le)\b/i,
-      /\b(offline|cash|direct|bypass|commission|brokerage)\b/i,
+    const rawText = String(text);
+    const trimmed = rawText.trim();
+
+    // 1. Any 10+ digit sequence (formatted, spaced, or clean)
+    const cleanDigits = rawText.replace(/\D/g, '');
+    if (cleanDigits.length >= 10) return true;
+
+    // Spaced out digits e.g. "9 4 6 4 1 6 5 0 2 0" or "9464-165-020"
+    if (/(\d[\s\-.,_*/]*){10,}/.test(rawText)) return true;
+
+    // 2. Email address or URL links
+    if (/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i.test(trimmed)) return true;
+    if (/https?:\/\/|www\.[^\s]+|\.com|\.in|\.org|\.net/i.test(trimmed)) return true;
+
+    // 3. Messaging / Social handles
+    if (/\b(whatsapp|watsapp|watsp|wtsp|telegram|instagram|insta|facebook|fb|snapchat|twitter)\b/i.test(trimmed)) return true;
+
+    // 4. Contact info sharing phrases
+    const contactPhrases = [
+      /\b(call|phone|phn|mobile|contact|number|num|no)\b.*\b(de|bhej|bhejo|dena|share|kar|kr|karo|kro|do|lo|le|batao|diye|liya)\b/i,
+      /\b(de|bhej|bhejo|dena|share|kar|kr|karo|kro|do|batao)\b.*\b(call|phone|phn|mobile|contact|number|num|no)\b/i,
+      /\b(my|mera|apna|call|contact|reach|connect)\s+(number|no|num|contact|mobile|phone)\b/i,
+      /\b(call|contact)\s+(me|us|on|par|pe)\b/i,
+      /\b(no\s+brokerage|save\s+commission|brokerage\s+bach|bypass\s+commission|without\s+commission)\b/i,
       /\b(pay|payment|rent|deposit|advance)\s+([a-zA-Z]*\s+){0,2}(offline|cash|direct|account)\b/i,
-      /\b(booking\s+cancel|cancel\s+booking)\b/i
+      /\b(in\s*hand|hand\s*to\s*hand|offline\s*cash|direct\s*cash|cash\s*only)\b/i,
+      /\boffline\s+(cash|payment|deal|transfer|settlement)\b/i,
+      /\b(gpay|google pay|phonepe|paytm|upi|ybl|g-pay|phone-pe|bank transfer|account transfer)\b/i
     ];
-    return hasTenDigits || spacedDigits || bypassKeywords.some(rx => rx.test(text));
+
+    if (contactPhrases.some(rx => rx.test(trimmed))) return true;
+
+    return false;
   };
 
   const handleSend = async (e) => {
@@ -363,6 +422,7 @@ export default function OwnerChat() {
       setMessage("");
       return;
     }
+
 
     setIsSending(true);
     

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
 import { getOwnerRuntimeSession, clearOwnerRuntimeSession } from "../../utils/propertyowner";
 import { fetchJson } from "../../utils/api";
@@ -16,14 +16,37 @@ export default function UpdateRequests() {
   const [filter, setFilter] = useState("All");
   const [viewModal, setViewModal] = useState(null);
 
-  useEffect(() => {
+  const fetchRequests = useCallback(async (ownerLoginId, currentFilter) => {
+    if (!ownerLoginId) return;
     setLoading(true);
-    const statusParam = filter !== "All" ? `?status=${filter}&ownerLoginId=${encodeURIComponent(owner.loginId)}` : `?ownerLoginId=${encodeURIComponent(owner.loginId)}`;
-    fetchJson(`/api/owner-change-requests${statusParam}`)
-      .then((data) => setRequests(Array.isArray(data?.data) ? data.data : []))
-      .catch(() => setRequests([]))
-      .finally(() => setLoading(false));
-  }, [filter]);
+    try {
+      const statusParam = currentFilter !== "All"
+        ? `?status=${currentFilter}&ownerLoginId=${encodeURIComponent(ownerLoginId)}`
+        : `?ownerLoginId=${encodeURIComponent(ownerLoginId)}`;
+      const data = await fetchJson(`/api/owner-change-requests${statusParam}`);
+      setRequests(Array.isArray(data?.data) ? data.data : []);
+    } catch {
+      setRequests([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Debounce filter changes so rapid tab clicks fire one request, not four.
+  const debounceTimerRef = useRef(null);
+
+  useEffect(() => {
+    if (!owner?.loginId) return;
+
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = setTimeout(() => {
+      fetchRequests(owner.loginId, filter);
+    }, 300);
+
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    };
+  }, [filter, owner?.loginId, fetchRequests]);
 
   const getRelativeTime = (date) => {
     if (!date) return "—";
@@ -79,7 +102,9 @@ export default function UpdateRequests() {
                 </tr>
               ) : requests.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-sm font-medium text-muted-foreground">No {filter.toLowerCase()} requests found.</td>
+                  <td colSpan={5} className="px-6 py-8 text-center text-sm font-medium text-muted-foreground">
+                    {filter === "All" ? "No update requests found." : `No ${filter.toLowerCase()} requests found.`}
+                  </td>
                 </tr>
               ) : (
                 requests.map(req => {
@@ -160,7 +185,9 @@ export default function UpdateRequests() {
                     {Object.entries(viewModal.requestedChanges || {})
                       .filter(([key]) => key !== 'checkinBankProofName')
                       .map(([key, newValue]) => {
-                      const oldValue = viewModal.previousValues ? viewModal.previousValues[key] : undefined;
+                      const oldValue = viewModal.previousValues
+                        ? viewModal.previousValues[key]
+                        : (viewModal.currentValues ? viewModal.currentValues[key] : undefined);
                       const hasOldValue = oldValue !== undefined && oldValue !== null && oldValue !== "";
                       const isDoc = key === 'checkinBankProof';
                       return (

@@ -329,6 +329,7 @@ export default function AddStaffPage() {
         shift: SHIFTS[1].label, joiningDate: new Date().toISOString().split("T")[0],
         address: "", emergencyContact: "", assignedProperty: "", assignedPropertyName: "",
         status: "Active", photoDataUrl: "", permissions: [],
+        restrictedModules: [...DEFAULT_OWNER_RESTRICTED_SUBMODULES],
       });
       // Refresh next ID
       try {

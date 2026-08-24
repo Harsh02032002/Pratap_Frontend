@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { CheckCircle, XCircle, Search, Clock, FileText, Eye } from "lucide-react";
 import { PageHeader } from "../../components/superadmin/PageHeader";
+import { fetchJson } from "../../utils/api";
 
 export default function OwnerRequestsPage() {
   // Stable primitive read of the logged-in superadmin's ID — computed once,
@@ -40,8 +41,7 @@ export default function OwnerRequestsPage() {
     setLoading(true);
     try {
       const statusParam = filter !== "All" ? `?status=${filter}` : "";
-      const res = await fetch(`/api/owner-change-requests${statusParam}`);
-      const data = await res.json();
+      const data = await fetchJson(`/api/owner-change-requests${statusParam}`);
       if (data.success) {
         setRequests(data.data || []);
       }
@@ -72,16 +72,16 @@ export default function OwnerRequestsPage() {
     const { type, request } = confirmModal;
     setSubmitting(true);
     try {
-      const res = await fetch(`/api/owner-change-requests/${request._id}/${type}`, {
+      // fetchJson attaches the scoped auth header and Content-Type, and throws
+      // on a non-2xx response — the catch below turns that into the error toast.
+      const data = await fetchJson(`/api/owner-change-requests/${request._id}/${type}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
           type === "approve"
             ? { superadminLoginId: adminLoginId }
             : { superadminLoginId: adminLoginId, reason }
         )
       });
-      const data = await res.json();
       if (data.success) {
         setToast({
           type: "success",
@@ -94,7 +94,13 @@ export default function OwnerRequestsPage() {
         setToast({ type: "error", message: data.message || `Failed to ${type} request.` });
       }
     } catch (err) {
-      setToast({ type: "error", message: `Error ${type === "approve" ? "approving" : "rejecting"} request.` });
+      // fetchJson puts the server's own `message` on err.message, so a 400 like
+      // "A passbook or cancelled cheque photo is required…" reaches the reviewer
+      // instead of a generic failure string.
+      setToast({
+        type: "error",
+        message: err?.message || `Error ${type === "approve" ? "approving" : "rejecting"} request.`
+      });
     } finally {
       setSubmitting(false);
     }

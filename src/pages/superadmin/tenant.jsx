@@ -649,17 +649,6 @@ export default function Tenant() {
                        {selectedTenant.status === "suspended" ? "Reactivate Account" : "Deactivate Account"}
                     </button>
                  </div>
-                <div className="flex gap-2">
-                   <button onClick={() => handleKycUpdate(selectedTenant.loginId, "rejected")} disabled={isUpdatingKyc}
-                      className="px-4 py-2 bg-white text-slate-600 border border-slate-200 rounded-xl text-xs font-bold hover:bg-slate-100 transition-all disabled:opacity-50">
-                      Reject Audit
-                   </button>
-                   <button onClick={() => handleKycUpdate(selectedTenant.loginId, "verified")} disabled={isUpdatingKyc}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold shadow-sm hover:bg-blue-700 transition-all flex items-center gap-2 disabled:opacity-50">
-                      {isUpdatingKyc ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
-                      Approve Compliance
-                   </button>
-                </div>
               </div>
            </div>
         </div>

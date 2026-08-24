@@ -47,7 +47,7 @@ export default function MobileBottomNav() {
   if (!isVisible || isKeyboardOpen) return null;
 
   const navItems = [
-    { icon: Home, path: '/website/index', label: 'Home' },
+    { icon: Home, path: '/', label: 'Home' },
     { icon: Building2, path: '/website/ourproperty', label: 'Properties' },
     { icon: HelpCircle, path: '/website/faq', label: 'FAQ' },
     { icon: Info, path: '/website/about', label: 'About' },

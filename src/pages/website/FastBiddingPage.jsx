@@ -13,6 +13,12 @@ const defaultCities = [
 ];
 
 export default function FastBiddingPage() {
+  useEffect(() => {
+    if (window.location.pathname !== '/fast-bidding') {
+      window.history.replaceState(null, '', '/fast-bidding');
+    }
+  }, []);
+
   const [cities, setCities] = useState([]);
   const [areas, setAreas] = useState([]);
   const [allProperties, setAllProperties] = useState([]);
@@ -68,19 +74,48 @@ export default function FastBiddingPage() {
         setAreas([]);
         return;
       }
+      const cityLower = form.city.toLowerCase().trim();
+      const getPropertyLocalities = () => {
+        return (allProperties || [])
+          .filter(p => {
+            const pCity = String(p.city || p.propertyInfo?.city || p.cityName || '').toLowerCase().trim();
+            return pCity === cityLower || pCity.includes(cityLower) || cityLower.includes(pCity);
+          })
+          .map(p => p.locality || p.area || p.propertyInfo?.area || p.propertyInfo?.locality || '')
+          .filter(Boolean);
+      };
+
       try {
         const allAreas = await fetchAreas();
         const filtered = allAreas.filter(a => {
-          const cityIdStr = (a.cityId || a.city?._id || a.city || '').toString();
-          return cityIdStr === form.city;
+          if (typeof a === 'string') return a.toLowerCase().includes(cityLower);
+          const cityNameInArea = String(
+            (typeof a.city === 'string' ? a.city : a.city?.name) ||
+            a.cityName ||
+            a.city_name ||
+            ''
+          ).toLowerCase().trim();
+          const cityIdStr = String(a.cityId || a.city?._id || (typeof a.city === 'object' ? a.city?._id : '') || '').toLowerCase().trim();
+
+          return (
+            cityNameInArea === cityLower ||
+            (cityNameInArea && (cityNameInArea.includes(cityLower) || cityLower.includes(cityNameInArea))) ||
+            cityIdStr === cityLower
+          );
         });
-        setAreas(filtered);
+
+        const areaNames = filtered.map(a => typeof a === 'string' ? a : (a.name || a.areaName || a.title || '')).filter(Boolean);
+        const propAreas = getPropertyLocalities();
+        const combined = [...new Set([...areaNames, ...propAreas])];
+
+        setAreas(combined.map(name => typeof name === 'string' ? { name } : name));
       } catch {
-        setAreas([]);
+        const propAreas = [...new Set(getPropertyLocalities())];
+        setAreas(propAreas.map(name => ({ name })));
       }
     };
     loadAreas();
-  }, [form.city]);
+  }, [form.city, allProperties]);
 
   // Fetch ALL properties once on mount — shared cache via fetchProperties()
   useEffect(() => {

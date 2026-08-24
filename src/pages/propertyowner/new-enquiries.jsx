@@ -24,22 +24,12 @@ export default function NewEnquiriesPage() {
       setLoading(true);
       const data = await apiFetch(`/api/owners/${owner.loginId}/enquiries`);
       if (data) {
-        // Filter for new/pending/request to connect
+        // Include all active new/pending/request to connect enquiries
         const isNew = (status = "") => {
-          const s = status.toLowerCase();
-          return s === "new" || s === "pending" || s === "request to connect" || s === "";
+          const s = String(status || "").toLowerCase();
+          return s === "new" || s === "pending" || s === "request to connect" || s === "in progress" || s === "";
         };
-        const isBookingOrBidding = (item) => {
-          const type = String(item.type || item.enquiryType || item.source || item.category || "").toLowerCase();
-          const notes = String(item.notes || "").toLowerCase();
-          const interest = String(item.interest || "").toLowerCase();
-          
-          const isBid = type.includes("bid") || notes.includes("bid") || item.bidAmount != null || item.isBid;
-          const isBooking = type.includes("book") || notes.includes("book") || interest.includes("book") || item.bookingAmount != null || item.isBooking;
-          
-          return isBid || isBooking;
-        };
-        setEnquiries(data.filter(e => isNew(e.status) && isBookingOrBidding(e)));
+        setEnquiries(data.filter(e => isNew(e.status)));
       }
     } catch (err) {
       console.error("Error fetching enquiries:", err);

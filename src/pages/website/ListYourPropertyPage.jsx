@@ -8,8 +8,18 @@ import { getOwnerRuntimeSession } from '../../utils/propertyowner';
 import useSEO from '../../hooks/useSEO';
 
 export default function ListYourPropertyPage() {
-  useSEO({ pageKey: 'list-property', fallbackTitle: 'List Your Property on Roomhy - Zero Commission' });
+  useSEO({ 
+    pageKey: 'list-property', 
+    fallbackTitle: 'List Your Property for Free | Hostels & PGs | Roomhy.com',
+    fallbackDescription: 'List your PG, hostel, co-living space, or apartment on Roomhy.com for free. Connect directly with verified student tenants and maximize your occupancy.'
+  });
   const owner = getOwnerRuntimeSession();
+
+  useEffect(() => {
+    if (window.location.pathname !== '/list-property') {
+      window.history.replaceState(null, '', '/list-property');
+    }
+  }, []);
 
   const [formData, setFormData] = useState({
     ownerName: owner?.name || owner?.fullName || '',
@@ -48,9 +58,10 @@ export default function ListYourPropertyPage() {
   }, []);
 
   const isSectionVisible = (id) => {
+    if (id === 'list-form') return true; // Form is mandatory on List Your Property page
     if (layoutSections.length === 0) return true;
     const sec = layoutSections.find(s => s.id === id);
-    return sec ? sec.visible : true;
+    return sec ? sec.visible !== false : true;
   };
 
   const getSectionContent = (id, fallback) => {
@@ -137,7 +148,7 @@ export default function ListYourPropertyPage() {
         additional_message: formData.description || '',
         photos: []
       };
-      
+
       await submitEnquiry(enquiryData);
       setShowSuccess(true);
       setFormData({
@@ -174,23 +185,35 @@ export default function ListYourPropertyPage() {
       subtitle: 'Reach thousands of students looking for accommodation'
     });
     return (
-      <div key="list-hero" className="relative w-full py-10 px-6 overflow-hidden border-b border-stone-200/50" 
-           style={{ background: 'linear-gradient(135deg, #FFFAF5 0%, #FDFCFB 50%, #F5F7FA 100%)' }}>
-        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" 
-             style={{ backgroundImage: `url("https://www.transparenttextures.com/patterns/pinstripe.png")` }}>
-        </div>
-        <div className="relative max-w-7xl mx-auto flex flex-col items-center text-center">
-          <div className="flex items-center gap-4 mb-2">
-            <div className="h-[1px] w-8 bg-[#C5A059]/40 hidden md:block"></div>
-            <h1 className="text-3xl md:text-4xl font-bold text-[#1A1A1A] tracking-tight">
-              {content.title}
-            </h1>
-            <div className="h-[1px] w-8 bg-[#C5A059]/40 hidden md:block"></div>
+      <div 
+        key="list-hero" 
+        className="relative w-full py-8 md:py-12 px-4 md:px-8 overflow-hidden border-b border-stone-200/80 text-center"
+        style={{
+          background: 'linear-gradient(135deg, #EAEFF5 0%, #F5F7FA 50%, #E5EDF5 100%)'
+        }}
+      >
+        <div 
+          className="absolute inset-0 opacity-[0.25] pointer-events-none"
+          style={{
+            backgroundImage: `radial-gradient(circle at 20% 30%, rgba(200, 215, 230, 0.4) 0%, transparent 40%), radial-gradient(circle at 80% 70%, rgba(210, 225, 240, 0.4) 0%, transparent 40%), linear-gradient(45deg, rgba(255,255,255,0.6) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.6) 75%)`,
+            backgroundSize: '100% 100%, 100% 100%, 60px 60px'
+          }}
+        ></div>
+        <div className="relative max-w-6xl mx-auto flex flex-col items-center justify-center text-center">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-[#1E293B] tracking-wider uppercase leading-tight mb-4 drop-shadow-xs">
+            {(content.title || 'LIST YOUR PROPERTY').toUpperCase()}
+          </h1>
+          <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3">
+            <div className="px-3.5 py-1.5 rounded-full border border-slate-300/80 bg-white/70 backdrop-blur-xs text-slate-800 text-xs md:text-sm font-semibold tracking-wider uppercase shadow-2xs">
+              FREE LISTING
+            </div>
+            <div className="px-3.5 py-1.5 rounded-full border border-slate-300/80 bg-white/70 backdrop-blur-xs text-slate-800 text-xs md:text-sm font-semibold tracking-wider uppercase shadow-2xs">
+              DIRECT TENANTS
+            </div>
+            <div className="px-3.5 py-1.5 rounded-full border border-slate-300/80 bg-white/70 backdrop-blur-xs text-slate-800 text-xs md:text-sm font-semibold tracking-wider uppercase shadow-2xs">
+              ZERO COMMISSION
+            </div>
           </div>
-          <p className="text-base md:text-lg text-stone-500 font-normal opacity-90 max-w-xl mx-auto">
-            {content.subtitle}
-          </p>
-          <div className="mt-4 w-1.5 h-1.5 rounded-full bg-[#C5A059]/30"></div>
         </div>
       </div>
     );
@@ -433,9 +456,13 @@ export default function ListYourPropertyPage() {
   };
 
   const defaultOrder = ['list-hero', 'owner-benefits', 'list-form'];
-  const activeOrder = layoutSections.length > 0
+  let activeOrder = layoutSections.length > 0
     ? layoutSections.map(s => s.id)
     : defaultOrder;
+
+  if (!activeOrder.includes('list-form')) {
+    activeOrder.push('list-form');
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -461,9 +488,9 @@ export default function ListYourPropertyPage() {
             <h3 className="font-semibold text-gray-900 mb-2">Need Help?</h3>
             <p className="text-gray-600 text-sm mb-4">Our team is here to assist you with listing your property</p>
             <div className="flex flex-wrap gap-4">
-              <a href="tel:+911234567890" className="flex items-center gap-2 text-blue-600 hover:text-blue-700">
+              <a href="tel:+918764425030" className="flex items-center gap-2 text-blue-600 hover:text-blue-700">
                 <Phone className="w-4 h-4" />
-                <span>+91 12345 67890</span>
+                <span>+91 8764425030</span>
               </a>
               <a href="mailto:team@roomhy.com" className="flex items-center gap-2 text-blue-600 hover:text-blue-700">
                 <Mail className="w-4 h-4" />

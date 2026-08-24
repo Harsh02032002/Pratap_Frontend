@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerProperties } from "../../utils/propertyowner";
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerProperties, filterByActiveProperty } from "../../utils/propertyowner";
 import { apiFetch } from "../../utils/api";
 import { cacheGet, cacheSet, cacheInvalidate } from "../../utils/cache";
 import { 
@@ -43,7 +43,7 @@ export default function Enquiry() {
     if (!silent) {
       const cached = cacheGet(ENQ_KEY);
       if (cached) {
-        setEnquiries(cached);
+        setEnquiries(filterByActiveProperty(cached, false));
         setLoading(false);
         loadData({ silent: true });
         return;
@@ -63,8 +63,9 @@ export default function Enquiry() {
         return s !== 'deleted' && s !== 'rejected' && s !== 'cancelled' && !e.isDeleted;
       });
 
-      setEnquiries(activeLeads);
       cacheSet(ENQ_KEY, activeLeads, 3 * 60 * 1000);
+      const propertyFilteredLeads = filterByActiveProperty(activeLeads, false);
+      setEnquiries(propertyFilteredLeads);
       if (propRes) setProperties(propRes);
     } catch (err) {
       console.error("Error fetching data:", err);

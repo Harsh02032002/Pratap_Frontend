@@ -78,7 +78,7 @@ const NAV = [
             { label: "KYC / Documents", path: "/superadmin/owner?view=kyc" },
             { label: "Agreements", path: "/superadmin/owner?view=agreements" },
             { label: "Owner Requests", path: "/superadmin/owner-requests", restrictedKey: "um_property_owners" },
-            { label: "🔐 Owner Subscriptions", path: "/superadmin/owner-subscriptions", restrictedKey: "um_owner_subscriptions" },
+            { label: "Owner Subscriptions", path: "/superadmin/owner-subscriptions", restrictedKey: "um_owner_subscriptions" },
           ]
         },
         { 
@@ -118,7 +118,6 @@ const NAV = [
     path: "/superadmin/accounting", 
     children: [
         { label: "Overview", path: "/superadmin/accounting", restrictedKey: "acc_overview" },
-        { label: "💰 Admin Platform Wallet", path: "/superadmin/admin-wallet" },
         { label: "Revenue Overview", path: "/superadmin/home/revenue-overview", restrictedKey: "acc_revenue_overview" },
         { 
           label: "Tenant Accounts", 

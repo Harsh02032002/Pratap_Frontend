@@ -107,7 +107,6 @@ export const sharedNavConfig = {
     links: [
       { label: "Login", to: "/tenant/tenantlogin" },
       { label: "Dashboard", to: "/tenant/tenantdashboard" },
-      { label: "Agreement", to: "/tenant/tenantagreement" },
       { label: "Complaints", to: "/tenant/tenantcomplints" },
       { label: "Chat", to: "/tenant/tenantchat" }
     ]
@@ -116,7 +115,7 @@ export const sharedNavConfig = {
     title: "Website",
     base: "/website",
     links: [
-      { label: "Home", to: "/website/index" },
+      { label: "Home", to: "/" },
       { label: "List", to: "/website/list" },
       { label: "Property", to: "/website/property" },
       { label: "Property New", to: "/website/property_new" },

@@ -52,12 +52,15 @@ const read = (key) => {
   }
 };
 
-// Sessions the website login used to fabricate when the backend REJECTED the
-// credentials ("demo_token_<timestamp>"). They are not JWTs, so every request
-// made with one fails — the page then looks signed in but silently renders
-// nothing. The login no longer creates these, but they persist in the
-// localStorage of anyone who hit the old code, so treat them as absent.
-const isFabricatedToken = (token) => /^demo_token_/i.test(String(token || ""));
+// Sessions the website/tenant/owner logins used to fabricate client-side when
+// the real login AND the temp-password retry both failed ("demo_token_...",
+// "tenant_token_...", "owner_token_..." followed by Date.now()). None of these
+// are real JWTs, so every request made with one fails — the page then looks
+// signed in but silently renders nothing, and (for tenant/owner) the forced
+// password-change step never ran. The logins no longer create these, but they
+// persist in the localStorage of anyone who hit the old code, so treat them
+// as absent and force those sessions to sign in again for real.
+const isFabricatedToken = (token) => /^(demo|tenant|owner)_token_\d+$/i.test(String(token || ""));
 
 // The JWT that is valid for the current route, or null.
 export const getScopedAuthToken = (pathname = currentPath()) => {
@@ -111,9 +114,14 @@ const ADMIN_ROLES = new Set([
 export const isAdminRole = (role) => ADMIN_ROLES.has(String(role || "").toLowerCase());
 
 export const clearScopedSession = (pathname = currentPath()) => {
+  // Panel logins also mirror the session into role-specific keys read
+  // directly by getOwnerSession()/getOwnerRuntimeSession() and similar
+  // helpers (owner_session, owner_user, tenant_user) — those must be purged
+  // too, or a stale fabricated session on those keys would survive even
+  // after the generic token/user keys are cleared.
   const keys = isWebsiteRoute(pathname)
     ? ["website_token", "website_user", "accessToken"]
-    : ["token", "user", "staff_user"];
+    : ["token", "user", "staff_user", "owner_session", "owner_user", "tenant_user"];
 
   keys.forEach((key) => {
     try {
