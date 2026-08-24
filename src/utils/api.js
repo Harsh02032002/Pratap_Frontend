@@ -1,5 +1,6 @@
 import { fetchPropertiesLocal } from './mockApi';
 import { getScopedAuthToken, clearScopedSession } from './authScope';
+import { normalizeTierKey, composeTieredPropertyName } from './propertyTiers';
 
 // ---------------------------------------------------------------------------
 // Module-level request cache
@@ -687,21 +688,44 @@ const staticPropertiesList = [
   }
 ];
 
+// The backend's gender field defaults to the placeholder "any" when nothing
+// was ever explicitly set — that's not a real answer, so treat it the same
+// as missing and let the category-derived value (below) fill in instead.
+const _explicitGender = (g) => {
+  const s = String(g || '').trim();
+  return s && s.toLowerCase() !== 'any' ? s : '';
+};
+
+// Maps the "Boys PG / Girls PG / Co-living" category picked in the Add/Edit
+// Property wizard onto the Male/Female/Co-ed vocabulary the public site's
+// gender badge and filter already use.
+const _categoryToGender = (category) => {
+  const s = String(category || '').toLowerCase();
+  if (s.includes('girl')) return 'Female';
+  if (s.includes('boy')) return 'Male';
+  if (s.includes('co-living') || s.includes('coliving')) return 'Co-ed';
+  return '';
+};
+
 // Shared property formatter — used by fetchProperties and fetchPropertyByVisitId
 const _formatProperty = (p) => {
   const imagesArray = p.images || p.photos || p.propertyInfo?.photos || [];
   const firstImage = imagesArray[0] || `https://picsum.photos/800/600?random=${Math.floor(Math.random() * 100)}`;
+  const tier = normalizeTierKey(p.tier);
+  const plainName = p.property_name || p.propertyName || p.propertyInfo?.name || 'Property';
+  const displayName = composeTieredPropertyName(tier, plainName);
   return {
     ...p,
     _id: String(p._id || p.visitId || ''),
     visitId: p.visitId || p._id,
-    property_name: p.property_name || p.propertyName || p.propertyInfo?.name || 'Property',
-    name: p.property_name || p.propertyName || p.propertyInfo?.name || 'Property',
+    tier,
+    property_name: displayName,
+    name: displayName,
     city: p.city || p.propertyInfo?.city || 'Unknown',
     location: p.propertyInfo?.area ? `${p.propertyInfo.area}, ${p.city || p.propertyInfo?.city}` : (p.city || p.propertyInfo?.city || 'Unknown'),
     owner_name: p.owner_name || p.ownerName || p.generatedCredentials?.ownerName || p.approvedBy || 'Verified Owner',
     owner_phone: p.owner_phone || p.contactPhone || p.ownerPhone || p.propertyInfo?.phone || '9000000000',
-    propertyName: p.propertyName || p.property_name || p.propertyInfo?.name || 'Property',
+    propertyName: displayName,
     propertyType: p.propertyType || p.property_type || p.propertyInfo?.propertyType || 'PG',
     monthlyRent: p.monthlyRent || p.rent || p.propertyInfo?.rent || 5000,
     image: firstImage,
@@ -715,7 +739,7 @@ const _formatProperty = (p) => {
     })(),
     owner_id: p.owner_id || p.ownerLoginId || p.generatedCredentials?.loginId || p.ownerLoginId,
     isPremium: p.isPremium || p.is_premium || p.propertyInfo?.isPremium || false,
-    gender: p.gender || p.genderSuitability || p.propertyInfo?.genderSuitability || 'Co-ed'
+    gender: _explicitGender(p.gender) || _explicitGender(p.genderSuitability) || _explicitGender(p.propertyInfo?.genderSuitability) || _categoryToGender(p.propertyCategory) || 'Co-ed'
   };
 };
 

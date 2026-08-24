@@ -59,10 +59,10 @@ export default function PropertyHeader({ property, reviewStats }) {
             <span>Verified</span>
           </div>
         )}
-        {property?.gender && property.gender !== "Any" && (
+        {((property?.category) || (property?.gender && property.gender !== "Any")) && (
           <div className="flex items-center gap-1 text-xs text-[#6d787d] font-medium">
             <span>•</span>
-            <span>{property.gender}</span>
+            <span>{property.category || property.gender}</span>
           </div>
         )}
         {/* Check-in rating — OYO style */}

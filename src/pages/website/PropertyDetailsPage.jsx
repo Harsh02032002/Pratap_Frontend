@@ -695,6 +695,7 @@ export default function PropertyDetailsPage() {
             area: foundProperty.propertyInfo?.area || foundProperty.area || "",
             type: foundProperty.propertyInfo?.propertyType || foundProperty.propertyType || "",
             price: foundProperty.propertyInfo?.rent || foundProperty.monthlyRent || foundProperty.price || "0",
+            category: foundProperty.propertyCategory || "",
             gender: (() => {
               const gRaw = String(
                 foundProperty.gender ||

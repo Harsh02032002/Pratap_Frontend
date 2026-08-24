@@ -5,6 +5,7 @@ import {
   getMyAttendance, checkIn, checkOut, getTenantAttendance, markTenantAttendance,
   applyLeave, getTenantHistory,
 } from "../api/attendance";
+import { getActiveOwnerPropertyId } from "../utils/propertyowner";
 
 /** The logged-in staff member's own attendance for a month. */
 export function useMyAttendance(staffLoginId, month, year, options = {}) {
@@ -43,9 +44,10 @@ export function useApplyLeave() {
 
 /** Tenant attendance for an owner on a date. */
 export function useTenantAttendance(ownerLoginId, date, options = {}) {
+  const propertyId = getActiveOwnerPropertyId();
   return useQuery({
-    queryKey: queryKeys.attendance.tenants(ownerLoginId, date),
-    queryFn: () => getTenantAttendance(ownerLoginId, date),
+    queryKey: queryKeys.attendance.tenants(ownerLoginId, date, propertyId),
+    queryFn: () => getTenantAttendance(ownerLoginId, date, propertyId),
     enabled: !!ownerLoginId && !!date,
     staleTime: STALE.attendance,
     ...options,
@@ -54,9 +56,10 @@ export function useTenantAttendance(ownerLoginId, date, options = {}) {
 
 /** One tenant's attendance history for a month. */
 export function useTenantHistory(ownerLoginId, tenantId, month, year, options = {}) {
+  const propertyId = getActiveOwnerPropertyId();
   return useQuery({
-    queryKey: queryKeys.attendance.tenantHistory(ownerLoginId, tenantId, month, year),
-    queryFn: () => getTenantHistory(ownerLoginId, tenantId, month, year),
+    queryKey: queryKeys.attendance.tenantHistory(ownerLoginId, tenantId, month, year, propertyId),
+    queryFn: () => getTenantHistory(ownerLoginId, tenantId, month, year, propertyId),
     enabled: !!ownerLoginId && !!tenantId,
     staleTime: STALE.attendance,
     ...options,
@@ -69,7 +72,8 @@ export function useTenantHistory(ownerLoginId, tenantId, month, year, options = 
  */
 export function useMarkTenantAttendance(ownerLoginId, date) {
   const qc = useQueryClient();
-  const key = queryKeys.attendance.tenants(ownerLoginId, date);
+  const propertyId = getActiveOwnerPropertyId();
+  const key = queryKeys.attendance.tenants(ownerLoginId, date, propertyId);
   return useMutation({
     mutationFn: (payload) => markTenantAttendance(payload),
     onMutate: async (payload) => {

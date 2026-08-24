@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession } from "../../utils/propertyowner";
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, getActiveOwnerPropertyId } from "../../utils/propertyowner";
 import { apiFetch } from "../../utils/api";
+import { getOwnerComplaints } from "../../api/complaints";
 import { cacheGet, cacheSet } from "../../utils/cache";
 import { AlertCircle, CheckCircle2, Clock, Plus, Search, Loader2 } from "lucide-react";
 
@@ -35,7 +36,8 @@ export default function Complaints() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const COMP_KEY = `complaints:${owner.loginId}`;
+      const propertyId = getActiveOwnerPropertyId();
+      const COMP_KEY = `complaints:${owner.loginId}:${propertyId || "all"}`;
       const EMP_KEY = `employees:${owner.loginId}`;
       const cachedComp = cacheGet(COMP_KEY);
       const cachedEmp = cacheGet(EMP_KEY);
@@ -48,10 +50,10 @@ export default function Complaints() {
       try {
         setLoading(true);
         const [compData, empData] = await Promise.all([
-          cachedComp ? Promise.resolve({ complaints: cachedComp }) : apiFetch(`/api/complaints/owner/${owner.loginId}`),
-          cachedEmp ? Promise.resolve({ data: cachedEmp }) : apiFetch(`/api/employees?parentLoginId=${owner.loginId}`),
+          cachedComp ? Promise.resolve(cachedComp) : getOwnerComplaints(owner.loginId, { propertyId }),
+          cachedEmp ? Promise.resolve(cachedEmp) : apiFetch(`/api/employees?parentLoginId=${owner.loginId}`),
         ]);
-        const complaints = compData?.complaints || [];
+        const complaints = Array.isArray(compData) ? compData : [];
         const staff = empData?.data || [];
         setComplaints(complaints);
         setStaffList(staff);

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession } from "../../utils/propertyowner";
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, getActiveOwnerPropertyId } from "../../utils/propertyowner";
 import { 
   LogOut, Search, Download, Filter, 
   FileText, Calendar
@@ -30,9 +30,12 @@ export default function ExitLogsPage() {
     if (cached) { setLogs(cached); setLoading(false); return; }
     try {
       setLoading(true);
-      const data = await apiFetch(`/api/visitors/owner/${owner.loginId}`);
+      const propertyId = getActiveOwnerPropertyId();
+      const qs = new URLSearchParams();
+      if (propertyId) qs.set("propertyId", propertyId);
+      const data = await apiFetch(`/api/visitors/owner/${owner.loginId}${qs.toString() ? `?${qs.toString()}` : ""}`);
       if (data.success && data.visitors) {
-        const exited = data.visitors.filter(v => v.exitTime);
+        const exited = data.visitors.filter(v => (!propertyId || String(v.propertyId || v.property_id || "") === String(propertyId)) && v.exitTime);
         const mapped = exited.map(v => ({
           id: `EXT-${v._id.substring(v._id.length-4).toUpperCase()}`,
           name: v.name,

@@ -447,6 +447,7 @@ export default function OurPropertyPage() {
           rating: p.rating || 4.5,
           type: p.type || p.propertyType || p.property_type || 'PG',
           gender: p.gender || 'Co-ed',
+          category: p.propertyCategory || '',
           image: p.image || p.featuredImage || (p.images?.[0] || ''),
           images: p.images || [],
           verified: p.isVerified !== false,
@@ -2038,7 +2039,7 @@ function PropertyCard({ property, onBookNow }) {
 
               <div className="flex items-center gap-2 pt-1.5">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#EE2A24] bg-[#EE2A24]/5 px-2 py-1 rounded border border-[#EE2A24]/10">
-                  {property.gender}
+                  {property.category || property.gender}
                 </span>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-gray-700 bg-gray-100 px-2 py-1 rounded border border-gray-200">
                   {property.type}

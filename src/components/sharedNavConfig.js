@@ -52,7 +52,7 @@ export const sharedNavConfig = {
           { label: "Transactions", to: "/superadmin/accounting/transactions", icon: "credit-card" },
           { label: "Disbursements", to: "/superadmin/accounting/payouts", icon: "send" },
           { label: "Rent Collections", to: "/superadmin/rentcollection", icon: "wallet" },
-          { label: "Refunds", to: "/superadmin/refund", icon: "rotate-ccw" },
+          // { label: "Refunds", to: "/superadmin/refund", icon: "rotate-ccw" },
           { label: "Settings", to: "/superadmin/accounting/settings", icon: "settings" }
         ]
       },
@@ -107,7 +107,6 @@ export const sharedNavConfig = {
     links: [
       { label: "Login", to: "/tenant/tenantlogin" },
       { label: "Dashboard", to: "/tenant/tenantdashboard" },
-      { label: "Agreement", to: "/tenant/tenantagreement" },
       { label: "Complaints", to: "/tenant/tenantcomplints" },
       { label: "Chat", to: "/tenant/tenantchat" }
     ]
@@ -132,7 +131,7 @@ export const sharedNavConfig = {
       { label: "Privacy", to: "/website/privacy" },
       { label: "Contact", to: "/website/contact" },
       { label: "Cancellation", to: "/website/cancellation" },
-      { label: "Refund", to: "/website/refund" },
+      // { label: "Refund", to: "/website/refund" },
       { label: "Refund Request", to: "/website/refund-request" },
       { label: "Fast Bidding", to: "/website/fast-bidding" },
       { label: "Slider", to: "/website/slider" },

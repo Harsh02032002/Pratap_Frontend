@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession } from "../../utils/propertyowner";
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, getActiveOwnerPropertyId, fetchRoomsByPropertyId } from "../../utils/propertyowner";
 import { apiFetch } from "../../utils/api";
 import { 
   Megaphone, Search, ToggleLeft, ToggleRight, 
@@ -25,9 +25,14 @@ export default function VacancyPromotionPage() {
   const fetchRooms = async () => {
     try {
       setLoading(true);
-      const res = await apiFetch(`/api/rooms/owner/${owner.loginId}`);
-      if (res && res.success) {
-        setPromotions(res.rooms);
+      const propertyId = getActiveOwnerPropertyId();
+      if (!propertyId) {
+        setPromotions([]);
+        return;
+      }
+      const res = await fetchRoomsByPropertyId(propertyId, 1, 100);
+      if (res && (res.success || Array.isArray(res.rooms))) {
+        setPromotions((res.rooms || []).filter(r => String(r.propertyId || r.property?._id || "") === String(propertyId)));
       }
     } catch (err) {
       console.error(err);

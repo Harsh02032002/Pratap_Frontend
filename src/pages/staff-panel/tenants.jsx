@@ -5,6 +5,7 @@ import {
   Loader2, Users, RefreshCw, Calendar, Trash2
 } from "lucide-react";
 import { getApiBase, getAuthHeader } from "../../utils/api";
+import { getActiveOwnerPropertyId } from "../../utils/propertyowner";
 
 function getStaffSession() {
   try {
@@ -35,7 +36,9 @@ export default function StaffTenants() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`${getApiBase()}/api/tenants/owner/${parentLoginId}`, { headers: getAuthHeader() });
+      const propertyId = getActiveOwnerPropertyId();
+      const qs = propertyId ? `?propertyId=${encodeURIComponent(propertyId)}` : "";
+      const res = await fetch(`${getApiBase()}/api/tenants/owner/${parentLoginId}${qs}`, { headers: getAuthHeader() });
       const data = await res.json();
       const list = data?.tenants || data?.data || (Array.isArray(data) ? data : []);
       setAllTenants(list.filter(t => !t.isDeleted && t.status !== "inactive"));

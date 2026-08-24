@@ -7,6 +7,7 @@ import {
   RefreshCw, Image as ImageIcon, Plus, Eye, Pencil, SlidersHorizontal, X, Trash2, Globe
 } from "lucide-react";
 import { getApiBase, getAuthHeader } from "../../utils/api";
+import { PROPERTY_TIERS, normalizeTierKey } from "../../utils/propertyTiers";
 import WebsitePropertyPreviewModal from "../../components/shared/WebsitePropertyPreviewModal";
 import { toast } from "react-hot-toast";
 import AddPropertyWizard from "./AddPropertyWizard";
@@ -82,6 +83,7 @@ export default function TotalProperties() {
   const [search, setSearch]         = useState("");
   const [fStatus, setFStatus]       = useState("all");
   const [fType, setFType]           = useState("all");
+  const [fTier, setFTier]           = useState("all");
   const [fCity, setFCity]           = useState("all");
   const [fLocation, setFLocation]   = useState("all");
   const [fOwner, setFOwner]         = useState("all");
@@ -122,6 +124,7 @@ export default function TotalProperties() {
           title:      p.title || p.propertyInfo?.name || "Unnamed",
           image:      p.featuredImage || p.images?.[0] || "",
           type:       p.propertyType || p.propertyInfo?.propertyType || "pg",
+          tier:       normalizeTierKey(p.tier),
           gender:     normalizeGender(p.gender || p.propertyInfo?.genderSuitability || "any"),
           city:       p.propertyInfo?.city || p.city || "-",
           locality:   p.locality || p.propertyInfo?.area || "-",
@@ -151,6 +154,7 @@ export default function TotalProperties() {
       if(s && !p.title.toLowerCase().includes(s) && !p.ownerName.toLowerCase().includes(s) && !p.propId.toLowerCase().includes(s) && !p.city.toLowerCase().includes(s)) return false;
       if(fStatus!=="all"   && p.status!==fStatus)     return false;
       if(fType!=="all"     && p.type!==fType)          return false;
+      if(fTier!=="all"     && p.tier!==fTier)          return false;
       if(fCity!=="all"     && p.city!==fCity)          return false;
       if(fLocation!=="all" && p.locality!==fLocation)  return false;
       if(fOwner!=="all"    && p.ownerName!==fOwner)    return false;
@@ -160,7 +164,7 @@ export default function TotalProperties() {
       return true;
     });
     return result;
-  },[allProperties,search,fStatus,fType,fCity,fLocation,fOwner,fGender,fPriceMin,fPriceMax]);
+  },[allProperties,search,fStatus,fType,fTier,fCity,fLocation,fOwner,fGender,fPriceMin,fPriceMax]);
 
   // Frontend Pagination
   const totalRecords = filtered.length;
@@ -339,6 +343,10 @@ export default function TotalProperties() {
             <option value="co-living">Co-Living</option>
             <option value="apartment">Apartment</option>
             <option value="room">Room</option>
+          </Sel>
+
+          <Sel value={fTier} onChange={setFTier} placeholder="All Tier">
+            {PROPERTY_TIERS.map(t=><option key={t.key} value={t.key}>{t.label}</option>)}
           </Sel>
 
           <Sel value={fCity} onChange={v=>{setFCity(v); setFLocation("all");}} placeholder="All City">

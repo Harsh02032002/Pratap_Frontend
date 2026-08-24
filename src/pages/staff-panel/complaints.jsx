@@ -7,6 +7,7 @@ import { useMutation } from "@tanstack/react-query";
 import { queryKeys } from "../../lib/queryKeys";
 import { queryClient } from "../../lib/queryClient";
 import { useStaffComplaints } from "../../hooks/useStaffLists";
+import { getActiveOwnerPropertyId } from "../../utils/propertyowner";
 
 function getStaffSession() {
   try {
@@ -52,15 +53,18 @@ export default function StaffComplaints() {
       return res.json();
     },
     onMutate: async ({ dbId, newStatus }) => {
-      await queryClient.cancelQueries({ queryKey: queryKeys.complaints.byOwner(parentLoginId) });
-      const previous = queryClient.getQueryData(queryKeys.complaints.byOwner(parentLoginId));
-      queryClient.setQueryData(queryKeys.complaints.byOwner(parentLoginId), (old = []) =>
+      // Must match the key useStaffComplaints reads from, which includes the
+      // active property — otherwise this optimistic update silently misses.
+      const key = queryKeys.complaints.byOwner(parentLoginId, { propertyId: getActiveOwnerPropertyId() });
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData(key);
+      queryClient.setQueryData(key, (old = []) =>
         old.map((c) => (c._id === dbId ? { ...c, status: newStatus } : c))
       );
-      return { previous };
+      return { previous, key };
     },
     onError: (_err, _vars, ctx) => {
-      if (ctx?.previous) queryClient.setQueryData(queryKeys.complaints.byOwner(parentLoginId), ctx.previous);
+      if (ctx?.previous) queryClient.setQueryData(ctx.key, ctx.previous);
     },
     onSuccess: (data) => {
       if (data?.success === false) {
@@ -70,7 +74,7 @@ export default function StaffComplaints() {
       toast.success(`Complaint updated ✓`);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.complaints.byOwner(parentLoginId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.complaints.byOwner(parentLoginId, { propertyId: getActiveOwnerPropertyId() }) });
     },
   });
 

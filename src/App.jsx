@@ -20,7 +20,6 @@ const PROTECTED_TENANT_PATHS = new Set([
   "/tenant/tenantdashboard",
   "/tenant/tenantcomplints",
   "/tenant/tenantchat",
-  "/tenant/tenantagreement",
 ]);
 
 const PageLoader = () => (
@@ -63,6 +62,16 @@ const resolveHostHome = () => {
 
   if (role === "tenant" || String(staffUser?.loginId || "").toUpperCase().startsWith("ROOMHYTNT")) {
     return "/tenant/tenantdashboard";
+  }
+
+  // Staff (owner-scoped employees, including wardens) live in `staff_session`,
+  // not any of the keys readStoredUser()/getOwnerSession() check — without this,
+  // any redirect to "/" bounces a logged-in staff member to the public website
+  // instead of back into their dashboard. Runs before the domain/metaTarget
+  // checks below so a signed-in staff member is never sent to the public site.
+  const staffSession = getStaffSession();
+  if (staffSession?.loginId && !owner?.loginId) {
+    return STAFF_HOME_PATH;
   }
 
   if (metaTarget === "website" || host === "roomhy.com" || host === "www.roomhy.com") {
@@ -346,7 +355,9 @@ const DomainGuard = () => {
       return;
     }
 
-    // 3. Fallback for main website domain (roomhy.com)
+    // 3. Fallback for main website domain (roomhy.com). Public token routes
+    // (/payment, /visitor-verify, /digital-checkin, /website) already returned
+    // early above, so they are never caught by these cross-domain redirects.
     const isMainWebsiteDomain = host === "roomhy.com" || host === "www.roomhy.com";
     if (isMainWebsiteDomain) {
       // Redirect superadmin links on main website to admin.roomhy.com

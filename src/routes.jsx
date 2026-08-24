@@ -199,7 +199,6 @@ const routeEntries = [
   ["/hostelowner/reports", "./pages/owner-panel/reports.jsx"],
 
   // Tenant Routes
-  ["/tenant/tenantagreement", "./pages/tenant/tenantagreement.jsx"],
   ["/tenant/tenantchat", "./pages/tenant/tenantchat.jsx"],
   ["/tenant/tenantcomplints", "./pages/tenant/tenantcomplints.jsx"],
   ["/tenant/tenantdashboard", "./pages/tenant/tenantdashboard.jsx"],

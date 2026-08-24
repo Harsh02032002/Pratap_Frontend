@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession } from "../../utils/propertyowner";
-import { 
-  FileText, Search, Download, CheckCircle2, 
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, getActiveOwnerPropertyId } from "../../utils/propertyowner";
+import {
+  FileText, Search, Download, CheckCircle2,
   ArrowUpRight, IndianRupee, Tag
 } from "lucide-react";
 import { apiFetch } from "../../utils/api";
+import { getOwnerComplaints } from "../../api/complaints";
 
 export default function ServiceHistoryPage() {
   const owner = getOwnerRuntimeSession();
@@ -25,9 +26,10 @@ export default function ServiceHistoryPage() {
   const fetchHistory = async () => {
     try {
       setLoading(true);
+      const propertyId = getActiveOwnerPropertyId();
       const [maintData, compData] = await Promise.all([
-        apiFetch(`/api/maintenance/owner/${owner.loginId}`),
-        apiFetch(`/api/complaints/owner/${owner.loginId}`)
+        apiFetch(`/api/maintenance/owner/${owner.loginId}${propertyId ? `?propertyId=${encodeURIComponent(propertyId)}` : ""}`),
+        getOwnerComplaints(owner.loginId, { propertyId }).then(d => ({ complaints: d }))
       ]);
       
       const history = [];

@@ -72,7 +72,7 @@ export const PROPERTY_OWNER_NAV = [
       { label: "Receipts", href: "/propertyowner/receipts", goldOnly: false },
       { label: "Electricity Readings", href: "/propertyowner/electricity-readings", goldOnly: false },
       { label: "Security Deposits", href: "/propertyowner/security-deposits", goldOnly: false },
-      { label: "Refunds", href: "/propertyowner/refunds", goldOnly: false },
+      // { label: "Refunds", href: "/propertyowner/refunds", goldOnly: false },
       { label: "Penalty Settings", href: "/propertyowner/penalty-config", goldOnly: false },
     ]
   },

@@ -8,7 +8,8 @@ import { MobileTabs, MobileEmptyState } from "../../components/propertyowner/Mob
 import {
   clearOwnerRuntimeSession,
   fetchOwnerTenants,
-  getOwnerRuntimeSession
+  getOwnerRuntimeSession,
+  getActiveOwnerPropertyId
 } from "../../utils/propertyowner";
 import {
   fetchRentDashboard,
@@ -297,7 +298,7 @@ export default function Payment() {
       const [tenantsData, dashData, invData, configData, contactData] = await Promise.allSettled([
         fetchOwnerTenants(session.loginId),
         fetchRentDashboard(session._id || session.loginId),
-        fetchInvoices({ ownerId: session._id || session.loginId, limit: 100 }),
+        fetchInvoices({ ownerId: session._id || session.loginId, limit: 100, propertyId: getActiveOwnerPropertyId() }),
         fetchPenaltyConfigs(session._id || session.loginId),
         fetchMissingContacts(session._id || session.loginId),
       ]);
@@ -659,7 +660,10 @@ export default function Payment() {
         totalPaid: data.invoice?.paidAmount || 0,
         penalty: data.invoice?.totalPenalty || data.live?.totalPenalty || 0,
         electricity: data.invoice?.electricityBill || 0,
-        advanceChargeAmount: data.invoice?.advanceChargeAmount || Math.max(0, (data.invoice?.paidAmount || 0) - (data.invoice?.rentAmount || 0) - (data.invoice?.totalPenalty || data.live?.totalPenalty || 0) - (data.invoice?.electricityBill || 0)),
+        // Move-in charges only ever apply to a tenant's first/onboarding invoice — never guess
+        // them from whatever is left over after rent/penalty/electricity on a recurring month,
+        // that leftover is almost always an unevaluated penalty, not a move-in charge.
+        advanceChargeAmount: data.invoice?.advanceChargeAmount || 0,
         status: data.invoice?.status,
         paymentMethod: data.invoice?.paymentMethod || data.payments?.[0]?.paymentMethod || "",
         payments: invoicePayments,

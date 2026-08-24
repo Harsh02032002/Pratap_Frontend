@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession } from "../../utils/propertyowner";
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, getActiveOwnerPropertyId } from "../../utils/propertyowner";
 import { apiFetch } from "../../utils/api";
-import { 
-  Headset, BarChart3, TrendingUp, Download, 
+import { getOwnerComplaints } from "../../api/complaints";
+import {
+  Headset, BarChart3, TrendingUp, Download,
   ArrowUpRight, PieChart, ShieldCheck, Loader2
 } from "lucide-react";
 
@@ -25,14 +26,15 @@ export default function ComplaintAnalyticsPage() {
     const loadAnalytics = async () => {
       try {
         setLoading(true);
-        const data = await apiFetch(`/api/complaints/owner/${owner.loginId}`);
-        const complaints = data?.complaints || [];
+        const propertyId = getActiveOwnerPropertyId();
+        const complaints = await getOwnerComplaints(owner.loginId, { propertyId });
+        const complaintList = Array.isArray(complaints) ? complaints : [];
 
         let totalResolutionMs = 0;
         let resolvedTickets = 0;
         const categoryCounts = {};
 
-        complaints.forEach(c => {
+        complaintList.forEach(c => {
           // Category Distribution
           const cat = c.category || "Other";
           if (!categoryCounts[cat]) categoryCounts[cat] = 0;
@@ -51,7 +53,7 @@ export default function ComplaintAnalyticsPage() {
         const avgMs = resolvedTickets > 0 ? totalResolutionMs / resolvedTickets : 0;
         const avgResolutionHours = (avgMs / (1000 * 60 * 60)).toFixed(1);
 
-        const totalComplaints = complaints.length;
+        const totalComplaints = complaintList.length;
         const breakdown = Object.entries(categoryCounts).map(([type, count]) => ({
           type,
           count,
@@ -60,7 +62,7 @@ export default function ComplaintAnalyticsPage() {
 
         setStats({
           avgResolutionHours,
-          resolvedCount: complaints.filter(c => c.status === "Resolved").length,
+          resolvedCount: complaintList.filter(c => c.status === "Resolved").length,
           breakdown
         });
 

@@ -404,7 +404,12 @@ export default function AddTenant() {
           permanentAddress: basicDetails.permanentAddress
         },
         status: "pending",
-        kycStatus: "pending_verification" // New status for owner verification
+        kycStatus: "pending_verification", // New status for owner verification
+        // Mirrors the flag the owner-creation flow sends (superadmin/owner.jsx)
+        // so the backend can mark this account as needing a forced password
+        // change on first login, same as it already does for owners.
+        credentials: { firstTime: true },
+        firstTime: true
       };
 
       const res = await fetch(`${apiUrl}/api/tenants/assign`, {

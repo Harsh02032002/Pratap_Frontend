@@ -8,6 +8,7 @@ import {
   Wifi, IndianRupee, Info, Clock, User, Eye, LayoutGrid, Pencil, RefreshCw
 } from "lucide-react";
 import { getApiBase, getAuthHeader, fetchCities, fetchAreas, fetchJson } from "../../utils/api";
+import { PROPERTY_TIERS, normalizeTierKey } from "../../utils/propertyTiers";
 import { toast } from "react-hot-toast";
 import { PageHeader } from "../../components/superadmin/PageHeader";
 import LocationMapPicker from "../../components/website/LocationMapPicker";
@@ -115,6 +116,7 @@ export default function AddPropertyWizard({ propEditId, isModal, onClose }) {
   const [propertyType, setPropertyType] = useState("hostel");
   const [propertyName, setPropertyName] = useState("");
   const [propertyCategory, setPropertyCategory] = useState("");
+  const [tier, setTier] = useState("");
   const [description, setDescription] = useState("");
   const [address, setAddress] = useState("");
   const [locality, setLocality] = useState("");
@@ -275,6 +277,7 @@ export default function AddPropertyWizard({ propEditId, isModal, onClose }) {
             setPropertyName(p.title || "");
             setPropertyType(p.propertyType || "hostel");
             setPropertyCategory(p.propertyCategory || "");
+            setTier(normalizeTierKey(p.tier));
             setDescription(p.description || "");
             setAddress(p.address || "");
             setLocality(p.locality || "");
@@ -530,6 +533,7 @@ export default function AddPropertyWizard({ propEditId, isModal, onClose }) {
         title: propertyName,
         propertyType,
         propertyCategory,
+        tier,
         description,
         address, locality, city, state, pincode, landmark,
         latitude: latitude ? Number(latitude) : null,
@@ -695,7 +699,7 @@ export default function AddPropertyWizard({ propEditId, isModal, onClose }) {
                   </div>
                 </div>
  
-                <div className="grid grid-cols-2 gap-6 mt-8">
+                <div className="grid grid-cols-3 gap-6 mt-8">
                     <FormField label="Property Name *" value={propertyName} onChange={e => setPropertyName(e.target.value)} placeholder="e.g. Cozy Stay Girls Hostel" />
                     <div>
                       <label className="text-[10px] font-black text-slate-800 uppercase mb-3 block tracking-tight">Property Category *</label>
@@ -704,6 +708,15 @@ export default function AddPropertyWizard({ propEditId, isModal, onClose }) {
                         <option>Boys PG</option>
                         <option>Girls PG</option>
                         <option>Co-living</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black text-slate-800 uppercase mb-3 block tracking-tight">Website Tier</label>
+                      <select value={tier} onChange={e => setTier(e.target.value)} className="w-full bg-slate-50 border border-slate-100 rounded-xl py-2.5 px-4 text-[10px] font-black text-slate-800 outline-none hover:bg-white focus:border-blue-200 focus:ring-2 focus:ring-blue-500/10 transition-all">
+                        <option value="">Not set</option>
+                        {PROPERTY_TIERS.map(t => (
+                          <option key={t.key} value={t.key}>{t.label} — {t.publicName}</option>
+                        ))}
                       </select>
                     </div>
                   </div>
@@ -1906,6 +1919,7 @@ export default function AddPropertyWizard({ propEditId, isModal, onClose }) {
                                     <div className="flex justify-between items-center"><span className="text-[9px] font-bold text-slate-400 uppercase">Type</span><span className="text-[10px] font-black text-slate-800 uppercase">{propertyType}</span></div>
                                     <div className="flex justify-between items-center"><span className="text-[9px] font-bold text-slate-400 uppercase">Location</span><span className="text-[10px] font-black text-slate-800 uppercase text-right max-w-[200px]">{city}, {state}</span></div>
                                     <div className="flex justify-between items-center"><span className="text-[9px] font-bold text-slate-400 uppercase">Category</span><span className="text-[10px] font-black text-slate-800 uppercase">{propertyCategory}</span></div>
+                                    <div className="flex justify-between items-center"><span className="text-[9px] font-bold text-slate-400 uppercase">Tier</span><span className="text-[10px] font-black text-slate-800 uppercase">{PROPERTY_TIERS.find(t => t.key === tier)?.label || "Not set"}</span></div>
                                  </div>
                               </section>
 

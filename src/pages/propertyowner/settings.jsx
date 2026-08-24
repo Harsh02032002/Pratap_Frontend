@@ -292,8 +292,16 @@ export default function Settings() {
     setBankEditOpen(true);
   };
 
+  // A changed account number is exactly the case a fraudster would exploit to
+  // redirect payouts — require proof (passbook/cancelled cheque) before the
+  // request can even be submitted for review.
   const accountNumberChanged = bankForm.accountNumber !== (bankData?.accountNumber || "");
 
+  // Cloudinary rejects any single asset over 10MB at the account level —
+  // that's enforced after upload regardless of transport, so chunking the
+  // request doesn't help. Phone-camera photos of a passbook routinely blow
+  // past that, so shrink the image client-side rather than asking the owner
+  // to do it themselves.
   const compressImage = (file, maxDim, quality) => new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -354,6 +362,9 @@ export default function Settings() {
     }
   };
 
+  // Bank changes never apply instantly — same submit-then-approve pipeline as
+  // Profile Settings. Superadmin review + approve is what actually updates
+  // the Owner record (and anywhere else it's read from) once accepted.
   const submitBankUpdate = async (e) => {
     e.preventDefault();
     if (accountNumberChanged && !bankProof.url) {
@@ -380,6 +391,8 @@ export default function Settings() {
           ownerLoginId: owner.loginId,
           requestType: "bank_details",
           requestedChanges,
+          // Sent top-level as well as nested inside requestedChanges
+          // (checkinBankProof/-Name above) so both API contracts are satisfied.
           bankProofUrl: bankProof.url,
           bankProofName: bankProof.name,
         })
@@ -446,7 +459,7 @@ export default function Settings() {
             </div>
           </div>
 
-          {/* Payment & Banking */}
+          {/* Payment & Banking — pulled from KYC, edits go through Superadmin approval */}
           <div className="border border-border bg-card rounded-2xl p-6 shadow-soft">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-[16px] font-bold text-foreground flex items-center gap-2.5">

@@ -1,489 +1,397 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { fetchJson, getApiBase } from "../../utils/api";
-import {
-  CheckCircle, XCircle, Clock, ChevronDown, ChevronRight,
-  User, Banknote, FileCheck2, ExternalLink, ImageOff
-} from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { CheckCircle, XCircle, Search, Clock, FileText, Eye } from "lucide-react";
+import { PageHeader } from "../../components/superadmin/PageHeader";
+import { fetchJson } from "../../utils/api";
 
-const cn = (...c) => c.filter(Boolean).join(" ");
-
-/* ─── On-brand Toast ─────────────────────────────────────────── */
-function Toast({ message, type, onClose }) {
-  useEffect(() => {
-    const t = setTimeout(onClose, 3500);
-    return () => clearTimeout(t);
-  }, [onClose]);
-
-  const colors = {
-    success: "bg-emerald-600 text-white",
-    error:   "bg-rose-600 text-white",
-    info:    "bg-slate-800 text-white",
-  };
-
-  return (
-    <div className={cn("fixed bottom-6 right-6 z-50 px-5 py-3 rounded-2xl shadow-xl font-bold text-xs flex items-center gap-3 animate-in fade-in slide-in-from-bottom-3 duration-200", colors[type] || colors.info)}>
-      <span>{message}</span>
-      <button onClick={onClose} className="opacity-70 hover:opacity-100 font-black">✕</button>
-    </div>
-  );
-}
-
-/* ─── Confirm Modal ───────────────────────────────────────────── */
-function ConfirmModal({ title, body, onConfirm, onCancel, confirmLabel = "Confirm", confirmClass = "bg-emerald-600 hover:bg-emerald-700 text-white" }) {
-  return (
-    <div className="fixed inset-0 z-[998] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-7 animate-in zoom-in-95 duration-200">
-        <h3 className="text-lg font-black text-slate-800 mb-2">{title}</h3>
-        {body && <p className="text-sm text-slate-500 mb-6">{body}</p>}
-        <div className="flex justify-end gap-3">
-          <button onClick={onCancel} className="px-5 py-2.5 text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all">
-            Cancel
-          </button>
-          <button onClick={onConfirm} className={`px-5 py-2.5 text-sm font-bold rounded-xl transition-all ${confirmClass}`}>
-            {confirmLabel}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ─── Reject Reason Modal ─────────────────────────────────────── */
-function RejectModal({ onConfirm, onCancel }) {
-  const [reason, setReason] = useState("");
-  return (
-    <div className="fixed inset-0 z-[998] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-7 animate-in zoom-in-95 duration-200">
-        <h3 className="text-lg font-black text-slate-800 mb-2">Reject Request</h3>
-        <p className="text-sm text-slate-500 mb-4">Provide a reason for rejection (optional).</p>
-        <textarea
-          className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:ring-2 focus:ring-rose-300 focus:border-rose-400 outline-none resize-none"
-          rows={3}
-          placeholder="e.g. Bank details are incorrect..."
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-        />
-        <div className="flex justify-end gap-3 mt-5">
-          <button onClick={onCancel} className="px-5 py-2.5 text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all">
-            Cancel
-          </button>
-          <button onClick={() => onConfirm(reason)} className="px-5 py-2.5 text-sm font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl transition-all">
-            Reject
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ─── Diff Table ──────────────────────────────────────────────── */
-function DiffTable({ previous, requested }) {
-  // Filter out bankProofUrl / bankProofName — shown separately as a thumbnail
-  const SKIP_KEYS = new Set(["bankProofUrl", "bankProofName", "checkinBankProof", "checkinBankProofName"]);
-  const keys = Array.from(
-    new Set([...Object.keys(previous || {}), ...Object.keys(requested || {})])
-  ).filter((k) => !SKIP_KEYS.has(k));
-
-  if (keys.length === 0) return <p className="text-xs text-slate-400 italic">No field details available.</p>;
-
-  return (
-    <table className="w-full text-xs mt-2 border-collapse">
-      <thead>
-        <tr className="bg-slate-50 text-slate-400 uppercase tracking-widest text-[10px]">
-          <th className="px-3 py-2 text-left font-black border border-slate-100">Field</th>
-          <th className="px-3 py-2 text-left font-black border border-slate-100 text-amber-600">Previous</th>
-          <th className="px-3 py-2 text-left font-black border border-slate-100 text-emerald-600">Requested</th>
-        </tr>
-      </thead>
-      <tbody>
-        {keys.map((k) => {
-          const prev    = previous?.[k]  ?? "—";
-          const req     = requested?.[k] ?? "—";
-          const changed = String(prev) !== String(req);
-          return (
-            <tr key={k} className={changed ? "bg-yellow-50/50" : ""}>
-              <td className="px-3 py-2 font-bold text-slate-600 border border-slate-100 capitalize">
-                {k.replace(/checkin/gi, "").replace(/_/g, " ").trim() || k}
-              </td>
-              <td className={`px-3 py-2 font-medium border border-slate-100 ${changed ? "text-rose-500 line-through" : "text-slate-500"}`}>
-                {String(prev)}
-              </td>
-              <td className={`px-3 py-2 font-bold border border-slate-100 ${changed ? "text-emerald-700" : "text-slate-500"}`}>
-                {String(req)}
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
-  );
-}
-
-/* ─── Bank Proof Preview ──────────────────────────────────────── */
-function BankProofPreview({ url, name }) {
-  const [imgError, setImgError] = useState(false);
-  if (!url) return null;
-
-  const isPDF = url.toLowerCase().includes(".pdf") || (name || "").toLowerCase().endsWith(".pdf");
-
-  return (
-    <div className="mt-4 pt-4 border-t border-slate-100">
-      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-        <FileCheck2 size={11} /> Bank Proof Document
-      </p>
-      <div className="flex items-center gap-4">
-        {/* Thumbnail */}
-        <a href={url} target="_blank" rel="noopener noreferrer" className="group block shrink-0">
-          <div className="size-20 rounded-xl border border-slate-200 overflow-hidden bg-slate-100 flex items-center justify-center hover:ring-2 hover:ring-blue-400 transition-all">
-            {isPDF ? (
-              <div className="flex flex-col items-center gap-1">
-                <FileCheck2 className="size-7 text-rose-500" />
-                <span className="text-[9px] font-bold text-rose-500 uppercase">PDF</span>
-              </div>
-            ) : imgError ? (
-              <ImageOff className="size-7 text-slate-400" />
-            ) : (
-              <img
-                src={url}
-                alt="Bank proof"
-                className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-200"
-                onError={() => setImgError(true)}
-              />
-            )}
-          </div>
-        </a>
-
-        <div className="flex-1 min-w-0">
-          <p className="text-[11.5px] font-bold text-slate-700 truncate">{name || "Bank proof document"}</p>
-          <p className="text-[10.5px] text-slate-400 mt-0.5">{isPDF ? "PDF document" : "Image"}</p>
-          <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 mt-1.5 text-[10.5px] font-bold text-blue-600 hover:text-blue-800 transition-colors"
-          >
-            <ExternalLink size={11} /> Open full document
-          </a>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ─── Main Page ───────────────────────────────────────────────── */
 export default function OwnerRequestsPage() {
+  // Stable primitive read of the logged-in superadmin's ID — computed once,
+  // not a fresh object every render (that previously caused an infinite
+  // fetch loop via the useEffect dependency below).
   const adminLoginId = useMemo(() => {
     try {
-      const u = JSON.parse(sessionStorage.getItem("user") || localStorage.getItem("user") || "{}");
-      return u.loginId || u.email || "SUPERADMIN";
+      const stored = JSON.parse(
+        localStorage.getItem("user") || sessionStorage.getItem("user") || "{}"
+      );
+      return stored.loginId || stored.email || "";
     } catch {
-      return "SUPERADMIN";
+      return "";
     }
   }, []);
 
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState("Pending");
 
-  const [requests,    setRequests]    = useState([]);
-  const [loading,     setLoading]     = useState(true);
-  const [filter,      setFilter]      = useState("Pending");
-  const [expandedId,  setExpandedId]  = useState(null);
+  // confirmModal: { type: "approve" | "reject", request } | null — drives the
+  // on-brand dialog that replaces window.confirm/prompt/alert below.
+  const [confirmModal, setConfirmModal] = useState(null);
+  const [reason, setReason] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [toast, setToast] = useState(null);
+  // Request currently open in the read-only "previous vs requested" diff view.
+  const [viewModal, setViewModal] = useState(null);
 
-  // Modal state
-  const [approveModal, setApproveModal] = useState(null); // req object
-  const [rejectModal,  setRejectModal]  = useState(null); // req object
-  const [toast,        setToast]        = useState(null); // { message, type }
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 3500);
+    return () => clearTimeout(t);
+  }, [toast]);
 
-  const showToast = (message, type = "info") => setToast({ message, type });
-
-  const [backendDown, setBackendDown] = useState(false);
-
-  const fetchRequests = async (isInitial = false) => {
-    if (isInitial) setLoading(true);
+  const fetchRequests = async () => {
+    setLoading(true);
     try {
       const statusParam = filter !== "All" ? `?status=${filter}` : "";
       const data = await fetchJson(`/api/owner-change-requests${statusParam}`);
       if (data.success) {
         setRequests(data.data || []);
-        setBackendDown(false);
       }
     } catch (err) {
-      setBackendDown(true);
-      console.warn("Owner requests: backend unreachable");
+      console.error(err);
     } finally {
-      if (isInitial) setLoading(false);
+      setLoading(false);
     }
   };
-
-  // Debounce filter changes to prevent rapid API calls
-  const debounceTimerRef = useRef(null);
-  const fetchRequestsRef = useRef(fetchRequests);
-  fetchRequestsRef.current = fetchRequests;
 
   useEffect(() => {
-    if (!adminLoginId) return;
-    
-    // Clear any pending debounce
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-    
-    // Debounce filter changes by 300ms
-    debounceTimerRef.current = setTimeout(() => {
-      fetchRequestsRef.current(true);
-    }, 300);
-    
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-    };
+    if (adminLoginId) fetchRequests();
   }, [adminLoginId, filter]);
 
-  const handleApprove = async (req) => {
-    try {
-      const data = await fetchJson(`/api/owner-change-requests/${req._id}/approve`, {
-        method:  "PUT",
-        body:    JSON.stringify({ superadminLoginId: adminLoginId }),
-      });
-      if (data.success) {
-        showToast("Request approved and changes applied successfully.", "success");
-        fetchRequests();
-      } else {
-        showToast(data.message || "Failed to approve request.", "error");
-      }
-    } catch {
-      showToast("Error approving request.", "error");
-    } finally {
-      setApproveModal(null);
-    }
+  const openApprove = (request) => setConfirmModal({ type: "approve", request });
+  const openReject = (request) => {
+    setReason("");
+    setConfirmModal({ type: "reject", request });
+  };
+  const closeModal = () => {
+    if (submitting) return;
+    setConfirmModal(null);
+    setReason("");
   };
 
-  const handleReject = async (req, reason) => {
+  const submitDecision = async () => {
+    if (!confirmModal) return;
+    const { type, request } = confirmModal;
+    setSubmitting(true);
     try {
-      const data = await fetchJson(`/api/owner-change-requests/${req._id}/reject`, {
-        method:  "PUT",
-        body:    JSON.stringify({ superadminLoginId: adminLoginId, reason }),
+      // fetchJson attaches the scoped auth header and Content-Type, and throws
+      // on a non-2xx response — the catch below turns that into the error toast.
+      const data = await fetchJson(`/api/owner-change-requests/${request._id}/${type}`, {
+        method: "PUT",
+        body: JSON.stringify(
+          type === "approve"
+            ? { superadminLoginId: adminLoginId }
+            : { superadminLoginId: adminLoginId, reason }
+        )
       });
       if (data.success) {
-        showToast("Request rejected.", "info");
+        setToast({
+          type: "success",
+          message: type === "approve" ? "Request approved — changes applied." : "Request rejected."
+        });
+        setConfirmModal(null);
+        setReason("");
         fetchRequests();
       } else {
-        showToast(data.message || "Failed to reject request.", "error");
+        setToast({ type: "error", message: data.message || `Failed to ${type} request.` });
       }
-    } catch {
-      showToast("Error rejecting request.", "error");
+    } catch (err) {
+      // fetchJson puts the server's own `message` on err.message, so a 400 like
+      // "A passbook or cancelled cheque photo is required…" reaches the reviewer
+      // instead of a generic failure string.
+      setToast({
+        type: "error",
+        message: err?.message || `Error ${type === "approve" ? "approving" : "rejecting"} request.`
+      });
     } finally {
-      setRejectModal(null);
+      setSubmitting(false);
     }
   };
 
   if (!adminLoginId) return null;
 
   return (
-    <div className="flex-1 p-8 min-h-screen bg-slate-50">
-      {/* ── Modals ──────────────────────────────────────────── */}
-      {approveModal && (
-        <ConfirmModal
-          title="Approve Change Request"
-          body={`Approve and apply the profile/bank changes for owner ${approveModal.ownerLoginId}? This action cannot be undone.`}
-          confirmLabel="Yes, Approve"
-          onConfirm={() => handleApprove(approveModal)}
-          onCancel={() => setApproveModal(null)}
-        />
-      )}
-      {rejectModal && (
-        <RejectModal
-          onConfirm={(reason) => handleReject(rejectModal, reason)}
-          onCancel={() => setRejectModal(null)}
-        />
-      )}
-      {toast && (
-        <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
-      )}
+    <div className="space-y-6 pb-8">
+      <PageHeader
+        title="Owner Change Requests"
+        subtitle="Review and approve property owner profile and bank detail updates."
+        actions={
+          <div className="flex bg-slate-100 p-1 rounded-lg">
+            {["Pending", "Approved", "Rejected", "All"].map(status => (
+              <button
+                key={status}
+                onClick={() => setFilter(status)}
+                className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${filter === status ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+              >
+                {status}
+              </button>
+            ))}
+          </div>
+        }
+      />
 
-      {/* ── Header ──────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-slate-800">Owner Change Requests</h1>
-          <p className="text-sm text-slate-500 font-medium mt-0.5">
-            Review and approve property owner profile and bank detail updates.
-          </p>
-        </div>
-        <div className="flex bg-slate-100 p-1 rounded-xl">
-          {["Pending", "Approved", "Rejected", "All"].map((status) => (
-            <button
-              key={status}
-              onClick={() => setFilter(status)}
-              className={cn(
-                "px-4 py-1.5 rounded-lg text-xs font-bold transition-all",
-                filter === status ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
-              )}
-            >
-              {status}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Table ───────────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
+      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                <th className="px-6 py-4"></th>
+              <tr className="bg-slate-50 border-b border-slate-200 text-xs font-black text-slate-500 uppercase tracking-wider">
                 <th className="px-6 py-4">Date</th>
                 <th className="px-6 py-4">Owner ID</th>
                 <th className="px-6 py-4">Request Type</th>
-                <th className="px-6 py-4">Fields Changed</th>
+                <th className="px-6 py-4">Requested Changes</th>
                 <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50 text-xs font-bold text-slate-700">
+            <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-slate-400 font-bold uppercase tracking-widest">
-                    Loading requests…
-                  </td>
+                  <td colSpan={6} className="px-6 py-8 text-center text-sm font-medium text-slate-400">Loading requests...</td>
                 </tr>
               ) : requests.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-slate-400 font-bold uppercase tracking-widest">
-                    No {filter.toLowerCase()} requests found.
-                  </td>
+                  <td colSpan={6} className="px-6 py-8 text-center text-sm font-medium text-slate-400">No {filter.toLowerCase()} requests found.</td>
                 </tr>
               ) : (
-                requests.map((req) => {
-                  const isExpanded  = expandedId === req._id;
-                  // Keys to show in the "Fields Changed" summary (exclude proof URLs)
-                  const PROOF_KEYS  = new Set(["bankProofUrl", "bankProofName"]);
-                  const changedKeys = Object.keys(req.requestedChanges || {}).filter((k) => !PROOF_KEYS.has(k));
-                  const hasProof    = !!(req.bankProofUrl || req.requestedChanges?.bankProofUrl);
-                  const proofUrl    = req.bankProofUrl  || req.requestedChanges?.bankProofUrl  || "";
-                  const proofName   = req.bankProofName || req.requestedChanges?.bankProofName || "";
-
-                  return (
-                    <React.Fragment key={req._id}>
-                      <tr className="hover:bg-slate-50/50 transition-colors">
-                        {/* Expand toggle */}
-                        <td className="pl-4 py-4">
-                          <button
-                            onClick={() => setExpandedId(isExpanded ? null : req._id)}
-                            className="p-1 text-slate-400 hover:text-slate-700 rounded transition-colors"
-                          >
-                            {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                requests.map(req => (
+                  <tr key={req._id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-6 py-4 text-sm font-medium text-slate-600">
+                      {new Date(req.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                    </td>
+                    <td className="px-6 py-4 text-sm font-bold text-slate-800">{req.ownerLoginId}</td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${req.requestType === 'bank_details' ? 'bg-blue-50 text-blue-700 border border-blue-100' : 'bg-purple-50 text-purple-700 border border-purple-100'}`}>
+                        {req.requestType.replace('_', ' ')}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-xs font-medium text-slate-600 max-w-xs truncate" title={JSON.stringify(req.requestedChanges, null, 2)}>
+                      {Object.keys(req.requestedChanges || {}).map(k => `${k}: ${req.requestedChanges[k]}`).join(", ")}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${
+                        req.status === 'Approved' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+                        req.status === 'Rejected' ? 'bg-rose-50 text-rose-700 border border-rose-100' :
+                        'bg-amber-50 text-amber-700 border border-amber-100'
+                      }`}>
+                        {req.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right space-x-2">
+                      <button onClick={() => setViewModal(req)} className="p-1.5 text-slate-500 hover:bg-slate-100 rounded transition-colors" title="View details">
+                        <Eye size={18} />
+                      </button>
+                      {req.status === "Pending" && (
+                        <>
+                          <button onClick={() => openApprove(req)} className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded transition-colors" title="Approve">
+                            <CheckCircle size={18} />
                           </button>
-                        </td>
-
-                        <td className="px-6 py-4 text-slate-500 font-medium">
-                          {new Date(req.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
-                        </td>
-
-                        <td className="px-6 py-4 text-slate-800">{req.ownerLoginId}</td>
-
-                        {/* Request type badge */}
-                        <td className="px-6 py-4">
-                          <span className={cn(
-                            "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider",
-                            req.requestType === "bank_details"
-                              ? "bg-blue-50 text-blue-700 border border-blue-100"
-                              : "bg-purple-50 text-purple-700 border border-purple-100"
-                          )}>
-                            {req.requestType === "bank_details" ? <Banknote size={11} /> : <User size={11} />}
-                            {req.requestType.replace("_", " ")}
-                          </span>
-                        </td>
-
-                        {/* Fields changed + proof badge */}
-                        <td className="px-6 py-4 text-slate-500 font-medium">
-                          <span>
-                            {changedKeys.slice(0, 3).join(", ")}
-                            {changedKeys.length > 3 ? ` +${changedKeys.length - 3} more` : ""}
-                          </span>
-                          {hasProof && (
-                            <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 text-[9px] font-black uppercase tracking-wider">
-                              <FileCheck2 size={9} /> Proof
-                            </span>
-                          )}
-                        </td>
-
-                        {/* Status badge */}
-                        <td className="px-6 py-4">
-                          <span className={cn(
-                            "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider",
-                            req.status === "Approved" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
-                            req.status === "Rejected" ? "bg-rose-50 text-rose-700 border border-rose-100" :
-                            "bg-amber-50 text-amber-700 border border-amber-100"
-                          )}>
-                            {req.status === "Pending"  && <Clock size={11} />}
-                            {req.status === "Approved" && <CheckCircle size={11} />}
-                            {req.status === "Rejected" && <XCircle size={11} />}
-                            {req.status}
-                          </span>
-                        </td>
-
-                        {/* Actions */}
-                        <td className="px-6 py-4 text-right">
-                          {req.status === "Pending" ? (
-                            <div className="flex items-center justify-end gap-1.5">
-                              <button
-                                onClick={() => setApproveModal(req)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black rounded-lg transition-all shadow-sm"
-                              >
-                                <CheckCircle size={12} /> Approve
-                              </button>
-                              <button
-                                onClick={() => setRejectModal(req)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[10px] font-black rounded-lg transition-all"
-                              >
-                                <XCircle size={12} /> Reject
-                              </button>
-                            </div>
-                          ) : (
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Reviewed</span>
-                          )}
-                        </td>
-                      </tr>
-
-                      {/* ── Expanded Diff Row ──────────────────────── */}
-                      {isExpanded && (
-                        <tr className="bg-slate-50/80 border-t border-slate-100">
-                          <td colSpan={7} className="px-8 py-5">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
-                              Previous vs. Requested Changes
-                            </p>
-                            <DiffTable previous={req.currentValues} requested={req.requestedChanges} />
-
-                            {/* Bank proof thumbnail */}
-                            {hasProof && (
-                              <BankProofPreview url={proofUrl} name={proofName} />
-                            )}
-
-                            {/* Rejection reason */}
-                            {req.rejectionReason && (
-                              <div className="mt-3 px-4 py-3 bg-rose-50 border border-rose-100 rounded-xl text-xs font-medium text-rose-700">
-                                <strong>Rejection Reason:</strong> {req.rejectionReason}
-                              </div>
-                            )}
-
-                            {/* Reviewer info */}
-                            {req.reviewedBy && req.reviewedAt && (
-                              <p className="mt-2 text-[10px] text-slate-400 font-medium">
-                                Reviewed by {req.reviewedBy} on{" "}
-                                {new Date(req.reviewedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
-                              </p>
-                            )}
-                          </td>
-                        </tr>
+                          <button onClick={() => openReject(req)} className="p-1.5 text-rose-600 hover:bg-rose-50 rounded transition-colors" title="Reject">
+                            <XCircle size={18} />
+                          </button>
+                        </>
                       )}
-                    </React.Fragment>
-                  );
-                })
+                    </td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>
         </div>
       </div>
+
+      {confirmModal && (
+        <div
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={(e) => e.target === e.currentTarget && closeModal()}
+        >
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="p-6">
+              <div
+                className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${
+                  confirmModal.type === "approve" ? "bg-emerald-50" : "bg-rose-50"
+                }`}
+              >
+                {confirmModal.type === "approve" ? (
+                  <CheckCircle className="w-6 h-6 text-emerald-600" />
+                ) : (
+                  <XCircle className="w-6 h-6 text-rose-600" />
+                )}
+              </div>
+
+              <h3 className="text-lg font-bold text-slate-900">
+                {confirmModal.type === "approve" ? "Approve this request?" : "Reject this request?"}
+              </h3>
+              <p className="text-sm text-slate-500 mt-1">
+                {confirmModal.type === "approve" ? (
+                  <>This immediately updates <span className="font-semibold text-slate-700">{confirmModal.request.ownerLoginId}</span>'s account with the changes below.</>
+                ) : (
+                  <>Let <span className="font-semibold text-slate-700">{confirmModal.request.ownerLoginId}</span> know why this request is being rejected.</>
+                )}
+              </p>
+
+              {confirmModal.type === "approve" && confirmModal.request.requestedChanges && (
+                <div className="mt-4 rounded-lg bg-slate-50 border border-slate-100 p-3 text-xs text-slate-600 space-y-1.5">
+                  {Object.entries(confirmModal.request.requestedChanges).map(([k, v]) => (
+                    <div key={k} className="flex justify-between gap-4">
+                      <span className="capitalize text-slate-400">{k}</span>
+                      <span className="font-semibold text-slate-700 text-right">{String(v)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {confirmModal.type === "reject" && (
+                <div className="mt-4">
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                    Reason <span className="normal-case font-medium text-slate-400">(optional)</span>
+                  </label>
+                  <textarea
+                    autoFocus
+                    rows={3}
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    placeholder="e.g. Documents unclear — please resubmit"
+                    className="w-full rounded-lg border border-slate-200 p-3 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-400 resize-none"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3 px-6 py-4 bg-slate-50 border-t border-slate-100">
+              <button
+                onClick={closeModal}
+                disabled={submitting}
+                className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitDecision}
+                disabled={submitting}
+                className={`flex-1 py-2.5 rounded-lg text-sm font-bold text-white transition-colors disabled:opacity-60 ${
+                  confirmModal.type === "approve" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-rose-600 hover:bg-rose-700"
+                }`}
+              >
+                {submitting ? "Saving..." : confirmModal.type === "approve" ? "Approve" : "Reject"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {viewModal && (
+        <div
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={(e) => e.target === e.currentTarget && setViewModal(null)}
+        >
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden max-h-[85vh] flex flex-col">
+            <div className="px-6 py-5 border-b border-slate-100 flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Requested Changes</h3>
+                <p className="text-sm text-slate-500 mt-0.5">
+                  <span className="font-semibold text-slate-700">{viewModal.ownerLoginId}</span>
+                  {" · "}
+                  {new Date(viewModal.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                </p>
+              </div>
+              <span className={`inline-flex px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider shrink-0 ${
+                viewModal.status === 'Approved' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+                viewModal.status === 'Rejected' ? 'bg-rose-50 text-rose-700 border border-rose-100' :
+                'bg-amber-50 text-amber-700 border border-amber-100'
+              }`}>
+                {viewModal.status}
+              </span>
+            </div>
+
+            <div className="p-6 space-y-4 overflow-y-auto">
+              <div className="rounded-lg border border-slate-100 overflow-hidden">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-100">
+                      <th className="px-4 py-2.5 text-[10px] font-black text-slate-400 uppercase tracking-wider w-[28%]">Field</th>
+                      <th className="px-4 py-2.5 text-[10px] font-black text-slate-400 uppercase tracking-wider w-[36%]">Previous (unchanged)</th>
+                      <th className="px-4 py-2.5 text-[10px] font-black text-emerald-600 uppercase tracking-wider">Owner Requested</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {Object.entries(viewModal.requestedChanges || {})
+                      .filter(([key]) => key !== 'checkinBankProofName')
+                      .map(([key, newValue]) => {
+                      const oldValue = viewModal.previousValues ? viewModal.previousValues[key] : undefined;
+                      const hasOldValue = oldValue !== undefined && oldValue !== null && oldValue !== "";
+                      const isDoc = key === 'checkinBankProof';
+                      return (
+                        <tr key={key}>
+                          <td className="px-4 py-3 text-xs font-bold text-slate-500 uppercase align-top">{isDoc ? "Bank Proof" : key}</td>
+                          <td className="px-4 py-3 text-sm text-slate-500 align-top break-words">
+                            {isDoc
+                              ? (hasOldValue ? <a href={oldValue} target="_blank" rel="noreferrer" className="text-primary underline">View previous</a> : <span className="italic text-slate-300">not set</span>)
+                              : (hasOldValue ? String(oldValue) : <span className="italic text-slate-300">not set</span>)}
+                          </td>
+                          <td className="px-4 py-3 text-sm font-bold text-emerald-700 bg-emerald-50/40 align-top break-words">
+                            {isDoc ? (
+                              <a href={newValue} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 underline">
+                                <FileText size={14} /> {viewModal.requestedChanges.checkinBankProofName || "View document"}
+                              </a>
+                            ) : String(newValue)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {viewModal.status === "Rejected" && viewModal.rejectionReason && (
+                <div className="rounded-lg border border-rose-100 bg-rose-50 p-3">
+                  <span className="text-[10px] font-black text-rose-500 uppercase tracking-wider">Rejection reason</span>
+                  <p className="text-sm text-rose-700 mt-1">{viewModal.rejectionReason}</p>
+                </div>
+              )}
+
+              {viewModal.status !== "Pending" && viewModal.reviewedBy && (
+                <p className="text-xs text-slate-400 pt-1">
+                  Reviewed by {viewModal.reviewedBy}
+                  {viewModal.reviewedAt && ` on ${new Date(viewModal.reviewedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}`}
+                </p>
+              )}
+            </div>
+
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+              {viewModal.status === "Pending" && (
+                <>
+                  <button
+                    onClick={() => { openReject(viewModal); setViewModal(null); }}
+                    className="py-2 px-4 rounded-lg text-sm font-semibold text-rose-600 bg-white border border-rose-200 hover:bg-rose-50 transition-colors"
+                  >
+                    Reject
+                  </button>
+                  <button
+                    onClick={() => { openApprove(viewModal); setViewModal(null); }}
+                    className="py-2 px-4 rounded-lg text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors"
+                  >
+                    Approve
+                  </button>
+                </>
+              )}
+              <button
+                onClick={() => setViewModal(null)}
+                className="py-2 px-4 rounded-lg text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {toast && (
+        <div
+          className={`fixed bottom-6 right-6 z-[60] px-4 py-3 rounded-lg shadow-lg text-sm font-semibold text-white ${
+            toast.type === "error" ? "bg-rose-600" : "bg-emerald-600"
+          }`}
+        >
+          {toast.message}
+        </div>
+      )}
     </div>
   );
 }

@@ -44,7 +44,17 @@ export default function TenantDocsPage() {
   const fetchDocs = async () => {
     try {
       setLoading(true);
-      const all = await fetchOwnerTenants(owner.loginId);
+      const [all, kycReqRes] = await Promise.all([
+        fetchOwnerTenants(owner.loginId),
+        apiFetch(`/api/tenant-kyc-requests?ownerLoginId=${encodeURIComponent(owner.loginId)}`).catch(() => ({ data: [] })),
+      ]);
+      // Tenants added without Aadhaar upload an alternate proof (Voter ID / PAN / Passport /
+      // Driving License) through a separate TenantKycRequest record, not onto tenant.kyc —
+      // it must be looked up and merged in here or that document never shows up at all.
+      const kycReqByTenant = new Map(
+        (kycReqRes?.data || []).map(r => [String(r.tenantId?._id || r.tenantId), r])
+      );
+
       const baseList = (all || []).filter(t =>
         t.kycStatus !== "pending" ||
         t.kyc?.aadhaarNumber ||
@@ -52,21 +62,22 @@ export default function TenantDocsPage() {
         t.kyc?.aadhaarFront ||
         t.agreementSigned ||
         t.digitalCheckin?.agreement?.pdfUrl ||
-        t.kyc?.idProofFile ||
+        kycReqByTenant.has(String(t._id)) ||
         t.photo
       );
 
       const merged = [];
       for (const t of baseList) {
+        const altKycRequest = kycReqByTenant.get(String(t._id)) || null;
         try {
           const kycData = await apiFetch(`/api/tenants/${encodeURIComponent(t._id || t.loginId)}/kyc`);
           if (kycData?.success) {
-            merged.push({ ...t, kyc: { ...(t.kyc || {}), ...(kycData.kyc || {}) }, kycStatus: kycData.kycStatus || t.kycStatus });
+            merged.push({ ...t, kyc: { ...(t.kyc || {}), ...(kycData.kyc || {}) }, kycStatus: kycData.kycStatus || t.kycStatus, altKycRequest });
           } else {
-            merged.push(t);
+            merged.push({ ...t, altKycRequest });
           }
         } catch {
-          merged.push(t);
+          merged.push({ ...t, altKycRequest });
         }
       }
 
@@ -105,11 +116,11 @@ export default function TenantDocsPage() {
       );
     }
     if (filter === "aadhaar") {
-      list = list.filter(d => d.kyc?.aadhaarFront || d.kyc?.aadhaarBack || d.kyc?.aadharFile);
+      list = list.filter(d => d.kyc?.aadhaarFront || d.kyc?.aadhaarBack || d.kyc?.aadharFile || d.altKycRequest?.proofFileUrl);
     } else if (filter === "agreement") {
       list = list.filter(d => d.digitalCheckin?.agreement?.pdfUrl || d.agreementSigned);
     } else if (filter === "photo") {
-      list = list.filter(d => d.kyc?.idProofFile || d.photo);
+      list = list.filter(d => d.photo || d.digitalCheckin?.kyc?.tenantPhoto);
     }
     return list;
   }, [tenants, search, filter]);
@@ -125,7 +136,7 @@ export default function TenantDocsPage() {
 
   const TABS = [
     { key: "all",       label: "All" },
-    { key: "aadhaar",   label: "Aadhaar" },
+    { key: "aadhaar",   label: "Aadhaar / ID" },
     { key: "agreement", label: "Agreements" },
     { key: "photo",     label: "Photos" },
   ];
@@ -200,7 +211,7 @@ export default function TenantDocsPage() {
                 <tr className="text-left text-[11.5px] uppercase tracking-wider text-muted-foreground bg-muted/50">
                   <th className="px-6 py-3.5 font-semibold">Tenant</th>
                   <th className="px-6 py-3.5 font-semibold">Property &amp; Room</th>
-                  <th className="px-6 py-3.5 font-semibold">Aadhaar</th>
+                  <th className="px-6 py-3.5 font-semibold">Aadhaar / ID Proof</th>
                   <th className="px-6 py-3.5 font-semibold">Signed Agreement</th>
                   <th className="px-6 py-3.5 font-semibold">Tenant Photo</th>
                   <th className="px-6 py-3.5 font-semibold">KYC Status</th>
@@ -212,7 +223,13 @@ export default function TenantDocsPage() {
                   const aadhaarBackUrl  = resolveUrl(d.kyc?.aadhaarBack)  || resolveUrl(d.digitalCheckin?.kyc?.aadhaarBack);
                   const hasAadharFile   = !!d.kyc?.aadharFile;
                   const aadhaarNumber   = d.kyc?.aadhaarNumber || d.digitalCheckin?.kyc?.aadhaarNumber || "";
-                  const photoUrl        = resolveUrl(d.photo) || resolveUrl(d.digitalCheckin?.kyc?.tenantPhoto) || resolveUrl(d.kyc?.idProofFile);
+                  // Tenants added without Aadhaar (e.g. by superadmin) upload an alternate ID
+                  // proof instead (Voter ID / Passport / Driving License) — this must show up
+                  // in place of the Aadhaar image, not leave the column blank.
+                  const hasAadhaar      = aadhaarFrontUrl || aadhaarBackUrl || hasAadharFile;
+                  const altIdProofUrl   = !hasAadhaar ? resolveUrl(d.altKycRequest?.proofFileUrl) : null;
+                  const altIdProofType  = d.altKycRequest?.proofType || "ID Proof";
+                  const photoUrl        = resolveUrl(d.photo) || resolveUrl(d.digitalCheckin?.kyc?.tenantPhoto);
                   const agreementPdfUrl = d.digitalCheckin?.agreement?.pdfUrl || null;
                   const agreementSigned = !!(d.agreementSigned || agreementPdfUrl);
                   const signedAt        = d.agreementSignedAt || d.digitalCheckin?.agreement?.acceptedAt;
@@ -272,9 +289,22 @@ export default function TenantDocsPage() {
                                 <Download size={11} /> PDF
                               </a>
                             )}
+                            {altIdProofUrl ? (
+                              <a href={altIdProofUrl} target="_blank" rel="noopener noreferrer" title={`View ${altIdProofType}`}>
+                                <img src={altIdProofUrl} alt={altIdProofType}
+                                  className="w-14 h-9 object-cover rounded-md border border-border hover:opacity-80 transition-opacity"
+                                  onError={(e) => { e.currentTarget.style.display = "none"; }}
+                                />
+                              </a>
+                            ) : null}
                           </div>
-                          {!aadhaarFrontUrl && !aadhaarBackUrl && !hasAadharFile && (
+                          {!hasAadhaar && !altIdProofUrl && (
                             <span className="text-[11.5px] text-muted-foreground">—</span>
+                          )}
+                          {altIdProofUrl && (
+                            <span className="text-[10.5px] text-muted-foreground font-medium">
+                              {altIdProofType}
+                            </span>
                           )}
                           {aadhaarNumber && (
                             <span className="text-[10.5px] text-muted-foreground font-mono">

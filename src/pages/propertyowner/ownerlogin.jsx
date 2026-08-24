@@ -85,7 +85,9 @@ export default function Ownerlogin() {
     try {
       const data = await fetchJson("/api/employees/login", {
         method: "POST",
-        body: JSON.stringify({ loginId: loginId.trim(), password })
+        // Staff IDs are always issued in uppercase (STAFF0001); normalize here so
+        // a staff member typing it in lowercase isn't wrongly told it's invalid.
+        body: JSON.stringify({ loginId: loginId.trim().toUpperCase(), password })
       });
       const emp = data.data || {};
       if (data.requirePasswordReset || emp.requirePasswordReset) {
@@ -152,17 +154,10 @@ export default function Ownerlogin() {
         });
         setStep("setPassword");
       } catch (verifyErr) {
-        // Fallback session when backend API is offline or returns error
-        const normLoginId = String(loginId || "").trim().toUpperCase();
-        const mockOwner = {
-          _id: "o_" + Date.now(),
-          loginId: normLoginId,
-          name: "Owner User",
-          role: "owner"
-        };
-        storeAuth({ user: mockOwner, token: "owner_token_" + Date.now() });
-        window.location.href = resolvePanelPath("propertyowner", "admin");
-        return;
+        // Temp-password check also failed — this is a genuine invalid login.
+        // Never fabricate a session here; that would silently bypass auth
+        // and skip the forced password-change step entirely.
+        setErrorMsg("Invalid login ID or password.");
       }
     } finally {
       setLoading(false);

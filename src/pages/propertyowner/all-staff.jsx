@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useCallback } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession } from "../../utils/propertyowner";
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerProperties } from "../../utils/propertyowner";
 import {
   Users, Search, Plus, CheckCircle2, AlertCircle, Phone, Mail,
   Building2, Clock, Shield, MoreVertical, X, TrendingUp,
@@ -60,11 +60,47 @@ export default function AllStaffPage() {
   const [editingPerms, setEditingPerms] = useState(false);
   const [permDraft, setPermDraft] = useState([]);
   const [savingPerms, setSavingPerms] = useState(false);
+  const [properties, setProperties] = useState([]);
+  const [editingProperty, setEditingProperty] = useState(false);
+  const [propertyDraft, setPropertyDraft] = useState("");
+  const [savingProperty, setSavingProperty] = useState(false);
 
-  const closeDetail = () => { setDetailStaff(null); setEditingPerms(false); };
+  useEffect(() => {
+    if (!owner?.loginId) return;
+    fetchOwnerProperties(owner.loginId, true).then(list => setProperties(list || [])).catch(() => {});
+  }, [owner?.loginId]);
+
+  const closeDetail = () => { setDetailStaff(null); setEditingPerms(false); setEditingProperty(false); };
   const openPermsEditor = () => { setPermDraft(detailStaff?.permissions || []); setEditingPerms(true); };
   const togglePermDraft = (key) =>
     setPermDraft(d => d.includes(key) ? d.filter(p => p !== key) : [...d, key]);
+
+  const openPropertyEditor = () => { setPropertyDraft(detailStaff?.assignedProperty || ""); setEditingProperty(true); };
+
+  const saveProperty = async () => {
+    if (!detailStaff) return;
+    setSavingProperty(true);
+    try {
+      await apiFetch(`/api/employees/${detailStaff.loginId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assignedProperties: propertyDraft ? [propertyDraft] : [] }),
+        timeout: 30000,
+      });
+      const propName = properties.find(p => String(p._id || p.id) === propertyDraft)?.title || "";
+      const newStaff = staff.map(e => e.id === detailStaff.id
+        ? { ...e, assignedProperty: propertyDraft, assignedPropertyName: propName }
+        : e);
+      setStaff(newStaff);
+      setDetailStaff(d => ({ ...d, assignedProperty: propertyDraft, assignedPropertyName: propName }));
+      cacheSet(`staff:${owner.loginId}`, { staff: newStaff, stats }, 2 * 60 * 1000);
+      setEditingProperty(false);
+    } catch (err) {
+      alert("Failed to save assigned property: " + (err?.message || "Please try again."));
+    } finally {
+      setSavingProperty(false);
+    }
+  };
 
   const savePerms = async () => {
     if (!detailStaff) return;
@@ -143,7 +179,8 @@ export default function AllStaffPage() {
         photoDataUrl: e.photoDataUrl || "",
         shift: shiftsMap[e._id] || "Standard Hours",
         permissions: e.permissions || [],
-        assignedPropertyName: e.assignedPropertyName || "",
+        assignedProperty: e.assignedProperties?.[0]?._id || e.assignedProperties?.[0]?.id || e.assignedProperties?.[0] || "",
+        assignedPropertyName: e.assignedPropertyName || e.assignedProperties?.[0]?.title || e.assignedProperties?.[0]?.name || "",
         joiningDate: e.joiningDate || e.createdAt || "",
         address: e.address || "",
       }));
@@ -372,7 +409,6 @@ export default function AllStaffPage() {
                   { label: "Phone", value: detailStaff.phone || "N/A" },
                   { label: "Email", value: detailStaff.email || "N/A" },
                   { label: "Shift", value: detailStaff.shift || "N/A" },
-                  { label: "Property", value: detailStaff.assignedPropertyName || "All Properties" },
                   { label: "Status", value: detailStaff.status },
                   { label: "Joining Date", value: detailStaff.joiningDate ? new Date(detailStaff.joiningDate).toLocaleDateString("en-IN") : "N/A" },
                 ].map(({ label, value }) => (
@@ -381,6 +417,51 @@ export default function AllStaffPage() {
                     <p className="text-xs font-bold text-slate-800 break-all">{value}</p>
                   </div>
                 ))}
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Assigned Property</p>
+                  {!editingProperty && (
+                    <button onClick={openPropertyEditor}
+                      className="flex items-center gap-1 text-[10px] font-black text-blue-600 hover:text-blue-700 uppercase tracking-wider">
+                      <Edit3 size={12} /> Edit
+                    </button>
+                  )}
+                </div>
+
+                {!editingProperty ? (
+                  <div className="bg-slate-50 rounded-xl p-3 flex items-center gap-2">
+                    <Building2 size={13} className="text-slate-400 shrink-0" />
+                    <p className="text-xs font-bold text-slate-800">
+                      {detailStaff.assignedPropertyName || "Not assigned — pick one so this staff member's dashboard is scoped correctly"}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <select
+                      value={propertyDraft}
+                      onChange={(e) => setPropertyDraft(e.target.value)}
+                      className="w-full h-10 px-3 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 focus:border-blue-400 focus:outline-none"
+                    >
+                      <option value="">— Unassigned —</option>
+                      {properties.map(p => (
+                        <option key={p._id || p.id} value={p._id || p.id}>{p.title || p.name}</option>
+                      ))}
+                    </select>
+                    <div className="flex gap-3">
+                      <button onClick={() => setEditingProperty(false)} disabled={savingProperty}
+                        className="flex-1 h-10 border border-slate-200 rounded-xl text-xs font-black text-slate-600 hover:bg-slate-50 transition-all disabled:opacity-60">Cancel</button>
+                      <button onClick={saveProperty} disabled={savingProperty}
+                        className="flex-1 h-10 rounded-xl text-xs font-black bg-blue-600 hover:bg-blue-700 text-white transition-all disabled:opacity-60 flex items-center justify-center gap-2">
+                        {savingProperty
+                          ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          : <CheckCircle2 size={14} />}
+                        Save Property
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>

@@ -13,6 +13,7 @@ import {
   UtensilsCrossed, Cigarette, PawPrint, BedDouble, DoorOpen
 } from "lucide-react";
 import { fetchJson, getAuthHeader } from "../../utils/api";
+import { PROPERTY_TIERS, normalizeTierKey } from "../../utils/propertyTiers";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
@@ -125,6 +126,8 @@ const KYC_STATES = {
 const kycState = (v) => KYC_STATES[v?.kycStatus] || KYC_STATES.not_sent;
 const isKycDone = (v) => v?.kycStatus === "completed";
 
+const tierMeta = (key) => PROPERTY_TIERS.find(t => t.key === key) || null;
+
 // A visit captures rent either as one monthly figure or per room type. Fall back
 // to the cheapest room-type price so a property that *does* have pricing never
 // renders as ₹0 — and surface a real 0 as "not set" rather than a free room.
@@ -160,12 +163,22 @@ export default function Visit() {
   const [actingId, setActingId] = useState(null);
   const [ownerKyc, setOwnerKyc] = useState(null);
   const [ownerKycLoading, setOwnerKycLoading] = useState(false);
+  // Tier a superadmin assigns during review, gating Approve alongside KYC.
+  // Keyed by visitId/_id, same idiom as `openSections` below.
+  const [selectedTiers, setSelectedTiers] = useState({});
 
   // This component is mounted at both /superadmin/visit and /employee/visit
   // (see pages/employee/visit.jsx). Approving publishes a property to the public
   // site, so that action stays superadmin-only; staff get read + resend KYC.
   const isEmployeeView = typeof window !== "undefined" && window.location.pathname.startsWith("/employee");
   const canApprove = !isEmployeeView;
+
+  const tierFor = (v) => selectedTiers[v?.visitId || v?._id] ?? normalizeTierKey(v?.tier);
+  const isTierSelected = (v) => Boolean(tierFor(v));
+  const setTierForVisit = (v, tier) => {
+    const id = v?.visitId || v?._id;
+    setSelectedTiers(prev => ({ ...prev, [id]: tier }));
+  };
 
   // ─── Form State ─────────────────────────────────────────────────────────────
   // Owner Identity
@@ -384,6 +397,7 @@ export default function Visit() {
 
   const approveVisit = async (v) => {
     const id = v.visitId || v._id;
+    if (!isTierSelected(v)) { alert("Select a property tier before approving."); return; }
     if (!window.confirm(`Approve "${v.propertyName || "this property"}" and publish it on the website?`)) return;
     setActingId(id);
     try {
@@ -396,6 +410,7 @@ export default function Visit() {
           isLiveOnWebsite: true,
           loginId: v.generatedCredentials?.loginId || "",
           tempPassword: v.generatedCredentials?.tempPassword || "",
+          tier: tierFor(v),
         }),
       });
       alert("✅ Approved. The property is now published on the website.");
@@ -901,15 +916,16 @@ export default function Visit() {
                   <th className="p-4">Type / Rent</th>
                   <th className="p-4">Submitted By</th>
                   <th className="p-4">KYC</th>
+                  <th className="p-4">Tier</th>
                   <th className="p-4">Status</th>
                   <th className="p-4 pr-6 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 text-xs font-bold text-slate-700">
                 {loading ? (
-                  <tr><td colSpan={7} className="p-8 text-center text-slate-400 font-bold uppercase tracking-widest">Loading visits...</td></tr>
+                  <tr><td colSpan={8} className="p-8 text-center text-slate-400 font-bold uppercase tracking-widest">Loading visits...</td></tr>
                 ) : filteredVisits.length === 0 ? (
-                  <tr><td colSpan={7} className="p-8 text-center text-slate-400 font-bold uppercase tracking-widest">No visit reports found</td></tr>
+                  <tr><td colSpan={8} className="p-8 text-center text-slate-400 font-bold uppercase tracking-widest">No visit reports found</td></tr>
                 ) : (
                   filteredVisits.map((v, i) => (
                     <tr key={v._id || i} className="hover:bg-slate-50/50 transition-colors">
@@ -935,6 +951,24 @@ export default function Visit() {
                         <span className={cn("px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider border", kycState(v).cls)}>
                           {kycState(v).label}
                         </span>
+                      </td>
+                      <td className="p-4">
+                        {canApprove && v.status !== "approved" ? (
+                          <select
+                            value={tierFor(v)}
+                            onChange={(e) => setTierForVisit(v, e.target.value)}
+                            className="bg-slate-50 border border-slate-100 rounded-lg px-2 py-1.5 text-[10px] font-bold text-slate-600 outline-none hover:bg-slate-100 transition-all cursor-pointer"
+                          >
+                            <option value="">Select tier…</option>
+                            {PROPERTY_TIERS.map(t => (
+                              <option key={t.key} value={t.key}>{t.label}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                            {tierMeta(tierFor(v))?.label || "—"}
+                          </span>
+                        )}
                       </td>
                       <td className="p-4">
                         <span className={cn(
@@ -963,8 +997,8 @@ export default function Visit() {
                               {canApprove && (
                                 <button
                                   onClick={() => approveVisit(v)}
-                                  disabled={!isKycDone(v) || actingId === (v.visitId || v._id)}
-                                  title={isKycDone(v) ? "Approve and publish this property" : "Owner must complete digital KYC before approval"}
+                                  disabled={!isKycDone(v) || !isTierSelected(v) || actingId === (v.visitId || v._id)}
+                                  title={!isKycDone(v) ? "Owner must complete digital KYC before approval" : !isTierSelected(v) ? "Select a property tier before approval" : "Approve and publish this property"}
                                   className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all border bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed"
                                 >
                                   {actingId === (v.visitId || v._id) ? "..." : "Approve"}
@@ -1063,6 +1097,25 @@ export default function Visit() {
                       </>
                     )}
                   </>
+                )}
+              </DetailSection>
+
+              <DetailSection icon={Star} title="Publish Tier" color="indigo">
+                {canApprove && viewingVisit.status !== "approved" ? (
+                  <select
+                    value={tierFor(viewingVisit)}
+                    onChange={(e) => setTierForVisit(viewingVisit, e.target.value)}
+                    className="bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 text-xs font-bold text-slate-600 outline-none hover:bg-slate-100 transition-all cursor-pointer"
+                  >
+                    <option value="">Select tier…</option>
+                    {PROPERTY_TIERS.map(t => (
+                      <option key={t.key} value={t.key}>{t.label} — {t.publicName}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <p className="text-xs font-semibold text-slate-500 bg-slate-50 rounded-xl p-4 border border-slate-100">
+                    {tierMeta(tierFor(viewingVisit))?.publicName || "No tier assigned yet."}
+                  </p>
                 )}
               </DetailSection>
 
@@ -1181,9 +1234,11 @@ export default function Visit() {
             {viewingVisit.status !== "approved" && (
               <div className="px-8 py-5 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between gap-4">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                  {isKycDone(viewingVisit)
-                    ? "Owner KYC complete — ready to publish"
-                    : "Waiting for the owner to complete digital KYC"}
+                  {!isKycDone(viewingVisit)
+                    ? "Waiting for the owner to complete digital KYC"
+                    : !isTierSelected(viewingVisit)
+                    ? "Select a property tier to publish"
+                    : "Owner KYC complete — ready to publish"}
                 </p>
                 <div className="flex items-center gap-3">
                   <button
@@ -1196,8 +1251,8 @@ export default function Visit() {
                   {canApprove && (
                     <button
                       onClick={() => approveVisit(viewingVisit)}
-                      disabled={!isKycDone(viewingVisit) || actingId === (viewingVisit.visitId || viewingVisit._id)}
-                      title={isKycDone(viewingVisit) ? "Approve and publish this property" : "Owner must complete digital KYC before approval"}
+                      disabled={!isKycDone(viewingVisit) || !isTierSelected(viewingVisit) || actingId === (viewingVisit.visitId || viewingVisit._id)}
+                      title={!isKycDone(viewingVisit) ? "Owner must complete digital KYC before approval" : !isTierSelected(viewingVisit) ? "Select a property tier before approval" : "Approve and publish this property"}
                       className="px-6 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest bg-emerald-600 text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 transition-all disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none disabled:cursor-not-allowed flex items-center gap-2"
                     >
                       <CheckCircle2 className="w-4 h-4" />

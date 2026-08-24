@@ -14,13 +14,15 @@ const TTL = {
 };
 
 // ── Dashboard ────────────────────────────────────────────────────────────────
-export function fetchRentDashboard(ownerId, force = false) {
-  const key = `dashboard:${ownerId}`;
+export function fetchRentDashboard(ownerId, force = false, propertyId = "") {
+  const key = `dashboard:${ownerId}:${propertyId || "all"}`;
   if (!force) {
     const hit = cacheGet(key);
     if (hit) return Promise.resolve(hit);
   }
-  return fetchJson(`${rentCollectionBase()}/dashboard?ownerId=${encodeURIComponent(ownerId)}`)
+  const qs = new URLSearchParams({ ownerId });
+  if (propertyId) qs.set("propertyId", propertyId);
+  return fetchJson(`${rentCollectionBase()}/dashboard?${qs.toString()}`)
     .then(data => cacheSet(key, data, TTL.DASHBOARD));
 }
 
@@ -107,11 +109,12 @@ export const verifyCashOtp = (tenantLoginId, otp, rentId) =>
     return data;
   });
 
-export function fetchPayments(ownerId, limit = 200) {
-  const key = `payments:all:${ownerId}:${limit}`;
+export function fetchPayments(ownerId, limit = 200, propertyId = '') {
+  const key = `payments:all:${ownerId}:${limit}:${propertyId || 'all'}`;
   const hit = cacheGet(key);
   if (hit) return Promise.resolve(hit);
-  return fetchJson(`${rentCollectionBase()}/payments?limit=${limit}`)
+  const qs = new URLSearchParams({ limit: String(limit), ...(propertyId ? { propertyId } : {}) }).toString();
+  return fetchJson(`${rentCollectionBase()}/payments?${qs}`)
     .then(data => cacheSet(key, data, 60 * 1000));
 }
 

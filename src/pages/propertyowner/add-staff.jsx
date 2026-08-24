@@ -585,7 +585,7 @@ export default function AddStaffPage() {
                 </p>
               </div>
 
-              {/* Module Selection — grouped by category, same as Pratap */}
+              {/* Module Selection — Staff Panel + Owner Panel, same grouping/style as the staff profile's permission editor */}
               <div className="space-y-5">
                 {Object.entries(STAFF_MODULE_GROUPS).map(([groupName, mods]) => (
                   <div key={groupName}>

@@ -406,8 +406,9 @@ export default function Tenantdashboard() {
   const apiBase = useMemo(() => getApiBase(), []);
   const [tenantUser] = useState(() => readTenantUser());
   const [tenant, setTenant] = useState(null);
-  // Alternate ID proof (Voter ID / PAN / etc.) submitted instead of Aadhaar
-  // when onboarded without it — lives in a separate TenantKycRequest record.
+  // Alternate ID proof (Voter ID / PAN / Passport / Driving License), submitted instead of
+  // Aadhaar when onboarded without it — lives in a separate TenantKycRequest record, not
+  // on tenant.kyc, so it needs its own fetch.
   const [altKycRequest, setAltKycRequest] = useState(null);
   const [rent, setRent] = useState(null);
   const [history, setHistory] = useState([]);
@@ -1670,15 +1671,8 @@ export default function Tenantdashboard() {
   const leaseDetails = tenant?.digitalCheckin?.agreementDetails || {};
   const leaseStart = leaseDetails.licenseStartDate || tenant?.moveInDate;
   const leaseEnd = leaseDetails.licenseEndDate;
-  // Lease is only "Active" once the agreement is actually signed.
-  const agreementSigned = !!(
-    tenant?.agreementSigned ||
-    tenant?.agreementSignedAt ||
-    tenant?.digitalCheckin?.agreement?.pdfUrl ||
-    tenant?.digitalCheckin?.agreement?.signedAt
-  );
   const leaseStatus = tenant
-    ? (tenant.moveoutRequest?.status === "approved" || !agreementSigned ? "Inactive" : "Active")
+    ? (tenant.moveoutRequest?.status === "approved" ? "Inactive" : "Active")
     : "—";
 
   // ─── KYC read-only display data ──────────────────────────────────────────────
@@ -2221,7 +2215,12 @@ export default function Tenantdashboard() {
                     pan={panVal}
                     name={nameOnDoc}
                     relationship={relationshipVal}
-                    altProofUrl={altKycRequest?.proofFileUrl || tenant?.kyc?.alternateProofFile || ""}
+                    altProofUrl={
+                      // Only stands in for Aadhaar when there is no Aadhaar to show;
+                      // falls back to the copy stored on tenant.kyc when the separate
+                      // TenantKycRequest record hasn't loaded (or no longer exists).
+                      !maskedAadhaar ? (altKycRequest?.proofFileUrl || tenant?.kyc?.alternateProofFile || "") : null
+                    }
                     altProofType={altKycRequest?.proofType || tenant?.kyc?.alternateProofType || ""}
                   />
                 )}

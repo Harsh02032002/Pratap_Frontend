@@ -40,7 +40,8 @@ import {
   fetchOwnerTenants,
   formatDate,
   getOwnerRuntimeSession,
-  filterByActiveProperty
+  filterByActiveProperty,
+  getActiveOwnerPropertyId
 } from "../../utils/propertyowner";
 import { fetchRentDashboard } from "../../utils/rentCollectionApi";
 import { cacheGet, cacheSet } from "../../utils/cache";
@@ -52,9 +53,9 @@ const CHART_CACHE_TTL = 7 * 60 * 1000; // 7 minutes
 const DASH_CACHE_TTL = 4 * 60 * 1000; // 4 minutes — hard expiry
 const DASH_REVALIDATE_AFTER = 90 * 1000; // 90s — only background-refresh cache older than this
 
-const getDashCache = (loginId) => {
+const getDashCache = (loginId, propertyId) => {
   try {
-    const raw = sessionStorage.getItem(`rdash_${loginId}`);
+    const raw = sessionStorage.getItem(`rdash_${loginId}_${propertyId || "all"}`);
     if (!raw) return null;
     const d = JSON.parse(raw);
     if (Date.now() - d.ts > DASH_CACHE_TTL) return null;
@@ -62,9 +63,9 @@ const getDashCache = (loginId) => {
   } catch { return null; }
 };
 
-const setDashCache = (loginId, data) => {
+const setDashCache = (loginId, propertyId, data) => {
   try {
-    sessionStorage.setItem(`rdash_${loginId}`, JSON.stringify({ ...data, ts: Date.now() }));
+    sessionStorage.setItem(`rdash_${loginId}_${propertyId || "all"}`, JSON.stringify({ ...data, ts: Date.now() }));
   } catch { } // quota errors are safe to swallow
 };
 
@@ -154,9 +155,10 @@ export default function Admin() {
   }, [owner, enquiries, loading]);
 
   const loadDashboard = async (loginId, { silent = false } = {}) => {
+    const propertyId = getActiveOwnerPropertyId();
     if (!silent) {
       // Serve cache instantly so the page renders in <50ms
-      const cached = getDashCache(loginId);
+      const cached = getDashCache(loginId, propertyId);
       if (cached) {
         setRoomsCount(cached.roomsCount);
         setTotalBedsCapacity(cached.totalBedsCapacity);
@@ -177,14 +179,19 @@ export default function Admin() {
     }
     setErrorMsg("");
     try {
-      // Single aggregation call replaces 8 separate HTTP round-trips
-      const dashRes = await fetchJson(`/api/dashboard/${encodeURIComponent(loginId)}`);
+      // Single aggregation call replaces 8 separate HTTP round-trips.
+      // Server-side scoped to the active property when one is selected; the
+      // client-side filterByActiveProperty() calls below are then a no-op
+      // safety net (kept so rooms/enquiries/tenants stay consistent even if
+      // the backend response ever includes cross-property leftovers).
+      const qs = propertyId ? `?propertyId=${encodeURIComponent(propertyId)}` : "";
+      const dashRes = await fetchJson(`/api/dashboard/${encodeURIComponent(loginId)}${qs}`);
 
       if (!silent) setOwner((prev) => ({ ...prev, ...(dashRes?.owner || {}) }));
 
       const filteredRooms = filterByActiveProperty(dashRes?.rooms || [], false);
       const allEnquiries = filterByActiveProperty(Array.isArray(dashRes?.enquiries) ? dashRes.enquiries : [], false);
-      const filteredTenants = Array.isArray(dashRes?.tenants) ? dashRes.tenants : [];
+      const filteredTenants = filterByActiveProperty(Array.isArray(dashRes?.tenants) ? dashRes.tenants : [], false);
 
       const computedRent = allEnquiries
         .filter(e => ['accepted', 'approved', 'active'].includes(String(e.status).toLowerCase()))
@@ -193,12 +200,18 @@ export default function Admin() {
       const rentTotal = session?.role === 'manager' ? computedRent : (dashRes?.rent?.totalRent || 0);
       const allComplaints = Array.isArray(dashRes?.complaints) ? dashRes.complaints : [];
       const allNotifications = Array.isArray(dashRes?.notifications) ? dashRes.notifications : [];
+      // dashRes.properties is always the owner's full property list (kept
+      // unfiltered server-side for other consumers) — when a single property
+      // is selected, the "N properties" count show here must match the scope
+      // the rest of the numbers on this page are drawn from, or it reads as
+      // "19 beds across 2 rooms · 3 properties" while looking at just one.
+      const scopedPropertiesCount = propertyId ? 1 : (dashRes?.properties?.length || 0);
 
       setRoomsCount(filteredRooms.length);
       setTotalBedsCapacity(filteredRooms.reduce((s, r) => s + (r.beds || 1), 0));
       setTenantsCount(filteredTenants.length);
       setTenants(filteredTenants);
-      setPropertiesCount(dashRes?.properties?.length || 0);
+      setPropertiesCount(scopedPropertiesCount);
       setRecentChats(dashRes?.chats?.conversations || []);
       setComplaints(allComplaints);
       setRentTotal(rentTotal);
@@ -206,12 +219,12 @@ export default function Admin() {
       setNotifications(allNotifications);
 
       // Persist fresh data to cache for next visit
-      setDashCache(loginId, {
+      setDashCache(loginId, propertyId, {
         roomsCount: filteredRooms.length,
         totalBedsCapacity: filteredRooms.reduce((s, r) => s + (r.beds || 1), 0),
         tenantsCount: filteredTenants.length,
         tenants: filteredTenants,
-        propertiesCount: dashRes?.properties?.length || 0,
+        propertiesCount: scopedPropertiesCount,
         recentChats: dashRes?.chats?.conversations || [],
         complaints: allComplaints,
         rentTotal,
@@ -226,7 +239,8 @@ export default function Admin() {
   };
 
   const loadChartData = async (loginId, period = '7d') => {
-    const cacheKey = `${loginId}-${period}`;
+    const propertyId = getActiveOwnerPropertyId();
+    const cacheKey = `${loginId}-${period}-${propertyId || "all"}`;
     const cached = _chartCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CHART_CACHE_TTL) {
       setChartData(cached.thisWeek);
@@ -242,10 +256,11 @@ export default function Admin() {
       const thisStart = new Date(today); thisStart.setDate(today.getDate() - (days - 1));
       const prevEnd = new Date(today); prevEnd.setDate(today.getDate() - days);
       const prevStart = new Date(today); prevStart.setDate(today.getDate() - (days * 2 - 1));
+      const propQs = propertyId ? `&propertyId=${encodeURIComponent(propertyId)}` : "";
 
       const [thisWeekRaw, prevWeekRaw] = await Promise.all([
-        fetchJson(`/api/rent-collection/payments/daily-summary?ownerId=${encodeURIComponent(loginId)}&startDate=${fmt(thisStart)}&endDate=${fmt(today)}`).catch(() => null),
-        fetchJson(`/api/rent-collection/payments/daily-summary?ownerId=${encodeURIComponent(loginId)}&startDate=${fmt(prevStart)}&endDate=${fmt(prevEnd)}`).catch(() => null)
+        fetchJson(`/api/rent-collection/payments/daily-summary?ownerId=${encodeURIComponent(loginId)}&startDate=${fmt(thisStart)}&endDate=${fmt(today)}${propQs}`).catch(() => null),
+        fetchJson(`/api/rent-collection/payments/daily-summary?ownerId=${encodeURIComponent(loginId)}&startDate=${fmt(prevStart)}&endDate=${fmt(prevEnd)}${propQs}`).catch(() => null)
       ]);
 
       const thisWeek = Array.isArray(thisWeekRaw) ? thisWeekRaw : (thisWeekRaw?.data || []);
@@ -270,12 +285,14 @@ export default function Admin() {
   };
 
   const loadMonthlyData = async (loginId) => {
-    const MONTHLY_KEY = `monthly-summary:${loginId}`;
+    const propertyId = getActiveOwnerPropertyId();
+    const MONTHLY_KEY = `monthly-summary:${loginId}:${propertyId || "all"}`;
     const cached = cacheGet(MONTHLY_KEY);
     if (cached) { setMonthlyData(cached); setMonthlyLoading(false); return; }
     setMonthlyLoading(true);
     try {
-      const res = await fetchJson('/api/rent-collection/monthly-summary');
+      const qs = propertyId ? `?propertyId=${encodeURIComponent(propertyId)}` : "";
+      const res = await fetchJson(`/api/rent-collection/monthly-summary${qs}`);
       if (res?.success && Array.isArray(res.data)) {
         setMonthlyData(res.data);
         cacheSet(MONTHLY_KEY, res.data, 5 * 60 * 1000);
@@ -289,7 +306,8 @@ export default function Admin() {
 
   const loadCollectionStats = async (ownerId) => {
     try {
-      const data = await fetchRentDashboard(ownerId); // uses 2-min TTL in rentCollectionApi
+      const propertyId = getActiveOwnerPropertyId();
+      const data = await fetchRentDashboard(ownerId, false, propertyId); // uses 2-min TTL in rentCollectionApi
       if (data?.success && data?.stats) setCollectionStats(data.stats);
     } catch {
       // non-critical — dashboard works fine without it
@@ -302,6 +320,14 @@ export default function Admin() {
       window.location.href = "/propertyowner/ownerlogin";
       return;
     }
+    // The real Owner Dashboard is never accessible to staff, even proxying for
+    // their parent owner — a page-level check independent of the router guard
+    // (StaffRouteGuard/canAccessOwnerPathAsStaff) so this can't be bypassed by
+    // a race on that guard's own effect, or reached before it runs.
+    if (session.isStaffProxy) {
+      window.location.href = STAFF_HOME_PATH;
+      return;
+    }
     setOwner(session);
     loadDashboard(session.loginId);
     loadChartData(session.loginId, chartPeriod);
@@ -310,12 +336,14 @@ export default function Admin() {
     loadChangeRequests(session.loginId);
   }, []);
 
+  // Status of the owner's own submitted profile/bank-detail change requests —
+  // surfaced so they know if superadmin approved or rejected an update (and why).
   const loadChangeRequests = async (loginId) => {
     try {
       const res = await fetchJson(`/api/owner-change-requests?ownerLoginId=${encodeURIComponent(loginId)}`);
       setChangeRequests(Array.isArray(res?.data) ? res.data : []);
     } catch (err) {
-      // Non-critical
+      // Non-critical — the rest of the dashboard still works without this.
     }
   };
 
@@ -981,6 +1009,64 @@ export default function Admin() {
             </div>
           </div>
         </div>
+
+        {/* Profile/Bank Update Requests — status of what the owner asked superadmin to change */}
+        {changeRequests.length > 0 && (
+          <div className="mt-5 rounded-2xl border border-border bg-card shadow-soft overflow-hidden">
+            <div className="px-6 py-4 border-b border-border/50 flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-[15px] text-foreground">Update Requests to Admin</h3>
+                <p className="text-[12px] text-muted-foreground mt-0.5">Status of changes you've asked Roomhy to approve</p>
+              </div>
+              {changeRequests.length > 4 && (
+                <button
+                  onClick={() => window.location.href = '/propertyowner/update-requests'}
+                  className="text-[12px] font-semibold text-primary hover:opacity-70 flex items-center gap-0.5 transition-opacity"
+                >
+                  View all <ChevronRight className="size-3.5" />
+                </button>
+              )}
+            </div>
+            <div className="divide-y divide-border/40">
+              {changeRequests.slice(0, 4).map((req, i) => {
+                const status = req.status || "Pending";
+                const isApproved = status === "Approved";
+                const isRejected = status === "Rejected";
+                const badgeClass = isApproved
+                  ? "bg-emerald-50 text-emerald-600"
+                  : isRejected
+                    ? "bg-rose-50 text-rose-600"
+                    : "bg-amber-50 text-amber-600";
+                const Icon = isApproved ? CheckCircle2 : isRejected ? XCircle : Clock;
+                return (
+                  <div key={req._id || i} className="px-6 py-4 flex items-start gap-3">
+                    <div className={`size-8 rounded-full flex items-center justify-center shrink-0 ${badgeClass}`}>
+                      <Icon className="size-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[13px] font-semibold text-foreground capitalize">
+                          {(req.requestType || "profile").replace('_', ' ')} update
+                        </span>
+                        <span className={`px-1.5 py-0.5 text-[9px] font-black rounded uppercase tracking-wide shrink-0 ${badgeClass}`}>
+                          {status}
+                        </span>
+                      </div>
+                      <p className="text-[11.5px] text-muted-foreground mt-0.5 truncate">
+                        {Object.entries(req.requestedChanges || {}).map(([k, v]) => `${k}: ${v}`).join(", ")} · {getRelativeTime(req.createdAt)}
+                      </p>
+                      {isRejected && req.rejectionReason && (
+                        <p className="text-[11.5px] text-rose-600 mt-1 bg-rose-50 rounded-lg px-2.5 py-1.5 inline-block">
+                          Reason: {req.rejectionReason}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
       </div>
       {/* ═══════════════════════ END DESKTOP VIEW ═══════════════════════ */}

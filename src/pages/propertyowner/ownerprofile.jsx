@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
 import { getOwnerRuntimeSession, clearOwnerRuntimeSession } from "../../utils/propertyowner";
 import { fetchJson } from "../../utils/api";
@@ -19,6 +19,22 @@ export default function OwnerProfile() {
   const [address, setAddress] = useState(owner.address || owner.profile?.address || "");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // The cached login session (owner_user) is a snapshot taken at last login —
+  // it goes stale the moment a superadmin approves a profile-change request.
+  // Refetch the live Owner record so this page shows what's actually saved.
+  useEffect(() => {
+    if (!owner?.loginId) return;
+    fetchJson(`/api/owners/${encodeURIComponent(owner.loginId)}`)
+      .then((fresh) => {
+        if (!fresh) return;
+        setName(fresh.name || "");
+        setEmail(fresh.email || "");
+        setPhone(fresh.phone || "");
+        setAddress(fresh.address || "");
+      })
+      .catch(() => {});
+  }, []);
 
   const handleSave = async (e) => {
     e.preventDefault();

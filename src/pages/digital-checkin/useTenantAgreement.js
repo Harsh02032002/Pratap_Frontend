@@ -21,7 +21,7 @@ export const useTenantAgreement = () => {
     setLoadingData(true);
     getWithFallback(`/api/checkin/tenant/profile/${encodeURIComponent(loginId.trim())}`, apiBases)
       .then((data) => setTenantData(data?.tenant || data || null))
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoadingData(false));
   }, [loginId, apiBases]);
 

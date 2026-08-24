@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession } from "../../utils/propertyowner";
-import { 
-  Sparkles, Search, Star, CheckCircle2, 
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, getActiveOwnerPropertyId } from "../../utils/propertyowner";
+import {
+  Sparkles, Search, Star, CheckCircle2,
   MessageSquare, TrendingUp, ChevronRight
 } from "lucide-react";
 import { apiFetch } from "../../utils/api";
+import { getOwnerComplaints } from "../../api/complaints";
 import { cacheGet, cacheSet } from "../../utils/cache";
 
 export default function StaffPerformancePage() {
@@ -24,13 +25,14 @@ export default function StaffPerformancePage() {
   }, []);
 
   const fetchPerformance = async () => {
-    const CACHE_KEY = `perf:${owner.loginId}`;
+    const propertyId = getActiveOwnerPropertyId();
+    const CACHE_KEY = `perf:${owner.loginId}:${propertyId || "all"}`;
     try {
       setLoading(true);
       const [empData, compData, maintData, attData] = await Promise.all([
         apiFetch(`/api/employees?parentLoginId=${owner.loginId}`),
-        apiFetch(`/api/complaints/owner/${owner.loginId}`).catch(() => ({ complaints: [] })),
-        apiFetch(`/api/maintenance/owner/${owner.loginId}`).catch(() => ({ tasks: [] })),
+        getOwnerComplaints(owner.loginId, { propertyId }).then(d => ({ complaints: d })).catch(() => ({ complaints: [] })),
+        apiFetch(`/api/maintenance/owner/${owner.loginId}${propertyId ? `?propertyId=${encodeURIComponent(propertyId)}` : ""}`).catch(() => ({ tasks: [] })),
         apiFetch(`/api/hr/attendance/${owner.loginId}`).catch(() => ({ data: [] }))
       ]);
 

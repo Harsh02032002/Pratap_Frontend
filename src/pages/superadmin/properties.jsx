@@ -679,7 +679,9 @@ function AddPropertyView({ onBack, apiUrl, editId }) {
       landmark: formData.landmark || "",
       latitude: formData.latitude ? Number(formData.latitude) : null,
       longitude: formData.longitude ? Number(formData.longitude) : null,
-      owner: formData.owner,
+      // Only send owner when one is actually selected — an empty string fails
+      // ObjectId casting on the backend and aborts the whole save.
+      ...(formData.owner ? { owner: formData.owner } : {}),
       ownerName: formData.ownerName,
       ownerLoginId: formData.ownerLoginId,
       ownerPhone: formData.ownerPhone,

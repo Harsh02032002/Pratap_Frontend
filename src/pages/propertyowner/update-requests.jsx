@@ -1,26 +1,28 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
-import OwnerLayout from "../../components/OwnerLayout";
-import { getOwnerSession } from "../../utils/ownerSession";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession } from "../../utils/propertyowner";
 import { fetchJson } from "../../utils/api";
 import { CheckCircle2, XCircle, Clock, Eye, FileText } from "lucide-react";
 
 export default function UpdateRequests() {
-  const owner = getOwnerSession();
+  const owner = getOwnerRuntimeSession();
+  if (!owner?.loginId && typeof window !== "undefined") {
+    window.location.href = "/propertyowner/ownerlogin";
+    return null;
+  }
 
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("All");
   const [viewModal, setViewModal] = useState(null);
 
-  // Debounce filter changes to prevent rapid API calls
-  const debounceTimerRef = useRef(null);
-  const fetchRequestsRef = useRef(null);
-
   const fetchRequests = useCallback(async (ownerLoginId, currentFilter) => {
     if (!ownerLoginId) return;
     setLoading(true);
     try {
-      const statusParam = currentFilter !== "All" ? `?status=${currentFilter}&ownerLoginId=${encodeURIComponent(ownerLoginId)}` : `?ownerLoginId=${encodeURIComponent(ownerLoginId)}`;
+      const statusParam = currentFilter !== "All"
+        ? `?status=${currentFilter}&ownerLoginId=${encodeURIComponent(ownerLoginId)}`
+        : `?ownerLoginId=${encodeURIComponent(ownerLoginId)}`;
       const data = await fetchJson(`/api/owner-change-requests${statusParam}`);
       setRequests(Array.isArray(data?.data) ? data.data : []);
     } catch {
@@ -30,27 +32,21 @@ export default function UpdateRequests() {
     }
   }, []);
 
-  fetchRequestsRef.current = fetchRequests;
+  // Debounce filter changes so rapid tab clicks fire one request, not four.
+  const debounceTimerRef = useRef(null);
 
   useEffect(() => {
     if (!owner?.loginId) return;
 
-    // Clear any pending debounce
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-
-    // Debounce filter changes by 300ms
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     debounceTimerRef.current = setTimeout(() => {
-      fetchRequestsRef.current(owner.loginId, filter);
+      fetchRequests(owner.loginId, filter);
     }, 300);
 
     return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     };
-  }, [filter, owner?.loginId]);
+  }, [filter, owner?.loginId, fetchRequests]);
 
   const getRelativeTime = (date) => {
     if (!date) return "—";
@@ -64,17 +60,22 @@ export default function UpdateRequests() {
   };
 
   return (
-    <OwnerLayout
+    <PropertyOwnerLayout
+      owner={owner}
       title="Update Requests to Admin"
-      subtitle="Every profile and bank-detail change you've asked Roomhy to approve."
+      onLogout={() => { clearOwnerRuntimeSession(); window.location.href = "/propertyowner/ownerlogin"; }}
     >
-      <div className="flex justify-end mb-6">
-        <div className="flex bg-slate-100 p-1 rounded-xl shrink-0">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 className="font-serif text-[38px] md:text-[44px] leading-[1.05] text-foreground">Update Requests to Admin</h1>
+          <p className="mt-1.5 text-[13.5px] text-muted-foreground">Every profile and bank-detail change you've asked Roomhy to approve.</p>
+        </div>
+        <div className="flex bg-muted/40 p-1 rounded-lg shrink-0">
           {["Pending", "Approved", "Rejected", "All"].map(status => (
             <button
               key={status}
               onClick={() => setFilter(status)}
-              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${filter === status ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+              className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${filter === status ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
             >
               {status}
             </button>
@@ -82,11 +83,11 @@ export default function UpdateRequests() {
         </div>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+      <div className="bg-card border border-border rounded-2xl shadow-soft overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-xs font-black text-slate-500 uppercase tracking-wider">
+              <tr className="bg-muted/30 border-b border-border text-xs font-black text-muted-foreground uppercase tracking-wider">
                 <th className="px-6 py-4">Date</th>
                 <th className="px-6 py-4">Type</th>
                 <th className="px-6 py-4">Requested Changes</th>
@@ -94,14 +95,14 @@ export default function UpdateRequests() {
                 <th className="px-6 py-4 text-right">Details</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-border/60">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-sm font-medium text-slate-400">Loading requests...</td>
+                  <td colSpan={5} className="px-6 py-8 text-center text-sm font-medium text-muted-foreground">Loading requests...</td>
                 </tr>
               ) : requests.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-sm font-medium text-slate-400">
+                  <td colSpan={5} className="px-6 py-8 text-center text-sm font-medium text-muted-foreground">
                     {filter === "All" ? "No update requests found." : `No ${filter.toLowerCase()} requests found.`}
                   </td>
                 </tr>
@@ -117,8 +118,8 @@ export default function UpdateRequests() {
                       : "bg-amber-50 text-amber-700 border border-amber-100";
                   const Icon = isApproved ? CheckCircle2 : isRejected ? XCircle : Clock;
                   return (
-                    <tr key={req._id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-6 py-4 text-sm font-medium text-slate-500">
+                    <tr key={req._id} className="hover:bg-muted/20 transition-colors">
+                      <td className="px-6 py-4 text-sm font-medium text-muted-foreground">
                         {new Date(req.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })} · {getRelativeTime(req.createdAt)}
                       </td>
                       <td className="px-6 py-4">
@@ -126,7 +127,7 @@ export default function UpdateRequests() {
                           {(req.requestType || "profile").replace('_', ' ')}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-xs font-medium text-slate-600 max-w-xs truncate">
+                      <td className="px-6 py-4 text-xs font-medium text-muted-foreground max-w-xs truncate">
                         {Object.keys(req.requestedChanges || {}).map(k => `${k}: ${req.requestedChanges[k]}`).join(", ")}
                       </td>
                       <td className="px-6 py-4">
@@ -135,7 +136,7 @@ export default function UpdateRequests() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <button onClick={() => setViewModal(req)} className="p-1.5 text-slate-500 hover:bg-slate-100 rounded transition-colors inline-flex" title="View details">
+                        <button onClick={() => setViewModal(req)} className="p-1.5 text-muted-foreground hover:bg-muted/40 rounded transition-colors inline-flex" title="View details">
                           <Eye size={18} />
                         </button>
                       </td>
@@ -150,7 +151,7 @@ export default function UpdateRequests() {
 
       {viewModal && (
         <div
-          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           onClick={(e) => e.target === e.currentTarget && setViewModal(null)}
         >
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden max-h-[85vh] flex flex-col">
@@ -184,7 +185,9 @@ export default function UpdateRequests() {
                     {Object.entries(viewModal.requestedChanges || {})
                       .filter(([key]) => key !== 'checkinBankProofName')
                       .map(([key, newValue]) => {
-                      const oldValue = viewModal.previousValues ? viewModal.previousValues[key] : (viewModal.currentValues ? viewModal.currentValues[key] : undefined);
+                      const oldValue = viewModal.previousValues
+                        ? viewModal.previousValues[key]
+                        : (viewModal.currentValues ? viewModal.currentValues[key] : undefined);
                       const hasOldValue = oldValue !== undefined && oldValue !== null && oldValue !== "";
                       const isDoc = key === 'checkinBankProof';
                       return (
@@ -228,6 +231,6 @@ export default function UpdateRequests() {
           </div>
         </div>
       )}
-    </OwnerLayout>
+    </PropertyOwnerLayout>
   );
 }

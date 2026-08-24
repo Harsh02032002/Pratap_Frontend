@@ -222,10 +222,14 @@ export default function PropertyOwnerLayout({
   const visibleQuickActions = isStaffProxy
     ? QUICK_ACTIONS.filter(a => a.perm && hasStaffPermission(owner, a.perm)).map(a => ({ ...a, to: a.staffTo || a.to }))
     : QUICK_ACTIONS;
+  // A property blocked by superadmin review must never be switchable into —
+  // it's rejected, not just temporarily unavailable, so it's excluded from
+  // the list entirely rather than shown disabled.
+  const verifiedProperties = properties.filter(p => p.status !== "blocked");
   const assignedPropId = owner?.assignedProperty ? String(owner.assignedProperty) : "";
   const switcherProperties = (isStaffProxy && assignedPropId)
-    ? properties.filter(p => String(p._id || p.id) === assignedPropId)
-    : properties;
+    ? verifiedProperties.filter(p => String(p._id || p.id) === assignedPropId)
+    : verifiedProperties;
   const allowAllProperties = !isStaffProxy;
 
   useEffect(() => {
