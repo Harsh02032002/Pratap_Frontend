@@ -16,6 +16,10 @@ import Tesseract from "tesseract.js";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
+// A blocked/rejected property is frozen by Roomhy/superadmin action — the owner
+// must not be able to onboard a new tenant into it until it's reinstated.
+const isPropertyRestricted = (p) => p?.status === "blocked" || p?.status === "rejected";
+
 const toLegacyBeds = (room) => {
   if (Array.isArray(room?.beds) && room.beds.length && typeof room.beds[0] === 'object' && 'status' in room.beds[0]) {
     return room.beds;
@@ -304,7 +308,7 @@ const FormSelect = ({ label, value, onChange, options, placeholder, className, r
       >
         <option value="" disabled>{placeholder || `Select ${label}`}</option>
         {options.map((opt, i) => (
-          <option key={i} value={typeof opt === 'object' ? opt.value : opt}>
+          <option key={i} value={typeof opt === 'object' ? opt.value : opt} disabled={typeof opt === 'object' && opt.disabled}>
             {typeof opt === 'object' ? opt.label : opt}
           </option>
         ))}
@@ -842,6 +846,10 @@ export default function TenantRec() {
     }
 
     if (!roomAssignment.propertyId) newErrors.propertyId = "Property is required";
+    else {
+      const selectedProp = properties.find(p => String(p._id) === String(roomAssignment.propertyId));
+      if (isPropertyRestricted(selectedProp)) newErrors.propertyId = `This property is ${selectedProp.status} — tenants can't be added to it`;
+    }
     if (!roomAssignment.floor) newErrors.floor = "Floor is required";
     if (!roomAssignment.rentAgreementType) newErrors.rentAgreementType = "Agreement type is required";
 
@@ -1588,7 +1596,11 @@ export default function TenantRec() {
                     required
                     value={roomAssignment.propertyId}
                     onChange={e => setRoomAssignment({ propertyId: e.target.value, building: "", floor: "", roomUnit: "", roomType: "", bed: "", rentAgreementType: roomAssignment.rentAgreementType, propertyAddress: roomAssignment.propertyAddress })}
-                    options={properties.map(p => ({ label: p.title, value: p._id }))}
+                    options={properties.map(p => ({
+                      label: isPropertyRestricted(p) ? `${p.title} (${p.status})` : p.title,
+                      value: p._id,
+                      disabled: isPropertyRestricted(p),
+                    }))}
                     placeholder="Select property"
                     error={errors.propertyId}
                   />

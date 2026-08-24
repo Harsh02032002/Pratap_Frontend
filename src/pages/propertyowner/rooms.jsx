@@ -94,6 +94,10 @@ const normalizeRoom = (room, ownerId, properties = []) => {
   };
 };
 
+// A blocked/rejected property is frozen by Roomhy/superadmin action — the owner
+// must not be able to add rooms (or beds) to it until it's reinstated.
+const isPropertyRestricted = (p) => p?.status === "blocked" || p?.status === "rejected";
+
 const readJson = (k, fb) => { try { const r = localStorage.getItem(k); return r ? JSON.parse(r) : fb; } catch { return fb; } };
 const writeJson = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { } };
 
@@ -158,6 +162,11 @@ export default function Rooms() {
     const propId = bulkForm.propertyId || currentProperty?._id || "";
     if (!propId) {
       toast.error("Please select a property");
+      return;
+    }
+    const targetProp = properties.find(p => String(p._id || p.id) === String(propId));
+    if (isPropertyRestricted(targetProp)) {
+      toast.error(`This property is ${targetProp.status} — rooms can't be added until it's reinstated. Contact Roomhy support.`);
       return;
     }
     const totalCount = Number(bulkForm.count || 1);
@@ -373,9 +382,18 @@ export default function Rooms() {
     e.preventDefault();
     if (!owner?.loginId) return;
 
-    const propId = currentProperty?._id || "";
+    // roomForm.propertyId is set by whichever property section's "Add Room" button
+    // was clicked — falling back to currentProperty only covers the generic
+    // "?action=add" nav shortcut, which doesn't target a specific property.
+    const propId = roomForm.propertyId || currentProperty?._id || "";
     if (!propId && !roomForm._id) {
       setErrorMsg("Please wait for properties to load or add a property first.");
+      return;
+    }
+
+    const targetProp = properties.find(p => String(p._id || p.id) === String(propId));
+    if (isPropertyRestricted(targetProp)) {
+      toast.error(`This property is ${targetProp.status} — rooms can't be added until it's reinstated. Contact Roomhy support.`);
       return;
     }
 
@@ -724,6 +742,8 @@ export default function Rooms() {
               const safePropPage = Math.min(propPage, propTotalPages);
               const propRooms = allPropRooms.slice((safePropPage - 1) * ROOMS_PER_PAGE, safePropPage * ROOMS_PER_PAGE);
               const setPropertyPage = (p) => handlePropertyPageChange(propTitle, propId, p);
+              const sectionProperty = properties.find(p => (p.title || p.name) === propTitle) || properties.find(p => String(p._id || p.id) === String(propId));
+              const sectionRestricted = isPropertyRestricted(sectionProperty);
               return (
                 <section key={propTitle} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                   {/* Property Header */}
@@ -739,25 +759,40 @@ export default function Rooms() {
                       <span className={cn("inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold mr-1",
                         pct > 90 ? "bg-blue-50 text-blue-600" : pct > 0 ? "bg-amber-50 text-amber-600" : "bg-emerald-50 text-emerald-600"
                       )}>{pct}% full</span>
-                      <button 
+                      {sectionRestricted && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold mr-1 bg-rose-50 text-rose-600 border border-rose-200 uppercase tracking-wider">
+                          {sectionProperty.status}
+                        </span>
+                      )}
+                      <button
                         type="button"
+                        disabled={sectionRestricted}
+                        title={sectionRestricted ? `This property is ${sectionProperty.status} — you can't add rooms to it` : undefined}
                         onClick={() => {
+                          if (sectionRestricted) return;
                           const targetProp = properties.find(p => (p.title || p.name) === propTitle) || currentProperty;
                           setRoomForm({ ...defaultRoomForm, propertyId: targetProp?._id || propId });
                           setRoomModalOpen(true);
                         }}
-                        className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-[12px] font-bold shadow-sm transition-all active:scale-95"
+                        className={cn("inline-flex items-center gap-1.5 h-8 px-3.5 rounded-xl text-white text-[12px] font-bold shadow-sm transition-all active:scale-95",
+                          sectionRestricted ? "bg-slate-300 cursor-not-allowed active:scale-100" : "bg-slate-900 hover:bg-slate-800"
+                        )}
                       >
                         <Plus size={14} /> Add Room
                       </button>
-                      <button 
+                      <button
                         type="button"
+                        disabled={sectionRestricted}
+                        title={sectionRestricted ? `This property is ${sectionProperty.status} — you can't add rooms to it` : undefined}
                         onClick={() => {
+                          if (sectionRestricted) return;
                           const targetProp = properties.find(p => (p.title || p.name) === propTitle) || currentProperty;
                           setBulkForm(prev => ({ ...prev, propertyId: targetProp?._id || propId }));
                           setBulkModalOpen(true);
                         }}
-                        className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[12px] font-bold shadow-sm shadow-emerald-600/20 transition-all active:scale-95"
+                        className={cn("inline-flex items-center gap-1.5 h-8 px-3.5 rounded-xl text-white text-[12px] font-bold shadow-sm transition-all active:scale-95",
+                          sectionRestricted ? "bg-slate-300 cursor-not-allowed active:scale-100" : "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20"
+                        )}
                       >
                         <Layers size={14} /> Bulk Add Rooms
                       </button>
@@ -771,13 +806,21 @@ export default function Rooms() {
                         <LayoutTemplate className="w-6 h-6 text-slate-400" />
                       </div>
                       <h3 className="text-[15px] font-semibold text-slate-800 mb-1">No Rooms Added Yet</h3>
-                      <p className="text-[13px] text-slate-500 mb-5 max-w-sm">Manage beds and track tenants easily by adding rooms to {propTitle}.</p>
-                      <button type="button" onClick={() => {
-                        setRoomForm({ ...defaultRoomForm, propertyId: propId || (properties.find(p => p.title === propTitle || p.name === propTitle)?._id) });
-                        setRoomModalOpen(true);
-                      }} className="inline-flex items-center gap-1.5 h-10 px-5 rounded-xl bg-blue-600 text-white text-[13px] font-bold shadow-sm shadow-blue-600/20 hover:bg-blue-700 transition-colors">
-                        <Plus size={16} /> Add First Room
-                      </button>
+                      {sectionRestricted ? (
+                        <p className="text-[13px] text-rose-600 font-semibold mb-1 max-w-sm">
+                          {propTitle} is {sectionProperty.status} — rooms can't be added until it's reinstated.
+                        </p>
+                      ) : (
+                        <>
+                          <p className="text-[13px] text-slate-500 mb-5 max-w-sm">Manage beds and track tenants easily by adding rooms to {propTitle}.</p>
+                          <button type="button" onClick={() => {
+                            setRoomForm({ ...defaultRoomForm, propertyId: propId || (properties.find(p => p.title === propTitle || p.name === propTitle)?._id) });
+                            setRoomModalOpen(true);
+                          }} className="inline-flex items-center gap-1.5 h-10 px-5 rounded-xl bg-blue-600 text-white text-[13px] font-bold shadow-sm shadow-blue-600/20 hover:bg-blue-700 transition-colors">
+                            <Plus size={16} /> Add First Room
+                          </button>
+                        </>
+                      )}
                     </div>
                   ) : (
                     <div className="flex overflow-x-auto snap-x gap-3 pb-3 no-scrollbar scroll-smooth md:grid md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
@@ -1296,7 +1339,9 @@ export default function Rooms() {
               <select required className="w-full bg-card border border-border rounded-lg px-3 py-2 text-[14px]" value={bulkForm.propertyId} onChange={e => setBulkForm(p => ({ ...p, propertyId: e.target.value }))}>
                 <option value="">-- Select Property --</option>
                 {properties.map(p => (
-                  <option key={p._id || p.id} value={p._id || p.id}>{p.title || p.name}</option>
+                  <option key={p._id || p.id} value={p._id || p.id} disabled={isPropertyRestricted(p)}>
+                    {p.title || p.name}{isPropertyRestricted(p) ? ` (${p.status})` : ""}
+                  </option>
                 ))}
               </select>
             </div>
