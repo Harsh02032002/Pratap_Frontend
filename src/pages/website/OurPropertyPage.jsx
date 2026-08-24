@@ -1954,6 +1954,8 @@ function PropertyCard({ property, onBookNow }) {
   const originalPrice = hasDiscount ? Number(property.originalPrice) : property.price;
   const discountPercent = hasDiscount ? Math.round(((originalPrice - property.price) / originalPrice) * 100) : 0;
 
+  const extraPhotosCount = displayImages.length > 3 ? displayImages.length - 3 : 0;
+
   // Real Rating Calculation Logic — Only display if property has real reviews/ratings
   const displayRating = (() => {
     // 1. Calculate real average rating from user reviews if available
@@ -2001,7 +2003,7 @@ function PropertyCard({ property, onBookNow }) {
                 e.preventDefault();
                 e.stopPropagation();
                 setIsLiked(!isLiked);
-                toast.success(isLiked ? 'Removed from Wishlist' : 'Saved to Wishlist!');
+                if (window.toast?.success) window.toast.success(isLiked ? 'Removed from Wishlist' : 'Saved to Wishlist!');
               }}
               className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-white/80 hover:bg-white backdrop-blur-xs flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all shadow-md z-10"
               title="Add to Wishlist"
