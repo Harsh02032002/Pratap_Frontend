@@ -41,6 +41,7 @@ export default function Owner() {
    const [formLoginId, setFormLoginId] = useState("");
    const [formPassword, setFormPassword] = useState("");
    const [saving, setSaving] = useState(false);
+   const [addedOwnerResult, setAddedOwnerResult] = useState(null); // {loginId, kycLink, email}
 
    // Banking fields
    const [formBankName, setFormBankName] = useState("");
@@ -135,8 +136,18 @@ export default function Owner() {
                checkinUpiId: formUpiId
             })
          });
-         alert(`Property Owner added successfully!\n\nKYC Verification Link has been sent to ${formEmail}.\n\nLogin credentials will be issued after the owner completes KYC.`);
-         setSearchParams({ view: "list" });
+
+         // Build KYC link from response or construct manually
+         const kycLink = res?.kycLink ||
+            `${window.location.origin}/digital-checkin/ownerprofile?loginId=${encodeURIComponent(formLoginId)}&email=${encodeURIComponent(formEmail)}&area=${encodeURIComponent(formArea || formCity)}&password=${encodeURIComponent(formPassword)}`;
+
+         setAddedOwnerResult({
+            loginId: res?.loginId || formLoginId,
+            email: formEmail,
+            name: formName,
+            kycLink
+         });
+
          loadOwners();
       } catch (err) { alert(err.message || "Failed to add property owner."); }
       finally { setSaving(false); }
@@ -940,6 +951,69 @@ export default function Owner() {
                onClose={() => setAgreementModalOwner(null)}
             />
          )}
+
+         {/* Add Owner Success Modal */}
+         {addedOwnerResult && (
+            <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[200] backdrop-blur-sm animate-in fade-in duration-200">
+               <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-200">
+                  <div className="flex items-center gap-3 mb-4">
+                     <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
+                        <Send size={22} />
+                     </div>
+                     <div>
+                        <h3 className="text-base font-black text-slate-800">Owner Added & KYC Link Sent!</h3>
+                        <p className="text-xs text-slate-500 mt-0.5">A KYC verification email has been sent to the owner.</p>
+                     </div>
+                  </div>
+
+                  <div className="space-y-3 text-xs">
+                     <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-2">
+                        <div>
+                           <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Owner Name</span>
+                           <p className="font-bold text-slate-800 mt-0.5">{addedOwnerResult.name}</p>
+                        </div>
+                        <div>
+                           <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Login ID</span>
+                           <p className="font-mono font-bold text-blue-700 mt-0.5">{addedOwnerResult.loginId}</p>
+                        </div>
+                        <div>
+                           <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">KYC Email Sent To</span>
+                           <p className="font-bold text-slate-800 mt-0.5">{addedOwnerResult.email}</p>
+                        </div>
+                     </div>
+
+                     <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+                        <span className="text-blue-600 font-bold uppercase tracking-wider text-[10px]">KYC Verification Link</span>
+                        <p className="font-mono text-[10px] text-blue-800 mt-1 break-all leading-relaxed">{addedOwnerResult.kycLink}</p>
+                        <button
+                           onClick={() => { navigator.clipboard.writeText(addedOwnerResult.kycLink); alert("KYC link copied!"); }}
+                           className="mt-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-[10px] font-bold hover:bg-blue-700 transition-all"
+                        >
+                           Copy KYC Link
+                        </button>
+                     </div>
+
+                     <p className="text-slate-400 text-[10px] text-center">Owner will appear in <b>Pending Owners</b> tab until KYC is completed.</p>
+                  </div>
+
+                  <div className="flex gap-3 mt-5">
+                     <button
+                        onClick={() => { setAddedOwnerResult(null); setSearchParams({ view: "pending" }); }}
+                        className="flex-1 bg-slate-100 text-slate-700 py-2.5 rounded-xl font-bold text-xs border border-slate-200 hover:bg-slate-200 transition"
+                     >
+                        View Pending Owners
+                     </button>
+                     <button
+                        onClick={() => { setAddedOwnerResult(null); setSearchParams({ view: "add" }); generateCreds(); setFormName(""); setFormEmail(""); setFormPhone(""); setFormArea(""); setFormCity(""); setFormBankName(""); setFormBranchName(""); setFormBankAccountNumber(""); setFormIfscCode(""); setFormAccountHolderName(""); setFormUpiId(""); }}
+                        className="flex-1 bg-blue-600 text-white py-2.5 rounded-xl font-bold text-xs hover:bg-blue-700 transition shadow-sm"
+                     >
+                        Add Another Owner
+                     </button>
+                  </div>
+               </div>
+            </div>
+         )}
+
       </div>
    );
 }
