@@ -858,7 +858,18 @@ export default function PropertyDetailsPage() {
       }
     };
     loadPropertyDetails();
-  }, [propertyId]);
+  }, [propertyId, propertySlug]);
+
+  // Auto-update browser URL bar from legacy /website/propertydetails/6a86a... to clean /property-details/:slug
+  useEffect(() => {
+    if (property && property.name) {
+      const cleanSlug = property.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      const targetPath = `/property-details/${cleanSlug}`;
+      if (window.location.pathname !== targetPath && (window.location.pathname.includes('/website/') || window.location.pathname.includes('/propertydetails/') || window.location.pathname.match(/[a-f0-9]{24}/i))) {
+        window.history.replaceState(null, '', targetPath);
+      }
+    }
+  }, [property]);
 
   // Track Recently Viewed Properties
   useEffect(() => {

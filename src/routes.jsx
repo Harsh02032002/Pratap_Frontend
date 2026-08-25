@@ -404,6 +404,8 @@ const routeEntries = [
   ["/website/ourproperty/:city", "./pages/website/OurPropertyPage.jsx"],
   ["/website/ourproperty/:city/:area", "./pages/website/OurPropertyPage.jsx"],
   ["/website/property-details/:propertyId", "./pages/website/PropertyDetailsPage.jsx"],
+  ["/website/propertydetails/:propertyId", "./pages/website/PropertyDetailsPage.jsx"],
+  ["/propertydetails/:propertyId", "./pages/website/PropertyDetailsPage.jsx"],
   ["/website/property-rooms/:propertyId", "./pages/website/PropertyRoomsPage.jsx"],
 
   ["/website/fast-bidding", "./pages/website/FastBiddingPage.jsx"],

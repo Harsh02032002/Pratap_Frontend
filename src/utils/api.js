@@ -795,9 +795,10 @@ export const getPropertyDetailsUrl = (property) => {
     const slug = cleanStr.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
     return `/property-details/${slug}`;
   }
-  const name = property.name || property.title || property.property_name || property.propertyInfo?.name || '';
-  if (name) {
-    const slug = name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  const rawName = property.propertyInfo?.name || property.title || property.property_name || property.propertyName || property.name || '';
+  if (rawName) {
+    const cleanName = rawName.replace(/^ROOMHYPROP\s+(CREST|PRIME)\s+/i, '').trim();
+    const slug = (cleanName || rawName).toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
     return `/property-details/${slug}`;
   }
   const id = property._id || property.id || property.visitId || '';
