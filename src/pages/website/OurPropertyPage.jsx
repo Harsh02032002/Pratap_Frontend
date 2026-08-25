@@ -27,41 +27,44 @@ const cityAreasMap = {
   'Pune': ['Kothrud', 'Viman Nagar', 'Hinjewadi', 'Baner', 'Wakad', 'Hadapsar']
 };
 
+// Module-level helpers accessible to all components in this file
+const slugify = (text) => {
+  if (!text) return "";
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^\w\-]+/g, "")
+    .replace(/\-\-+/g, "-");
+};
+
+const getTypeSlug = (type) => {
+  if (!type) return "properties";
+  const lower = type.toLowerCase();
+  if (lower === "pg") return "pg";
+  if (lower === "hostel" || lower === "hostels") return "hostels";
+  if (lower === "co-living" || lower === "coliving") return "co-living";
+  if (lower === "apartment" || lower === "apartments") return "apartments";
+  return slugify(type);
+};
+
+const humanizeSlug = (s) => {
+  if (!s) return "";
+  return s
+    .split("-")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
+
 export default function OurPropertyPage() {
   const { pathname } = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const { city: citySlug, area: areaSlug } = useParams();
   const navigate = useNavigate();
 
-  // Helper to slugify text on the client side
-  const slugify = (text) => {
-    if (!text) return "";
-    return text
-      .toString()
-      .toLowerCase()
-      .trim()
-      .replace(/\s+/g, "-")
-      .replace(/[^\w\-]+/g, "")
-      .replace(/\-\-+/g, "-");
-  };
-
-  const getTypeSlug = (type) => {
-    if (!type) return "properties";
-    const lower = type.toLowerCase();
-    if (lower === "pg") return "pg";
-    if (lower === "hostel" || lower === "hostels") return "hostels";
-    if (lower === "co-living" || lower === "coliving") return "co-living";
-    if (lower === "apartment" || lower === "apartments") return "apartments";
-    return slugify(type);
-  };
-
-  const humanizeSlug = (s) => {
-    if (!s) return "";
-    return s
-      .split("-")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
-  };
+  const cleanPath = pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
+  const isSpecificTypeRoute = cleanPath.startsWith('pg') || cleanPath.startsWith('hostels') || cleanPath.startsWith('co-living') || cleanPath.startsWith('apartments');
 
   const parseLocationFromPath = (path) => {
     const clean = (path || '').replace(/^\/+|\/+$/g, '').toLowerCase();
@@ -1291,41 +1294,43 @@ export default function OurPropertyPage() {
                     </button>
                   </div>
 
-                  {/* 1. Property Type */}
-                  <div className="mb-5 pb-5 border-b border-slate-100">
-                    <label className="block text-xs font-extrabold text-slate-900 uppercase tracking-wider mb-2.5">
-                      Property Type
-                    </label>
-                    <div className="space-y-1.5">
-                      {[
-                        { type: 'PG', label: 'PG', icon: Bed },
-                        { type: 'Hostel', label: 'Hostels', icon: Building2 },
-                        { type: 'Co-living', label: 'Co-living', icon: Users },
-                        { type: 'Apartment', label: 'Apartments', icon: Home }
-                      ].map(item => {
-                        const isSelected = (selectedType || '').toLowerCase() === item.type.toLowerCase() || (item.type === 'PG' && !selectedType && pathname.startsWith('/pg'));
-                        const IconComponent = item.icon;
-                        return (
-                          <button
-                            key={item.type}
-                            type="button"
-                            onClick={() => setSelectedType(isSelected ? '' : item.type)}
-                            className={`w-full flex items-center justify-between p-2.5 rounded-xl border text-xs font-bold transition-all text-left ${
-                              isSelected
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 shadow-2xs'
-                                : 'bg-slate-50 text-slate-700 border-slate-100 hover:bg-slate-100'
-                            }`}
-                          >
-                            <div className="flex items-center gap-2.5">
-                              <IconComponent className={`w-4 h-4 ${isSelected ? 'text-emerald-600' : 'text-slate-400'}`} />
-                              <span>{item.label}</span>
-                            </div>
-                            {isSelected && <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[3]" />}
-                          </button>
-                        );
-                      })}
+                  {/* 1. Property Type (Hidden on specific type routes like /pg-in-talwandi-kota) */}
+                  {!isSpecificTypeRoute && (
+                    <div className="mb-5 pb-5 border-b border-slate-100">
+                      <label className="block text-xs font-extrabold text-slate-900 uppercase tracking-wider mb-2.5">
+                        Property Type
+                      </label>
+                      <div className="space-y-1.5">
+                        {[
+                          { type: 'PG', label: 'PG', icon: Bed },
+                          { type: 'Hostel', label: 'Hostels', icon: Building2 },
+                          { type: 'Co-living', label: 'Co-living', icon: Users },
+                          { type: 'Apartment', label: 'Apartments', icon: Home }
+                        ].map(item => {
+                          const isSelected = (selectedType || '').toLowerCase() === item.type.toLowerCase() || (item.type === 'PG' && !selectedType && pathname.startsWith('/pg'));
+                          const IconComponent = item.icon;
+                          return (
+                            <button
+                              key={item.type}
+                              type="button"
+                              onClick={() => setSelectedType(isSelected ? '' : item.type)}
+                              className={`w-full flex items-center justify-between p-2.5 rounded-xl border text-xs font-bold transition-all text-left ${
+                                isSelected
+                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200 shadow-2xs'
+                                  : 'bg-slate-50 text-slate-700 border-slate-100 hover:bg-slate-100'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <IconComponent className={`w-4 h-4 ${isSelected ? 'text-emerald-600' : 'text-slate-400'}`} />
+                                <span>{item.label}</span>
+                              </div>
+                              {isSelected && <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[3]" />}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* 2. Gender Pills */}
                   <div className="mb-5 pb-5 border-b border-slate-100">
@@ -1978,13 +1983,16 @@ function PropertyCard({ property, onBookNow }) {
     return null;
   })();
 
+  const propSlug = slugify(property.name || property.title || property.id);
+  const detailPath = `/property-details/${propSlug}`;
+
   return (
     <div className="bg-white rounded-2xl shadow-xs hover:shadow-xl transition-all duration-300 border border-slate-200 hover:border-teal-200 overflow-hidden mb-3 md:mb-4 group">
       <div className="flex flex-col lg:flex-row min-h-[210px]">
         {/* Left Image Section - OYO Style Main Photo + Right Thumbnails */}
         <div className={`relative w-full ${displayImages.length > 1 ? 'lg:w-[320px] xl:w-[350px]' : 'lg:w-[270px] xl:w-[290px]'} h-[200px] md:h-[210px] shrink-0 bg-slate-100 p-1 flex gap-1 rounded-t-2xl lg:rounded-tr-none lg:rounded-l-2xl overflow-hidden border-r border-slate-100`}>
           {/* Main Photo (Left) */}
-          <div className="relative flex-1 h-full rounded-l-xl overflow-hidden group/img cursor-pointer" onClick={() => navigate(`/website/property-details/${property.id}`)}>
+          <div className="relative flex-1 h-full rounded-l-xl overflow-hidden group/img cursor-pointer" onClick={() => navigate(detailPath)}>
             <img
               src={getOptimizedImageUrl(displayImages[currentImageIndex], 600)}
               alt={property.name}
@@ -2068,7 +2076,7 @@ function PropertyCard({ property, onBookNow }) {
             {/* Title & Rating */}
             <div className="flex items-start justify-between gap-3 mb-1">
               <Link
-                to={`/website/property-details/${property.id}`}
+                to={detailPath}
                 onClick={() => trackPropertyClick(property.id)}
                 className="text-lg md:text-xl font-black text-slate-900 hover:text-teal-600 transition-colors line-clamp-1"
               >
@@ -2163,7 +2171,7 @@ function PropertyCard({ property, onBookNow }) {
                 e.preventDefault();
                 e.stopPropagation();
                 trackPropertyClick(property.id);
-                navigate(`/website/property-details/${property.id}`);
+                navigate(detailPath);
               }}
               className="px-4 py-2.5 rounded-xl border border-slate-300 hover:border-slate-800 text-slate-800 font-extrabold text-xs transition-all hover:bg-white text-center whitespace-nowrap"
             >

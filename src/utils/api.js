@@ -787,6 +787,23 @@ export const fetchProperties = async () => {
 // Always uses the targeted single-property endpoint which returns all fields
 // (including propertyViews, roomTypes, facilities, pricing, policies that are
 // excluded from the listing endpoint to reduce payload size).
+export const getPropertyDetailsUrl = (property) => {
+  if (!property) return '/properties';
+  if (typeof property === 'string') {
+    const cleanStr = property.trim();
+    if (cleanStr.startsWith('/')) return cleanStr;
+    const slug = cleanStr.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    return `/property-details/${slug}`;
+  }
+  const name = property.name || property.title || property.property_name || property.propertyInfo?.name || '';
+  if (name) {
+    const slug = name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    return `/property-details/${slug}`;
+  }
+  const id = property._id || property.id || property.visitId || '';
+  return `/property-details/${id}`;
+};
+
 export const fetchPropertyByVisitId = async (visitId) => {
   const data = await fetchJson(`/api/approved-properties/${visitId}`);
   const prop = data.property || data;

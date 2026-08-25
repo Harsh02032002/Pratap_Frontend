@@ -11,7 +11,7 @@ import MobileBottomNav from '../../components/website/MobileBottomNav';
 import MobileHamburgerMenu from '../../components/website/MobileHamburgerMenu';
 import MobilePropertiesSection from '../../components/website/MobilePropertiesSection';
 import MobileVideoSection from '../../components/website/MobileVideoSection';
-import { fetchCities, fetchProperties, trackPropertyClick } from '../../utils/api';
+import { fetchCities, fetchProperties, trackPropertyClick, getPropertyDetailsUrl } from '../../utils/api';
 import useSEO from '../../hooks/useSEO';
 
 const cityAreas = {
@@ -792,7 +792,7 @@ export default function WebsiteIndex() {
                 {visibleTrending.map((property) => (
                   <Link 
                     key={property._id} 
-                    to={`/website/property-details/${property._id}`}
+                    to={getPropertyDetailsUrl(property)}
                     className="group block cursor-pointer"
                   >
                     <div className="relative h-36 rounded-md overflow-hidden mb-2">
@@ -850,7 +850,7 @@ export default function WebsiteIndex() {
                   {trendingProperties.map((property) => (
                     <Link
                       key={property._id}
-                      to={`/website/property-details/${property._id}`}
+                      to={getPropertyDetailsUrl(property)}
                       onClick={() => property._id && trackPropertyClick(property._id)}
                       className="flex-shrink-0 w-36 block active:scale-95 transition-transform"
                     >
@@ -908,7 +908,7 @@ export default function WebsiteIndex() {
                   {visibleRecentlyViewed.map((item) => (
                     <Link 
                       key={item.id} 
-                      to={`/website/property-details/${item.id}`}
+                      to={getPropertyDetailsUrl(item)}
                       className="group block cursor-pointer"
                     >
                       <div className="relative h-36 rounded-md overflow-hidden mb-2">
@@ -956,7 +956,7 @@ export default function WebsiteIndex() {
                   {recentlyViewed.map((item) => (
                     <Link
                       key={item.id}
-                      to={`/website/property-details/${item.id}`}
+                      to={getPropertyDetailsUrl(item)}
                       className="flex-shrink-0 w-36"
                     >
                       <div className="relative h-24 rounded-2xl overflow-hidden shadow-md mb-2">

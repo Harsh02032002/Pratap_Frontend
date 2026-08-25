@@ -384,6 +384,10 @@ const routeEntries = [
   // Hierarchical Property Detail Route: /{type}/{city}/{area}/{propertySlug}
   ["/:type/:city/:area/:propertySlug", "./pages/website/PropertyDetailsPage.jsx"],
 
+  // Clean Property Detail Routes: /property-details/:propertySlug
+  ["/property-details/:propertySlug", "./pages/website/PropertyDetailsPage.jsx"],
+  ["/property-details/:propertyId", "./pages/website/PropertyDetailsPage.jsx"],
+
   ["/website/about", "./pages/website/AboutPage.jsx"],
   ["/website/contact", "./pages/website/ContactPage.jsx"],
   ["/website/cancellation", "./pages/website/WebsiteCancellation.jsx"],
