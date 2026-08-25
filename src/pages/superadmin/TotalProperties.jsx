@@ -6,7 +6,7 @@ import {
   MapPin, Phone, Home, Layers, Users, MoreVertical,
   RefreshCw, Image as ImageIcon, Plus, Eye, Pencil, SlidersHorizontal, X, Trash2, Globe
 } from "lucide-react";
-import { getApiBase, getAuthHeader } from "../../utils/api";
+import { getApiBase, getAuthHeader, clearApiCache } from "../../utils/api";
 import { PROPERTY_TIERS, normalizeTierKey } from "../../utils/propertyTiers";
 import WebsitePropertyPreviewModal from "../../components/shared/WebsitePropertyPreviewModal";
 import { toast } from "react-hot-toast";
@@ -93,6 +93,7 @@ export default function TotalProperties() {
   const [fPriceMax, setFPriceMax]   = useState("");
 
   const [apiStats, setApiStats] = useState({ published: 0, pending: 0, inactive: 0, rejected: 0 });
+  const [toggleLoading, setToggleLoading] = useState(new Set()); // property IDs currently being toggled
 
   // Modal State
   const [selectedProp, setSelectedProp] = useState(null);
@@ -131,6 +132,7 @@ export default function TotalProperties() {
           ownerName:  p.owner?.name || p.propertyInfo?.ownerName || p.ownerName || p.contact?.name || "-",
           ownerPhone: p.owner?.phone || p.propertyInfo?.ownerPhone || p.ownerPhone || p.contact?.number || "-",
           price:      p.monthlyRent || p.rent || p.propertyInfo?.rent || p.roomTypes?.[0]?.pricePerBed || 0,
+          isLiveOnWebsite: Boolean(p.isLiveOnWebsite),
           status:     p.isLiveOnWebsite ? "Published" : p.status==="active" ? "Published" : p.status==="blocked" ? "Rejected" : p.status==="inactive" ? "Inactive" : "Pending",
           listedOn:   p.createdAt ? new Date(p.createdAt).toLocaleDateString("en-IN",{month:"short",day:"numeric",year:"numeric"}) : "-",
           listedTime: p.createdAt ? new Date(p.createdAt).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"}) : "",
@@ -282,6 +284,35 @@ export default function TotalProperties() {
     inactive:  apiStats.inactive,
     rejected:  apiStats.rejected,
   }),[apiStats,allProperties.length]);
+
+  const handleToggleWebsite = async (p) => {
+    if (toggleLoading.has(p.id)) return;
+    setToggleLoading(prev => new Set([...prev, p.id]));
+    try {
+      const res = await fetch(`${apiUrl}/api/properties/${p.id}/toggle-website`, {
+        method: "PUT",
+        headers: getAuthHeader()
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message);
+        clearApiCache();
+        // Optimistically update the local state
+        setAllProperties(prev => prev.map(prop =>
+          prop.id === p.id
+            ? { ...prop, isLiveOnWebsite: data.isLiveOnWebsite, status: data.isLiveOnWebsite ? "Published" : "Inactive" }
+            : prop
+        ));
+      } else {
+        toast.error(data.message || "Failed to toggle visibility");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Error toggling website visibility");
+    } finally {
+      setToggleLoading(prev => { const s = new Set(prev); s.delete(p.id); return s; });
+    }
+  };
 
   const pct = (n) => stats.total ? `${((n/stats.total)*100).toFixed(1)}%` : null;
 
@@ -471,6 +502,7 @@ export default function TotalProperties() {
                     <th className="text-left px-4 py-3.5">Location</th>
                     <th className="text-left px-4 py-3.5">Price</th>
                     <th className="text-left px-4 py-3.5">Status</th>
+                    <th className="text-center px-4 py-3.5">Website Live</th>
                     <th className="text-left px-4 py-3.5">Listed On</th>
                     <th className="px-4 py-3.5 text-right w-48 min-w-[190px]">Actions</th>
                   </tr>
@@ -552,6 +584,38 @@ export default function TotalProperties() {
                       <span className={cn("text-[10px] font-bold px-2.5 py-1 rounded-lg", STATUS_COLORS[p.status]||"bg-slate-100 text-slate-500")}>{p.status}</span>
                     </td>
 
+                    {/* Website Live Toggle */}
+                    <td className="px-4 py-4">
+                      <div className="flex flex-col items-center gap-1">
+                        <button
+                          onClick={() => handleToggleWebsite(p)}
+                          disabled={toggleLoading.has(p.id)}
+                          title={p.isLiveOnWebsite ? "Click to take offline" : "Click to make live on website"}
+                          className={cn(
+                            "relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-300 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed shadow-inner border",
+                            p.isLiveOnWebsite
+                              ? "bg-emerald-500 border-emerald-600"
+                              : "bg-slate-200 border-slate-300"
+                          )}
+                        >
+                          <span className={cn(
+                            "inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform duration-300 ring-1 ring-black/10",
+                            p.isLiveOnWebsite ? "translate-x-6" : "translate-x-1"
+                          )} />
+                          {toggleLoading.has(p.id) && (
+                            <span className="absolute inset-0 flex items-center justify-center">
+                              <RefreshCw className="w-3 h-3 animate-spin text-white/80" />
+                            </span>
+                          )}
+                        </button>
+                        <span className={cn(
+                          "text-[9px] font-bold uppercase tracking-wider",
+                          p.isLiveOnWebsite ? "text-emerald-600" : "text-slate-400"
+                        )}>
+                          {p.isLiveOnWebsite ? "Live" : "Offline"}
+                        </span>
+                      </div>
+                    </td>
                     {/* Listed On */}
                     <td className="px-4 py-4">
                       <p className="text-[11px] font-bold text-slate-700 whitespace-nowrap">{p.listedOn}</p>

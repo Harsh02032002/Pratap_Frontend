@@ -22,6 +22,12 @@ let _formattedPropertiesCacheTs = 0;
 // the existing Promise is returned — no second network request is made.
 const _inflightRequests = new Map();
 
+export const clearApiCache = () => {
+  _cache.clear();
+  _formattedPropertiesCache = null;
+  _formattedPropertiesCacheTs = 0;
+};
+
 const _fetchCached = (url, ttlMs = _CACHE_TTL_MS) => {
   const entry = _cache.get(url);
   if (entry && Date.now() - entry.ts < ttlMs) return entry.promise;
@@ -32,6 +38,7 @@ const _fetchCached = (url, ttlMs = _CACHE_TTL_MS) => {
   _cache.set(url, { promise, ts: Date.now() });
   return promise;
 };
+
 
 export const getApiBase = () => {
   // Use Vite env variable if available
