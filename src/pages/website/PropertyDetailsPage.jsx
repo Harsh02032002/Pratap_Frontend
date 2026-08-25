@@ -339,7 +339,12 @@ const staticPropertiesData = [
 ];
 
 const getStaticPropertyById = (id) => {
-  return staticPropertiesData.find(p => p._id === id) || staticPropertiesData[0];
+  if (!id) return null;
+  return staticPropertiesData.find(p => p._id === id || p.locationCode === id) || null;
+};
+const slugify = (str) => {
+  if (!str) return '';
+  return str.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 };
 
 export default function PropertyDetailsPage() {
@@ -396,11 +401,22 @@ export default function PropertyDetailsPage() {
     return sec ? sec.visible !== false : true;
   };
 
-  // Dynamic SEO from property data (updates once property loads)
+  // Dynamic SEO from property data with unique canonical URL per property
+  const propTitle = property ? (property.name || property.title || 'Property Details') : 'Property Not Found';
+  const propCity = property ? (property.city || extractCityFromName(property.name) || 'kota') : '';
+  const propLoc = property ? (property.locality || property.location || propCity) : '';
+  const propType = property ? (property.propertyType || property.type || 'pg').toLowerCase() : 'pg';
+  const propPrice = property ? (property.price || property.monthlyRent || 0) : 0;
+
+  const detailCanonical = property
+    ? `https://roomhy.com/${propType}/${slugify(propCity)}/${slugify(propLoc)}/${slugify(propTitle)}`
+    : `https://roomhy.com${window.location.pathname}`.replace(/\/+$/, '');
+
   useSEO({
-    pageKey: 'property-details',
-    fallbackTitle: property ? `${property.name} - Roomhy` : 'Property Details - Roomhy',
-    fallbackDescription: property ? `Book ${property.name} in ${property.location}. ${property.type ? property.type.toUpperCase() + ' -' : ''} Starting ₹${property.price || property.monthlyRent}/month. Verified, broker-free.` : undefined
+    title: property ? `${propTitle} - ${propLoc ? propLoc + ', ' : ''}${propCity} | Roomhy` : 'Property Not Found - Roomhy',
+    description: property ? `Book ${propTitle} in ${propLoc}, ${propCity}. ${propType.toUpperCase()} starting ₹${propPrice}/month. 100% verified, 0% brokerage on Roomhy.` : 'This property is no longer available or does not exist on Roomhy.',
+    canonical: detailCanonical,
+    robots: property ? 'index, follow' : 'noindex, nofollow'
   });
 
   // Handle Book Now button click

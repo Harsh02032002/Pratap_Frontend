@@ -14,17 +14,26 @@ export default function useSEO({ slug, pageKey, fallbackTitle, fallbackDescripti
   const appliedRef = useRef(false);
 
   useEffect(() => {
+    // If explicit static title/description/canonical passed, apply them
+    if (title) document.title = title;
+    if (description) applyMeta('description', description);
+
+    // Format absolute canonical URL
+    const resolvedCanonical = canonical
+      ? (canonical.startsWith('http') ? canonical : `https://roomhy.com${canonical.startsWith('/') ? canonical : '/' + canonical}`)
+      : `https://roomhy.com${window.location.pathname}`.replace(/\/+$/, '') || 'https://roomhy.com/';
+
+    applyCanonical(resolvedCanonical);
+
     // LEGACY STATIC MODE: if no slug and no pageKey
     if (!slug && !pageKey) {
-      if (title) document.title = title;
-      applyMeta('description', description);
-      applyCanonical(canonical);
+      applyMeta('robots', 'index, follow');
       return;
     }
 
     // DYNAMIC MODE: fetch from backend by slug or pageKey
     let cancelled = false;
-    
+
     async function loadSeo() {
       try {
         const queryParam = slug ? `slug=${encodeURIComponent(slug)}` : `pageKey=${encodeURIComponent(pageKey)}`;
@@ -35,14 +44,16 @@ export default function useSEO({ slug, pageKey, fallbackTitle, fallbackDescripti
           const seo = res.data;
 
           // Title
-          if (seo.metaTitle) {
+          if (seo.metaTitle && !title) {
             document.title = seo.metaTitle;
-          } else if (fallbackTitle) {
+          } else if (fallbackTitle && !title) {
             document.title = fallbackTitle;
           }
 
           // Description
-          applyMeta('description', seo.metaDescription || fallbackDescription);
+          if (!description) {
+            applyMeta('description', seo.metaDescription || fallbackDescription);
+          }
 
           // Keywords (Primary + Secondary Keywords)
           const keywordsStr = seo.metaKeywords || (seo.primaryKeyword ? [seo.primaryKeyword, ...(seo.secondaryKeywords || [])].join(', ') : '');
@@ -52,31 +63,32 @@ export default function useSEO({ slug, pageKey, fallbackTitle, fallbackDescripti
           const robotsValue = seo.robots || (seo.isIndexed === false ? 'noindex, nofollow' : 'index, follow');
           applyMeta('robots', robotsValue);
 
-          // Canonical URL
-          applyCanonical(seo.canonicalUrl || canonical);
+          // Canonical URL (prioritize explicitly passed canonical over backend generic fallback)
+          const targetCanonical = canonical || seo.canonicalUrl || resolvedCanonical;
+          applyCanonical(targetCanonical);
 
-          // Open Graph basics
-          applyOGMeta('og:title', seo.openGraphTitle || seo.metaTitle);
-          applyOGMeta('og:description', seo.openGraphDescription || seo.metaDescription);
+          // Open Graph
+          applyOGMeta('og:title', seo.openGraphTitle || seo.metaTitle || title);
+          applyOGMeta('og:description', seo.openGraphDescription || seo.metaDescription || description);
           if (seo.openGraphImage) applyOGMeta('og:image', seo.openGraphImage);
           applyOGMeta('og:type', 'website');
 
           // Twitter Card
           applyMeta('twitter:card', seo.twitterCard || 'summary_large_image');
-          if (seo.twitterTitle || seo.metaTitle) applyMeta('twitter:title', seo.twitterTitle || seo.metaTitle);
-          if (seo.twitterDescription || seo.metaDescription) applyMeta('twitter:description', seo.twitterDescription || seo.metaDescription);
+          if (seo.twitterTitle || seo.metaTitle || title) applyMeta('twitter:title', seo.twitterTitle || seo.metaTitle || title);
+          if (seo.twitterDescription || seo.metaDescription || description) applyMeta('twitter:description', seo.twitterDescription || seo.metaDescription || description);
 
           appliedRef.current = true;
         } else {
-          // Fallback if API returned no data
-          if (fallbackTitle) document.title = fallbackTitle;
-          if (fallbackDescription) applyMeta('description', fallbackDescription);
+          if (fallbackTitle && !title) document.title = fallbackTitle;
+          if (fallbackDescription && !description) applyMeta('description', fallbackDescription);
+          applyMeta('robots', 'index, follow');
         }
       } catch (err) {
-        // Silent fail — fallback to static values
         if (!cancelled) {
-          if (fallbackTitle) document.title = fallbackTitle;
-          if (fallbackDescription) applyMeta('description', fallbackDescription);
+          if (fallbackTitle && !title) document.title = fallbackTitle;
+          if (fallbackDescription && !description) applyMeta('description', fallbackDescription);
+          applyMeta('robots', 'index, follow');
         }
       }
     }
@@ -86,7 +98,7 @@ export default function useSEO({ slug, pageKey, fallbackTitle, fallbackDescripti
     return () => {
       cancelled = true;
     };
-  }, [pageKey]);
+  }, [slug, pageKey, canonical, title, description, fallbackTitle, fallbackDescription]);
 }
 
 // --- Helpers ---
@@ -115,11 +127,17 @@ function applyOGMeta(property, content) {
 
 function applyCanonical(href) {
   if (!href) return;
+  let formatted = href.startsWith('http') ? href : `https://roomhy.com${href.startsWith('/') ? href : '/' + href}`;
+  // Strip trailing slashes except for root https://roomhy.com/
+  if (formatted !== 'https://roomhy.com/' && formatted !== 'https://roomhy.com') {
+    formatted = formatted.replace(/\/+$/, '');
+  }
   let link = document.querySelector('link[rel="canonical"]');
   if (!link) {
     link = document.createElement('link');
     link.rel = 'canonical';
     document.head.appendChild(link);
   }
-  link.href = href;
+  link.href = formatted;
 }
+

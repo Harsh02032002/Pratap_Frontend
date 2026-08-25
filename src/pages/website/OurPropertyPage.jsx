@@ -1980,55 +1980,84 @@ function PropertyCard({ property, onBookNow }) {
 
   return (
     <div className="bg-white rounded-2xl shadow-xs hover:shadow-xl transition-all duration-300 border border-slate-200 hover:border-teal-200 overflow-hidden mb-3 md:mb-4 group">
-      <div className="flex flex-col lg:flex-row min-h-[200px]">
-        {/* Left Image Section */}
-        <div className="relative w-full lg:w-[280px] h-[200px] lg:h-[200px] shrink-0 bg-slate-100 border-r border-slate-100 flex flex-col justify-between p-2">
-          <div className="relative w-full h-full rounded-xl overflow-hidden group/img">
+      <div className="flex flex-col lg:flex-row min-h-[210px]">
+        {/* Left Image Section - OYO Style Main Photo + Right Thumbnails */}
+        <div className={`relative w-full ${displayImages.length > 1 ? 'lg:w-[320px] xl:w-[350px]' : 'lg:w-[270px] xl:w-[290px]'} h-[200px] md:h-[210px] shrink-0 bg-slate-100 p-1 flex gap-1 rounded-t-2xl lg:rounded-tr-none lg:rounded-l-2xl overflow-hidden border-r border-slate-100`}>
+          {/* Main Photo (Left) */}
+          <div className="relative flex-1 h-full rounded-l-xl overflow-hidden group/img cursor-pointer" onClick={() => navigate(`/website/property-details/${property.id}`)}>
             <img
-              src={getOptimizedImageUrl(displayImages[currentImageIndex], 400)}
+              src={getOptimizedImageUrl(displayImages[currentImageIndex], 600)}
               alt={property.name}
               className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-105"
               loading="lazy"
             />
             
             {/* Top Left VERIFIED Badge */}
-            <div className="absolute top-2.5 left-2.5 bg-emerald-600 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-md uppercase tracking-wider">
+            <div className="absolute top-2.5 left-2.5 bg-emerald-600 text-white text-[10px] font-extrabold px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-md uppercase tracking-wider z-10">
               <Check className="w-3 h-3 text-white stroke-[3]" />
               <span>Verified</span>
             </div>
 
-            {/* Top Right Wishlist Heart Button */}
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setIsLiked(!isLiked);
-                if (window.toast?.success) window.toast.success(isLiked ? 'Removed from Wishlist' : 'Saved to Wishlist!');
-              }}
-              className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-white/80 hover:bg-white backdrop-blur-xs flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all shadow-md z-10"
-              title="Add to Wishlist"
-            >
-              <Heart className={`w-4 h-4 transition-colors ${isLiked ? 'fill-rose-500 text-rose-500' : ''}`} />
-            </button>
+            {/* Top Right Wishlist Heart Button (if single image) */}
+            {displayImages.length <= 1 && (
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsLiked(!isLiked);
+                  if (window.toast?.success) window.toast.success(isLiked ? 'Removed from Wishlist' : 'Saved to Wishlist!');
+                }}
+                className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-white/80 hover:bg-white backdrop-blur-xs flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all shadow-md z-10"
+                title="Add to Wishlist"
+              >
+                <Heart className={`w-4 h-4 transition-colors ${isLiked ? 'fill-rose-500 text-rose-500' : ''}`} />
+              </button>
+            )}
           </div>
 
-          {/* Bottom Thumbnails Strip */}
+          {/* OYO-Style Right-Side Thumbnails Column */}
           {displayImages.length > 1 && (
-            <div className="flex items-center gap-1.5 mt-2 px-0.5">
-              {displayImages.slice(0, 3).map((img, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setCurrentImageIndex(idx)}
-                  className={`relative flex-1 h-9 rounded-lg overflow-hidden border-2 transition-all ${currentImageIndex === idx ? 'border-teal-600 scale-105' : 'border-transparent opacity-70 hover:opacity-100'}`}
-                >
-                  <img src={getOptimizedImageUrl(img, 100)} alt="thumb" className="w-full h-full object-cover" />
-                </button>
-              ))}
-              {extraPhotosCount > 0 && (
-                <div className="flex-1 h-9 rounded-lg bg-slate-900/80 text-white text-[10px] font-extrabold flex items-center justify-center shadow-xs">
-                  +{extraPhotosCount}
-                </div>
-              )}
+            <div className="w-[75px] sm:w-[85px] h-full flex flex-col gap-1 shrink-0 relative">
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsLiked(!isLiked);
+                  if (window.toast?.success) window.toast.success(isLiked ? 'Removed from Wishlist' : 'Saved to Wishlist!');
+                }}
+                className="absolute top-1 right-1 w-6 h-6 rounded-full bg-white/80 hover:bg-white backdrop-blur-xs flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all shadow-md z-20"
+                title="Add to Wishlist"
+              >
+                <Heart className={`w-3.5 h-3.5 transition-colors ${isLiked ? 'fill-rose-500 text-rose-500' : ''}`} />
+              </button>
+
+              {displayImages.slice(1, 5).map((img, idx) => {
+                const actualIndex = idx + 1;
+                const isLastItem = idx === 3;
+                const extraCount = displayImages.length - 5;
+
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setCurrentImageIndex(actualIndex);
+                    }}
+                    className={`relative flex-1 w-full rounded-md overflow-hidden border transition-all cursor-pointer ${
+                      currentImageIndex === actualIndex ? 'border-teal-500 ring-2 ring-teal-500' : 'border-slate-200 opacity-85 hover:opacity-100'
+                    }`}
+                  >
+                    <img src={getOptimizedImageUrl(img, 150)} alt="thumb" className="w-full h-full object-cover" />
+                    {isLastItem && extraCount > 0 && (
+                      <div className="absolute inset-0 bg-slate-900/80 text-white font-black text-xs flex items-center justify-center backdrop-blur-[1px]">
+                        +{extraCount + 1}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
