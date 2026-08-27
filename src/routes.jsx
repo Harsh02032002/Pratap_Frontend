@@ -353,7 +353,10 @@ const routeEntries = [
   ["/blogs", "./pages/website/AboutPage.jsx"],
   ["/careers", "./pages/ComingSoon.jsx"],
   ["/owner-dashboard", "./pages/propertyowner/admin.jsx"],
-  ["/tenant-dashboard", "./pages/tenant/tenantdashboard.jsx"],
+  ["/cities", "./pages/website/AllCitiesPage.jsx"],
+  ["/all-cities", "./pages/website/AllCitiesPage.jsx"],
+  ["/localities", "./pages/website/AllLocalitiesPage.jsx"],
+  ["/all-localities", "./pages/website/AllLocalitiesPage.jsx"],
   ["/properties", "./pages/website/OurPropertyPage.jsx"],
 
   // Dynamic property listing/search routes
@@ -381,6 +384,10 @@ const routeEntries = [
   // Hierarchical Property Detail Route: /{type}/{city}/{area}/{propertySlug}
   ["/:type/:city/:area/:propertySlug", "./pages/website/PropertyDetailsPage.jsx"],
 
+  // Clean Property Detail Routes: /property-details/:propertySlug
+  ["/property-details/:propertySlug", "./pages/website/PropertyDetailsPage.jsx"],
+  ["/property-details/:propertyId", "./pages/website/PropertyDetailsPage.jsx"],
+
   ["/website/about", "./pages/website/AboutPage.jsx"],
   ["/website/contact", "./pages/website/ContactPage.jsx"],
   ["/website/cancellation", "./pages/website/WebsiteCancellation.jsx"],
@@ -397,6 +404,8 @@ const routeEntries = [
   ["/website/ourproperty/:city", "./pages/website/OurPropertyPage.jsx"],
   ["/website/ourproperty/:city/:area", "./pages/website/OurPropertyPage.jsx"],
   ["/website/property-details/:propertyId", "./pages/website/PropertyDetailsPage.jsx"],
+  ["/website/propertydetails/:propertyId", "./pages/website/PropertyDetailsPage.jsx"],
+  ["/propertydetails/:propertyId", "./pages/website/PropertyDetailsPage.jsx"],
   ["/website/property-rooms/:propertyId", "./pages/website/PropertyRoomsPage.jsx"],
 
   ["/website/fast-bidding", "./pages/website/FastBiddingPage.jsx"],

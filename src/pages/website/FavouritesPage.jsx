@@ -5,7 +5,7 @@ import WebsiteNavbar from '../../components/website/WebsiteNavbar';
 import WebsiteFooter from '../../components/website/WebsiteFooter';
 import MobileBottomNav from '../../components/website/MobileBottomNav';
 import { useAuth } from '../../contexts/AuthContext';
-import { getUserFavourites, removeFromFavourites, getUserReviews, updateReview, deleteReview } from '../../utils/api';
+import { getUserFavourites, removeFromFavourites, getUserReviews, updateReview, deleteReview, getPropertyDetailsUrl } from '../../utils/api';
 
 export default function FavouritesPage() {
   const { isAuthenticated, user } = useAuth();
@@ -254,7 +254,7 @@ export default function FavouritesPage() {
                         <span className="text-gray-500 text-sm">/mo</span>
                       </div>
                       <Link
-                        to={`/website/property-details/${property._id || property.id}`}
+                        to={getPropertyDetailsUrl(property)}
                         className="flex items-center gap-1 bg-teal-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-teal-600 transition-colors"
                       >
                         View

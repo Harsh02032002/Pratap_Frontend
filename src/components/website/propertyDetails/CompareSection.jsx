@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Star } from "lucide-react";
 import { Link } from "react-router-dom";
-import { fetchProperties } from "../../../utils/api";
+import { fetchProperties, getPropertyDetailsUrl } from "../../../utils/api";
 
 export default function CompareSection({ currentProperty }) {
   const [similarProperties, setSimilarProperties] = useState([]);
@@ -96,7 +96,7 @@ export default function CompareSection({ currentProperty }) {
         {similarProperties.map((prop) => (
           <Link
             key={prop.id}
-            to={`/website/property-details/${prop.id}`}
+            to={getPropertyDetailsUrl(prop)}
             className="flex-shrink-0 w-[200px] group"
           >
             <div className="relative rounded-lg overflow-hidden" style={{ border: '1px solid #e8e8e8' }}>

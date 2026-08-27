@@ -51,6 +51,15 @@ export default function DynamicPage() {
   }
 
   if (error || !page) {
+    document.title = "404 Page Not Found - Roomhy";
+    let metaRobots = document.querySelector('meta[name="robots"]');
+    if (!metaRobots) {
+      metaRobots = document.createElement('meta');
+      metaRobots.name = 'robots';
+      document.head.appendChild(metaRobots);
+    }
+    metaRobots.content = 'noindex, nofollow';
+
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <h1 className="text-4xl font-bold text-gray-800">404</h1>

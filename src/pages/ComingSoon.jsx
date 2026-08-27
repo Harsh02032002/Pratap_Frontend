@@ -1,7 +1,15 @@
 import React from 'react';
+import useSEO from '../hooks/useSEO';
 import './ComingSoon.css';
 
 const ComingSoon = () => {
+  useSEO({
+    title: 'Coming Soon | Roomhy',
+    description: 'We are polishing final details to bring you a new era of co-living.',
+    canonical: 'https://roomhy.com/coming-soon',
+    robots: 'noindex, follow'
+  });
+
   return (
     <div className="coming-soon-container">
       <div className="coming-soon-background"></div>

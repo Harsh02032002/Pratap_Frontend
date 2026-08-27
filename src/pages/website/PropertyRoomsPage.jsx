@@ -176,7 +176,7 @@ export default function PropertyRoomsPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>
             <button
-              onClick={() => navigate(`/website/property-details/${propertyId}`)}
+              onClick={() => navigate(`/property-details/${propertyId}`)}
               className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-[#EE4266] mb-2 transition-colors cursor-pointer"
             >
               <ChevronLeft size={16} /> Back to Property Details
@@ -193,7 +193,7 @@ export default function PropertyRoomsPage() {
 
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate(`/website/property-details/${propertyId}#book`)}
+              onClick={() => navigate(`/property-details/${propertyId}#book`)}
               className="px-6 py-3 rounded-xl bg-[#EE4266] hover:bg-[#d63a5b] text-white text-xs font-bold shadow-md hover:shadow-lg transition-all active:scale-95 cursor-pointer"
             >
               Book Property Stay
@@ -375,7 +375,7 @@ export default function PropertyRoomsPage() {
                         </button>
 
                         <button
-                          onClick={() => navigate(`/website/property-details/${propertyId}#book`)}
+                          onClick={() => navigate(`/property-details/${propertyId}#book`)}
                           disabled={vacantCount === 0}
                           className={cn(
                             "px-4 py-2.5 rounded-xl text-xs font-bold shadow-md transition-all active:scale-95 cursor-pointer",
@@ -526,7 +526,7 @@ export default function PropertyRoomsPage() {
               <button
                 onClick={() => {
                   setSelectedRoomModal(null);
-                  navigate(`/website/property-details/${propertyId}#book`);
+                  navigate(`/property-details/${propertyId}#book`);
                 }}
                 className="px-6 py-2.5 rounded-xl bg-[#EE4266] hover:bg-[#d63a5b] text-white text-xs font-bold shadow-md transition-all active:scale-95 cursor-pointer"
               >
