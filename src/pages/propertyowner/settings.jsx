@@ -11,6 +11,7 @@ import {
 import { Building, UserCog, Shield, Globe, Lock, Check, Database, Download, Landmark, Eye, EyeOff, X, Loader2, Upload, FileCheck, Paperclip } from "lucide-react";
 import toast from "react-hot-toast";
 import { fetchJson, getApiBase, getAuthHeader } from "../../utils/api";
+import { compressImage } from "../../utils/imageCompression";
 
 function FieldRow({ label, value, masked, empty }) {
   const [show, setShow] = useState(false);
@@ -302,32 +303,10 @@ export default function Settings() {
   // request doesn't help. Phone-camera photos of a passbook routinely blow
   // past that, so shrink the image client-side rather than asking the owner
   // to do it themselves.
-  const compressImage = (file, maxDim, quality) => new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        let { width, height } = img;
-        if (width > maxDim || height > maxDim) {
-          const scale = maxDim / Math.max(width, height);
-          width = Math.round(width * scale);
-          height = Math.round(height * scale);
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-        canvas.toBlob((blob) => {
-          if (!blob) return reject(new Error('Compression failed'));
-          resolve(new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' }));
-        }, 'image/jpeg', quality);
-      };
-      img.onerror = () => reject(new Error('Could not read image'));
-      img.src = e.target.result;
-    };
-    reader.onerror = () => reject(new Error('Could not read file'));
-    reader.readAsDataURL(file);
-  });
+  // Shrink to a square bound, matching the previous local implementation:
+  // scale = maxDim / max(width, height), and never upscale.
+  const shrinkTo = (file, maxDim, quality) =>
+    compressImage(file, { maxWidth: maxDim, maxHeight: maxDim, quality });
 
   const uploadBankProof = async (file) => {
     if (!file) return;
@@ -337,16 +316,9 @@ export default function Settings() {
     }
     setBankProofUploading(true);
     try {
-      let uploadFile = file;
-      const TEN_MB = 10 * 1024 * 1024;
-      if (file.type.startsWith('image/') && file.size > TEN_MB) {
-        uploadFile = await compressImage(file, 1920, 0.8);
-        if (uploadFile.size > TEN_MB) {
-          uploadFile = await compressImage(file, 1280, 0.6);
-        }
-      }
+      const optimizedFile = await shrinkTo(file, 1920, 0.8);
       const data = new FormData();
-      data.append('image', uploadFile);
+      data.append('image', optimizedFile);
       const res = await fetch(`${getApiBase()}/api/upload`, {
         method: 'POST',
         body: data,

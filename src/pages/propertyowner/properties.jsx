@@ -1,3 +1,4 @@
+import { compressImage } from "../../utils/imageCompression";
 import React, { useEffect, useState } from "react";
 import { getApiBase, getAuthHeader, fetchJson } from "../../utils/api";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
@@ -491,8 +492,10 @@ function PropertyEditModal({ property, owner, apiBase, onClose, onSuccess }) {
     setUploadingImgs(true);
     const uploadedUrls = [];
     for (const file of files) {
+      // Resize/compress before upload — camera originals are 3-12MB.
+      const optimizedFile = await compressImage(file);
       const fd = new FormData();
-      fd.append("image", file);
+      fd.append("image", optimizedFile);
       try {
         const base = getApiBase();
         const res = await fetch(`${base}/api/upload`, {

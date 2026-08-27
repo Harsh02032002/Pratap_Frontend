@@ -1,3 +1,4 @@
+import { compressImage } from "../../utils/imageCompression";
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -100,27 +101,6 @@ const isPropertyRestricted = (p) => p?.status === "blocked" || p?.status === "re
 
 const readJson = (k, fb) => { try { const r = localStorage.getItem(k); return r ? JSON.parse(r) : fb; } catch { return fb; } };
 const writeJson = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { } };
-
-const compressImage = (file, maxWidth = 1200, quality = 0.75) =>
-  new Promise((resolve) => {
-    if (!file.type.startsWith("image/")) { resolve(file); return; }
-    const img = new Image();
-    img.src = URL.createObjectURL(file);
-    img.onload = () => {
-      const scale = Math.min(1, maxWidth / img.width);
-      const canvas = document.createElement("canvas");
-      canvas.width = img.width * scale;
-      canvas.height = img.height * scale;
-      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
-      URL.revokeObjectURL(img.src);
-      canvas.toBlob(
-        (blob) => resolve(new File([blob], file.name, { type: "image/jpeg" })),
-        "image/jpeg",
-        quality
-      );
-    };
-    img.onerror = () => resolve(file);
-  });
 
 export default function Rooms() {
   const location = useLocation();

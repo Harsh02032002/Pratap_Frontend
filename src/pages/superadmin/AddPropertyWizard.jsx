@@ -12,6 +12,7 @@ import { PROPERTY_TIERS, normalizeTierKey } from "../../utils/propertyTiers";
 import { toast } from "react-hot-toast";
 import { PageHeader } from "../../components/superadmin/PageHeader";
 import LocationMapPicker from "../../components/website/LocationMapPicker";
+import { compressImage } from "../../utils/imageCompression";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
@@ -470,8 +471,10 @@ export default function AddPropertyWizard({ propEditId, isModal, onClose }) {
     if (!files.length) return;
     toast.loading("Uploading...");
     for (const file of files) {
+      // Resize/compress before upload — camera originals are 3-12MB.
+      const optimizedFile = await compressImage(file);
       const data = new FormData();
-      data.append("image", file);
+      data.append("image", optimizedFile);
       try {
         const res = await fetch(`${apiUrl}/api/upload`, { 
           method: "POST", 
@@ -505,6 +508,8 @@ export default function AddPropertyWizard({ propEditId, isModal, onClose }) {
     if (!file) return;
     toast.loading("Uploading Video...");
     const data = new FormData();
+    // Video, not an image — deliberately NOT passed through compressImage.
+    // The field name is "image" only because the backend uses one upload field.
     data.append("image", file); // Backend uses "image" field for all uploads
     try {
       const res = await fetch(`${apiUrl}/api/upload`, { 

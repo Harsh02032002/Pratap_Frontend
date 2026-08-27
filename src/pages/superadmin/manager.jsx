@@ -1,3 +1,4 @@
+import { compressImage, PRESETS } from "../../utils/imageCompression";
 import React, { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { 
   Users, Shield, Clock, Search, ArrowUpRight, 
@@ -158,8 +159,10 @@ export default function Manager() {
 
   const handlePhotoUpload = async (file) => {
     if (!file) return;
+    // Avatars render small — the tighter AVATAR budget is plenty.
+    const optimizedFile = await compressImage(file, PRESETS.AVATAR);
     const formData = new FormData();
-    formData.append("profilePhoto", file);
+    formData.append("profilePhoto", optimizedFile);
     try {
       const base = getApiBase();
       const res = await fetch(`${base}/api/upload-profile-photo`, { 
