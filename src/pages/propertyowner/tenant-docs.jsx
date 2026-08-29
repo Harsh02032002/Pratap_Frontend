@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerTenants, clearOwnerFetchCache } from "../../utils/propertyowner";
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerTenants, fetchTenantKycRequests, fetchTenantKyc, clearOwnerFetchCache } from "../../utils/propertyowner";
 import { apiFetch } from "../../utils/api";
 import {
   Search, Download, Eye, ChevronLeft, ChevronRight
@@ -44,15 +44,15 @@ export default function TenantDocsPage() {
   const fetchDocs = async () => {
     try {
       setLoading(true);
-      const [all, kycReqRes] = await Promise.all([
+      const [all, kycRequests] = await Promise.all([
         fetchOwnerTenants(owner.loginId),
-        apiFetch(`/api/tenant-kyc-requests?ownerLoginId=${encodeURIComponent(owner.loginId)}`).catch(() => ({ data: [] })),
+        fetchTenantKycRequests(owner.loginId).catch(() => []),
       ]);
       // Tenants added without Aadhaar upload an alternate proof (Voter ID / PAN / Passport /
       // Driving License) through a separate TenantKycRequest record, not onto tenant.kyc —
       // it must be looked up and merged in here or that document never shows up at all.
       const kycReqByTenant = new Map(
-        (kycReqRes?.data || []).map(r => [String(r.tenantId?._id || r.tenantId), r])
+        kycRequests.map(r => [String(r.tenantId?._id || r.tenantId), r])
       );
 
       const baseList = (all || []).filter(t =>
@@ -66,19 +66,29 @@ export default function TenantDocsPage() {
         t.photo
       );
 
-      const merged = [];
-      for (const t of baseList) {
+      // KYC documents come from a per-tenant endpoint, so this is unavoidably one
+      // request per tenant. Awaiting them one at a time made the list wait for N
+      // round trips; running them in small batches cuts that to N/BATCH while
+      // keeping concurrency low enough not to swamp the backend. Promise.all
+      // preserves order within a batch, and batches are appended in order, so the
+      // resulting list matches baseList.
+      const BATCH_SIZE = 5;
+      const withKyc = async (t) => {
         const altKycRequest = kycReqByTenant.get(String(t._id)) || null;
         try {
-          const kycData = await apiFetch(`/api/tenants/${encodeURIComponent(t._id || t.loginId)}/kyc`);
+          const kycData = await fetchTenantKyc(t._id || t.loginId);
           if (kycData?.success) {
-            merged.push({ ...t, kyc: { ...(t.kyc || {}), ...(kycData.kyc || {}) }, kycStatus: kycData.kycStatus || t.kycStatus, altKycRequest });
-          } else {
-            merged.push({ ...t, altKycRequest });
+            return { ...t, kyc: { ...(t.kyc || {}), ...(kycData.kyc || {}) }, kycStatus: kycData.kycStatus || t.kycStatus, altKycRequest };
           }
         } catch {
-          merged.push({ ...t, altKycRequest });
+          // Fall through — show the row with whatever the tenant record already had.
         }
+        return { ...t, altKycRequest };
+      };
+
+      const merged = [];
+      for (let i = 0; i < baseList.length; i += BATCH_SIZE) {
+        merged.push(...await Promise.all(baseList.slice(i, i + BATCH_SIZE).map(withKyc)));
       }
 
       setTenants(merged);

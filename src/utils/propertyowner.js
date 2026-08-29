@@ -40,7 +40,8 @@ const _deleteByPrefix = (...prefixes) => {
 // name. One owner per browser session, so dropping every tenant key is both
 // correct and cheap.
 export const invalidateOwnerTenantCache = () => {
-  _deleteByPrefix("tenants_", "active_tenants_", "tenant_");
+  // "tenant_" also covers tenant_kyc_<id>.
+  _deleteByPrefix("tenants_", "active_tenants_", "tenant_", "kyc_requests_");
 };
 
 export const clearOwnerFetchCache = (loginId) => {
@@ -58,7 +59,11 @@ export const clearOwnerFetchCache = (loginId) => {
 // move-out approve/reject, check-in approve, reschedule, police verification and
 // ledger entries, none of which invalidated before.
 onApiMutation((_method, path) => {
-  if (/\/api\/tenants(\/|\?|$)/.test(path) || /\/api\/owners\/[^/]+\/tenants/.test(path)) {
+  if (
+    /\/api\/tenants(\/|\?|$)/.test(path) ||
+    /\/api\/owners\/[^/]+\/tenants/.test(path) ||
+    /\/api\/tenant-kyc-requests/.test(path)
+  ) {
     invalidateOwnerTenantCache();
   }
 });
@@ -103,6 +108,7 @@ export const fetchOwnerEmployees = async (ownerLoginId, { force = false, isActiv
 
 export const clearTenantDocCache = (tenantId) => {
   delete _fetchCache[`tenant_${tenantId}`];
+  delete _fetchCache[`tenant_kyc_${tenantId}`];
 };
 
 export const normalizeOwnerLoginId = (raw) => {
@@ -538,6 +544,37 @@ export const fetchTenantById = async (tenantId) => {
   const tenant = response?.tenant || response?.data || response || null;
   if (tenant) _setCached(_cacheKey, tenant);
   return tenant;
+};
+
+// ── Tenant document archive (tenant-docs page) ──────────────────────────────
+// Alternate ID proofs (Voter ID / PAN / Passport / DL) for tenants onboarded
+// without Aadhaar live on TenantKycRequest records rather than on tenant.kyc, so
+// the documents page has to pull this list as well as each tenant's KYC.
+
+export const fetchTenantKycRequests = async (ownerLoginId, skipCache = false) => {
+  const _cacheKey = `kyc_requests_${String(ownerLoginId || "").trim().toUpperCase()}`;
+  if (!skipCache) {
+    const _hit = _getCached(_cacheKey);
+    if (_hit) return _hit;
+  }
+  const response = await fetchJson(`/api/tenant-kyc-requests?ownerLoginId=${encodeURIComponent(ownerLoginId)}`);
+  const requests = response?.data || [];
+  _setCached(_cacheKey, requests);
+  return requests;
+};
+
+/** Per-tenant KYC document set. Only successful responses are cached, so a
+ *  transient failure never sticks around as a permanent blank row. */
+export const fetchTenantKyc = async (tenantId, skipCache = false) => {
+  if (!tenantId) return null;
+  const _cacheKey = `tenant_kyc_${tenantId}`;
+  if (!skipCache) {
+    const _hit = _getCached(_cacheKey);
+    if (_hit) return _hit;
+  }
+  const response = await fetchJson(`/api/tenants/${encodeURIComponent(tenantId)}/kyc`);
+  if (response?.success) _setCached(_cacheKey, response);
+  return response;
 };
 
 export const fetchActiveOwnerTenants = async (loginId) => {
