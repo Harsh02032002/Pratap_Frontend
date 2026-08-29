@@ -107,6 +107,51 @@ export const fetchOwnerEmployees = async (ownerLoginId, { force = false, isActiv
   }
 };
 
+/**
+ * Ids of the properties a staff member is assigned to.
+ *
+ * The field is `assignedProperties` (an ARRAY of Property refs). Existing
+ * callers only ever read element [0], which silently hid staff assigned to more
+ * than one property — this reads the whole array.
+ */
+export const staffAssignedPropertyIds = (staff) => {
+  const raw = Array.isArray(staff?.assignedProperties)
+    ? staff.assignedProperties
+    : (staff?.assignedProperty || staff?.assignedPropertyId ? [staff.assignedProperty || staff.assignedPropertyId] : []);
+  return raw.map((p) => String(p?._id || p?.id || p)).filter(Boolean);
+};
+
+/**
+ * Staff who may work at the given property.
+ *
+ * A Warden at one building was being offered every staff member the owner
+ * employed, across every property. This is what stops that.
+ *
+ * Rules:
+ *  - no property selected ("All Properties") → everyone
+ *  - staff assigned to this property → included
+ *  - staff assigned to NO property → included, treated as owner-level (an
+ *    Accountant or roving Manager is not tied to one building)
+ *  - staff assigned only to OTHER properties → excluded
+ *
+ * The backend enforces the same rule on assignment; this only keeps the UI
+ * honest. See controllers/maintenanceController.js assertStaffAllowedOnProperty.
+ *
+ * @param {Array} staffList
+ * @param {string} propertyId active property id, or "" / "all" for no filter
+ */
+export const filterStaffByProperty = (staffList, propertyId) => {
+  const list = Array.isArray(staffList) ? staffList : [];
+  const target = String(propertyId || '').trim();
+  if (!target || target === 'all') return list;
+
+  return list.filter((staff) => {
+    const assigned = staffAssignedPropertyIds(staff);
+    if (assigned.length === 0) return true; // owner-level staff
+    return assigned.includes(target);
+  });
+};
+
 export const clearTenantDocCache = (tenantId) => {
   delete _fetchCache[`tenant_${tenantId}`];
   delete _fetchCache[`tenant_kyc_${tenantId}`];

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerEmployees } from "../../utils/propertyowner";
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerEmployees, filterStaffByProperty, getActiveOwnerPropertyId } from "../../utils/propertyowner";
 import { fetchJson } from "../../utils/api";
 import { cacheGet, cacheSet, cacheInvalidate } from "../../utils/cache";
 import toast from "react-hot-toast";
@@ -49,12 +49,19 @@ export default function MaintenanceCalendarPage() {
     return false;
   };
 
+  // Active property scopes both the calendar and the staff dropdown, so a
+  // Warden at one building never sees another building's tasks or staff.
+  const activePropertyId = getActiveOwnerPropertyId();
+
   const fetchTasks = async () => {
-    const CACHE_KEY = `maintenance:${owner.loginId}`;
+    // Property is part of the cache key, or switching would replay the
+    // previous property's tasks.
+    const CACHE_KEY = `maintenance:${owner.loginId}:${activePropertyId || "all"}`;
     const cached = cacheGet(CACHE_KEY);
     if (cached) { setTasks(cached); setLoading(false); return; }
     try {
-      const data = await fetchJson(`/api/maintenance/owner/${owner.loginId}`);
+      const qs = activePropertyId ? `?propertyId=${encodeURIComponent(activePropertyId)}` : "";
+      const data = await fetchJson(`/api/maintenance/owner/${owner.loginId}${qs}`);
       const tasks = data?.tasks || [];
       setTasks(tasks);
       cacheSet(CACHE_KEY, tasks, 2 * 60 * 1000);
@@ -67,11 +74,12 @@ export default function MaintenanceCalendarPage() {
 
   const fetchStaffList = async ({ force = false } = {}) => {
     const staff = await fetchOwnerEmployees(owner.loginId, { force });
-    setStaffList(staff);
-    return staff;
+    const scoped = filterStaffByProperty(staff, activePropertyId);
+    setStaffList(scoped);
+    return scoped;
   };
 
-  useEffect(() => { fetchTasks(); fetchStaffList(); }, [owner.loginId]);
+  useEffect(() => { fetchTasks(); fetchStaffList(); }, [owner.loginId, activePropertyId]);
 
   // Calendar helpers
   const year = viewDate.getFullYear();
@@ -133,6 +141,7 @@ export default function MaintenanceCalendarPage() {
         method: "POST",
         body: JSON.stringify({
           ownerLoginId: owner.loginId,
+          propertyId: activePropertyId || null,
           title: form.title.trim(),
           scheduledDate: form.scheduledDate,
           frequency: form.frequency,
