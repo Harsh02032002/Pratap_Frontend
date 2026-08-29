@@ -105,6 +105,29 @@ export function parseApiError(err) {
   };
 }
 
+// ── Mutation hooks ───────────────────────────────────────────────────────────
+// Modules that keep their own caches register here so a write anywhere in the
+// app can bust them, instead of every page remembering to invalidate by hand.
+// The registry lives on this side because utils/propertyowner.js already imports
+// fetchJson — importing its invalidator back here would be a cycle.
+const _mutationHooks = new Set();
+
+/**
+ * Run `fn(method, path)` after every successful non-GET request.
+ * @returns {() => void} unsubscribe
+ */
+export const onApiMutation = (fn) => {
+  _mutationHooks.add(fn);
+  return () => _mutationHooks.delete(fn);
+};
+
+const _notifyMutation = (method, path) => {
+  for (const fn of _mutationHooks) {
+    // A misbehaving hook must never fail the request that triggered it.
+    try { fn(method, path); } catch (_) { /* ignore */ }
+  }
+};
+
 export const fetchJson = (path, options = {}) => {
   // `timeout` is a per-call override (ms) — pulled out so it isn't passed to fetch().
   const { timeout: timeoutMs = 12000, ...fetchOptions } = options;
@@ -150,6 +173,8 @@ export const fetchJson = (path, options = {}) => {
         }
         throw err;
       }
+      // 2xx on a write — let cache owners drop anything this may have changed.
+      if (hasBody) _notifyMutation(method, path);
       return res.json();
     } catch (err) {
       if (err.name === 'AbortError') {

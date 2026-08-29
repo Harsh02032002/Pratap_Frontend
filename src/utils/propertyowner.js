@@ -1,4 +1,4 @@
-import { fetchJson, getApiBase } from "./api";
+import { fetchJson, getApiBase, onApiMutation } from "./api";
 import { cacheGet, cacheSet, cacheInvalidate } from "./cache";
 import { getOwnerSession } from "./ownerSession";
 import { getStaffSession } from "./staffAccess";
@@ -30,22 +30,38 @@ const _CACHE_TTL = 3 * 60_000; // 3 minutes — reduces repeated layout property
 const _getCached = (key) => { const e = _fetchCache[key]; return e && Date.now() - e.ts < _CACHE_TTL ? e.data : null; };
 const _setCached = (key, data) => { _fetchCache[key] = { data, ts: Date.now() }; };
 
+const _deleteByPrefix = (...prefixes) => {
+  Object.keys(_fetchCache).forEach((k) => {
+    if (prefixes.some((prefix) => k.startsWith(prefix))) delete _fetchCache[k];
+  });
+};
+
+// Tenant keys carry an active-property suffix, so they can't be deleted by exact
+// name. One owner per browser session, so dropping every tenant key is both
+// correct and cheap.
+export const invalidateOwnerTenantCache = () => {
+  _deleteByPrefix("tenants_", "active_tenants_", "tenant_");
+};
+
 export const clearOwnerFetchCache = (loginId) => {
   const id = String(loginId || "").trim().toUpperCase();
   delete _fetchCache[`props_${id}_false`];
   delete _fetchCache[`props_${id}_true`];
   delete _fetchCache[`props_${loginId}_false`];
   delete _fetchCache[`props_${loginId}_true`];
-  delete _fetchCache[`tenants_${id}`];
-  delete _fetchCache[`tenants_${loginId}`];
-  delete _fetchCache[`active_tenants_${id}`];
-  delete _fetchCache[`active_tenants_${loginId}`];
-  Object.keys(_fetchCache).forEach(k => {
-    if (k.startsWith(`rooms_${id}`) || k.startsWith(`rooms_${loginId}`) || k.startsWith("rooms_prop_")) {
-      delete _fetchCache[k];
-    }
-  });
+  invalidateOwnerTenantCache();
+  _deleteByPrefix(`rooms_${id}`, `rooms_${loginId}`, "rooms_prop_");
 };
+
+// Any successful write to a tenant endpoint drops the cached tenant lists. Pages
+// that mutate tenants no longer have to remember to invalidate — this covers
+// move-out approve/reject, check-in approve, reschedule, police verification and
+// ledger entries, none of which invalidated before.
+onApiMutation((_method, path) => {
+  if (/\/api\/tenants(\/|\?|$)/.test(path) || /\/api\/owners\/[^/]+\/tenants/.test(path)) {
+    invalidateOwnerTenantCache();
+  }
+});
 
 const EMPLOYEE_CACHE_TTL = 3 * 60 * 1000;
 
@@ -468,8 +484,15 @@ export const addElectricityReading = async (roomId, payload) => {
   });
 };
 
-export const fetchOwnerTenants = async (loginId, skipCache = true) => {
-  const _cacheKey = `tenants_${loginId}`;
+// The cached value is already narrowed by filterByActiveProperty, so the key has
+// to carry the property it was scoped to — otherwise switching property serves
+// the previous one's tenants. Login id is normalised so two callers passing
+// different casing don't each fetch their own copy.
+const _tenantCacheKey = (loginId) =>
+  `tenants_${String(loginId || "").trim().toUpperCase()}_${getActiveOwnerPropertyId() || "all"}`;
+
+export const fetchOwnerTenants = async (loginId, skipCache = false) => {
+  const _cacheKey = _tenantCacheKey(loginId);
   if (!skipCache) {
     const _hit = _getCached(_cacheKey);
     if (_hit) return _hit;
@@ -518,7 +541,7 @@ export const fetchTenantById = async (tenantId) => {
 };
 
 export const fetchActiveOwnerTenants = async (loginId) => {
-  const _cacheKey = `active_tenants_${loginId}`;
+  const _cacheKey = `active_${_tenantCacheKey(loginId)}`;
   const _hit = _getCached(_cacheKey);
   if (_hit) return _hit;
   const all = await fetchOwnerTenants(loginId);
