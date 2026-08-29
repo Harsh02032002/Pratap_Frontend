@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { X, MapPin, Zap, Send, Loader, Info, Shield, Locate, Lock, CheckCircle, AlertTriangle, ChevronDown, Wallet } from 'lucide-react';
-import { fetchCities, fetchAreas, fetchJson } from '../../utils/api';
+import { fetchCities, fetchAreas, fetchJson, resolvePropertyOwnerLoginId } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import LocationMapPicker from './LocationMapPicker';
@@ -255,14 +255,7 @@ export default function FastBiddingModal({ isOpen, onClose, initialData = {} }) 
       .map((prop, index) => {
         const propInfo = prop.propertyInfo || {};
         const propertyId = prop._id || prop.propertyNumber || `property-${index}`;
-        const ownerId =
-          (prop.generatedCredentials && prop.generatedCredentials.loginId) ||
-          prop.ownerLoginId ||
-          prop.createdBy ||
-          prop.owner ||
-          prop.propertyOwnerId ||
-          prop.owner_id;
-
+        const ownerId = resolvePropertyOwnerLoginId(prop);
         if (!ownerId) return null;
 
         const resolvedCity = form.city || prop.city || propInfo.city || '';

@@ -5,7 +5,7 @@ import * as LucideIcons from "lucide-react";
 const { Filter, MapPin, Wallet, Home, Users, TrendingUp, Send, RefreshCw, ChevronLeft, ChevronRight, Building2, BookOpen, Star, Check, Phone, Wifi, Utensils, Car, Dumbbell, Tv, Wind, Droplets, Zap, X, Menu, Heart, ChevronDown, Clock, Shirt, Cctv, Video, Waves, Fan, Shield, Search, Bed } = LucideIcons;
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, Link, useNavigate, useParams, useLocation } from "react-router-dom";
-import { fetchProperties, searchPropertiesByLocation, getNearbyAreas, getInstitutions, getPriceRangeByType, trackPropertyClick, getApiBase, fetchJson } from "../../utils/api";
+import { fetchProperties, searchPropertiesByLocation, getNearbyAreas, getInstitutions, getPriceRangeByType, trackPropertyClick, getApiBase, fetchJson, resolvePropertyOwnerLoginId } from "../../utils/api";
 import FastBiddingModal from "../../components/website/FastBiddingModal";
 import QuickBookingModal from "../../components/website/QuickBookingModal";
 import { useAuth } from "../../contexts/AuthContext";
@@ -383,7 +383,11 @@ export default function OurPropertyPage() {
     } catch (_) {}
 
     const targetProp = selectedPropertyForDirectBook || {};
-    const ownerId = targetProp.generatedCredentials?.loginId || targetProp.ownerLoginId || targetProp.owner_id || targetProp.owner || targetProp.createdBy || targetProp.propertyOwnerId || '';
+    const ownerId = resolvePropertyOwnerLoginId(targetProp);
+    // An unattached booking is invisible in every owner panel, so refuse it.
+    if (!ownerId) {
+      throw new Error('This property has no owner assigned yet, so the request cannot be sent. Please contact Roomhy support.');
+    }
 
     const payload = {
       property_id: targetProp._id || targetProp.id || bookingData.propertyId,

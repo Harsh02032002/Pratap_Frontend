@@ -4,6 +4,7 @@ import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLay
 import { getOwnerRuntimeSession, clearOwnerRuntimeSession, filterByActiveProperty } from "../../utils/propertyowner";
 import { fetchJson } from "../../utils/api";
 import { cacheGet, cacheSet, cacheInvalidate } from "../../utils/cache";
+import { useOwnerLiveUpdates } from "../../hooks/useOwnerLiveUpdates";
 
 const BOOKING_TTL = 2 * 60 * 1000; // 2 minutes
 import { 
@@ -58,6 +59,11 @@ export default function BookingRequestPage() {
   React.useEffect(() => {
     fetchRequests();
   }, [fetchRequests]);
+
+  // A booking made on the website lands here without the owner refreshing.
+  // bustCache is on because the point is to pick up a record the cached list
+  // cannot contain yet.
+  useOwnerLiveUpdates(owner.loginId, { onUpdate: () => fetchRequests(true) });
 
   const handleAction = async (id, action) => {
     setProcessingId(id);

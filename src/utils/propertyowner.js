@@ -2,6 +2,7 @@ import { fetchJson, getApiBase, onApiMutation } from "./api";
 import { cacheGet, cacheSet, cacheInvalidate } from "./cache";
 import { getOwnerSession } from "./ownerSession";
 import { getStaffSession } from "./staffAccess";
+import { stripTieredPropertyName } from "./propertyTiers";
 
 const OWNER_LOGIN_ID_REGEX = /^ROOMHY\d{4,}$/i;
 const WEBSITE_USER_ID_REGEX = /^roomhyweb\d{6}$/i;
@@ -183,37 +184,54 @@ export const filterByActiveProperty = (list, isProperty = false) => {
 
   if (targetPropertyId) {
     const targetStr = String(targetPropertyId).trim().toLowerCase();
-    
-    // Resolve property title if targetPropertyId is an ObjectId
-    let targetTitle = '';
+    const key = (value) => String(value || '').trim().toLowerCase();
+
+    // Every spelling of "this property" that a linked record might carry.
+    //
+    // Two of them are not obvious. The website renders a tiered display name
+    // ("ROOMHYPROP CREST Rajnesh Hostel") and posts THAT on bookings and
+    // enquiries, while the owner panel holds the plain title ("Rajnesh Hostel"),
+    // so both forms have to be in the set. And a website property is keyed by
+    // visitId where the owner panel uses _id, so the alternate ids belong here
+    // too. Comparing against only (_id, title) is what made website leads vanish
+    // the moment the owner switched off "All Properties".
+    const targetKeys = new Set([targetStr, key(stripTieredPropertyName(targetStr))]);
     try {
       const savedProps = readJson('roomhy_properties', []);
       if (Array.isArray(savedProps)) {
-        const targetObj = savedProps.find(p => String(p._id || p.id || '').trim().toLowerCase() === targetStr || String(p.title || p.name || '').trim().toLowerCase() === targetStr);
+        const targetObj = savedProps.find(p =>
+          key(p._id) === targetStr || key(p.id) === targetStr ||
+          key(p.title) === targetStr || key(p.name) === targetStr
+        );
         if (targetObj) {
-          targetTitle = String(targetObj.title || targetObj.name || '').trim().toLowerCase();
+          [targetObj._id, targetObj.id, targetObj.visitId, targetObj.propertyId, targetObj.property_id]
+            .forEach(v => { if (key(v)) targetKeys.add(key(v)); });
+          [targetObj.title, targetObj.name, targetObj.property_name, targetObj.propertyName]
+            .forEach(v => {
+              if (key(v)) targetKeys.add(key(v));
+              if (key(stripTieredPropertyName(v))) targetKeys.add(key(stripTieredPropertyName(v)));
+            });
         }
       }
     } catch (_) {}
+    targetKeys.delete('');
 
     const filtered = list.filter(item => {
       if (!item) return false;
       if (isProperty) {
-        const itemPropId = String(item._id || item.id || '').trim().toLowerCase();
-        const itemTitle = String(item.title || item.name || '').trim().toLowerCase();
-        return itemPropId === targetStr || itemTitle === targetStr || (targetTitle && itemTitle === targetTitle);
+        const itemTitle = item.title || item.name;
+        return [item._id, item.id, itemTitle, stripTieredPropertyName(itemTitle)]
+          .some(v => key(v) && targetKeys.has(key(v)));
       }
-      
+
       // For items linked to a property (rooms, tenants, enquiries, booking requests, etc.)
-      const pId = String(item.property?._id || item.property?.id || item.property || item.propertyId || item.property_id || '').trim().toLowerCase();
-      const pName = String(item.propertyName || item.property_name || item.propertyTitle || item.title || item.propertyInfo?.name || item.propertyInfo?.title || '').trim().toLowerCase();
+      const pId = item.property?._id || item.property?.id || item.property || item.propertyId || item.property_id;
+      const pName = item.propertyName || item.property_name || item.propertyTitle || item.title || item.propertyInfo?.name || item.propertyInfo?.title;
 
-      const matchesId = Boolean(pId && (pId === targetStr || (targetTitle && pId === targetTitle)));
-      const matchesName = Boolean(pName && (pName === targetStr || (targetTitle && pName === targetTitle)));
-
-      return matchesId || matchesName;
+      return [pId, pName, stripTieredPropertyName(pName)]
+        .some(v => key(v) && targetKeys.has(key(v)));
     });
-    
+
     // Always return exact filtered list when a specific property is selected
     return filtered;
   }

@@ -927,6 +927,39 @@ export const submitEnquiry = async (formData) => {
   });
 };
 
+// The owner's login id sits in different places depending on how the property was
+// created: superadmin mints it into generatedCredentials.loginId when it approves
+// a visit, while older or imported records carry it at the top level. Every
+// website booking submitter has to resolve it identically — three separate copies
+// of this list is exactly how the property details page ended up posting
+// owner_id: undefined, producing leads that no owner panel could ever query.
+const OWNER_LOGIN_ID_SOURCES = [
+  (p) => p?.generatedCredentials?.loginId,
+  (p) => p?.ownerLoginId,
+  (p) => p?.owner_login_id,
+  (p) => p?.owner_id,
+  (p) => p?.ownerId,
+  (p) => p?.createdBy,
+  (p) => p?.owner,
+  (p) => p?.propertyOwnerId,
+];
+
+/**
+ * Resolve the owner login id a property belongs to.
+ * @returns {string} the id, or "" when the property carries no owner at all.
+ */
+export const resolvePropertyOwnerLoginId = (property) => {
+  for (const pick of OWNER_LOGIN_ID_SOURCES) {
+    let value;
+    try { value = pick(property); } catch (_) { continue; }
+    // A populated owner ref arrives as an object rather than a string.
+    if (value && typeof value === "object") value = value.loginId || value._id || value.id;
+    const id = String(value ?? "").trim();
+    if (id && id !== "undefined" && id !== "null") return id;
+  }
+  return "";
+};
+
 // Submit bid
 export const submitBid = async (bidData) => {
   return fetchJson('/api/booking/create', {

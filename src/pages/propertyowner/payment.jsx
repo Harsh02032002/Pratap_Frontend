@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchJson } from "../../utils/api";
+import { fetchJson, getApiBase } from "../../utils/api";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
 import { Send, Plus, Search, Wallet, CheckCircle2, Clock, AlertTriangle, Phone, MessageCircle, RefreshCw, X, Receipt, Smartphone, CreditCard, Banknote, FileText, Printer } from "lucide-react";
 import { RentReceiptModal } from "../../components/propertyowner/RentReceiptModal";
@@ -427,7 +427,9 @@ export default function Payment() {
     if (!owner?.loginId) return;
 
     // Connect to the generic owner event stream
-    const sse = new EventSource(`${import.meta.env.VITE_API_BASE_URL || ''}/api/owners/${owner.loginId}/stream`);
+    // getApiBase() is what the rest of the app uses; VITE_API_BASE_URL is defined
+    // nowhere in this codebase, so this URL was silently falling back to same-origin.
+    const sse = new EventSource(`${getApiBase()}/api/owners/${owner.loginId}/stream`);
 
     sse.addEventListener('CASH_REQUEST_NEW', (e) => {
       try {
