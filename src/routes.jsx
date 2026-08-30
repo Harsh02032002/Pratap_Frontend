@@ -345,6 +345,8 @@ const routeEntries = [
   ["/faq", "./pages/website/FAQPage.jsx"],
   ["/privacy-policy", "./pages/website/WebsitePrivacy.jsx"],
   ["/terms-and-conditions", "./pages/website/WebsiteTerms.jsx"],
+  ["/bidding", "./pages/website/OurPropertyPage.jsx"],
+  ["/website/bidding", "./pages/website/OurPropertyPage.jsx"],
   ["/fast-bidding", "./pages/website/FastBiddingPage.jsx"],
   ["/my-stays", "./pages/website/WebsiteMystays.jsx"],
   ["/refund-request", "./pages/website/WebsiteRefundRequest.jsx"],
