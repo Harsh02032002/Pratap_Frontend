@@ -4,6 +4,7 @@ import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLay
 import { fetchJson, getApiBase, getAuthHeader } from '../../utils/api';
 import { clearOwnerFetchCache, clearOwnerRuntimeSession, getOwnerRuntimeSession } from "../../utils/propertyowner";
 import LocationMapPicker from '../../components/website/LocationMapPicker';
+import { compressImage } from "../../utils/imageCompression";
 
 export default function AddPropertyWizard() {
   const owner = getOwnerRuntimeSession();
@@ -66,8 +67,10 @@ export default function AddPropertyWizard() {
     try {
       const uploadedUrls = [];
       for (const file of Array.from(files)) {
+        // Resize/compress before upload — camera originals are 3-12MB.
+        const optimizedFile = await compressImage(file);
         const data = new FormData();
-        data.append('image', file);
+        data.append('image', optimizedFile);
 
         const base = getApiBase();
         const res = await fetch(`${base}/api/upload`, {

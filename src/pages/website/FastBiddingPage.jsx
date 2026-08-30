@@ -3,7 +3,7 @@ import { Zap, ArrowLeft, Send, Loader, CheckCircle, Shield, Info } from 'lucide-
 import WebsiteNavbar from "../../components/website/WebsiteNavbar";
 import WebsiteFooter from "../../components/website/WebsiteFooter";
 import MobileBottomNav from "../../components/website/MobileBottomNav";
-import { fetchCities, fetchAreas, fetchProperties } from '../../utils/api';
+import { fetchCities, fetchAreas, fetchProperties, resolvePropertyOwnerLoginId } from '../../utils/api';
 import { getWebsiteUser, getWebsiteUserId, getWebsiteUserName, getWebsiteUserEmail, isWebsiteLoggedIn } from '../../utils/websiteSession';
 
 const defaultCities = [
@@ -266,13 +266,7 @@ export default function FastBiddingPage() {
     for (const [index, property] of properties.entries()) {
       try {
         const propertyId = property._id || property.propertyNumber || property.propertyId || `${property.property_name || property.propertyInfo?.name || 'property'}-${index}`;
-        const ownerId =
-          (property.generatedCredentials && property.generatedCredentials.loginId) ||
-          property.ownerLoginId ||
-          property.createdBy ||
-          property.owner ||
-          property.propertyOwnerId;
-
+        const ownerId = resolvePropertyOwnerLoginId(property);
         if (!ownerId) continue;
 
         const bidData = {

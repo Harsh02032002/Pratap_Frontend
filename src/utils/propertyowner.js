@@ -1,7 +1,8 @@
-import { fetchJson, getApiBase } from "./api";
+import { fetchJson, getApiBase, onApiMutation } from "./api";
 import { cacheGet, cacheSet, cacheInvalidate } from "./cache";
 import { getOwnerSession } from "./ownerSession";
 import { getStaffSession } from "./staffAccess";
+import { stripTieredPropertyName } from "./propertyTiers";
 
 const OWNER_LOGIN_ID_REGEX = /^(ROOMHY\d+|\d{10}|\d{3,6}|[a-zA-Z0-9_\-\.]+)/i;
 
@@ -35,22 +36,43 @@ const _CACHE_TTL = 3 * 60_000; // 3 minutes — reduces repeated layout property
 const _getCached = (key) => { const e = _fetchCache[key]; return e && Date.now() - e.ts < _CACHE_TTL ? e.data : null; };
 const _setCached = (key, data) => { _fetchCache[key] = { data, ts: Date.now() }; };
 
+const _deleteByPrefix = (...prefixes) => {
+  Object.keys(_fetchCache).forEach((k) => {
+    if (prefixes.some((prefix) => k.startsWith(prefix))) delete _fetchCache[k];
+  });
+};
+
+// Tenant keys carry an active-property suffix, so they can't be deleted by exact
+// name. One owner per browser session, so dropping every tenant key is both
+// correct and cheap.
+export const invalidateOwnerTenantCache = () => {
+  // "tenant_" also covers tenant_kyc_<id>.
+  _deleteByPrefix("tenants_", "active_tenants_", "tenant_", "kyc_requests_");
+};
+
 export const clearOwnerFetchCache = (loginId) => {
   const id = String(loginId || "").trim().toUpperCase();
   delete _fetchCache[`props_${id}_false`];
   delete _fetchCache[`props_${id}_true`];
   delete _fetchCache[`props_${loginId}_false`];
   delete _fetchCache[`props_${loginId}_true`];
-  delete _fetchCache[`tenants_${id}`];
-  delete _fetchCache[`tenants_${loginId}`];
-  delete _fetchCache[`active_tenants_${id}`];
-  delete _fetchCache[`active_tenants_${loginId}`];
-  Object.keys(_fetchCache).forEach(k => {
-    if (k.startsWith(`rooms_${id}`) || k.startsWith(`rooms_${loginId}`) || k.startsWith("rooms_prop_")) {
-      delete _fetchCache[k];
-    }
-  });
+  invalidateOwnerTenantCache();
+  _deleteByPrefix(`rooms_${id}`, `rooms_${loginId}`, "rooms_prop_");
 };
+
+// Any successful write to a tenant endpoint drops the cached tenant lists. Pages
+// that mutate tenants no longer have to remember to invalidate — this covers
+// move-out approve/reject, check-in approve, reschedule, police verification and
+// ledger entries, none of which invalidated before.
+onApiMutation((_method, path) => {
+  if (
+    /\/api\/tenants(\/|\?|$)/.test(path) ||
+    /\/api\/owners\/[^/]+\/tenants/.test(path) ||
+    /\/api\/tenant-kyc-requests/.test(path)
+  ) {
+    invalidateOwnerTenantCache();
+  }
+});
 
 const EMPLOYEE_CACHE_TTL = 3 * 60 * 1000;
 
@@ -92,6 +114,7 @@ export const fetchOwnerEmployees = async (ownerLoginId, { force = false, isActiv
 
 export const clearTenantDocCache = (tenantId) => {
   delete _fetchCache[`tenant_${tenantId}`];
+  delete _fetchCache[`tenant_kyc_${tenantId}`];
 };
 
 
@@ -162,37 +185,54 @@ export const filterByActiveProperty = (list, isProperty = false) => {
 
   if (targetPropertyId) {
     const targetStr = String(targetPropertyId).trim().toLowerCase();
-    
-    // Resolve property title if targetPropertyId is an ObjectId
-    let targetTitle = '';
+    const key = (value) => String(value || '').trim().toLowerCase();
+
+    // Every spelling of "this property" that a linked record might carry.
+    //
+    // Two of them are not obvious. The website renders a tiered display name
+    // ("ROOMHYPROP CREST Rajnesh Hostel") and posts THAT on bookings and
+    // enquiries, while the owner panel holds the plain title ("Rajnesh Hostel"),
+    // so both forms have to be in the set. And a website property is keyed by
+    // visitId where the owner panel uses _id, so the alternate ids belong here
+    // too. Comparing against only (_id, title) is what made website leads vanish
+    // the moment the owner switched off "All Properties".
+    const targetKeys = new Set([targetStr, key(stripTieredPropertyName(targetStr))]);
     try {
       const savedProps = readJson('roomhy_properties', []);
       if (Array.isArray(savedProps)) {
-        const targetObj = savedProps.find(p => String(p._id || p.id || '').trim().toLowerCase() === targetStr || String(p.title || p.name || '').trim().toLowerCase() === targetStr);
+        const targetObj = savedProps.find(p =>
+          key(p._id) === targetStr || key(p.id) === targetStr ||
+          key(p.title) === targetStr || key(p.name) === targetStr
+        );
         if (targetObj) {
-          targetTitle = String(targetObj.title || targetObj.name || '').trim().toLowerCase();
+          [targetObj._id, targetObj.id, targetObj.visitId, targetObj.propertyId, targetObj.property_id]
+            .forEach(v => { if (key(v)) targetKeys.add(key(v)); });
+          [targetObj.title, targetObj.name, targetObj.property_name, targetObj.propertyName]
+            .forEach(v => {
+              if (key(v)) targetKeys.add(key(v));
+              if (key(stripTieredPropertyName(v))) targetKeys.add(key(stripTieredPropertyName(v)));
+            });
         }
       }
     } catch (_) {}
+    targetKeys.delete('');
 
     const filtered = list.filter(item => {
       if (!item) return false;
       if (isProperty) {
-        const itemPropId = String(item._id || item.id || '').trim().toLowerCase();
-        const itemTitle = String(item.title || item.name || '').trim().toLowerCase();
-        return itemPropId === targetStr || itemTitle === targetStr || (targetTitle && itemTitle === targetTitle);
+        const itemTitle = item.title || item.name;
+        return [item._id, item.id, itemTitle, stripTieredPropertyName(itemTitle)]
+          .some(v => key(v) && targetKeys.has(key(v)));
       }
-      
+
       // For items linked to a property (rooms, tenants, enquiries, booking requests, etc.)
-      const pId = String(item.property?._id || item.property?.id || item.property || item.propertyId || item.property_id || '').trim().toLowerCase();
-      const pName = String(item.propertyName || item.property_name || item.propertyTitle || item.title || item.propertyInfo?.name || item.propertyInfo?.title || '').trim().toLowerCase();
+      const pId = item.property?._id || item.property?.id || item.property || item.propertyId || item.property_id;
+      const pName = item.propertyName || item.property_name || item.propertyTitle || item.title || item.propertyInfo?.name || item.propertyInfo?.title;
 
-      const matchesId = Boolean(pId && (pId === targetStr || (targetTitle && pId === targetTitle)));
-      const matchesName = Boolean(pName && (pName === targetStr || (targetTitle && pName === targetTitle)));
-
-      return matchesId || matchesName;
+      return [pId, pName, stripTieredPropertyName(pName)]
+        .some(v => key(v) && targetKeys.has(key(v)));
     });
-    
+
     // Always return exact filtered list when a specific property is selected
     return filtered;
   }
@@ -469,8 +509,15 @@ export const addElectricityReading = async (roomId, payload) => {
   });
 };
 
-export const fetchOwnerTenants = async (loginId, skipCache = true) => {
-  const _cacheKey = `tenants_${loginId}`;
+// The cached value is already narrowed by filterByActiveProperty, so the key has
+// to carry the property it was scoped to — otherwise switching property serves
+// the previous one's tenants. Login id is normalised so two callers passing
+// different casing don't each fetch their own copy.
+const _tenantCacheKey = (loginId) =>
+  `tenants_${String(loginId || "").trim().toUpperCase()}_${getActiveOwnerPropertyId() || "all"}`;
+
+export const fetchOwnerTenants = async (loginId, skipCache = false) => {
+  const _cacheKey = _tenantCacheKey(loginId);
   if (!skipCache) {
     const _hit = _getCached(_cacheKey);
     if (_hit) return _hit;
@@ -518,8 +565,39 @@ export const fetchTenantById = async (tenantId) => {
   return tenant;
 };
 
+// ── Tenant document archive (tenant-docs page) ──────────────────────────────
+// Alternate ID proofs (Voter ID / PAN / Passport / DL) for tenants onboarded
+// without Aadhaar live on TenantKycRequest records rather than on tenant.kyc, so
+// the documents page has to pull this list as well as each tenant's KYC.
+
+export const fetchTenantKycRequests = async (ownerLoginId, skipCache = false) => {
+  const _cacheKey = `kyc_requests_${String(ownerLoginId || "").trim().toUpperCase()}`;
+  if (!skipCache) {
+    const _hit = _getCached(_cacheKey);
+    if (_hit) return _hit;
+  }
+  const response = await fetchJson(`/api/tenant-kyc-requests?ownerLoginId=${encodeURIComponent(ownerLoginId)}`);
+  const requests = response?.data || [];
+  _setCached(_cacheKey, requests);
+  return requests;
+};
+
+/** Per-tenant KYC document set. Only successful responses are cached, so a
+ *  transient failure never sticks around as a permanent blank row. */
+export const fetchTenantKyc = async (tenantId, skipCache = false) => {
+  if (!tenantId) return null;
+  const _cacheKey = `tenant_kyc_${tenantId}`;
+  if (!skipCache) {
+    const _hit = _getCached(_cacheKey);
+    if (_hit) return _hit;
+  }
+  const response = await fetchJson(`/api/tenants/${encodeURIComponent(tenantId)}/kyc`);
+  if (response?.success) _setCached(_cacheKey, response);
+  return response;
+};
+
 export const fetchActiveOwnerTenants = async (loginId) => {
-  const _cacheKey = `active_tenants_${loginId}`;
+  const _cacheKey = `active_${_tenantCacheKey(loginId)}`;
   const _hit = _getCached(_cacheKey);
   if (_hit) return _hit;
   const all = await fetchOwnerTenants(loginId);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { X, MapPin, Zap, Send, Loader, Info, Shield, CheckCircle, AlertTriangle, ChevronDown, Wallet, Building2, Home, Users, Bed, Check, Search, Star, Wind, Utensils, Tv, Filter, RefreshCw } from 'lucide-react';
-import { fetchCities, fetchProperties, fetchJson, getPropertyDetailsUrl, getApiBase } from '../../utils/api';
+import { fetchCities, fetchProperties, fetchJson, getPropertyDetailsUrl, getApiBase, resolvePropertyOwnerLoginId } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 
@@ -106,7 +106,7 @@ export default function FastBiddingModal({ isOpen, onClose, initialData = {} }) 
       const bidRequests = filteredProperties.slice(0, 15).map((prop, index) => {
         const propInfo = prop.propertyInfo || {};
         const propertyId = prop._id || prop.id || prop.visitId || `property-${index}`;
-        const ownerId = (prop.generatedCredentials && prop.generatedCredentials.loginId) || prop.ownerLoginId || propInfo.ownerLoginId || 'admin';
+        const ownerId = resolvePropertyOwnerLoginId(prop) || (prop.generatedCredentials && prop.generatedCredentials.loginId) || prop.ownerLoginId || propInfo.ownerLoginId || 'admin';
 
         return fetchJson(`${getApiBase()}/api/bids/create`, {
           method: 'POST',

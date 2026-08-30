@@ -13,6 +13,7 @@ import { toast } from "react-hot-toast";
 import { getApiBase, getAuthHeader } from "../../utils/api";
 import LocationMapPicker from "../../components/website/LocationMapPicker";
 import WebsitePropertyPreviewModal from "../../components/shared/WebsitePropertyPreviewModal";
+import { compressImage } from "../../utils/imageCompression";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
@@ -622,8 +623,10 @@ function AddPropertyView({ onBack, apiUrl, editId }) {
     setUploadingGlobal(true);
     const uploadedUrls = [];
     for (const file of files) {
+      // Resize/compress before upload — camera originals are 3-12MB.
+      const optimizedFile = await compressImage(file);
       const data = new FormData();
-      data.append("image", file);
+      data.append("image", optimizedFile);
       try {
         const res = await fetch(`${apiUrl}/api/upload`, { method: "POST", headers: getAuthHeader(), body: data });
         const json = await res.json();
@@ -642,8 +645,10 @@ function AddPropertyView({ onBack, apiUrl, editId }) {
     setPropertyViews(newViews);
     const uploadedUrls = [];
     for (const file of files) {
+      // Resize/compress before upload — camera originals are 3-12MB.
+      const optimizedFile = await compressImage(file);
       const data = new FormData();
-      data.append("image", file);
+      data.append("image", optimizedFile);
       try {
         const res = await fetch(`${apiUrl}/api/upload`, { method: "POST", headers: getAuthHeader(), body: data });
         const json = await res.json();

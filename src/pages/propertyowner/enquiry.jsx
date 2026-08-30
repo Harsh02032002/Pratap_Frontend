@@ -3,6 +3,7 @@ import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLay
 import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerProperties, filterByActiveProperty } from "../../utils/propertyowner";
 import { apiFetch } from "../../utils/api";
 import { cacheGet, cacheSet, cacheInvalidate } from "../../utils/cache";
+import { useOwnerLiveUpdates } from "../../hooks/useOwnerLiveUpdates";
 import { 
   Search, Plus, Phone, MessageCircle, X, Mail, MapPin, Loader2, Trash2, Users, 
   TrendingUp, CalendarCheck, BookOpen, Check, MessageSquare, Wallet, Building2, AlertTriangle
@@ -77,6 +78,12 @@ export default function Enquiry() {
   useEffect(() => {
     loadData();
   }, [owner.loginId]);
+
+  // A website lead shows up here without the owner refreshing. silent:true keeps
+  // the list on screen while it re-fetches, so nothing flickers.
+  useOwnerLiveUpdates(owner.loginId, {
+    onUpdate: () => { cacheInvalidate(`enquiries:${owner.loginId}`); loadData({ silent: true }); },
+  });
 
   const handleAddLead = async (e) => {
     e.preventDefault();

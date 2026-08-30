@@ -9,29 +9,9 @@ import {
 import { fetchJson, getApiBase, getAuthHeader } from "../../utils/api";
 import { PageHeader } from "../../components/superadmin/PageHeader";
 import toast from "react-hot-toast";
+import { compressImage } from "../../utils/imageCompression";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
-
-const compressImage = (file, maxWidth = 1200, quality = 0.75) =>
-  new Promise((resolve) => {
-    if (!file.type.startsWith("image/")) { resolve(file); return; }
-    const img = new Image();
-    img.src = URL.createObjectURL(file);
-    img.onload = () => {
-      const scale = Math.min(1, maxWidth / img.width);
-      const canvas = document.createElement("canvas");
-      canvas.width = img.width * scale;
-      canvas.height = img.height * scale;
-      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
-      URL.revokeObjectURL(img.src);
-      canvas.toBlob(
-        (blob) => resolve(new File([blob], file.name, { type: "image/jpeg" })),
-        "image/jpeg",
-        quality
-      );
-    };
-    img.onerror = () => resolve(file);
-  });
 
 export default function RoomsManagement() {
   const [rooms, setRooms] = useState([]);

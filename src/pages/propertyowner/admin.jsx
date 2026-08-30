@@ -117,6 +117,7 @@ export default function Admin() {
   const [tenantsCount, setTenantsCount] = useState(0);
   const [rentTotal, setRentTotal] = useState(0);
   const [enquiries, setEnquiries] = useState([]);
+  const [websiteLeads, setWebsiteLeads] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [changeRequests, setChangeRequests] = useState([]);
   const [propertiesCount, setPropertiesCount] = useState(0);
@@ -169,6 +170,7 @@ export default function Admin() {
         setComplaints(cached.complaints);
         setRentTotal(cached.rentTotal);
         setEnquiries(cached.enquiries);
+        setWebsiteLeads(cached.websiteLeads || []);
         setNotifications(cached.notifications);
         setLoading(false);
         // Always background-refresh to ensure data is correct & not stale
@@ -191,6 +193,10 @@ export default function Admin() {
 
       const filteredRooms = filterByActiveProperty(dashRes?.rooms || [], false);
       const allEnquiries = filterByActiveProperty(Array.isArray(dashRes?.enquiries) ? dashRes.enquiries : [], false);
+      // Direct bookings and bids from the website. The backend returns them
+      // separately from `enquiries` on purpose — that array feeds the rent total,
+      // so booking amounts must not land in it.
+      const allWebsiteLeads = filterByActiveProperty(Array.isArray(dashRes?.websiteLeads) ? dashRes.websiteLeads : [], false);
       const filteredTenants = filterByActiveProperty(Array.isArray(dashRes?.tenants) ? dashRes.tenants : [], false);
 
       const computedRent = allEnquiries
@@ -216,6 +222,7 @@ export default function Admin() {
       setComplaints(allComplaints);
       setRentTotal(rentTotal);
       setEnquiries(allEnquiries);
+      setWebsiteLeads(allWebsiteLeads);
       setNotifications(allNotifications);
 
       // Persist fresh data to cache for next visit
@@ -229,6 +236,7 @@ export default function Admin() {
         complaints: allComplaints,
         rentTotal,
         enquiries: allEnquiries,
+        websiteLeads: allWebsiteLeads,
         notifications: allNotifications,
       });
     } catch (err) {
@@ -368,8 +376,12 @@ export default function Admin() {
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
 
-  const newLeadsCount = enquiries.filter(e => !e.status || String(e.status).toLowerCase() === 'pending').length;
-  const bookingsCount = enquiries.filter(e => ['approved', 'accepted', 'active'].includes(String(e.status).toLowerCase())).length;
+  // Every lead the owner has, panel-created and website alike. Kept separate from
+  // `enquiries` so the rent figures above continue to count only panel enquiries.
+  const allLeads = useMemo(() => [...enquiries, ...websiteLeads], [enquiries, websiteLeads]);
+
+  const newLeadsCount = allLeads.filter(e => !e.status || String(e.status).toLowerCase() === 'pending').length;
+  const bookingsCount = allLeads.filter(e => ['approved', 'accepted', 'active'].includes(String(e.status).toLowerCase())).length;
   const occupancyPercent = totalBedsCapacity ? Math.min(100, Math.round(((tenantsCount || 0) / totalBedsCapacity) * 100)) : 0;
 
   const moveInsToday = tenants.filter(t => {
@@ -383,7 +395,22 @@ export default function Admin() {
   const inProgressComplaintsCount = complaints.filter(c => String(c.status).toLowerCase() === 'in progress').length;
   const resolvedComplaintsCount = complaints.filter(c => ['resolved', 'closed'].includes(String(c.status).toLowerCase())).length;
 
-  const recentLeads = [...enquiries].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)).slice(0, 3);
+  // Leads are timestamped `ts` (Enquiry's own field, which the booking mapper
+  // mirrors); sorting on `createdAt` compared undefined against undefined, so the
+  // three shown were whatever order they arrived in.
+  const recentLeads = useMemo(
+    () => [...allLeads].sort((a, b) => new Date(b.ts || b.createdAt || 0) - new Date(a.ts || a.createdAt || 0)).slice(0, 3),
+    [allLeads]
+  );
+
+  // Enquiry stores the person as studentName; only booking payloads use `name`.
+  const leadName = (lead) => lead.studentName || lead.name || "";
+  // `budget` already arrives formatted ("₹7,000") on website leads.
+  const leadBudget = (lead) => {
+    const value = String(lead.budget ?? "").trim();
+    if (!value) return "—";
+    return value.startsWith("₹") ? value : `₹${value}`;
+  };
   const recentTenantsList = [...tenants].sort((a, b) => new Date(b.doj || b.createdAt || 0) - new Date(a.doj || a.createdAt || 0)).slice(0, 3);
 
   // Sum of agreedRent from all active tenants — this is the true "expected" monthly figure
@@ -909,19 +936,19 @@ export default function Admin() {
                 <div key={lead._id || i} className="px-6 py-4 flex items-center justify-between hover:bg-muted/20 transition-colors group">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="size-8 rounded-full bg-violet-50 text-violet-600 flex items-center justify-center font-bold text-[12px] uppercase shrink-0">
-                      {(lead.name || "L")[0]}
+                      {(leadName(lead) || "L")[0]}
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-[13px] font-semibold text-foreground truncate">
-                          {lead.name || `Lead #${String(lead._id).slice(-4)}`}
+                          {leadName(lead) || `Lead #${String(lead._id).slice(-4)}`}
                         </span>
                         <span className="px-1.5 py-0.5 bg-violet-50 text-violet-600 text-[9px] font-black rounded uppercase tracking-wide shrink-0">
                           {lead.status || "pending"}
                         </span>
                       </div>
                       <p className="text-[11.5px] text-muted-foreground mt-0.5">
-                        Budget ₹{lead.budget || "—"} · {getRelativeTime(lead.createdAt)}
+                        Budget {leadBudget(lead)} · {getRelativeTime(lead.ts || lead.createdAt)}
                       </p>
                     </div>
                   </div>
@@ -1193,21 +1220,21 @@ export default function Admin() {
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-[14px] uppercase shrink-0">
-                      {(lead.name || "U")[0]}
+                      {(leadName(lead) || "U")[0]}
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[14px] font-bold text-slate-900 leading-none">Lead #{String(lead._id).slice(-4)}</span>
+                        <span className="text-[14px] font-bold text-slate-900 leading-none">{leadName(lead) || `Lead #${String(lead._id).slice(-4)}`}</span>
                         <span className="px-1.5 py-0.5 bg-purple-50 text-purple-600 text-[9px] font-black rounded uppercase">New</span>
                       </div>
                       <p className="text-[11px] font-medium text-slate-500 mt-1">Looking for {lead.propertyName || "PG in Area"}</p>
                       <div className="flex gap-3 mt-1.5">
-                        <span className="text-[10px] text-slate-500 flex items-center gap-1"><Clock className="w-3 h-3" /> Budget: ₹{lead.budget || "—"}</span>
+                        <span className="text-[10px] text-slate-500 flex items-center gap-1"><Clock className="w-3 h-3" /> Budget: {leadBudget(lead)}</span>
                         <span className="text-[10px] text-slate-500 flex items-center gap-1"><Calendar className="w-3 h-3" /> Move-in: {lead.expectedMoveIn || lead.moveInDate ? new Date(lead.expectedMoveIn || lead.moveInDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : "—"}</span>
                       </div>
                     </div>
                   </div>
-                  <span className="text-[10px] font-semibold text-slate-400">{getRelativeTime(lead.createdAt)}</span>
+                  <span className="text-[10px] font-semibold text-slate-400">{getRelativeTime(lead.ts || lead.createdAt)}</span>
                 </div>
                 <button className="w-full py-2 border border-blue-200 text-blue-600 rounded-xl bg-blue-50/50 hover:bg-blue-50 text-[12px] font-bold flex items-center justify-center gap-2 transition-colors">
                   <MessageCircle className="w-4 h-4" /> Open

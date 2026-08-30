@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { fetchJson } from "../../utils/api";
 import toast from "react-hot-toast";
+import { compressImage } from "../../utils/imageCompression";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
@@ -94,8 +95,10 @@ export default function WebsiteEditor() {
     const file = e.target.files[0];
     if (!file) return;
 
+    // Resize/compress before upload — camera originals are 3-12MB.
+    const optimizedFile = await compressImage(file);
     const formData = new FormData();
-    formData.append("image", file);
+    formData.append("image", optimizedFile);
 
     setUploadingImage(true);
     try {

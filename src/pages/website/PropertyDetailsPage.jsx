@@ -437,10 +437,19 @@ export default function PropertyDetailsPage() {
       }
     } catch (_) {}
 
+    // Without an owner id the backend still emails the owner (it resolves them
+    // from property_id), but the record is stored unattached and never appears in
+    // any owner panel, which queries by owner. Fail loudly instead.
+    const { resolvePropertyOwnerLoginId } = await import('../../utils/api');
+    const ownerLoginId = resolvePropertyOwnerLoginId(property);
+    if (!ownerLoginId) {
+      throw new Error('This property has no owner assigned yet, so the request cannot be sent. Please contact Roomhy support.');
+    }
+
     const payload = {
       property_id:   property?._id || property?.id || bookingData.propertyId,
       property_name: property?.name || property?.property_name || bookingData.propertyName,
-      owner_id:      property?.owner_id || property?.ownerLoginId,
+      owner_id:      ownerLoginId,
       rent_amount:   property?.monthlyRent || property?.price || bookingData.propertyPrice,
       area:          property?.location || property?.city,
       city:          property?.city,

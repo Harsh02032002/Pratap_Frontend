@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useHtmlPage } from "../../utils/htmlPage";
 import { getApiBase, getAuthHeader } from "../../utils/api";
 import { useLegacySidebar } from "../../utils/legacyUi";
+import { compressImage } from "../../utils/imageCompression";
 
 export default function Location() {
   useHtmlPage({
@@ -98,7 +99,8 @@ export default function Location() {
         formData.append("cityId", cityId);
       }
       if (imageFile) {
-        formData.append("image", imageFile);
+        // Resize/compress before upload — camera originals are 3-12MB.
+        formData.append("image", await compressImage(imageFile));
       }
       const endpoint = modalType === "city" ? "/api/locations/cities" : "/api/locations/areas";
       const response = await fetch(`${apiBase}${endpoint}`, {

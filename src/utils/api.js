@@ -105,6 +105,29 @@ export function parseApiError(err) {
   };
 }
 
+// ── Mutation hooks ───────────────────────────────────────────────────────────
+// Modules that keep their own caches register here so a write anywhere in the
+// app can bust them, instead of every page remembering to invalidate by hand.
+// The registry lives on this side because utils/propertyowner.js already imports
+// fetchJson — importing its invalidator back here would be a cycle.
+const _mutationHooks = new Set();
+
+/**
+ * Run `fn(method, path)` after every successful non-GET request.
+ * @returns {() => void} unsubscribe
+ */
+export const onApiMutation = (fn) => {
+  _mutationHooks.add(fn);
+  return () => _mutationHooks.delete(fn);
+};
+
+const _notifyMutation = (method, path) => {
+  for (const fn of _mutationHooks) {
+    // A misbehaving hook must never fail the request that triggered it.
+    try { fn(method, path); } catch (_) { /* ignore */ }
+  }
+};
+
 export const fetchJson = (path, options = {}) => {
   // `timeout` is a per-call override (ms) — pulled out so it isn't passed to fetch().
   const { timeout: timeoutMs = 12000, ...fetchOptions } = options;
@@ -150,6 +173,8 @@ export const fetchJson = (path, options = {}) => {
         }
         throw err;
       }
+      // 2xx on a write — let cache owners drop anything this may have changed.
+      if (hasBody) _notifyMutation(method, path);
       return res.json();
     } catch (err) {
       if (err.name === 'AbortError') {
@@ -903,6 +928,39 @@ export const submitEnquiry = async (formData) => {
     method: 'POST',
     body: JSON.stringify(formData)
   });
+};
+
+// The owner's login id sits in different places depending on how the property was
+// created: superadmin mints it into generatedCredentials.loginId when it approves
+// a visit, while older or imported records carry it at the top level. Every
+// website booking submitter has to resolve it identically — three separate copies
+// of this list is exactly how the property details page ended up posting
+// owner_id: undefined, producing leads that no owner panel could ever query.
+const OWNER_LOGIN_ID_SOURCES = [
+  (p) => p?.generatedCredentials?.loginId,
+  (p) => p?.ownerLoginId,
+  (p) => p?.owner_login_id,
+  (p) => p?.owner_id,
+  (p) => p?.ownerId,
+  (p) => p?.createdBy,
+  (p) => p?.owner,
+  (p) => p?.propertyOwnerId,
+];
+
+/**
+ * Resolve the owner login id a property belongs to.
+ * @returns {string} the id, or "" when the property carries no owner at all.
+ */
+export const resolvePropertyOwnerLoginId = (property) => {
+  for (const pick of OWNER_LOGIN_ID_SOURCES) {
+    let value;
+    try { value = pick(property); } catch (_) { continue; }
+    // A populated owner ref arrives as an object rather than a string.
+    if (value && typeof value === "object") value = value.loginId || value._id || value.id;
+    const id = String(value ?? "").trim();
+    if (id && id !== "undefined" && id !== "null") return id;
+  }
+  return "";
 };
 
 // Submit bid
