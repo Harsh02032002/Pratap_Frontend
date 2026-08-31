@@ -1,4 +1,4 @@
-import { Building2, Users, Search, MapPin, Home, MessageSquare, User, LogOut, Settings, ChevronDown, Star } from 'lucide-react';
+import { Building2, Users, Search, MapPin, Home, MessageSquare, User, LogOut, Settings, ChevronDown, Star, Zap } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -100,9 +100,16 @@ export default function WebsiteNavbar() {
                 </Link>
 
                 <button 
-                  onClick={() => setShowBidModal(true)}
-                  className="flex items-center space-x-1.5 text-[#EE4266] hover:text-[#d63a5b] transition-colors font-bold px-3 py-1.5 rounded-lg border border-[#EE4266]/20 bg-[#EE4266]/5"
+                  onClick={() => {
+                    if (window.innerWidth < 768) {
+                      setShowBidModal(true);
+                    } else {
+                      navigate('/bidding');
+                    }
+                  }}
+                  className="flex items-center space-x-1.5 text-[#EE4266] hover:text-[#d63a5b] transition-colors font-bold px-3 py-1.5 rounded-lg border border-[#EE4266]/20 bg-[#EE4266]/5 cursor-pointer"
                 >
+                  <Zap className="w-4 h-4 text-[#EE4266]" />
                   <span>Bid Now</span>
                 </button>
 

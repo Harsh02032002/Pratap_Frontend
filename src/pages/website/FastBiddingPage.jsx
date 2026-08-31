@@ -309,226 +309,222 @@ export default function FastBiddingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
       <WebsiteNavbar />
 
-      <header className="sticky top-16 z-30 bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-          <a href="/website/index" className="font-bold text-xl text-blue-600 flex items-center gap-2">
-            <Zap className="w-6 h-6" /> Roomhy Fast Bidding
-          </a>
-          <a href="/website/index" className="text-gray-600 hover:text-blue-600 inline-flex items-center text-sm">
-            <ArrowLeft className="w-4 h-4 mr-1" /> Back to Home
-          </a>
-        </div>
-      </header>
-
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 pb-32">
-        <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Quick Bidding Form</h1>
-            <p className="text-gray-600">Fill in your details to find matching properties and send bids to multiple owners</p>
-          </div>
-          <div className="flex gap-3">
-            <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-center">
-              <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Matches</p>
-              <p className="text-lg font-semibold text-gray-900">{properties.length}</p>
-            </div>
-          </div>
+      <main className="flex-grow flex items-center justify-center py-6 sm:py-10 px-4 sm:px-6 lg:px-8 relative overflow-hidden min-h-[calc(100vh-140px)]">
+        {/* Background Decorative Blur Elements */}
+        <div className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-hidden">
+          <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-teal-50 rounded-full blur-3xl opacity-60"></div>
+          <div className="absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] bg-blue-50 rounded-full blur-3xl opacity-60"></div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-md p-6 sm:p-8 mb-8">
-          <form onSubmit={submitBids}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <div>
-                <label className="block text-sm font-semibold text-gray-800 mb-2">Full Name *</label>
-                <input
-                  type="text"
-                  id="fullName"
-                  value={form.fullName}
-                  onChange={handleFormChange}
-                  placeholder="Enter your full name"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-800 mb-2">Email Address *</label>
-                <input
-                  type="email"
-                  id="gmail"
-                  value={form.gmail}
-                  onChange={handleFormChange}
-                  placeholder="your.email@gmail.com"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  required
-                />
-              </div>
+        <div className="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-2 bg-white rounded-3xl shadow-2xl overflow-hidden relative z-10 border border-gray-100 my-4">
+          
+          {/* Left Side: Branding & Info Panel (Same as Login/Signup) */}
+          <div className="hidden lg:flex flex-col justify-between p-10 bg-gradient-to-br from-gray-900 via-gray-800 to-slate-900 text-white relative">
+            <div className="absolute inset-0 opacity-20 pointer-events-none" 
+                 style={{ backgroundImage: `url("https://www.transparenttextures.com/patterns/pinstripe.png")` }}>
             </div>
-
-            <div className="mb-6">
-              <label className="block text-sm font-semibold text-gray-800 mb-2">Gender *</label>
-              <select
-                id="gender"
-                value={form.gender}
-                onChange={handleFormChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                required
-              >
-                <option value="">Select gender</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <div>
-                <label className="block text-sm font-semibold text-gray-800 mb-2">Select City *</label>
-                <select
-                  id="city"
-                  value={form.city}
-                  onChange={handleFormChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  required
-                >
-                  <option value="">Select a city</option>
-                  {cities.map(city => (
-                    <option key={city._id || city.id} value={city._id || city.id}>
-                      {city.name || city.cityName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-800 mb-2">Select Area *</label>
-                <select
-                  id="area"
-                  value={form.area}
-                  onChange={handleFormChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  required
-                  disabled={!form.city}
-                >
-                  <option value="">{form.city ? 'Select an area' : 'First select a city'}</option>
-                  {areas.map(area => (
-                    <option key={area._id || area.id} value={area._id || area.id}>
-                      {area.name || area.areaName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="mb-6">
-              <label className="block text-sm font-semibold text-gray-800 mb-2">Budget Query *</label>
-              <input
-                type="text"
-                id="budgetQuery"
-                value={form.budgetQuery}
-                onChange={handleFormChange}
-                placeholder="e.g. < 8000, > 5000, 5000-8000, or = 6000"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                required
+            
+            <div className="relative">
+              <img 
+                src="https://res.cloudinary.com/dpwgvcibj/image/upload/v1768990260/roomhy/website/logoroomhy.png" 
+                alt="Roomhy Logo" 
+                className="h-8 w-auto mb-8 brightness-0 invert" 
               />
-              <p className="text-xs text-gray-500 mt-2">
-                We'll include properties up to +₹3000 buffer above your max budget so you have room to negotiate!
+              <h1 className="text-3xl font-extrabold tracking-tight mb-4 leading-tight">
+                Get the best stay within your <span className="text-teal-400">budget</span>.
+              </h1>
+              <p className="text-sm text-gray-300 mb-8 leading-relaxed">
+                Set your budget &amp; send 1-click bid requests directly to verified property owners in your preferred area.
               </p>
+
+              <div className="space-y-5">
+                <div className="flex items-center gap-4">
+                  <div className="w-9 h-9 rounded-xl bg-teal-500/20 flex items-center justify-center shrink-0">
+                    <Shield className="text-teal-400 w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-white">Direct Owner Connection</p>
+                    <p className="text-[11px] text-gray-300">No broker interference or hidden charges</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="w-9 h-9 rounded-xl bg-blue-500/20 flex items-center justify-center shrink-0">
+                    <Zap className="text-blue-400 w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-white">1-Click Multi-Property Bidding</p>
+                    <p className="text-[11px] text-gray-300">Send custom budget offer to all matching stays</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="w-9 h-9 rounded-xl bg-purple-500/20 flex items-center justify-center shrink-0">
+                    <Info className="text-purple-400 w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-white">Zero Brokerage Guaranteed</p>
+                    <p className="text-[11px] text-gray-300">Save money with transparent direct pricing</p>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* Properties List — auto-included, no manual selection */}
-            <div className="mb-6">
-              <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="relative mt-8 pt-6 border-t border-white/10">
+              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/10 flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-800">Properties Found in Your Area</h3>
-                  <p className="text-sm text-gray-500 mt-1">All matching properties are auto-selected and will receive your bid.</p>
+                  <p className="text-[11px] text-gray-300 font-medium">Matching Properties</p>
+                  <p className="text-lg font-black text-teal-400">{properties.length} Stays Available</p>
                 </div>
-                <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-600">
-                  All {properties.length} selected
+                <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-500/30">
+                  Ready to Bid
                 </span>
               </div>
-              {loading && (
-                <div className="flex items-center justify-center py-8">
-                  <Loader className="w-6 h-6 text-blue-600 animate-spin" />
-                  <span className="ml-2 text-gray-600">Loading properties...</span>
-                </div>
-              )}
-              {!loading && properties.length === 0 && (
-                <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border border-dashed border-gray-200">
-                  <p>No properties found. Try adjusting your filters.</p>
-                </div>
-              )}
-              <div className="space-y-3">
-                {properties.map((prop, index) => {
-                  const propInfo = prop.propertyInfo || {};
-                  const propertyId = prop._id || prop.propertyNumber || prop.propertyId || index;
-                  const propertyName = propInfo.name || prop.property_name || `Property ${propertyId}`;
-                  const rent = prop.monthlyRent || prop.rent || propInfo.rent || propInfo.monthlyRent || 0;
-                  const gender = prop.gender || propInfo.gender || prop.genderSuitability || 'Not specified';
-                  const propertyType = prop.propertyType || propInfo.propertyType || 'Property';
-
-                  return (
-                    <div key={propertyId} className="p-4 border-2 border-blue-200 bg-blue-50 rounded-lg">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-gray-900">{propertyName}</h4>
-                          <p className="text-sm text-gray-500 mt-1">#{propertyId}</p>
-                          <div className="flex flex-wrap gap-2 mt-2 text-xs">
-                            <span className="rounded-full bg-white border border-gray-200 px-3 py-1 text-gray-700">
-                              <strong>₹{Number(rent).toLocaleString()}</strong>/month
-                            </span>
-                            <span className="rounded-full bg-white border border-gray-200 px-3 py-1 text-gray-700">{gender}</span>
-                            <span className="rounded-full bg-gray-100 px-3 py-1 text-gray-700">{propertyType}</span>
-                          </div>
-                        </div>
-                        <div className="ml-4 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-700">
-                          Auto included
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="border-t border-gray-200 pt-6 flex gap-3">
-              <button
-                type="button"
-                onClick={() => setForm({ fullName: '', gmail: '', gender: '', city: '', area: '', budgetQuery: '' })}
-                className="flex-1 bg-gray-100 text-gray-700 font-semibold py-3 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                Clear Form
-              </button>
-              <button
-                type="submit"
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg flex items-center justify-center gap-2 transition-colors"
-              >
-                <Send className="w-5 h-5" />
-                Send Bids to Matching Properties
-              </button>
-            </div>
-          </form>
-        </div>
-
-        {/* Info Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-            <div className="flex gap-3">
-              <Info className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <h4 className="font-semibold text-blue-900 mb-1">How It Works</h4>
-                <p className="text-sm text-blue-800">Your bid will be sent to all property owners matching your criteria. Owners will review and can accept or counter your bid.</p>
-              </div>
             </div>
           </div>
-          <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-            <div className="flex gap-3">
-              <Shield className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <h4 className="font-semibold text-green-900 mb-1">Secure & Safe</h4>
-                <p className="text-sm text-green-800">Your phone number will only be shared after the owner accepts your bid. No direct contact until agreement.</p>
-              </div>
+
+          {/* Right Side: Fast Bidding Form */}
+          <div className="p-6 sm:p-8 md:p-10 flex flex-col justify-center bg-white">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-1">Fast Bidding Form</h2>
+              <p className="text-sm text-gray-500">Fill in your details to send 1-click bids directly to property owners.</p>
             </div>
+
+            <form onSubmit={submitBids} className="space-y-4">
+              {/* Full Name */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-700 ml-1">Full Name *</label>
+                <div className="relative group">
+                  <input
+                    type="text"
+                    id="fullName"
+                    required
+                    value={form.fullName}
+                    onChange={handleFormChange}
+                    placeholder="Enter your full name"
+                    className="block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-gray-900 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all outline-none text-sm font-medium"
+                  />
+                </div>
+              </div>
+
+              {/* Email */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-700 ml-1">Email Address *</label>
+                <div className="relative group">
+                  <input
+                    type="email"
+                    id="gmail"
+                    required
+                    value={form.gmail}
+                    onChange={handleFormChange}
+                    placeholder="your.email@gmail.com"
+                    className="block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-gray-900 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all outline-none text-sm font-medium"
+                  />
+                </div>
+              </div>
+
+              {/* Gender */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-700 ml-1">Gender *</label>
+                <div className="relative group">
+                  <select
+                    id="gender"
+                    required
+                    value={form.gender}
+                    onChange={handleFormChange}
+                    className="block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-gray-900 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all outline-none text-sm font-medium cursor-pointer"
+                  >
+                    <option value="">Select gender suitability</option>
+                    <option value="male">Boys / Male</option>
+                    <option value="female">Girls / Female</option>
+                    <option value="other">Co-ed / Any</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* City & Area Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-gray-700 ml-1">City *</label>
+                  <div className="relative group">
+                    <select
+                      id="city"
+                      required
+                      value={form.city}
+                      onChange={handleFormChange}
+                      className="block w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-gray-900 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all outline-none text-sm font-medium cursor-pointer"
+                    >
+                      <option value="">Select City</option>
+                      {cities.map(city => (
+                        <option key={city._id || city.id} value={city._id || city.id}>
+                          {city.name || city.cityName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-gray-700 ml-1">Area / Locality *</label>
+                  <div className="relative group">
+                    <select
+                      id="area"
+                      required
+                      disabled={!form.city}
+                      value={form.area}
+                      onChange={handleFormChange}
+                      className="block w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-gray-900 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all outline-none text-sm font-medium cursor-pointer disabled:opacity-50"
+                    >
+                      <option value="">{form.city ? 'Select Area' : 'First select city'}</option>
+                      {areas.map(area => (
+                        <option key={area._id || area.id} value={area._id || area.id}>
+                          {area.name || area.areaName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Budget Query */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-700 ml-1">Monthly Budget Query *</label>
+                <div className="relative group">
+                  <input
+                    type="text"
+                    id="budgetQuery"
+                    required
+                    value={form.budgetQuery}
+                    onChange={handleFormChange}
+                    placeholder="e.g. 7000 or < 8000 or 5000-8000"
+                    className="block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-gray-900 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 focus:bg-white transition-all outline-none text-sm font-medium"
+                  />
+                </div>
+                <p className="text-[11px] text-teal-600 font-semibold mt-1 ml-1">
+                  Properties up to +₹3,000 negotiation buffer are auto-included.
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-3 space-y-3">
+                <button
+                  type="submit"
+                  className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 px-4 rounded-2xl transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg shadow-teal-500/25 active:scale-[0.98] text-sm cursor-pointer"
+                >
+                  <Send className="w-4 h-4" />
+                  <span>Send Bids ({properties.length} Properties)</span>
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={() => setForm({ fullName: '', gmail: '', gender: '', city: '', area: '', budgetQuery: '' })}
+                  className="w-full py-2.5 text-xs font-bold text-gray-500 hover:text-gray-800 transition-colors text-center cursor-pointer"
+                >
+                  Clear Form
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       </main>
@@ -541,22 +537,22 @@ export default function FastBiddingPage() {
 
       {/* Success Modal */}
       {showSuccessModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in zoom-in-95">
             <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-8 h-8 text-green-600" />
+              <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-600">
+                <CheckCircle className="w-8 h-8" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Bid Sent Successfully!</h2>
-              <p className="text-gray-600 text-sm">Your bid has been sent to all matching property owners.</p>
+              <h2 className="text-2xl font-bold text-slate-900 mb-1">Bid Sent Successfully!</h2>
+              <p className="text-slate-500 text-xs font-medium">Your budget offer has been dispatched to matching owners.</p>
             </div>
-            <div className="bg-gray-50 rounded-lg p-4 mb-6">
-              <p className="text-sm text-gray-600"><strong>Bids sent to:</strong> {successCount} properties</p>
-              <p className="text-xs text-gray-500 mt-2">Property owners will review your bid and respond within 24 hours.</p>
+            <div className="bg-emerald-50/80 border border-emerald-100 rounded-xl p-4 mb-6 text-center">
+              <p className="text-xs font-bold text-emerald-900">Bids sent to: <span className="text-base font-black text-emerald-700">{successCount} Properties</span></p>
+              <p className="text-[11px] text-emerald-700 font-medium mt-1">Owners will review your proposal and respond shortly.</p>
             </div>
             <button
               onClick={() => setShowSuccessModal(false)}
-              className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-colors"
+              className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-teal-500/25 active:scale-95 transition-all text-xs uppercase tracking-wider cursor-pointer"
             >
               Done
             </button>
@@ -566,47 +562,47 @@ export default function FastBiddingPage() {
 
       {/* Signup Modal — shown when user is not logged in */}
       {showSignupModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full overflow-hidden">
-            <div className="border-b border-gray-200 px-6 py-6">
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-100 animate-in zoom-in-95">
+            <div className="border-b border-slate-100 px-6 py-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h2 className="text-xl font-semibold text-gray-900">Account Verification</h2>
-                  <p className="mt-1 text-sm text-gray-600">Create an account to continue bidding.</p>
+                  <h2 className="text-lg font-bold text-slate-900">Account Verification</h2>
+                  <p className="mt-0.5 text-xs text-slate-500 font-medium">Create an account to continue bidding.</p>
                 </div>
                 <button
                   onClick={() => setShowSignupModal(false)}
-                  className="rounded-full border border-gray-200 p-2 text-gray-600 hover:border-gray-900 hover:text-gray-900 transition"
+                  className="rounded-full border border-slate-200 p-2 text-slate-400 hover:border-slate-900 hover:text-slate-900 transition-colors"
                 >
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
             </div>
-            <div className="px-6 py-8">
-              <div className="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
-                <p className="text-sm text-gray-500">Email</p>
-                <p className="mt-1 text-base font-semibold text-gray-900">{signupEmail}</p>
+            <div className="px-6 py-6">
+              <div className="mb-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Email Address</p>
+                <p className="mt-0.5 text-sm font-bold text-slate-900">{signupEmail}</p>
               </div>
-              <p className="text-center text-gray-600 mb-6">
-                <span className="font-semibold text-gray-900">No account found</span> for this email. Please create an account to verify your identity and continue bidding.
+              <p className="text-center text-slate-600 text-xs mb-5 font-medium leading-relaxed">
+                <span className="font-bold text-slate-900">No account found</span> for this email. Please create an account to verify your identity and send direct bids.
               </p>
-              <ul className="space-y-2 text-sm text-gray-600 mb-6 bg-white border border-gray-200 rounded-xl p-4">
-                <li className="flex items-center"><span className="mr-2 font-bold text-gray-900">✓</span> Verified account</li>
-                <li className="flex items-center"><span className="mr-2 font-bold text-gray-900">✓</span> Send multiple bids</li>
-                <li className="flex items-center"><span className="mr-2 font-bold text-gray-900">✓</span> Track your properties</li>
+              <ul className="space-y-2 text-xs text-slate-700 font-semibold mb-6 bg-slate-50/80 border border-slate-200/80 rounded-xl p-4">
+                <li className="flex items-center"><span className="mr-2 font-bold text-emerald-600">✓</span> 100% Verified Tenant Account</li>
+                <li className="flex items-center"><span className="mr-2 font-bold text-emerald-600">✓</span> Unlimited Direct Bidding</li>
+                <li className="flex items-center"><span className="mr-2 font-bold text-emerald-600">✓</span> Real-time Owner Responses</li>
               </ul>
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowSignupModal(false)}
-                  className="flex-1 rounded-xl border border-gray-300 px-4 py-3 font-semibold text-gray-700 hover:border-gray-900 hover:text-gray-900 transition"
+                  className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors uppercase tracking-wider"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={() => { window.location.href = '/signup'; }}
-                  className="flex-1 rounded-xl bg-blue-600 px-4 py-3 font-semibold text-white hover:bg-blue-700 transition"
+                  className="flex-1 rounded-2xl bg-teal-600 hover:bg-teal-700 px-4 py-3 text-xs font-bold text-white shadow-lg shadow-teal-500/25 active:scale-95 transition-all uppercase tracking-wider"
                 >
                   Sign Up Now
                 </button>

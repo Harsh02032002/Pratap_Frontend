@@ -1025,10 +1025,44 @@ export default function Tenantdashboard() {
     if (content) { content.style.padding = "0"; content.style.minHeight = "100vh"; }
   }, []);
 
+  // ─── Handle Cashfree redirect back (after payment) ────────────────────────
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("pay") === "online") setPayOpen(true);
     if (params.get("pay") === "cash") { setPayOpen(true); setCashPanelOpen(true); }
+
+    // Cashfree redirects back with ?order_id=RMH_...&rent_id=...&amount=...
+    const cfOrderId = params.get("order_id");
+    const cfRentId  = params.get("rent_id");
+    const cfAmount  = params.get("amount");
+    if (cfOrderId) {
+      // Clean URL so user doesn't re-trigger on refresh
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+
+      setActionMsg("⏳ Verifying payment with Cashfree...");
+      fetchJson("/api/payments/cashfree/verify-rent-payment", {
+        method: "POST",
+        body: JSON.stringify({
+          orderId: cfOrderId,
+          rentId:  cfRentId || "",
+          amount:  cfAmount ? Number(cfAmount) : 0,
+        }),
+      })
+        .then(async (res) => {
+          if (res?.success) {
+            setActionMsg("✅ Payment verified! Rent marked as paid. Owner has been notified.");
+            // Refresh rent data to reflect PAID status
+            await loadRents();
+            localStorage.setItem("roomhy_payment_updated", String(Date.now()));
+          } else {
+            setActionMsg(res?.message || "Payment verification pending. Please refresh in a moment.");
+          }
+        })
+        .catch(() => {
+          setActionMsg("Payment recorded. Refresh the page to see updated status.");
+        });
+    }
   }, []);
 
   useEffect(() => {
@@ -1141,16 +1175,20 @@ export default function Tenantdashboard() {
 
       const loaded = await ensureCashfreeLoaded();
       if (loaded && window.Cashfree && orderData.payment_session_id) {
-        const cashfree = window.Cashfree({ mode: "sandbox" });
+        // Use PROD mode for live, SANDBOX for test
+        const cfMode = (import.meta.env?.VITE_CASHFREE_MODE || "sandbox").toLowerCase();
+        const cashfree = window.Cashfree({ mode: cfMode });
         cashfree.checkout({
           paymentSessionId: orderData.payment_session_id,
-          redirectTarget: "_self"
+          redirectTarget: "_self",
         });
-      } else if (orderData.payment_link || orderData.link_url) {
-        window.location.href = orderData.payment_link || orderData.link_url;
+      } else if (orderData.return_url || orderData.payment_link || orderData.link_url) {
+        window.location.href = orderData.return_url || orderData.payment_link || orderData.link_url;
       } else {
         throw new Error("Could not launch Cashfree checkout session.");
       }
+    } catch (err) {
+      setActionMsg(err?.body || err?.message || "Payment initiation failed. Please try again.");
     } finally {
       setActionBusy(false);
     }

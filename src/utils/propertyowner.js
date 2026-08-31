@@ -4,7 +4,12 @@ import { getOwnerSession } from "./ownerSession";
 import { getStaffSession } from "./staffAccess";
 import { stripTieredPropertyName } from "./propertyTiers";
 
-const OWNER_LOGIN_ID_REGEX = /^ROOMHY\d{4,}$/i;
+const OWNER_LOGIN_ID_REGEX = /^(ROOMHY\d+|\d{10}|\d{3,6}|[a-zA-Z0-9_\-\.]+)/i;
+
+export const normalizeOwnerLoginId = (raw) => {
+  const value = String(raw || "").trim().toUpperCase();
+  return value;
+};
 const WEBSITE_USER_ID_REGEX = /^roomhyweb\d{6}$/i;
 
 const readJson = (key, fallback) => {
@@ -157,10 +162,6 @@ export const clearTenantDocCache = (tenantId) => {
   delete _fetchCache[`tenant_kyc_${tenantId}`];
 };
 
-export const normalizeOwnerLoginId = (raw) => {
-  const value = String(raw || "").trim().toUpperCase();
-  return OWNER_LOGIN_ID_REGEX.test(value) ? value : "";
-};
 
 export const normalizeWebsiteChatUserId = (raw) => {
   const value = String(raw || "").trim().toLowerCase();

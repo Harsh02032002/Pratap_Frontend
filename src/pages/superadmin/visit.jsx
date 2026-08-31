@@ -226,10 +226,148 @@ export default function Visit() {
   const [formStudentReviews, setFormStudentReviews] = useState("");
   const [formInternalRemarks, setFormInternalRemarks] = useState("");
 
-  // Photos
+  // Photos & Camera with Timestamps
   const [formPhotoUrl, setFormPhotoUrl] = useState("");
   const [formPhotos, setFormPhotos] = useState([]);
+  const [formPhotoDetails, setFormPhotoDetails] = useState([]); // [{ url, capturedAt }]
   const [formRoomTypes, setFormRoomTypes] = useState([]);
+
+  // Owner Bank Details
+  const [formBankHolderName, setFormBankHolderName] = useState("");
+  const [formBankAccountNumber, setFormBankAccountNumber] = useState("");
+  const [formBankIfscCode, setFormBankIfscCode] = useState("");
+  const [formBankName, setFormBankName] = useState("");
+  const [formBankBranchName, setFormBankBranchName] = useState("");
+  const [formBankUpiId, setFormBankUpiId] = useState("");
+
+  // Live Camera modal state & refs
+  const [cameraModalOpen, setCameraModalOpen] = useState(false);
+  const videoRef = React.useRef(null);
+  const streamRef = React.useRef(null);
+
+  // Helper to add timestamp watermark onto image canvas
+  const stampImageWithTime = (imageSrc) => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+
+        const now = new Date();
+        const timeStr = now.toLocaleString("en-IN", {
+          day: "2-digit", month: "short", year: "numeric",
+          hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true
+        });
+        const bannerText = `📍 ROOMHY VERIFICATION • ${timeStr}`;
+
+        const bannerHeight = Math.max(32, Math.round(canvas.height * 0.065));
+        ctx.fillStyle = "rgba(15, 23, 42, 0.8)";
+        ctx.fillRect(0, canvas.height - bannerHeight, canvas.width, bannerHeight);
+
+        ctx.fillStyle = "#38bdf8";
+        ctx.font = `bold ${Math.max(12, Math.round(bannerHeight * 0.45))}px sans-serif`;
+        ctx.textBaseline = "middle";
+        ctx.fillText(bannerText, 16, canvas.height - (bannerHeight / 2));
+
+        const stampedUrl = canvas.toDataURL("image/jpeg", 0.85);
+        resolve({ url: stampedUrl, capturedAt: timeStr });
+      };
+      img.onerror = () => {
+        const nowStr = new Date().toLocaleString("en-IN");
+        resolve({ url: imageSrc, capturedAt: nowStr });
+      };
+      img.src = imageSrc;
+    });
+  };
+
+  const addPhotoWithUrl = async (urlStr) => {
+    if (!urlStr) return;
+    const stamped = await stampImageWithTime(urlStr);
+    setFormPhotos(prev => [...prev, stamped.url]);
+    setFormPhotoDetails(prev => [...prev, stamped]);
+    setFormPhotoUrl("");
+  };
+
+  const removePhoto = (idx) => {
+    setFormPhotos(prev => prev.filter((_, i) => i !== idx));
+    setFormPhotoDetails(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const startCamera = async () => {
+    try {
+      setCameraModalOpen(true);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" } }
+      });
+      streamRef.current = stream;
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      }, 100);
+    } catch (err) {
+      alert("Camera access failed: " + err.message + ". You can upload a photo file instead.");
+      setCameraModalOpen(false);
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    setCameraModalOpen(false);
+  };
+
+  const capturePhotoFromCamera = async () => {
+    if (!videoRef.current) return;
+    const video = videoRef.current;
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth || 1280;
+    canvas.height = video.videoHeight || 720;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const now = new Date();
+    const timeStr = now.toLocaleString("en-IN", {
+      day: "2-digit", month: "short", year: "numeric",
+      hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true
+    });
+    const bannerText = `📷 ROOMHY LIVE VISIT • ${timeStr}`;
+
+    const bannerHeight = Math.max(32, Math.round(canvas.height * 0.065));
+    ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
+    ctx.fillRect(0, canvas.height - bannerHeight, canvas.width, bannerHeight);
+
+    ctx.fillStyle = "#38bdf8";
+    ctx.font = `bold ${Math.max(12, Math.round(bannerHeight * 0.45))}px sans-serif`;
+    ctx.textBaseline = "middle";
+    ctx.fillText(bannerText, 16, canvas.height - (bannerHeight / 2));
+
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+    setFormPhotos(prev => [...prev, dataUrl]);
+    setFormPhotoDetails(prev => [...prev, { url: dataUrl, capturedAt: timeStr }]);
+
+    stopCamera();
+  };
+
+  const handleFileUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    for (const file of files) {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const stamped = await stampImageWithTime(event.target.result);
+        setFormPhotos(prev => [...prev, stamped.url]);
+        setFormPhotoDetails(prev => [...prev, stamped]);
+      };
+      reader.readAsDataURL(file);
+    }
+    e.target.value = "";
+  };
 
   // UI state
   const [saving, setSaving] = useState(false);
@@ -279,6 +417,7 @@ export default function Visit() {
 
   const resetForm = () => {
     setFormName(""); setFormEmail(""); setFormPhone(""); setFormOwnerCity("");
+    setFormBankHolderName(""); setFormBankAccountNumber(""); setFormBankIfscCode(""); setFormBankName(""); setFormBankBranchName(""); setFormBankUpiId("");
     setFormPropertyName(""); setFormPropertyType("hostel"); setFormGender("Co-ed");
     setFormRent(""); setFormDeposit(""); setFormDescription("");
     setFormArea(""); setFormCity(""); setFormAddress(""); setFormPincode(""); setFormLandmark("");
@@ -287,7 +426,7 @@ export default function Visit() {
     setFormVentilation(""); setFormMinStay(""); setFormEntryExit("");
     setFormVisitorsAllowed(true); setFormCookingAllowed(false); setFormSmokingAllowed(false); setFormPetsAllowed(false);
     setFormCleanlinessRating(0); setFormOwnerBehaviour(""); setFormStudentReviews(""); setFormInternalRemarks("");
-    setFormPhotoUrl(""); setFormPhotos([]); setFormRoomTypes([]);
+    setFormPhotoUrl(""); setFormPhotos([]); setFormPhotoDetails([]); setFormRoomTypes([]);
     setOpenSections({ owner: true, property: true, location: true, occupancy: false, features: false, roomTypes: false, policies: false, ratings: false, photos: false });
   };
 
@@ -347,7 +486,15 @@ export default function Visit() {
           studentReviews: formStudentReviews,
           internalRemarks: formInternalRemarks,
           photos: formPhotos,
+          photoDetails: formPhotoDetails,
+          photoTimestamps: formPhotoDetails.reduce((acc, p) => ({ ...acc, [p.url]: p.capturedAt }), {}),
           roomTypes: formRoomTypes,
+          bankAccountHolderName: formBankHolderName,
+          bankAccountNumber: formBankAccountNumber,
+          bankIfscCode: formBankIfscCode,
+          bankName: formBankName,
+          bankBranchName: formBankBranchName,
+          bankUpiId: formBankUpiId,
           staffName: JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user") || "{}").name || "Staff Member",
           staffId: JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user") || "{}").loginId || "STAFF",
           _id: visitId,
@@ -432,8 +579,6 @@ export default function Visit() {
     }
   };
 
-  const removePhoto = (idx) => setFormPhotos(prev => prev.filter((_, i) => i !== idx));
-
   // ─── List helpers ───────────────────────────────────────────────────────────
 
   const filteredVisits = useMemo(() => {
@@ -517,13 +662,28 @@ export default function Visit() {
 
               {/* ─── Section 1: Owner Identity ──────────────────────────────── */}
               <div>
-                <SectionHeader icon={User} title="Owner Identity" subtitle="Primary contact information" open={openSections.owner} onToggle={() => toggleSection("owner")} color="blue" />
+                <SectionHeader icon={User} title="Owner Identity & Bank Details" subtitle="Primary contact & payout information" open={openSections.owner} onToggle={() => toggleSection("owner")} color="blue" />
                 {openSections.owner && (
-                  <div className="px-8 pb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FormField label="Owner Name" value={formName} onChange={e => setFormName(e.target.value)} placeholder="e.g. Rahul Sharma" required />
-                    <FormField label="Email Address" value={formEmail} onChange={e => setFormEmail(e.target.value)} type="email" placeholder="rahul@example.com" required />
-                    <FormField label="Phone Number" value={formPhone} onChange={e => setFormPhone(e.target.value)} placeholder="+91 XXXX XXXXXX" prefix="+91" required />
-                    <FormField label="Owner City" value={formOwnerCity} onChange={e => setFormOwnerCity(e.target.value)} placeholder="e.g. Indore" />
+                  <div className="px-8 pb-8 space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <FormField label="Owner Name" value={formName} onChange={e => setFormName(e.target.value)} placeholder="e.g. Rahul Sharma" required />
+                      <FormField label="Email Address" value={formEmail} onChange={e => setFormEmail(e.target.value)} type="email" placeholder="rahul@example.com" required />
+                      <FormField label="Phone Number" value={formPhone} onChange={e => setFormPhone(e.target.value)} placeholder="+91 XXXX XXXXXX" prefix="+91" required />
+                      <FormField label="Owner City" value={formOwnerCity} onChange={e => setFormOwnerCity(e.target.value)} placeholder="e.g. Indore" />
+                    </div>
+
+                    {/* Bank & Payout Details */}
+                    <div className="pt-4 border-t border-slate-100">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Owner Bank & Payout Details</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <FormField label="Account Holder Name" value={formBankHolderName} onChange={e => setFormBankHolderName(e.target.value)} placeholder="Name as per bank account" />
+                        <FormField label="Bank Name" value={formBankName} onChange={e => setFormBankName(e.target.value)} placeholder="e.g. HDFC Bank, SBI..." />
+                        <FormField label="Account Number" value={formBankAccountNumber} onChange={e => setFormBankAccountNumber(e.target.value)} placeholder="Account number" />
+                        <FormField label="IFSC Code" value={formBankIfscCode} onChange={e => setFormBankIfscCode(e.target.value.toUpperCase())} placeholder="e.g. HDFC0001234" />
+                        <FormField label="Branch Name" value={formBankBranchName} onChange={e => setFormBankBranchName(e.target.value)} placeholder="e.g. MG Road Branch" />
+                        <FormField label="UPI ID" value={formBankUpiId} onChange={e => setFormBankUpiId(e.target.value)} placeholder="e.g. rahul@upi" />
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -792,34 +952,61 @@ export default function Visit() {
                 )}
               </div>
 
-              {/* ─── Section 8: Photos ────────────────────────────────────────── */}
+              {/* ─── Section 8: Photos & Camera ───────────────────────────────── */}
               <div>
-                <SectionHeader icon={Camera} title="Photos" subtitle="Property photos" open={openSections.photos} onToggle={() => toggleSection("photos")} color="rose" />
+                <SectionHeader icon={Camera} title="Photos & Camera Verification" subtitle="Capture property photos with live date/time stamp" open={openSections.photos} onToggle={() => toggleSection("photos")} color="rose" />
                 {openSections.photos && (
                   <div className="px-8 pb-8 space-y-4">
+                    {/* Action buttons */}
+                    <div className="flex flex-wrap items-center gap-3">
+                      <button type="button" onClick={startCamera}
+                        className="px-5 py-3.5 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-xs font-bold transition-all flex items-center gap-2 shadow-lg shadow-rose-600/20">
+                        <Camera className="w-4 h-4" /> Open Live Camera
+                      </button>
+
+                      <label className="px-5 py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-slate-900/10">
+                        <ImageIcon className="w-4 h-4" /> Upload Photo File
+                        <input type="file" accept="image/*" capture="environment" multiple onChange={handleFileUpload} className="hidden" />
+                      </label>
+                    </div>
+
+                    {/* URL Input */}
                     <div className="flex gap-3">
                       <div className="flex-1">
-                        <FormField label="Photo URL" value={formPhotoUrl} onChange={e => setFormPhotoUrl(e.target.value)} placeholder="https://example.com/photo.jpg" />
+                        <FormField label="Or Paste Photo URL" value={formPhotoUrl} onChange={e => setFormPhotoUrl(e.target.value)} placeholder="https://example.com/photo.jpg" />
                       </div>
                       <div className="flex items-end">
-                        <button type="button" onClick={addPhotoUrl}
+                        <button type="button" onClick={() => addPhotoWithUrl(formPhotoUrl)}
                           className="px-5 py-4 bg-blue-600 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg shadow-blue-200">
-                          <Plus className="w-4 h-4" /> Add
+                          <Plus className="w-4 h-4" /> Add URL
                         </button>
                       </div>
                     </div>
 
+                    {/* Thumbnails with timestamp badges */}
                     {formPhotos.length > 0 && (
-                      <div className="flex flex-wrap gap-3 mt-2">
-                        {formPhotos.map((url, idx) => (
-                          <div key={idx} className="relative group w-24 h-24 rounded-xl overflow-hidden border border-slate-100 shadow-sm">
-                            <img src={url} alt="" className="w-full h-full object-cover" onError={e => e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23cbd5e1' viewBox='0 0 24 24'%3E%3Cpath d='M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z'/%3E%3C/svg%3E"} />
-                            <button type="button" onClick={() => removePhoto(idx)}
-                              className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
-                              <X className="w-3 h-3" />
-                            </button>
-                          </div>
-                        ))}
+                      <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Captured Photos ({formPhotos.length})</p>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
+                          {formPhotos.map((url, idx) => {
+                            const detail = formPhotoDetails[idx] || { url, capturedAt: new Date().toLocaleString("en-IN") };
+                            return (
+                              <div key={idx} className="relative group rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-slate-900 aspect-video flex flex-col justify-between">
+                                <img src={url} alt="" className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" onError={e => e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23cbd5e1' viewBox='0 0 24 24'%3E%3Cpath d='M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z'/%3E%3C/svg%3E"} />
+                                <div className="absolute inset-x-0 bottom-0 bg-slate-950/80 backdrop-blur-xs p-2 flex items-center justify-between text-[9px] font-bold text-sky-400">
+                                  <span className="truncate flex items-center gap-1">
+                                    <Clock size={10} className="text-sky-400 shrink-0" />
+                                    {detail.capturedAt || "Stamped"}
+                                  </span>
+                                </div>
+                                <button type="button" onClick={() => removePhoto(idx)}
+                                  className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-md">
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1119,13 +1306,26 @@ export default function Visit() {
                 )}
               </DetailSection>
 
-              <DetailSection icon={User} title="Owner Information" color="blue">
+              <DetailSection icon={User} title="Owner & Bank Information" color="blue">
                 <DetailGrid>
                   <DetailItem label="Owner Name" value={viewingVisit.ownerName || viewingVisit.visitorName} />
                   <DetailItem label="Email" value={viewingVisit.ownerEmail || viewingVisit.visitorEmail} />
                   <DetailItem label="Phone" value={viewingVisit.ownerPhone || viewingVisit.visitorPhone} />
                   <DetailItem label="Owner City" value={viewingVisit.ownerCity} />
                 </DetailGrid>
+                {(viewingVisit.bankAccountHolderName || viewingVisit.bankAccountNumber || viewingVisit.bankIfscCode || viewingVisit.bankUpiId || ownerKyc?.checkinBankAccountNumber) && (
+                  <>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-4 mb-2">Visit Report Bank Details</p>
+                    <DetailGrid>
+                      <DetailItem label="Account Holder" value={viewingVisit.bankAccountHolderName || ownerKyc?.checkinAccountHolderName} />
+                      <DetailItem label="Bank Name" value={viewingVisit.bankName || ownerKyc?.checkinBankName} />
+                      <DetailItem label="Account Number" value={viewingVisit.bankAccountNumber || ownerKyc?.checkinBankAccountNumber} />
+                      <DetailItem label="IFSC Code" value={viewingVisit.bankIfscCode || ownerKyc?.checkinIfscCode} />
+                      <DetailItem label="Branch" value={viewingVisit.bankBranchName || ownerKyc?.checkinBranchName} />
+                      <DetailItem label="UPI ID" value={viewingVisit.bankUpiId || ownerKyc?.checkinUpiId} />
+                    </DetailGrid>
+                  </>
+                )}
               </DetailSection>
 
               <DetailSection icon={Building2} title="Property Details" color="indigo">
@@ -1220,11 +1420,24 @@ export default function Visit() {
               )}
 
               {viewingVisit.photos?.length > 0 && (
-                <DetailSection icon={Camera} title="Photos" color="rose">
-                  <div className="flex flex-wrap gap-3">
-                    {viewingVisit.photos.map((url, idx) => (
-                      <img key={idx} src={url} alt="" className="w-24 h-24 rounded-xl object-cover border border-slate-100 shadow-sm" />
-                    ))}
+                <DetailSection icon={Camera} title="Photos & Capture Timestamps" color="rose">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {viewingVisit.photos.map((url, idx) => {
+                      const capturedAt = (viewingVisit.photoDetails && viewingVisit.photoDetails[idx]?.capturedAt) ||
+                        (viewingVisit.photoTimestamps && viewingVisit.photoTimestamps[url]) ||
+                        new Date(viewingVisit.submittedAt || Date.now()).toLocaleString("en-IN");
+                      return (
+                        <div key={idx} className="bg-slate-900 rounded-2xl overflow-hidden border border-slate-100 shadow-sm group">
+                          <div className="relative aspect-video">
+                            <img src={url} alt="" className="w-full h-full object-cover" />
+                            <div className="absolute inset-x-0 bottom-0 bg-slate-950/80 backdrop-blur-xs p-2 flex items-center gap-1.5 text-[9px] font-bold text-sky-400">
+                              <Clock size={11} className="shrink-0 text-sky-400" />
+                              <span className="truncate">{capturedAt}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </DetailSection>
               )}
@@ -1262,6 +1475,36 @@ export default function Visit() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ═══ LIVE CAMERA MODAL ═══ */}
+      {cameraModalOpen && (
+        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden max-w-lg w-full shadow-2xl flex flex-col">
+            <div className="p-4 bg-slate-900 border-b border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-rose-400 font-bold text-xs uppercase tracking-wider">
+                <Camera size={16} /> Live Visit Property Photo Capture
+              </div>
+              <button onClick={stopCamera} className="p-1.5 text-slate-400 hover:text-white rounded-lg transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="relative bg-black aspect-video flex items-center justify-center overflow-hidden">
+              <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
+              <div className="absolute bottom-2 left-2 bg-slate-950/80 px-3 py-1 rounded-full text-[10px] font-mono text-sky-400 font-bold">
+                📍 {new Date().toLocaleString("en-IN")}
+              </div>
+            </div>
+            <div className="p-5 flex items-center justify-between bg-slate-900 gap-4">
+              <button type="button" onClick={stopCamera} className="px-5 py-3 rounded-2xl text-xs font-bold text-slate-400 hover:text-white transition-colors">
+                Cancel
+              </button>
+              <button type="button" onClick={capturePhotoFromCamera} className="px-6 py-3.5 bg-rose-600 hover:bg-rose-500 text-white rounded-2xl text-xs font-bold uppercase tracking-wider shadow-lg shadow-rose-600/30 flex items-center gap-2 transition-all">
+                <Camera size={16} /> Snap Photo & Watermark Timestamp
+              </button>
+            </div>
           </div>
         </div>
       )}

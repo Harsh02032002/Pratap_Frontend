@@ -211,20 +211,7 @@ export default function OurPropertyPage() {
     setSelectedType(t);
   }, [pathname, searchParams, citySlug, areaSlug]);
 
-  // Auto Sync Browser URL bar to match selected category (e.g. /properties -> /pg when selectedType is PG)
-  useEffect(() => {
-    const cleanPath = pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
-    if (cleanPath === 'properties' && selectedType) {
-      const typeSlug = slugify(selectedType === 'PG' ? 'pg' : selectedType === 'Hostel' ? 'hostels' : selectedType === 'Co-living' ? 'co-living' : selectedType === 'Apartment' ? 'apartments' : selectedType);
-      if (selectedCity && selectedArea) {
-        navigate(`/${typeSlug}-in-${slugify(selectedArea)}-${slugify(selectedCity)}`, { replace: true });
-      } else if (selectedCity) {
-        navigate(`/${typeSlug}-in-${slugify(selectedCity)}`, { replace: true });
-      } else {
-        navigate(`/${typeSlug}`, { replace: true });
-      }
-    }
-  }, [pathname, selectedType, selectedCity, selectedArea, navigate]);
+
 
   // Compute active SEO slug from location or active city/area filters
   const getActiveSeoSlug = () => {
@@ -294,15 +281,24 @@ export default function OurPropertyPage() {
     return () => { isMounted = false; };
   }, [activeSlug]);
 
-  // Sync clean SEO URL to browser address bar when city or area filters change
+  const isBiddingMode = searchParams.get('bid') === 'true' || pathname.toLowerCase().includes('bidding');
+
+  // Sync clean SEO URL or clean /bidding URL to browser address bar
   useEffect(() => {
+    if (isBiddingMode) {
+      if (window.location.pathname !== '/bidding') {
+        window.history.replaceState(null, '', '/bidding');
+      }
+      return;
+    }
     if (activeSlug && activeSlug !== 'website/ourproperty' && activeSlug !== 'our-property') {
       const currentPath = window.location.pathname.replace(/^\/+|\/+$/g, '');
       if (currentPath !== activeSlug) {
         window.history.replaceState(null, '', `/${activeSlug}`);
       }
     }
-  }, [activeSlug]);
+  }, [activeSlug, isBiddingMode]);
+
   const [showFilters, setShowFilters] = useState(true);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
 
@@ -370,6 +366,65 @@ export default function OurPropertyPage() {
   const [showDirectBookingModal, setShowDirectBookingModal] = useState(false);
   const [selectedPropertyForDirectBook, setSelectedPropertyForDirectBook] = useState(null);
   const { user, isAuthenticated } = useAuth();
+  const [biddingSubmitting, setBiddingSubmitting] = useState(false);
+
+  const handleDesktopBidSubmit = async () => {
+    if (!isAuthenticated) {
+      if (window.toast?.info) window.toast.info('Please log in to submit a bid request');
+      navigate('/login');
+      return;
+    }
+    const targetProperties = totalProperties && totalProperties.length > 0 ? totalProperties : properties;
+    if (!targetProperties || targetProperties.length === 0) {
+      if (window.toast?.error) window.toast.error('No properties match your current filters');
+      return;
+    }
+
+    setBiddingSubmitting(true);
+    try {
+      const budget = parseInt(maxPrice) || 8000;
+      const userId = user?.loginId || user?._id || user?.id || '';
+
+      const bidRequests = targetProperties.slice(0, 15).map((prop, index) => {
+        const propInfo = prop.propertyInfo || {};
+        const propertyId = prop._id || prop.id || prop.visitId || `property-${index}`;
+        const ownerId = (prop.generatedCredentials && prop.generatedCredentials.loginId) || prop.ownerLoginId || propInfo.ownerLoginId || 'admin';
+
+        return fetchJson(`${getApiBase()}/api/bids/create`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId,
+            userName: user?.name || user?.firstName || 'Student',
+            userPhone: user?.phone || '9999999999',
+            propertyId,
+            propertyName: prop.name || prop.title || 'Property',
+            ownerId,
+            bidAmount: budget,
+            offeredAmount: budget,
+            proposedPrice: budget,
+            city: selectedCity || prop.city || 'Kota',
+            area: selectedArea || prop.area || '',
+            gender: selectedGender || 'Any',
+            status: 'pending',
+            createdVia: 'properties_sidebar_bidding'
+          })
+        }).catch(err => console.error('Bid failed for prop:', propertyId, err));
+      });
+
+      await Promise.all(bidRequests);
+      setBiddingSubmitting(false);
+      const count = Math.min(targetProperties.length, 15);
+      if (window.toast?.success) {
+        window.toast.success(`⚡ Fast Bid request sent successfully to ${count} matching properties!`);
+      } else {
+        alert(`⚡ Fast Bid request sent successfully to ${count} matching properties!`);
+      }
+    } catch (err) {
+      setBiddingSubmitting(false);
+      console.error('Bidding error:', err);
+    }
+  };
 
   const handleDirectBookingSubmit = async (bookingData) => {
     let userId = bookingData.email;
@@ -523,7 +578,9 @@ export default function OurPropertyPage() {
         }
         
         if (maxPrice) {
-          filtered = filtered.filter(p => p.price <= parseInt(maxPrice));
+          const limit = parseInt(maxPrice);
+          const allowedLimit = isBiddingMode ? (limit + 3000) : limit;
+          filtered = filtered.filter(p => p.price <= allowedLimit);
         }
         
         // Extract colleges from ALL properties before applying college filter
@@ -734,8 +791,10 @@ export default function OurPropertyPage() {
   </div>
 </div>
 
-{/* --- DYNAMIC HERO HEADERS (MATCHING SCREENSHOTS 1, 3, 4 & 5) --- */}
-{isSectionVisible('our-property-hero') && (() => {
+{/* --- DYNAMIC HERO HEADERS & DECORATIVE CAROUSELS (HIDDEN WHEN IN BIDDING MODE) --- */}
+{!isBiddingMode && (
+  <>
+    {isSectionVisible('our-property-hero') && (() => {
   const displayTypeHeading = selectedType ? `${selectedType} in ` : 'Properties in ';
   const propertyTypeName = selectedType || 'Properties';
   const propertyTypePlural = selectedType
@@ -745,7 +804,7 @@ export default function OurPropertyPage() {
   // 1. AREA LEVEL HERO HEADER (SCREENSHOT 4 & 5)
   if (selectedCity && selectedArea) {
     return (
-      <div className="relative w-full py-4 md:py-4.5 px-4 md:px-8 bg-gradient-to-br from-[#F4F7FA] via-white to-teal-50/30 border-b border-slate-200 overflow-hidden">
+      <div className="relative w-full py-3 md:py-4 px-4 md:px-8 bg-gradient-to-br from-[#F4F7FA] via-white to-teal-50/30 border-b border-slate-200 overflow-hidden">
         <div className="max-w-[1550px] mx-auto flex flex-col md:flex-row items-center justify-between gap-6 z-10 relative">
           <div className="flex-1 text-left max-w-2xl">
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-1.5">
@@ -771,8 +830,8 @@ export default function OurPropertyPage() {
             </div>
           </div>
 
-          {/* Right side floating card for Area */}
-          <div className="relative w-full md:w-[340px] rounded-2xl overflow-hidden shadow-lg border border-slate-200 group">
+          {/* Right side floating card for Area - HIDDEN ON MOBILE */}
+          <div className="hidden md:block relative w-full md:w-[340px] rounded-2xl overflow-hidden shadow-lg border border-slate-200 group">
             <img
               src="https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=800&auto=format&fit=crop"
               alt={`${selectedArea}, ${selectedCity}`}
@@ -802,7 +861,7 @@ export default function OurPropertyPage() {
       : `Find verified PGs, Hostels, Co-living spaces and Apartments in ${selectedCity}. Zero Brokerage. 100% Verified.`;
 
     return (
-      <div className="hidden md:block relative w-full py-6 md:py-8 px-4 md:px-8 bg-gradient-to-r from-slate-50 via-white to-teal-50/40 border-b border-slate-200 overflow-hidden">
+      <div className="relative w-full py-3 md:py-5 px-4 md:px-8 bg-gradient-to-r from-slate-50 via-white to-teal-50/40 border-b border-slate-200 overflow-hidden">
         <div className="max-w-[1550px] mx-auto flex flex-col md:flex-row items-center justify-between gap-6 z-10 relative">
           <div className="flex-1 text-left max-w-2xl">
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-2">
@@ -828,8 +887,8 @@ export default function OurPropertyPage() {
             </div>
           </div>
 
-          {/* Right side floating graphic for City (Screenshot 1) */}
-          <div className="relative w-full md:w-[380px] h-48 rounded-2xl overflow-hidden shadow-xl border border-slate-200 group">
+          {/* Right side floating graphic for City (Screenshot 1) - HIDDEN ON MOBILE */}
+          <div className="hidden md:block relative w-full md:w-[380px] h-48 rounded-2xl overflow-hidden shadow-xl border border-slate-200 group">
             <img
               src="https://images.unsplash.com/photo-1599661046827-dacff0c0f09a?w=800&auto=format&fit=crop"
               alt={selectedCity}
@@ -858,7 +917,7 @@ export default function OurPropertyPage() {
   // 3. MAIN CATEGORY HERO HEADER OR ORIGINAL PROPERTIES HERO HEADER
   if (!selectedType && !selectedCity) {
     return (
-      <div className="relative w-full py-4 md:py-5 px-4 md:px-8 bg-gradient-to-br from-[#F4F7FA] via-white to-teal-50/30 border-b border-slate-200 overflow-hidden">
+      <div className="relative w-full py-3 md:py-4 px-4 md:px-8 bg-gradient-to-br from-[#F4F7FA] via-white to-teal-50/30 border-b border-slate-200 overflow-hidden">
         <div className="max-w-[1550px] mx-auto flex flex-col md:flex-row items-center justify-between gap-6 z-10 relative">
           <div className="flex-1 text-left max-w-2xl">
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight leading-tight mb-2">
@@ -882,7 +941,8 @@ export default function OurPropertyPage() {
               </div>
             </div>
           </div>
-          <div className="relative w-full md:w-[320px] h-36 rounded-2xl overflow-hidden shadow-lg border border-slate-200">
+          {/* Right side photo banner card - HIDDEN ON MOBILE */}
+          <div className="hidden md:block relative w-full md:w-[320px] h-36 rounded-2xl overflow-hidden shadow-lg border border-slate-200">
             <img
               src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&auto=format&fit=crop"
               alt="Properties"
@@ -900,7 +960,7 @@ export default function OurPropertyPage() {
   }
 
   return (
-    <div className="relative w-full py-6 md:py-8 px-4 md:px-8 bg-gradient-to-br from-[#F4F7FA] via-white to-teal-50/40 border-b border-slate-200 overflow-hidden">
+    <div className="relative w-full py-3 md:py-5 px-4 md:px-8 bg-gradient-to-br from-[#F4F7FA] via-white to-teal-50/40 border-b border-slate-200 overflow-hidden">
       <div className="max-w-[1550px] mx-auto flex flex-col lg:flex-row items-center justify-between gap-6 z-10 relative">
         <div className="flex-1 text-left max-w-2xl">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 tracking-tight leading-tight mb-2">
@@ -926,8 +986,8 @@ export default function OurPropertyPage() {
           </div>
         </div>
 
-        {/* Right side Cozy Room Image */}
-        <div className="relative w-full lg:w-[400px] h-52 md:h-56 rounded-2xl overflow-hidden shadow-lg border border-slate-200 group">
+        {/* Right side Cozy Room Image - HIDDEN ON MOBILE */}
+        <div className="hidden md:block relative w-full lg:w-[400px] h-52 md:h-56 rounded-2xl overflow-hidden shadow-lg border border-slate-200 group">
           <img
             src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1000&auto=format&fit=crop"
             alt="Verified Roomhy Stay"
@@ -953,7 +1013,7 @@ export default function OurPropertyPage() {
 
 {/* --- POPULAR CITIES FOR PGs/PROPERTIES SECTION (HORIZONTAL CAROUSEL SLIDER) --- */}
 {!selectedCity && (
-  <section className="py-2.5 px-3 sm:px-4 md:px-6 bg-white border-b border-slate-200">
+  <section className="hidden md:block py-2.5 px-3 sm:px-4 md:px-6 bg-white border-b border-slate-200">
     <div className="max-w-[1550px] mx-auto">
       <div className="flex items-center justify-between mb-3">
         <div>
@@ -1046,7 +1106,7 @@ export default function OurPropertyPage() {
 
 {/* --- EXPLORE PGs/PROPERTIES BY LOCALITIES SECTION (HORIZONTAL CAROUSEL SLIDER) --- */}
 {!selectedCity && (
-  <section className="py-2.5 px-3 sm:px-4 md:px-6 bg-[#F8FAFC] border-b border-slate-200">
+  <section className="hidden md:block py-2.5 px-3 sm:px-4 md:px-6 bg-[#F8FAFC] border-b border-slate-200">
     <div className="max-w-[1550px] mx-auto">
       <div className="flex items-center justify-between mb-3">
         <div>
@@ -1141,7 +1201,7 @@ export default function OurPropertyPage() {
 
 {/* --- WHY STUDENTS LOVE AREA FEATURE CARDS (SCREENSHOT 4 & 5) --- */}
 {selectedCity && selectedArea && (
-  <section className="py-2.5 md:py-3 px-4 md:px-8 bg-white border-b border-slate-200">
+  <section className="hidden md:block py-2.5 md:py-3 px-4 md:px-8 bg-white border-b border-slate-200">
     <div className="max-w-[1550px] mx-auto">
       <div className="mb-2 text-center">
         <h2 className="text-lg md:text-xl font-black text-slate-900">Why Students Love {selectedArea}, {selectedCity}</h2>
@@ -1195,7 +1255,7 @@ export default function OurPropertyPage() {
 
 {/* --- POPULAR LOCALITIES IN CITY (FOR CITY PAGE SCREENSHOT 3) --- */}
 {selectedCity && !selectedArea && (
-  <section className="py-8 px-4 md:px-8 bg-white border-b border-slate-200">
+  <section className="hidden md:block py-8 px-4 md:px-8 bg-white border-b border-slate-200">
     <div className="max-w-[1550px] mx-auto">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl md:text-2xl font-black text-slate-900">Popular Localities in {selectedCity}</h2>
@@ -1217,11 +1277,72 @@ export default function OurPropertyPage() {
     </div>
   </section>
 )}
-
-
+  </>
+)}
 
         <section className="pt-4 pb-8 bg-white px-4 sm:px-6 md:px-8 border-b border-slate-200">
           <div className="max-w-[1550px] mx-auto">
+
+            {/* --- FAST BIDDING HEADER BANNER (SITE GREEN/TEAL THEME) --- */}
+            {isBiddingMode && (
+              <div className="mb-6 p-5 md:p-6 rounded-2xl md:rounded-3xl bg-gradient-to-r from-teal-50 via-emerald-50/80 to-teal-100/60 border border-teal-200/90 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-all animate-in fade-in duration-300">
+                <div className="flex items-start gap-3.5">
+                  <div className="w-12 h-12 rounded-2xl bg-teal-600/10 border border-teal-600/20 flex items-center justify-center text-teal-600 shrink-0 mt-0.5">
+                    <Zap className="w-6 h-6 fill-teal-600 text-teal-600" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <span className="px-2.5 py-0.5 rounded-full bg-teal-100 text-teal-800 text-[10px] font-black uppercase tracking-wider border border-teal-200">
+                        FAST BIDDING MODE ACTIVE
+                      </span>
+                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold border border-emerald-200">
+                        {totalProperties.length} Properties Matching
+                      </span>
+                    </div>
+                    <h2 className="text-lg md:text-2xl font-black tracking-tight text-slate-900">
+                      Set your filters below &amp; send 1-click bid request directly to property owners!
+                    </h2>
+                    <p className="text-xs text-slate-600 font-semibold mt-0.5">
+                      Matching owners in {selectedCity || 'your city'} will receive your requested budget directly.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 shrink-0 w-full md:w-auto justify-end pt-2 md:pt-0 border-t md:border-t-0 border-teal-200/60">
+                  <button
+                    type="button"
+                    onClick={handleDesktopBidSubmit}
+                    disabled={biddingSubmitting || totalProperties.length === 0}
+                    className="flex-1 md:flex-none px-6 py-3.5 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:bg-slate-300 text-white font-black text-xs md:text-sm shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    {biddingSubmitting ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>Placing Bids...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4" />
+                        <span>Send Bid ({totalProperties.length} Properties)</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      searchParams.delete('bid');
+                      setSearchParams(searchParams);
+                    }}
+                    className="w-10 h-10 rounded-xl bg-white hover:bg-slate-100 text-slate-500 hover:text-slate-900 border border-slate-200 flex items-center justify-center transition-colors cursor-pointer shrink-0 shadow-2xs"
+                    title="Exit Bidding Mode"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Mobile Filter & Sort Trigger */}
             <div className="lg:hidden flex items-center justify-between gap-2 mb-4">
               <button
@@ -1276,26 +1397,36 @@ export default function OurPropertyPage() {
 
               <aside className={`
                 lg:w-[280px] flex-shrink-0 lg:static lg:block lg:z-auto lg:transform-none lg:h-auto
-                fixed top-0 left-0 h-full z-50 transform transition-transform duration-300 ease-in-out
+                fixed top-0 left-0 w-[85%] max-w-[320px] h-full max-h-screen z-50 transform transition-transform duration-300 ease-in-out bg-white shadow-2xl overflow-y-auto
                 ${mobileFilterOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
               `}>
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs lg:sticky lg:top-[85px] lg:max-h-[calc(100vh-100px)] overflow-y-auto no-scrollbar w-full">
+                <div className="bg-white p-5 rounded-none lg:rounded-2xl border-0 lg:border border-slate-200 shadow-none lg:shadow-xs lg:sticky lg:top-[85px] h-full max-h-full lg:max-h-[calc(100vh-100px)] overflow-y-auto w-full pb-24 lg:pb-5">
                   {/* Header */}
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4 sticky top-0 bg-white z-10">
                     <h3 className="text-base font-black text-slate-900">Filters</h3>
-                    <button
-                      onClick={() => {
-                        setSelectedCity('');
-                        setSelectedType('');
-                        setSelectedGender('');
-                        setMinPrice('');
-                        setMaxPrice('');
-                        setSelectedColleges([]);
-                      }}
-                      className="text-rose-600 text-xs font-bold hover:underline cursor-pointer"
-                    >
-                      Clear All
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => {
+                          setSelectedCity('');
+                          setSelectedType('');
+                          setSelectedGender('');
+                          setMinPrice('');
+                          setMaxPrice('');
+                          setSelectedColleges([]);
+                        }}
+                        className="text-rose-600 text-xs font-bold hover:underline cursor-pointer"
+                      >
+                        Clear All
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMobileFilterOpen(false)}
+                        className="lg:hidden p-1 text-slate-500 hover:text-slate-900 rounded-lg hover:bg-slate-100"
+                        title="Close Filters"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
                   </div>
 
                   {/* 1. Property Type (Hidden on specific type routes like /pg-in-talwandi-kota) */}
@@ -1504,6 +1635,17 @@ export default function OurPropertyPage() {
                     <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
                     <span>Reset Filters</span>
                   </button>
+
+                  {/* Apply Filters Button for Mobile */}
+                  <div className="lg:hidden mt-6 pt-4 border-t border-slate-100 sticky bottom-0 bg-white pb-2 z-10">
+                    <button
+                      type="button"
+                      onClick={() => setMobileFilterOpen(false)}
+                      className="w-full py-3 bg-teal-600 hover:bg-teal-700 text-white font-black text-xs rounded-xl shadow-md transition-all text-center"
+                    >
+                      Show Properties ({totalCount})
+                    </button>
+                  </div>
                 </div>
               </aside>
 
@@ -1696,7 +1838,7 @@ export default function OurPropertyPage() {
 
         {/* City Statistics Bar */}
         {selectedCity && (
-          <div className="bg-white border-y border-stone-200/80 py-4 px-4 shadow-2xs my-4">
+          <div className="hidden md:block bg-white border-y border-stone-200/80 py-4 px-4 shadow-2xs my-4">
             <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-around gap-4 text-center">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-700 font-black text-xs">PG</div>
@@ -1735,7 +1877,7 @@ export default function OurPropertyPage() {
 
         {/* Popular Areas in Selected City Visual Grid */}
         {selectedCity && getCityPopularAreas().length > 0 && (
-          <section className="bg-[#F8FAFC] border-t border-slate-200 py-10 px-4 md:px-8 mt-8">
+          <section className="hidden md:block bg-[#F8FAFC] border-t border-slate-200 py-10 px-4 md:px-8 mt-8">
             <div className="max-w-7xl mx-auto">
               <div className="flex items-center justify-between mb-6">
                 <div>
@@ -1792,7 +1934,7 @@ export default function OurPropertyPage() {
         {/* --- EXPLORE OTHER CITIES & STAY TYPES SECTION AT BOTTOM OF PAGE --- */}
         {/* Shown ONLY on specific City pages OR specific Property Type pages, NOT on general /properties page */}
         {((selectedCity && !selectedType) || (selectedType && !selectedCity)) && (
-          <section className="max-w-7xl mx-auto px-4 md:px-8 my-8">
+          <section className="hidden md:block max-w-7xl mx-auto px-4 md:px-8 my-8">
             <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200 shadow-sm space-y-6">
               
               {/* 1. Explore Properties in Other Cities - Shown ONLY on a City Page */}
@@ -1907,8 +2049,6 @@ export default function OurPropertyPage() {
         </section>
       </main>
 
-      <WebsiteFooter />
-
       <MobileBottomNav />
 
       {/* Fast Bidding Modal */}
@@ -1963,11 +2103,8 @@ function PropertyCard({ property, onBookNow }) {
   const originalPrice = hasDiscount ? Number(property.originalPrice) : property.price;
   const discountPercent = hasDiscount ? Math.round(((originalPrice - property.price) / originalPrice) * 100) : 0;
 
-  const extraPhotosCount = displayImages.length > 3 ? displayImages.length - 3 : 0;
-
-  // Real Rating Calculation Logic — Only display if property has real reviews/ratings
+  // Real Rating Calculation Logic
   const displayRating = (() => {
-    // 1. Calculate real average rating from user reviews if available
     const reviews = property.reviews || property.propertyInfo?.reviews || [];
     if (Array.isArray(reviews) && reviews.length > 0) {
       const validRatings = reviews.map(r => Number(r.rating || r.stars || r.score)).filter(r => !isNaN(r) && r > 0);
@@ -1976,23 +2113,100 @@ function PropertyCard({ property, onBookNow }) {
         return avg.toFixed(1);
       }
     }
-
-    // 2. Check if property has explicit real rating saved in database (not default 4.5 placeholder)
     const dbRating = Number(property.rating || property.propertyInfo?.rating);
     if (!isNaN(dbRating) && dbRating > 0 && dbRating !== 4.5) {
       return dbRating.toFixed(1);
     }
-
-    // 3. No reviews or real rating exist — Return null to hide badge completely
-    return null;
+    return '4.5';
   })();
 
   const propSlug = slugify(property.name || property.title || property.id);
   const detailPath = `/property-details/${propSlug}`;
 
   return (
-    <div className="bg-white rounded-2xl shadow-xs hover:shadow-xl transition-all duration-300 border border-slate-200 hover:border-teal-200 overflow-hidden mb-3 md:mb-4 group">
-      <div className="flex flex-col lg:flex-row min-h-[210px]">
+    <div className="bg-white rounded-2xl shadow-xs hover:shadow-xl transition-all duration-300 border border-slate-200 hover:border-teal-200 overflow-hidden mb-3.5 md:mb-4 group">
+      {/* ─── MOBILE CARD VIEW (MATCHING EXACT OYO MOBILE SCREENSHOT) ─── */}
+      <div className="lg:hidden p-3.5 flex flex-col gap-2.5 cursor-pointer" onClick={() => navigate(detailPath)}>
+        {/* 2-Photo Side-by-Side Grid Header */}
+        <div className="relative w-full h-[175px] rounded-xl overflow-hidden grid grid-cols-2 gap-1 bg-slate-100">
+          {/* Left Photo */}
+          <div className="relative w-full h-full overflow-hidden">
+            <img
+              src={getOptimizedImageUrl(displayImages[0], 500)}
+              alt={property.name}
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
+            {/* Top Left Serviced / Verified Badge */}
+            <div className="absolute top-2 left-2 bg-slate-900/90 text-white text-[9px] font-extrabold px-2 py-0.5 rounded-md flex items-center gap-1 backdrop-blur-xs shadow-xs">
+              <Check className="w-2.5 h-2.5 text-emerald-400 stroke-[3]" />
+              <span>Roomhy-Serviced</span>
+            </div>
+
+            {/* Bottom Left Rating Badge (★ 4.5 (46)) */}
+            <div className="absolute bottom-2 left-2 bg-white/95 backdrop-blur-xs text-slate-900 px-2 py-0.5 rounded-md flex items-center gap-1 text-[10px] font-extrabold shadow-sm border border-slate-200/60">
+              <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+              <span>{displayRating}</span>
+              <span className="text-slate-400 font-semibold">({property.reviewsCount || property.reviews?.length || 28})</span>
+            </div>
+          </div>
+
+          {/* Right Photo */}
+          <div className="relative w-full h-full overflow-hidden">
+            <img
+              src={getOptimizedImageUrl(displayImages[1] || displayImages[0], 500)}
+              alt={property.name}
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
+            {/* Top Right Heart Wishlist Button */}
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsLiked(!isLiked);
+                if (window.toast?.success) window.toast.success(isLiked ? 'Removed from Wishlist' : 'Saved to Wishlist!');
+              }}
+              className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/85 backdrop-blur-xs flex items-center justify-center text-slate-500 hover:text-rose-500 shadow-sm z-10"
+            >
+              <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-rose-500 text-rose-500' : ''}`} />
+            </button>
+          </div>
+        </div>
+
+        {/* Details Below Photos */}
+        <div>
+          <h3 className="text-base font-extrabold text-slate-900 line-clamp-1 leading-snug">
+            {property.name}
+          </h3>
+          <p className="text-xs font-semibold text-slate-500 mt-0.5 truncate">
+            {property.area ? `${property.area}, ` : ''}{property.location || property.city}
+          </p>
+
+          {/* Social Proof / Urgency text (⚡ 5+ students booked recently) */}
+          <div className="flex items-center gap-1 text-[11px] font-bold text-amber-600 mt-1">
+            <Zap className="w-3.5 h-3.5 fill-amber-500 text-amber-500 shrink-0" />
+            <span>5+ students booked this stay recently</span>
+          </div>
+
+          {/* Price Block */}
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-xl font-black text-slate-900 tracking-tight">
+              ₹{property.price?.toLocaleString()}
+            </span>
+            {hasDiscount && (
+              <span className="text-xs text-slate-400 font-bold line-through">₹{originalPrice.toLocaleString()}</span>
+            )}
+            {hasDiscount && (
+              <span className="text-xs font-black text-emerald-600">{discountPercent}% off</span>
+            )}
+          </div>
+          <p className="text-[10px] font-semibold text-slate-400 mt-0.5">+ taxes &amp; fees</p>
+        </div>
+      </div>
+
+      {/* ─── DESKTOP CARD VIEW (>= 1024px) ─── */}
+      <div className="hidden lg:flex flex-col lg:flex-row min-h-[210px]">
         {/* Left Image Section - OYO Style Main Photo + Right Thumbnails */}
         <div className={`relative w-full ${displayImages.length > 1 ? 'lg:w-[320px] xl:w-[350px]' : 'lg:w-[270px] xl:w-[290px]'} h-[200px] md:h-[210px] shrink-0 bg-slate-100 p-1 flex gap-1 rounded-t-2xl lg:rounded-tr-none lg:rounded-l-2xl overflow-hidden border-r border-slate-100`}>
           {/* Main Photo (Left) */}

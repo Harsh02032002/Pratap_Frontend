@@ -1,9 +1,9 @@
-const OWNER_LOGIN_ID_REGEX = /^ROOMHY\d{4,}$/i;
+const OWNER_LOGIN_ID_REGEX = /^(ROOMHY\d+|\d{10}|\d{3,6}|[a-zA-Z0-9_\-\.]+)/i;
 
 const normalizeOwnerSession = (value) => {
   if (!value || typeof value !== "object") return null;
-  const loginId = String(value.loginId || value.ownerLoginId || "").trim().toUpperCase();
-  if (!OWNER_LOGIN_ID_REGEX.test(loginId)) return null;
+  const loginId = String(value.loginId || value.ownerLoginId || value.phone || "").trim().toUpperCase();
+  if (!loginId) return null;
   return {
     ...value,
     loginId

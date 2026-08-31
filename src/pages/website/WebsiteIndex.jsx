@@ -451,7 +451,7 @@ export default function WebsiteIndex() {
 
       <main className="min-h-screen">
         {/* Hero Section */}
-        <div className="relative min-h-[160px] md:min-h-0 md:h-[320px] bg-gradient-to-br from-teal-600 via-blue-600 to-cyan-500 z-10">
+        <div className="relative min-h-[160px] md:min-h-0 md:h-[320px] bg-gradient-to-br from-teal-600 via-blue-600 to-cyan-500 z-30">
           <div className="absolute inset-0 overflow-hidden">
             {heroImages.map((image, index) => (
               <div
@@ -466,7 +466,7 @@ export default function WebsiteIndex() {
             ))}
           </div>
 
-          <div className="relative max-w-none w-full mx-auto px-4 md:px-8 lg:px-12 h-full flex flex-col justify-start pt-4 md:pt-10">
+          <div className="relative max-w-none w-full mx-auto px-4 md:px-8 lg:px-12 h-full flex flex-col justify-start pt-4 md:pt-10 z-20 overflow-visible">
             <h1 className="text-xl sm:text-4xl md:text-6xl font-bold text-white mb-1 md:mb-4 leading-tight text-center drop-shadow-lg">
               Find Your Perfect <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-orange-400 drop-shadow-2xl">Student Stay</span>
             </h1>
@@ -474,32 +474,59 @@ export default function WebsiteIndex() {
               Search verified PGs, hostels &amp; co-living spaces across 50+ Indian cities
             </p>
 
-            <div className="max-w-5xl mx-auto w-full px-2 md:px-4 search-container relative z-50">
-              <form onSubmit={handleSearchSubmit} className="bg-white/95 md:bg-white backdrop-blur-md md:backdrop-blur-none rounded-2xl md:rounded shadow-2xl p-2 md:p-0 flex flex-row gap-2 md:gap-0 items-center relative z-20 md:h-16 w-full">
+            <div className="max-w-5xl mx-auto w-full px-2 md:px-4 search-container relative z-50 overflow-visible">
+              <form onSubmit={handleSearchSubmit} className="bg-white rounded-2xl md:rounded shadow-2xl p-2 md:p-0 flex flex-row gap-2 md:gap-0 items-center relative z-50 md:h-16 w-full overflow-visible">
                 
-                <div className="md:hidden relative flex-shrink-0" ref={typeDropdownRef}>
-                  <div
+                <div className="md:hidden relative flex-shrink-0 z-50" ref={typeDropdownRef}>
+                  <button
+                    type="button"
                     onClick={() => setIsTypeDropdownOpen(!isTypeDropdownOpen)}
-                    className="flex items-center justify-between bg-teal-50 text-gray-700 px-2 py-2 rounded-lg font-medium focus:outline-none cursor-pointer w-[70px] text-[10px]"
+                    className="flex items-center justify-between gap-1 bg-emerald-50 text-emerald-800 px-2.5 py-2 rounded-xl font-black text-xs border border-emerald-200 shadow-2xs cursor-pointer min-w-[78px]"
                   >
-                    <span className="truncate">{selectedType || 'Type'}</span>
-                    <ChevronLeft className={`w-3 h-3 text-teal-600 transition-transform ${isTypeDropdownOpen ? '-rotate-90' : '-rotate-180'}`} style={{ transform: isTypeDropdownOpen ? 'rotate(90deg)' : 'rotate(270deg)' }} />
-                  </div>
+                    <span className="capitalize">{selectedType || 'Type'}</span>
+                    <ChevronDown className={`w-3.5 h-3.5 text-emerald-600 transition-transform ${isTypeDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
                   {isTypeDropdownOpen && (
-                    <div className="absolute top-full left-0 mt-2 w-[120px] bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-[70]">
-                      {offerings.map((offering) => (
-                        <div
-                          key={offering.category}
-                          onClick={() => {
-                            setSelectedType(offering.category.toLowerCase());
-                            setIsTypeDropdownOpen(false);
-                          }}
-                          className={`px-3 py-2 cursor-pointer hover:bg-teal-50 ${selectedType === offering.category.toLowerCase() ? 'bg-teal-50 border-l-2 border-teal-500' : ''}`}
-                        >
-                          <div className="text-[10px] font-bold text-gray-900">{offering.title}</div>
-                          <div className="text-[8px] text-gray-500 truncate">{offering.description}</div>
+                    <div className="fixed inset-0 bg-black/50 z-[9998] md:hidden flex items-start justify-center pt-24 px-4" onClick={() => setIsTypeDropdownOpen(false)}>
+                      <div 
+                        className="bg-white w-full max-w-sm rounded-2xl p-4 shadow-2xl border border-slate-200 z-[9999] animate-in fade-in zoom-in-95 duration-200"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 mb-3">
+                          <span className="text-xs font-black text-slate-900 uppercase tracking-wider">Select Stay Category</span>
+                          <button onClick={() => setIsTypeDropdownOpen(false)} className="text-slate-400 hover:text-slate-700 text-xs font-bold p-1">✕</button>
                         </div>
-                      ))}
+                        <div className="grid grid-cols-2 gap-2">
+                          {[
+                            { type: '', label: 'All Stays', icon: '🏠', desc: 'Browse all properties' },
+                            { type: 'pg', label: 'PG', icon: '🛏️', desc: 'Meals & Housekeeping' },
+                            { type: 'hostel', label: 'Hostels', icon: '🏢', desc: 'Budget Student Stays' },
+                            { type: 'co-living', label: 'Co-living', icon: '👥', desc: 'Shared Modern Spaces' },
+                            { type: 'apartment', label: 'Apartments', icon: '🔑', desc: 'Private 1BHK / 2BHK' }
+                          ].map((item) => (
+                            <button
+                              key={item.type}
+                              type="button"
+                              onClick={() => {
+                                setSelectedType(item.type);
+                                setIsTypeDropdownOpen(false);
+                              }}
+                              className={`p-3 rounded-xl border text-left transition-all ${
+                                selectedType === item.type 
+                                  ? 'bg-emerald-50 border-emerald-400 text-emerald-900 shadow-2xs font-black' 
+                                  : 'bg-slate-50 border-slate-100 text-slate-700 hover:bg-slate-100 font-bold'
+                              }`}
+                            >
+                              <div className="flex items-center gap-1.5 text-xs font-extrabold">
+                                <span>{item.icon}</span>
+                                <span>{item.label}</span>
+                              </div>
+                              <div className="text-[10px] text-slate-500 font-medium mt-1 leading-tight">{item.desc}</div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -511,7 +538,7 @@ export default function WebsiteIndex() {
                   </div>
                   
                   {isTypeDropdownOpen && (
-                    <div className="absolute top-full left-0 mt-1 w-full bg-white rounded shadow-xl border border-gray-100 overflow-hidden z-[70]">
+                    <div className="absolute top-full left-0 mt-1 w-full bg-white rounded shadow-xl border border-gray-100 overflow-hidden z-[9999]">
                       {offerings.map((offering) => (
                         <div
                           key={offering.category}
@@ -551,7 +578,7 @@ export default function WebsiteIndex() {
               </form>
               
               {showSearchDropdown && searchResults.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden z-50">
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden z-[9999]">
                   <div className="max-h-80 overflow-y-auto">
                     {searchResults.map((result, idx) => (
                       <Link
@@ -580,7 +607,7 @@ export default function WebsiteIndex() {
         </div>
 
         {/* Cities Sub-navigation */}
-        <div className="hidden md:block bg-[#f8f9fa] border-b border-gray-200">
+        <div className="hidden md:block bg-[#f8f9fa] border-b border-gray-200 relative z-0">
           <div className="max-w-none w-full mx-auto px-4 md:px-8 lg:px-12">
             <div className="flex items-center justify-center h-8 text-[13px] font-medium text-gray-600">
               <div className="flex items-center justify-center space-x-10 w-full">
@@ -619,7 +646,7 @@ export default function WebsiteIndex() {
         </div>
 
         {/* What We Offer */}
-        <section className="py-1 md:py-4 bg-white">
+        <section className="py-1 md:py-4 bg-white relative z-0">
           <div className="max-w-none w-full mx-auto px-4 md:px-8 lg:px-12 mt-1 md:mt-4">
             <div className="text-center mb-4">
               <h2 className="text-xl md:text-3xl font-bold text-gray-900 mb-1">What We Offer</h2>

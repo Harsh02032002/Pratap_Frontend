@@ -771,7 +771,10 @@ const _formatProperty = (p) => {
     })(),
     owner_id: p.owner_id || p.ownerLoginId || p.generatedCredentials?.loginId || p.ownerLoginId,
     isPremium: p.isPremium || p.is_premium || p.propertyInfo?.isPremium || false,
-    gender: _explicitGender(p.gender) || _explicitGender(p.genderSuitability) || _explicitGender(p.propertyInfo?.genderSuitability) || _categoryToGender(p.propertyCategory) || 'Co-ed'
+    gender: _explicitGender(p.gender) || _explicitGender(p.genderSuitability) || _explicitGender(p.propertyInfo?.genderSuitability) || _categoryToGender(p.propertyCategory) || 'Co-ed',
+    landmark: p.landmark || p.propertyInfo?.landmark || p.nearInstitute || '',
+    nearbyColleges: p.nearbyColleges || p.colleges || p.propertyInfo?.nearbyColleges || [],
+    address: p.address || p.propertyInfo?.address || ''
   };
 };
 

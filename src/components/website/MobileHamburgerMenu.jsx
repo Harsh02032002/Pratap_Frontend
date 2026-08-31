@@ -53,7 +53,7 @@ export default function MobileHamburgerMenu() {
   const menuItems = [
     { icon: Home, label: 'Home', path: '/' },
     { icon: Building2, label: 'Our Properties', path: '/properties' },
-    { icon: Gavel, label: 'Fast Bidding', path: '/website/fast-bidding' },
+    { icon: Gavel, label: 'Fast Bidding', path: '/bidding' },
     { icon: PlusCircle, label: 'List Property', path: '/list-property' },
     { icon: Heart, label: 'My Stays', path: '/website/mystays' },
     { icon: MessageCircle, label: 'Chat Support', path: '/website/chat' },

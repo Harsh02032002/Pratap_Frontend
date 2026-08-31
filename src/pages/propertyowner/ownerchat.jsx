@@ -89,9 +89,7 @@ export default function OwnerChat() {
 
   const handleSendPaymentLink = async () => {
     if (!associatedBooking || !activeChat) return;
-    const rentAmount = associatedBooking.rent_amount || associatedBooking.bid_amount || 0;
-    const depositAmount = associatedBooking.securityDepositAmount || 0;
-    const amount = rentAmount + depositAmount;
+    const amount = 500; // Fixed ₹500 booking token amount for chat booking confirmation
     const propertyName = associatedBooking.property_name || "property";
     const tenantName = associatedBooking.name || activeChat.participant_name || "Tenant";
     const bookingId = associatedBooking._id;
@@ -121,12 +119,7 @@ export default function OwnerChat() {
 
     paymentUrl = paymentUrl.replace(/app\.roomhy\.com/g, 'roomhy.com');
 
-    let paymentMessage = "";
-    if (depositAmount > 0) {
-      paymentMessage = `Dear ${tenantName}, please complete the onboarding payment of ₹${amount} (includes First Month Rent ₹${rentAmount} + Security Deposit ₹${depositAmount}) to secure your booking for "${propertyName}". 💳 You can pay securely via Cashfree here: ${paymentUrl}`;
-    } else {
-      paymentMessage = `Dear ${tenantName}, please complete the payment of ₹${amount} to secure your booking for "${propertyName}". 💳 You can pay securely via Cashfree here: ${paymentUrl}`;
-    }
+    const paymentMessage = `Dear ${tenantName}, please complete the token payment of ₹${amount} to confirm your booking for "${propertyName}". 💳 You can pay securely via Cashfree here: ${paymentUrl}`;
 
     const optimisticMsg = {
       id: Date.now(),

@@ -83,7 +83,7 @@ export default function WebsiteFooter() {
             <ul className="space-y-1 text-gray-500 font-medium">
               <li><Link to="/">Home</Link></li>
               <li><Link to="/website/ourproperty">Our Properties</Link></li>
-              <li><Link to="/website/fast-bidding">Fast Bidding</Link></li>
+              <li><Link to="/bidding">Fast Bidding</Link></li>
               <li><Link to="/list-property">Post Property</Link></li>
             </ul>
           </div>
@@ -121,25 +121,7 @@ export default function WebsiteFooter() {
         </div>
       </div>
 
-      {/* Floating Buttons for Mobile (Bottom Right: Chat + BidNow) */}
-      <div className="md:hidden fixed bottom-16 right-4 z-40 flex flex-col items-end gap-2">
-        <a
-          href="https://wa.me/918764425030"
-          target="_blank"
-          rel="noreferrer"
-          className="flex items-center gap-1.5 bg-[#00BFA5] text-white px-3.5 py-2 rounded-full shadow-lg font-bold text-xs hover:scale-105 transition-transform"
-        >
-          <MessageSquare className="w-4 h-4 fill-white" />
-          <span>Chat</span>
-        </a>
-        <Link
-          to="/website/fast-bidding"
-          className="flex items-center gap-1.5 bg-[#FF6B35] text-white px-4 py-2.5 rounded-full shadow-xl font-extrabold text-xs hover:scale-105 transition-transform"
-        >
-          <Zap className="w-4 h-4 fill-white" />
-          <span>BidNow</span>
-        </Link>
-      </div>
+
 
       {/* ========================================================================= */}
       {/* DESKTOP FOOTER                                                            */}
