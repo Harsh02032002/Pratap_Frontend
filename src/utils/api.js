@@ -740,8 +740,20 @@ const _categoryToGender = (category) => {
 };
 
 // Shared property formatter — used by fetchProperties and fetchPropertyByVisitId
+/**
+ * First list that actually has something in it.
+ *
+ * `a || b` cannot be used to pick between image sources: an empty array is
+ * truthy, so a record carrying `images: []` stopped the chain dead and the
+ * photos sitting in `photos` or `propertyInfo.photos` were never reached. That
+ * is why approved properties rendered a stock placeholder while their real
+ * photos were in the record all along.
+ */
+export const firstNonEmptyList = (...lists) =>
+  lists.find(list => Array.isArray(list) && list.length > 0) || [];
+
 const _formatProperty = (p) => {
-  const imagesArray = p.images || p.photos || p.propertyInfo?.photos || [];
+  const imagesArray = firstNonEmptyList(p.images, p.photos, p.propertyInfo?.photos);
   const firstImage = imagesArray[0] || `https://picsum.photos/800/600?random=${Math.floor(Math.random() * 100)}`;
   const tier = normalizeTierKey(p.tier);
   const plainName = p.property_name || p.propertyName || p.propertyInfo?.name || 'Property';

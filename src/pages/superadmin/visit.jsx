@@ -13,10 +13,32 @@ import {
   UtensilsCrossed, Cigarette, PawPrint, BedDouble, DoorOpen
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { fetchJson, getAuthHeader } from "../../utils/api";
+import { fetchJson, getAuthHeader, getApiBase } from "../../utils/api";
+import { compressImage, PRESETS } from "../../utils/imageCompression";
 import { PROPERTY_TIERS, normalizeTierKey } from "../../utils/propertyTiers";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
+
+/** One photo tile. `badge` says which of the two groups it belongs to. */
+function PhotoThumb({ url, badge, onRemove }) {
+  return (
+    <div className="relative group rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-slate-900 aspect-video">
+      <img
+        src={url}
+        alt=""
+        className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity"
+        onError={e => e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23cbd5e1' viewBox='0 0 24 24'%3E%3Cpath d='M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z'/%3E%3C/svg%3E"}
+      />
+      <div className="absolute inset-x-0 bottom-0 bg-slate-950/80 backdrop-blur-xs p-2 text-[9px] font-bold">
+        {badge}
+      </div>
+      <button type="button" onClick={onRemove}
+        className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-md">
+        <X className="w-3 h-3" />
+      </button>
+    </div>
+  );
+}
 
 // ─── Toasts ───────────────────────────────────────────────────────────────────
 // Submitting a report has more to say than a one-liner — which owner was
@@ -312,6 +334,32 @@ export default function Visit() {
   const videoRef = React.useRef(null);
   const streamRef = React.useRef(null);
 
+  const [photoUploading, setPhotoUploading] = useState(0);
+
+  /**
+   * Put a photo in Cloudinary and return its https URL.
+   *
+   * Visit photos used to be stored as base64 data: URLs straight in Mongo, and
+   * the public listing endpoint drops anything starting with "data:" — so every
+   * photo taken through this form was invisible on the website no matter how it
+   * was classified. Uploading gives a real URL the site can actually render,
+   * and keeps multi-megabyte base64 blobs out of the visit document.
+   */
+  const uploadPhotoToCloud = async (blob, filename) => {
+    const body = new FormData();
+    body.append("file", blob, filename);
+    const res = await fetch(`${getApiBase()}/api/upload`, {
+      method: "POST",
+      headers: { ...getAuthHeader() },   // NOT Content-Type: the browser sets the multipart boundary
+      body,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !(data.url || data.secure_url)) {
+      throw new Error(data.message || data.error || `Upload failed (${res.status})`);
+    }
+    return data.url || data.secure_url;
+  };
+
   const addPhotoWithUrl = (urlStr) => {
     if (!urlStr) return;
     setFormPhotos(prev => [...prev, urlStr]);
@@ -394,29 +442,49 @@ export default function Visit() {
       canvas.height - bannerHeight / 2
     );
 
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
-    setFormPhotos(prev => [...prev, dataUrl]);
-    setFormPhotoDetails(prev => [...prev, { url: dataUrl, capturedAt: timeStr, source: "camera" }]);
-
     stopCamera();
+
+    setPhotoUploading(n => n + 1);
+    canvas.toBlob(async (blob) => {
+      try {
+        if (!blob) throw new Error("Could not read the captured frame");
+        const url = await uploadPhotoToCloud(blob, `live-capture-${Date.now()}.jpg`);
+        setFormPhotos(prev => [...prev, url]);
+        setFormPhotoDetails(prev => [...prev, { url, capturedAt: timeStr, source: "camera" }]);
+      } catch (err) {
+        notify("error", "Could not save the photo", `${err.message}. The capture was not added — please take it again.`);
+      } finally {
+        setPhotoUploading(n => n - 1);
+      }
+    }, "image/jpeg", 0.85);
   };
 
-  const handleFileUpload = (e) => {
+  const handleFileUpload = async (e) => {
     const files = Array.from(e.target.files || []);
+    e.target.value = "";
     for (const file of files) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const url = event.target.result;
+      setPhotoUploading(n => n + 1);
+      try {
+        // These are the public listing photos, so shrink them before they go up.
+        const small = await compressImage(file, PRESETS.PHOTO);
+        const url = await uploadPhotoToCloud(small, small.name || file.name || "photo.jpg");
         setFormPhotos(prev => [...prev, url]);
         setFormPhotoDetails(prev => [...prev, { url, source: "upload" }]);
-      };
-      reader.readAsDataURL(file);
+      } catch (err) {
+        notify("error", "Photo upload failed", `${file.name}: ${err.message}. It was not added — please try again.`);
+      } finally {
+        setPhotoUploading(n => n - 1);
+      }
     }
-    e.target.value = "";
   };
 
   // UI state
   const [saving, setSaving] = useState(false);
+  // Rejection is a two-step action: the comment is optional, but it is the only
+  // thing that tells the employee WHY their report came back, so it gets a
+  // proper modal rather than a window.prompt.
+  const [rejectModal, setRejectModal] = useState(null);
+  const [rejectReason, setRejectReason] = useState("");
   // Id for the report currently being filled in. Held in a ref so a retry after
   // a failed submit reuses it instead of minting a new one — a fresh id per
   // click made every retry a NEW visit report and a SECOND KYC email to the
@@ -428,6 +496,18 @@ export default function Visit() {
   });
 
   const toggleSection = (key) => setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
+  // Photos grouped by HOW they were added — a live capture is timestamped on
+  // the spot, an upload is a file chosen from disk. This is a presentation
+  // split only: both kinds are published to the website exactly the same.
+  //
+  // The original index is carried along because formPhotos and formPhotoDetails
+  // stay a single parallel pair — removePhoto(idx) addresses the flat list.
+  const indexedPhotos = formPhotos.map((url, idx) => ({ url, idx, detail: formPhotoDetails[idx] || { url } }));
+  const livePhotos = indexedPhotos.filter(p => p.detail.source === "camera");
+  // Anything not marked as a live capture, including older entries saved before
+  // `source` was recorded.
+  const uploadedPhotos = indexedPhotos.filter(p => p.detail.source !== "camera");
+
   const toggleAmenity = (a) => setFormAmenities(prev => { const n = new Set(prev); n.has(a) ? n.delete(a) : n.add(a); return n; });
 
   // ─── Data Loading ───────────────────────────────────────────────────────────
@@ -618,6 +698,42 @@ export default function Visit() {
       loadVisits();
     } catch (err) {
       notify("error", "Could not send the KYC link", err?.message || "The email did not go out. Please try again.");
+    } finally {
+      setActingId(null);
+    }
+  };
+
+  const rejectVisit = async () => {
+    const v = rejectModal;
+    if (!v) return;
+    const id = v.visitId || v._id;
+    setActingId(id);
+    try {
+      await fetchJson("/api/visits/reject", {
+        method: "POST",
+        headers: { ...getAuthHeader(), "Content-Type": "application/json" },
+        body: JSON.stringify({
+          visitId: id,
+          // Trimmed so a stray space is not stored as a reason and shown to the
+          // employee as an empty comment bubble.
+          rejectReason: rejectReason.trim(),
+          rejectAction: "cancel",
+        }),
+      });
+      notify(
+        "success",
+        "Report rejected",
+        rejectReason.trim()
+          ? `${v.staffName || "The employee"} will see your comment on this report.`
+          : `${v.propertyName || "The report"} was rejected without a comment.`,
+        rejectReason.trim() ? null : "Add a reason next time so staff know why"
+      );
+      setRejectModal(null);
+      setRejectReason("");
+      setViewingVisit(null);
+      loadVisits();
+    } catch (err) {
+      notify("error", "Could not reject", err?.message || "The rejection did not go through. Please try again.");
     } finally {
       setActingId(null);
     }
@@ -1047,71 +1163,90 @@ export default function Visit() {
 
               {/* ─── Section 8: Photos & Camera ───────────────────────────────── */}
               <div>
-                <SectionHeader icon={Camera} title="Photos & Camera Verification" subtitle="Capture property photos with live date/time stamp" open={openSections.photos} onToggle={() => toggleSection("photos")} color="rose" />
+                <SectionHeader icon={Camera} title="Photos" subtitle="Live camera captures and uploaded photos" open={openSections.photos} onToggle={() => toggleSection("photos")} color="rose" />
                 {openSections.photos && (
-                  <div className="px-8 pb-8 space-y-4">
-                    {/* Action buttons */}
-                    <div className="flex flex-wrap items-center gap-3">
-                      <button type="button" onClick={startCamera}
-                        className="px-5 py-3.5 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-xs font-bold transition-all flex items-center gap-2 shadow-lg shadow-rose-600/20">
-                        <Camera className="w-4 h-4" /> Open Live Camera
-                      </button>
+                  <div className="px-8 pb-8 space-y-6">
 
-                      <label className="px-5 py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-slate-900/10">
-                        <ImageIcon className="w-4 h-4" /> Upload Photo File
-                        <input type="file" accept="image/*" capture="environment" multiple onChange={handleFileUpload} className="hidden" />
-                      </label>
-                    </div>
-
-                    {/* URL Input */}
-                    <div className="flex gap-3">
-                      <div className="flex-1">
-                        <FormField label="Or Paste Photo URL" value={formPhotoUrl} onChange={e => setFormPhotoUrl(e.target.value)} placeholder="https://example.com/photo.jpg" />
-                      </div>
-                      <div className="flex items-end">
-                        <button type="button" onClick={() => addPhotoWithUrl(formPhotoUrl)}
-                          className="px-5 py-4 bg-blue-600 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg shadow-blue-200">
-                          <Plus className="w-4 h-4" /> Add URL
+                    {/* ── 1. Live camera ── */}
+                    <div className="rounded-2xl border border-rose-100 bg-rose-50/40 p-5">
+                      <div className="flex items-start justify-between gap-4 flex-wrap">
+                        <div>
+                          <p className="text-[11px] font-black text-rose-600 uppercase tracking-widest">
+                            Step 1 — Live camera capture
+                          </p>
+                          <p className="text-[11px] text-slate-500 mt-1 max-w-md leading-relaxed">
+                            Taken on the spot and stamped with the date and time.
+                          </p>
+                        </div>
+                        <button type="button" onClick={startCamera}
+                          className="px-5 py-3.5 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-xs font-bold transition-all flex items-center gap-2 shadow-lg shadow-rose-600/20 shrink-0">
+                          <Camera className="w-4 h-4" /> Open Live Camera
                         </button>
                       </div>
+
+                      {livePhotos.length > 0 ? (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                          {livePhotos.map(({ url, detail, idx }) => (
+                            <PhotoThumb key={idx} url={url} onRemove={() => removePhoto(idx)}
+                              badge={<span className="truncate flex items-center gap-1 text-sky-400">
+                                <Clock size={10} className="shrink-0" /> {detail.capturedAt}
+                              </span>} />
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-[11px] text-slate-400 mt-4 italic">No live photos captured yet.</p>
+                      )}
                     </div>
 
-                    {/* Thumbnails with timestamp badges */}
-                    {formPhotos.length > 0 && (
-                      <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Captured Photos ({formPhotos.length})</p>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
-                          {formPhotos.map((url, idx) => {
-                            // No fallback timestamp. This used to default to
-                            // "now", which labelled an uploaded file with the
-                            // moment the page happened to render.
-                            const detail = formPhotoDetails[idx] || { url };
-                            const isLive = detail.source === "camera";
-                            return (
-                              <div key={idx} className="relative group rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-slate-900 aspect-video flex flex-col justify-between">
-                                <img src={url} alt="" className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" onError={e => e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23cbd5e1' viewBox='0 0 24 24'%3E%3Cpath d='M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z'/%3E%3C/svg%3E"} />
-                                <div className="absolute inset-x-0 bottom-0 bg-slate-950/80 backdrop-blur-xs p-2 text-[9px] font-bold">
-                                  {isLive ? (
-                                    <span className="truncate flex items-center gap-1 text-sky-400">
-                                        <Clock size={10} className="shrink-0" />
-                                      {detail.capturedAt}
-                                    </span>
-                                  ) : (
-                                    <span className="truncate flex items-center gap-1 text-slate-400">
-                                      <ImageIcon size={10} className="shrink-0" /> Uploaded file
-                                    </span>
-                                  )}
-                                </div>
-                                <button type="button" onClick={() => removePhoto(idx)}
-                                  className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-md">
-                                  <X className="w-3 h-3" />
-                                </button>
-                              </div>
-                            );
-                          })}
+                    {/* ── 2. Uploads ── */}
+                    <div className="rounded-2xl border border-blue-100 bg-blue-50/40 p-5">
+                      <div className="flex items-start justify-between gap-4 flex-wrap">
+                        <div>
+                          <p className="text-[11px] font-black text-blue-600 uppercase tracking-widest">
+                            Step 2 — Uploaded photos
+                          </p>
+                          <p className="text-[11px] text-slate-500 mt-1 max-w-md leading-relaxed">
+                            Clean, unstamped photos of the property.
+                          </p>
+                        </div>
+                        <label className="px-5 py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-slate-900/10 shrink-0">
+                          <ImageIcon className="w-4 h-4" /> Upload Photo File
+                          <input type="file" accept="image/*" multiple onChange={handleFileUpload} className="hidden" />
+                        </label>
+                      </div>
+
+                      <div className="flex gap-3 mt-4">
+                        <div className="flex-1">
+                          <FormField label="Or Paste Photo URL" value={formPhotoUrl} onChange={e => setFormPhotoUrl(e.target.value)} placeholder="https://example.com/photo.jpg" />
+                        </div>
+                        <div className="flex items-end">
+                          <button type="button" onClick={() => addPhotoWithUrl(formPhotoUrl)}
+                            className="px-5 py-4 bg-blue-600 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg shadow-blue-200">
+                            <Plus className="w-4 h-4" /> Add URL
+                          </button>
                         </div>
                       </div>
-                    )}
+
+                      {photoUploading > 0 && (
+                        <p className="text-[11px] font-bold text-blue-600 mt-3 flex items-center gap-2">
+                          <Loader2 size={13} className="animate-spin" />
+                          Uploading {photoUploading} photo{photoUploading > 1 ? "s" : ""}…
+                        </p>
+                      )}
+
+                      {uploadedPhotos.length > 0 ? (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                          {uploadedPhotos.map(({ url, idx }) => (
+                            <PhotoThumb key={idx} url={url} onRemove={() => removePhoto(idx)}
+                              badge={<span className="truncate flex items-center gap-1 text-slate-300">
+                                <ImageIcon size={10} className="shrink-0" /> Uploaded file
+                              </span>} />
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-[11px] text-slate-400 mt-4 italic">No photos uploaded yet.</p>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -1263,10 +1398,19 @@ export default function Visit() {
                       <td className="p-4">
                         <span className={cn(
                           "px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider",
-                          v.status === "approved" ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-amber-50 text-amber-600 border border-amber-100"
+                          v.status === "approved" ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                            : v.status === "rejected" ? "bg-rose-50 text-rose-600 border border-rose-100"
+                            : "bg-amber-50 text-amber-600 border border-amber-100"
                         )}>
                           {v.status || "pending"}
                         </span>
+                        {/* The reason belongs next to the status, not buried in
+                            the detail modal — this row is what the employee scans. */}
+                        {v.status === "rejected" && v.rejectReason && (
+                          <p className="mt-1 max-w-[180px] text-[10px] font-normal leading-snug text-rose-500" title={v.rejectReason}>
+                            “{v.rejectReason}”
+                          </p>
+                        )}
                       </td>
                       <td className="p-4 pr-6">
                         <div className="flex items-center justify-end gap-2">
@@ -1274,7 +1418,7 @@ export default function Visit() {
                             className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold uppercase transition-all">
                             View
                           </button>
-                          {v.status !== "approved" && (
+                          {v.status !== "approved" && v.status !== "rejected" && (
                             <>
                               <button
                                 onClick={() => resendKyc(v)}
@@ -1292,6 +1436,16 @@ export default function Visit() {
                                   className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all border bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed"
                                 >
                                   {actingId === (v.visitId || v._id) ? "..." : "Approve"}
+                                </button>
+                              )}
+                              {canApprove && (
+                                <button
+                                  onClick={() => { setRejectModal(v); setRejectReason(""); }}
+                                  disabled={actingId === (v.visitId || v._id)}
+                                  title="Reject this report and send the employee a reason"
+                                  className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all border bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100 disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed"
+                                >
+                                  Reject
                                 </button>
                               )}
                             </>
@@ -1343,6 +1497,33 @@ export default function Visit() {
             {/* Body */}
             <div className="overflow-y-auto p-8 space-y-8 flex-1">
               {/* Owner's submitted digital KYC — this is what gates approval */}
+              {/* First thing in the report when it has come back — an employee
+                  opening this needs the reason before anything else. */}
+              {viewingVisit.status === "rejected" && (
+                <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-rose-100 text-rose-600">
+                      <XCircle size={16} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-black uppercase tracking-widest text-rose-600">
+                        Report rejected
+                        {viewingVisit.rejectedAt && (
+                          <span className="ml-2 font-bold normal-case tracking-normal text-rose-400">
+                            {new Date(viewingVisit.rejectedAt).toLocaleString("en-IN")}
+                          </span>
+                        )}
+                      </p>
+                      {viewingVisit.rejectReason ? (
+                        <p className="mt-1.5 text-[13px] leading-relaxed text-rose-900">“{viewingVisit.rejectReason}”</p>
+                      ) : (
+                        <p className="mt-1.5 text-[12px] italic text-rose-500">No reason was given.</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <DetailSection icon={ShieldCheck} title="Owner Digital KYC" color="emerald">
                 {!viewingVisit.generatedCredentials?.loginId ? (
                   <p className="text-xs font-semibold text-slate-500 bg-slate-50 rounded-xl p-4 border border-slate-100">
@@ -1391,6 +1572,14 @@ export default function Visit() {
               </DetailSection>
 
               <DetailSection icon={Star} title="Publish Tier" color="indigo">
+                {canApprove && viewingVisit.status !== "approved" && viewingVisit.status !== "rejected" && (
+                  <button
+                    onClick={() => { setRejectModal(viewingVisit); setRejectReason(""); }}
+                    className="px-5 py-3 rounded-2xl text-[11px] font-bold uppercase tracking-wider border bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100 transition-all"
+                  >
+                    Reject
+                  </button>
+                )}
                 {canApprove && viewingVisit.status !== "approved" ? (
                   <select
                     value={tierFor(viewingVisit)}
@@ -1523,37 +1712,73 @@ export default function Visit() {
               )}
 
               {viewingVisit.photos?.length > 0 && (
-                <DetailSection icon={Camera} title="Photos & Capture Timestamps" color="rose">
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {viewingVisit.photos.map((url, idx) => {
+                <DetailSection icon={Camera} title="Photos" color="rose">
+                  {(() => {
+                    // Same grouping as the form: by how the photo was taken.
+                    // Both kinds are published; this only makes the report
+                    // readable at a glance.
+                    const rows = (viewingVisit.photos || []).map((url, idx) => {
                       const detail = viewingVisit.photoDetails?.[idx] || {};
-                      // Fell back to the submission time for any photo without
-                      // one, which presented an uploaded file as though it had
-                      // been timestamped on site. Only a real capture time counts.
                       const capturedAt = detail.capturedAt ||
                         (viewingVisit.photoTimestamps && viewingVisit.photoTimestamps[url]) || null;
-                      const isLive = detail.source === "camera" || Boolean(capturedAt);
-                      return (
-                        <div key={idx} className="bg-slate-900 rounded-2xl overflow-hidden border border-slate-100 shadow-sm group">
-                          <div className="relative aspect-video">
-                            <img src={url} alt="" className="w-full h-full object-cover" />
-                            <div className="absolute inset-x-0 bottom-0 bg-slate-950/80 backdrop-blur-xs p-2 text-[9px] font-bold">
-                              {isLive ? (
-                                <span className="truncate flex items-center gap-1.5 text-sky-400">
-                                  <Clock size={11} className="shrink-0" />
-                                  {capturedAt || "Live capture"}
-                                </span>
-                              ) : (
-                                <span className="truncate flex items-center gap-1.5 text-slate-400">
-                                  <ImageIcon size={11} className="shrink-0" /> Uploaded file — no capture timestamp
-                                </span>
-                              )}
-                            </div>
+                      return { url, idx, capturedAt, isLive: detail.source === "camera" };
+                    });
+                    const live = rows.filter(r => r.isLive);
+                    const uploaded = rows.filter(r => !r.isLive);
+
+                    const Tile = ({ r, badge }) => (
+                      <div className="bg-slate-900 rounded-2xl overflow-hidden border border-slate-100 shadow-sm">
+                        <div className="relative aspect-video">
+                          <img src={r.url} alt="" className="w-full h-full object-cover" />
+                          <div className="absolute inset-x-0 bottom-0 bg-slate-950/80 backdrop-blur-xs p-2 text-[9px] font-bold">
+                            {badge}
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
+                      </div>
+                    );
+
+                    return (
+                      <div className="space-y-5">
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-widest text-rose-600 mb-2">
+                            Live camera captures ({live.length})
+                          </p>
+                          {live.length ? (
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                              {live.map(r => (
+                                <Tile key={r.idx} r={r} badge={
+                                  <span className="truncate flex items-center gap-1.5 text-sky-400">
+                                    <Clock size={11} className="shrink-0" />{r.capturedAt || "Live capture"}
+                                  </span>
+                                } />
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-[11px] italic text-slate-400">No live photos were captured.</p>
+                          )}
+                        </div>
+
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-widest text-blue-600 mb-2">
+                            Uploaded photos ({uploaded.length})
+                          </p>
+                          {uploaded.length ? (
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                              {uploaded.map(r => (
+                                <Tile key={r.idx} r={r} badge={
+                                  <span className="truncate flex items-center gap-1.5 text-slate-300">
+                                    <ImageIcon size={11} className="shrink-0" /> Uploaded file
+                                  </span>
+                                } />
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-[11px] italic text-slate-400">No photos were uploaded.</p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </DetailSection>
               )}
             </div>
@@ -1595,6 +1820,65 @@ export default function Visit() {
       )}
 
       {/* ═══ LIVE CAMERA MODAL ═══ */}
+      {/* ═══ REJECT MODAL ═══ */}
+      {rejectModal && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl overflow-hidden max-w-md w-full shadow-2xl">
+            <div className="p-5 border-b border-slate-100 flex items-start gap-3">
+              <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-rose-50 text-rose-600">
+                <XCircle size={18} />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm font-black text-slate-900">Reject this visit report</h3>
+                <p className="text-[11px] text-slate-500 mt-0.5 truncate">
+                  {rejectModal.propertyName || "Unnamed property"} — submitted by {rejectModal.staffName || "staff"}
+                </p>
+              </div>
+            </div>
+
+            <div className="p-5">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                Reason for rejection <span className="text-slate-300">(optional)</span>
+              </label>
+              <textarea
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                rows={4}
+                autoFocus
+                maxLength={500}
+                placeholder="e.g. Photos are unclear and the rent does not match what the owner quoted."
+                className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-[13px] text-slate-800 placeholder:text-slate-400 outline-none transition-colors focus:border-rose-400 focus:bg-white resize-none"
+              />
+              <div className="mt-1.5 flex items-center justify-between">
+                <p className="text-[10px] text-slate-400">
+                  Shown to {rejectModal.staffName || "the employee"} on their copy of this report.
+                </p>
+                <p className="text-[10px] text-slate-300 tabular-nums">{rejectReason.length}/500</p>
+              </div>
+            </div>
+
+            <div className="p-5 pt-0 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => { setRejectModal(null); setRejectReason(""); }}
+                className="px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-wider text-slate-500 hover:bg-slate-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={rejectVisit}
+                disabled={actingId === (rejectModal.visitId || rejectModal._id)}
+                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-bold uppercase tracking-wider shadow-lg shadow-rose-600/20 transition-all disabled:opacity-50 flex items-center gap-2"
+              >
+                {actingId === (rejectModal.visitId || rejectModal._id) && <Loader2 size={13} className="animate-spin" />}
+                Reject report
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {cameraModalOpen && (
         <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden max-w-lg w-full shadow-2xl flex flex-col">

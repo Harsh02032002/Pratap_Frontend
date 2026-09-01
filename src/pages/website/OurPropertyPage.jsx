@@ -5,7 +5,7 @@ import * as LucideIcons from "lucide-react";
 const { Filter, MapPin, Wallet, Home, Users, TrendingUp, Send, RefreshCw, ChevronLeft, ChevronRight, Building2, BookOpen, Star, Check, Phone, Wifi, Utensils, Car, Dumbbell, Tv, Wind, Droplets, Zap, X, Menu, Heart, ChevronDown, Clock, Shirt, Cctv, Video, Waves, Fan, Shield, Search, Bed } = LucideIcons;
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, Link, useNavigate, useParams, useLocation } from "react-router-dom";
-import { fetchProperties, searchPropertiesByLocation, getNearbyAreas, getInstitutions, getPriceRangeByType, trackPropertyClick, getApiBase, fetchJson, resolvePropertyOwnerLoginId } from "../../utils/api";
+import { fetchProperties, searchPropertiesByLocation, getNearbyAreas, getInstitutions, getPriceRangeByType, trackPropertyClick, getApiBase, fetchJson, resolvePropertyOwnerLoginId, firstNonEmptyList } from "../../utils/api";
 import FastBiddingModal from "../../components/website/FastBiddingModal";
 import QuickBookingModal from "../../components/website/QuickBookingModal";
 import { useAuth } from "../../contexts/AuthContext";
@@ -2094,8 +2094,15 @@ function PropertyCard({ property, onBookNow }) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
 
-  // Get all images from property
-  const allImages = property.images || property.photos || property.propertyInfo?.photos || [property.image];
+  // Get all images from property. firstNonEmptyList, not `||` — an empty array
+  // is truthy, so `property.images || …` returned the [] that a property with
+  // an unpopulated gallery carries and the card fell back to a stock photo.
+  const allImages = firstNonEmptyList(
+    property.images,
+    property.photos,
+    property.propertyInfo?.photos,
+    property.image ? [property.image] : []
+  );
   const displayImages = allImages.length > 0 ? allImages : ['https://images.pexels.com/photos/1571468/pexels-photo-1571468.jpeg?auto=compress&cs=tinysrgb&w=600'];
   
   // Check discount
