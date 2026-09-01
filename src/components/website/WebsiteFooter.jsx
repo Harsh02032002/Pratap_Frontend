@@ -129,42 +129,42 @@ export default function WebsiteFooter() {
             </div>
             <ul className="space-y-2 text-xs font-bold text-slate-600">
               <li>
-                <Link to="/website/ourproperty?type=pg&gender=boys" className="hover:text-purple-600 transition-colors flex items-center gap-1">
+                <Link to="/pg?gender=boys" className="hover:text-purple-600 transition-colors flex items-center gap-1">
                   <span className="text-slate-400 font-bold">&gt;</span> PG for Boys
                 </Link>
               </li>
               <li>
-                <Link to="/website/ourproperty?type=pg&gender=girls" className="hover:text-purple-600 transition-colors flex items-center gap-1">
+                <Link to="/pg?gender=girls" className="hover:text-purple-600 transition-colors flex items-center gap-1">
                   <span className="text-slate-400 font-bold">&gt;</span> PG for Girls
                 </Link>
               </li>
               <li>
-                <Link to="/website/ourproperty?type=pg&gender=coed" className="hover:text-purple-600 transition-colors flex items-center gap-1">
+                <Link to="/pg?gender=coed" className="hover:text-purple-600 transition-colors flex items-center gap-1">
                   <span className="text-slate-400 font-bold">&gt;</span> Co-ed PG
                 </Link>
               </li>
               <li>
-                <Link to="/website/ourproperty?type=hostel" className="hover:text-purple-600 transition-colors flex items-center gap-1">
+                <Link to="/hostels" className="hover:text-purple-600 transition-colors flex items-center gap-1">
                   <span className="text-slate-400 font-bold">&gt;</span> Hostels
                 </Link>
               </li>
               <li>
-                <Link to="/website/ourproperty?type=hostel&gender=boys" className="hover:text-purple-600 transition-colors flex items-center gap-1">
+                <Link to="/hostels?gender=boys" className="hover:text-purple-600 transition-colors flex items-center gap-1">
                   <span className="text-slate-400 font-bold">&gt;</span> Boys Hostels
                 </Link>
               </li>
               <li>
-                <Link to="/website/ourproperty?type=hostel&gender=girls" className="hover:text-purple-600 transition-colors flex items-center gap-1">
+                <Link to="/hostels?gender=girls" className="hover:text-purple-600 transition-colors flex items-center gap-1">
                   <span className="text-slate-400 font-bold">&gt;</span> Girls Hostels
                 </Link>
               </li>
               <li>
-                <Link to="/website/ourproperty?type=co-living" className="hover:text-purple-600 transition-colors flex items-center gap-1">
+                <Link to="/co-living" className="hover:text-purple-600 transition-colors flex items-center gap-1">
                   <span className="text-slate-400 font-bold">&gt;</span> Co-living
                 </Link>
               </li>
               <li>
-                <Link to="/website/ourproperty?type=apartment" className="hover:text-purple-600 transition-colors flex items-center gap-1">
+                <Link to="/apartments" className="hover:text-purple-600 transition-colors flex items-center gap-1">
                   <span className="text-slate-400 font-bold">&gt;</span> Apartments
                 </Link>
               </li>
@@ -184,17 +184,17 @@ export default function WebsiteFooter() {
             </div>
             <ul className="space-y-2 text-xs font-bold text-slate-600">
               <li>
-                <Link to="/website/ourproperty?type=hostel&gender=boys" className="hover:text-amber-600 transition-colors flex items-center gap-1">
+                <Link to="/hostels?gender=boys" className="hover:text-amber-600 transition-colors flex items-center gap-1">
                   <span className="text-slate-400 font-bold">&gt;</span> Hostels for Boys
                 </Link>
               </li>
               <li>
-                <Link to="/website/ourproperty?type=hostel&gender=girls" className="hover:text-amber-600 transition-colors flex items-center gap-1">
+                <Link to="/hostels?gender=girls" className="hover:text-amber-600 transition-colors flex items-center gap-1">
                   <span className="text-slate-400 font-bold">&gt;</span> Hostels for Girls
                 </Link>
               </li>
               <li>
-                <Link to="/website/ourproperty?type=hostel&gender=coed" className="hover:text-amber-600 transition-colors flex items-center gap-1">
+                <Link to="/hostels?gender=coed" className="hover:text-amber-600 transition-colors flex items-center gap-1">
                   <span className="text-slate-400 font-bold">&gt;</span> Co-ed Hostels
                 </Link>
               </li>
@@ -208,17 +208,17 @@ export default function WebsiteFooter() {
               </div>
               <ul className="space-y-2 text-xs font-bold text-slate-600">
                 <li>
-                  <Link to="/website/ourproperty?type=co-living&gender=boys" className="hover:text-sky-600 transition-colors flex items-center gap-1">
+                  <Link to="/co-living?gender=boys" className="hover:text-sky-600 transition-colors flex items-center gap-1">
                     <span className="text-slate-400 font-bold">&gt;</span> Co-living for Boys
                   </Link>
                 </li>
                 <li>
-                  <Link to="/website/ourproperty?type=co-living&gender=girls" className="hover:text-sky-600 transition-colors flex items-center gap-1">
+                  <Link to="/co-living?gender=girls" className="hover:text-sky-600 transition-colors flex items-center gap-1">
                     <span className="text-slate-400 font-bold">&gt;</span> Co-living for Girls
                   </Link>
                 </li>
                 <li>
-                  <Link to="/website/ourproperty?type=co-living&gender=coed" className="hover:text-sky-600 transition-colors flex items-center gap-1">
+                  <Link to="/co-living?gender=coed" className="hover:text-sky-600 transition-colors flex items-center gap-1">
                     <span className="text-slate-400 font-bold">&gt;</span> Co-ed Co-living
                   </Link>
                 </li>
@@ -273,19 +273,19 @@ export default function WebsiteFooter() {
 
           <div className="flex flex-wrap gap-2 flex-1">
             {[
-              { label: 'PG in Kota', link: '/website/ourproperty?city=kota' },
-              { label: 'PG in Jaipur', link: '/website/ourproperty?city=jaipur' },
-              { label: 'PG in Delhi', link: '/website/ourproperty?city=delhi' },
-              { label: 'Hostels in Kota', link: '/website/ourproperty?city=kota&type=hostel' },
-              { label: 'Hostels in Jaipur', link: '/website/ourproperty?city=jaipur&type=hostel' },
-              { label: 'Hostels in Delhi', link: '/website/ourproperty?city=delhi&type=hostel' },
-              { label: 'Co-living in Bangalore', link: '/website/ourproperty?city=bangalore&type=co-living' },
-              { label: 'Co-living in Pune', link: '/website/ourproperty?city=pune&type=co-living' },
-              { label: 'Student Apartments', link: '/website/ourproperty?type=apartment' },
-              { label: 'Girls Hostel', link: '/website/ourproperty?type=hostel&gender=girls' },
-              { label: 'Boys Hostel', link: '/website/ourproperty?type=hostel&gender=boys' },
-              { label: 'Luxury PG', link: '/website/ourproperty?type=pg' },
-              { label: 'Budget PG', link: '/website/ourproperty?type=pg' },
+              { label: 'PG in Kota', link: '/pg-in-kota' },
+              { label: 'PG in Jaipur', link: '/pg-in-jaipur' },
+              { label: 'PG in Delhi', link: '/pg-in-delhi' },
+              { label: 'Hostels in Kota', link: '/hostels-in-kota' },
+              { label: 'Hostels in Jaipur', link: '/hostels-in-jaipur' },
+              { label: 'Hostels in Delhi', link: '/hostels-in-delhi' },
+              { label: 'Co-living in Bangalore', link: '/co-living-in-bangalore' },
+              { label: 'Co-living in Pune', link: '/co-living-in-pune' },
+              { label: 'Student Apartments', link: '/apartments' },
+              { label: 'Girls Hostel', link: '/hostels?gender=girls' },
+              { label: 'Boys Hostel', link: '/hostels?gender=boys' },
+              { label: 'Luxury PG', link: '/pg' },
+              { label: 'Budget PG', link: '/pg' },
             ].map(item => (
               <Link
                 key={item.label}

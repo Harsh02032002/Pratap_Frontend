@@ -1,10 +1,18 @@
 import React, { useState, useEffect } from "react";
 import WebsiteNavbar from "../../components/website/WebsiteNavbar";
 import WebsiteFooter from "../../components/website/WebsiteFooter";
-import { RefreshCcw, Send, Loader2 } from 'lucide-react';
+import MobileBottomNav from "../../components/website/MobileBottomNav";
+import { RefreshCcw, Send, Loader2, ShieldCheck, CheckCircle2, Building2, HelpCircle, Mail, Clock, Sparkles } from 'lucide-react';
 import { fetchJson } from "../../utils/api";
+import useSEO from "../../hooks/useSEO";
 
 export default function WebsiteRefundRequest() {
+  useSEO({
+    pageKey: 'refund_request',
+    fallbackTitle: 'Request Refund & Alternative Stay | Roomhy.com',
+    fallbackDescription: "Submit an online refund request or request an alternative property allocation directly on Roomhy.com."
+  });
+
   useEffect(() => {
     if (window.location.pathname !== '/refund-request') {
       window.history.replaceState(null, '', '/refund-request');
@@ -83,316 +91,385 @@ export default function WebsiteRefundRequest() {
       });
     } catch (error) {
       console.error("Error submitting refund request:", error);
-      alert(error.message || "Failed to submit request. Please verify the Booking ID and Email address.");
+      alert(error.message || "Failed to submit request. Please verify your Booking ID and Email address.");
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-white md:bg-gray-50">
+    <div className="min-h-screen flex flex-col font-sans bg-[#F8FBFA] text-slate-900 selection:bg-teal-500 selection:text-white">
       <WebsiteNavbar />
 
-      <main className="min-h-screen">
-        {/* --- HERO BANNER (UNIFIED LIGHT GRADIENT) --- */}
-        <section className="relative bg-gradient-to-br from-[#F4F7FA] via-white to-teal-50/60 border-b border-slate-200/80 text-slate-900 py-10 md:py-12 px-4 md:px-8 overflow-hidden">
-          <div className="max-w-7xl mx-auto text-center relative z-10">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-teal-50 border border-teal-200/80 text-teal-700 text-xs font-bold mb-3 shadow-2xs">
-              <RefreshCcw className="w-3.5 h-3.5 text-teal-600" />
-              <span>Direct Refund & Alternative Stay Request</span>
-            </div>
-            
-            <h1 className="text-3xl md:text-5xl font-black tracking-tight text-slate-900 mb-2.5">
-              Refund <span className="text-teal-600">Request</span>
-            </h1>
+      <main className="flex-grow">
+        {/* --- HERO BANNER --- */}
+        <section className="relative border-b border-[#DCE7EF]/80 text-slate-900 py-8 md:py-10 px-4 md:px-8 overflow-hidden bg-gradient-to-r from-slate-50 via-white to-teal-50/40">
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+            <div className="flex-1 text-left max-w-2xl">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50/90 border border-teal-200/90 text-[#0FA596] text-xs font-extrabold mb-2 shadow-2xs">
+                <RefreshCcw className="w-3.5 h-3.5 text-[#0FA596]" />
+                <span>Direct Online Processing Desk</span>
+              </div>
+              
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-slate-950 mb-1.5 leading-tight">
+                Refund &amp; <span className="bg-gradient-to-r from-[#0FA596] to-emerald-500 bg-clip-text text-transparent">Stay Request</span>
+              </h1>
 
-            <p className="text-sm md:text-base text-slate-600 max-w-xl mx-auto font-medium leading-relaxed">
-              Submit your booking reference to request a deposit refund or alternative property allocation.
-            </p>
+              <p className="text-xs md:text-sm text-slate-600 font-medium leading-relaxed">
+                Submit your booking reference below to claim a token deposit refund or request priority room re-allocation.
+              </p>
+            </div>
+
+            <div className="relative w-full md:w-[340px] h-32 md:h-36 rounded-2xl overflow-hidden shadow-md border border-slate-200/90 shrink-0 my-auto group">
+              <img
+                src="https://images.unsplash.com/photo-1554224154-26032ffc0d07?w=800&auto=format&fit=crop"
+                alt="Roomhy Refund Request"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent" />
+              <div className="absolute bottom-2 left-3 right-3 bg-white/95 backdrop-blur-md p-2 rounded-xl border border-white/50 shadow-xs flex items-center justify-between">
+                <div>
+                  <div className="text-[11px] font-black text-slate-900">Direct Online Portal</div>
+                  <div className="text-[9px] font-bold text-slate-500">Fast Verification</div>
+                </div>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-extrabold border border-emerald-200">
+                  Instant Form
+                </span>
+              </div>
+            </div>
           </div>
         </section>
 
-        {/* Form Section */}
-        <section className="py-6 md:py-16 bg-white">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Sidebar */}
-            <div className="lg:col-span-1 hidden lg:block">
-              <div className="light-card rounded-2xl p-6 sticky top-24">
-                <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                  <i data-lucide="info" className="w-5 h-5"></i> Booking Details
-                </h3>
-                <div className="space-y-4 text-sm">
-                  <div>
-                    <p className="text-gray-600 font-semibold">Booking ID</p>
-                    <p className="text-gray-400">Enter your booking reference</p>
+        {/* --- MAIN FORM CONTENT --- */}
+        <section className="py-8 md:py-14 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            
+            {/* Left Sidebar Help Panel */}
+            <div className="lg:col-span-4 space-y-4">
+              <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs space-y-4">
+                <div className="flex items-center gap-2 text-slate-900 font-extrabold text-sm border-b border-slate-100 pb-3">
+                  <HelpCircle className="w-4 h-4 text-[#0FA596]" />
+                  <span>Request Guidelines</span>
+                </div>
+                
+                <div className="space-y-3.5 text-xs text-slate-600 font-medium">
+                  <div className="flex items-start gap-2.5">
+                    <CheckCircle2 className="w-4 h-4 text-[#0FA596] shrink-0 mt-0.5" />
+                    <div>
+                      <strong className="text-slate-900 block font-bold">Booking ID Verification</strong>
+                      Enter your valid Roomhy booking reference (e.g. BK-123456).
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-gray-600 font-semibold">Request Type</p>
-                    <p className="text-gray-400">Choose between refund or alternative</p>
+
+                  <div className="flex items-start gap-2.5">
+                    <CheckCircle2 className="w-4 h-4 text-[#0FA596] shrink-0 mt-0.5" />
+                    <div>
+                      <strong className="text-slate-900 block font-bold">Choose Request Type</strong>
+                      Option for full token refund or priority transfer to an alternative PG/Hostel.
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-gray-600 font-semibold">Payment Details</p>
-                    <p className="text-gray-400">Required for refund processing</p>
+
+                  <div className="flex items-start gap-2.5">
+                    <CheckCircle2 className="w-4 h-4 text-[#0FA596] shrink-0 mt-0.5" />
+                    <div>
+                      <strong className="text-slate-900 block font-bold">Payment Details</strong>
+                      Provide Bank Account or UPI ID for direct payout transfers.
+                    </div>
                   </div>
-                  <div className="pt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <p className="text-xs text-blue-900">⏱️ Processing Time: 21 days</p>
-                  </div>
+                </div>
+              </div>
+
+              {/* Processing Time Box */}
+              <div className="bg-gradient-to-br from-[#EEF8F6] via-white to-emerald-50/60 rounded-3xl p-6 border border-teal-200/80 shadow-2xs space-y-3">
+                <div className="flex items-center gap-2 text-[#0FA596] font-extrabold text-xs">
+                  <Clock className="w-4 h-4 text-[#0FA596]" />
+                  <span>Processing SLA</span>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-sm font-black text-slate-950">2 to 4 Business Days</div>
+                  <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                    Average support response time is under 2 hours during operational hours.
+                  </p>
                 </div>
               </div>
             </div>
 
-            {/* Form */}
-            <div className="lg:col-span-2">
-              <div className="bg-white md:rounded-2xl p-0 md:p-10 md:shadow-sm md:border md:border-gray-100">
-                <form onSubmit={handleSubmit} className="space-y-4 md:space-y-8">
-                  {/* Request Type Selection */}
-                  <div>
-                    <h3 className="text-sm md:text-lg font-bold mb-2 md:mb-4">Step 1: Select Request Type</h3>
-                    <div className="grid grid-cols-2 gap-3 md:gap-4">
-                      <label className={`p-2.5 md:p-4 border-2 rounded-lg cursor-pointer transition text-center md:text-left text-xs md:text-sm ${requestType === "refund" ? "border-blue-600 bg-blue-50" : "border-gray-200 bg-gray-50 hover:border-gray-300"}`}>
+            {/* Right Interactive Form */}
+            <div className="lg:col-span-8">
+              <div className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-200/90 shadow-2xs">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  
+                  {/* Step 1: Select Request Type */}
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-xs font-black tracking-wider uppercase text-[#0FA596]">
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>STEP 1: SELECT REQUEST TYPE</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <label
+                        className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center gap-3 ${
+                          requestType === "refund"
+                            ? "border-[#0FA596] bg-teal-50/50 shadow-xs"
+                            : "border-slate-200 bg-white hover:border-slate-300"
+                        }`}
+                      >
                         <input
                           type="radio"
                           name="requestType"
                           value="refund"
                           checked={requestType === "refund"}
                           onChange={(e) => setRequestType(e.target.value)}
-                          className="mr-2"
+                          className="accent-[#0FA596] w-4 h-4"
                         />
-                        <span className="font-semibold">Refund</span>
+                        <div>
+                          <div className="text-xs font-extrabold text-slate-950">Claim Deposit Refund</div>
+                          <div className="text-[10px] text-slate-500 font-medium">Return token to bank/UPI</div>
+                        </div>
                       </label>
-                      <label className={`p-2.5 md:p-4 border-2 rounded-lg cursor-pointer transition text-center md:text-left text-xs md:text-sm ${requestType === "alternative" ? "border-blue-600 bg-blue-50" : "border-gray-200 bg-gray-50 hover:border-gray-300"}`}>
+
+                      <label
+                        className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center gap-3 ${
+                          requestType === "alternative"
+                            ? "border-[#0FA596] bg-teal-50/50 shadow-xs"
+                            : "border-slate-200 bg-white hover:border-slate-300"
+                        }`}
+                      >
                         <input
                           type="radio"
                           name="requestType"
                           value="alternative"
                           checked={requestType === "alternative"}
                           onChange={(e) => setRequestType(e.target.value)}
-                          className="mr-2"
+                          className="accent-[#0FA596] w-4 h-4"
                         />
-                        <span className="font-semibold">Alternative Property</span>
+                        <div>
+                          <div className="text-xs font-extrabold text-slate-950">Alternative Property</div>
+                          <div className="text-[10px] text-slate-500 font-medium">Re-allocate to another stay</div>
+                        </div>
                       </label>
                     </div>
                   </div>
 
-                  {/* Booking Information */}
-                  <div className="space-y-3.5">
-                    <h3 className="text-sm md:text-lg font-bold">Step 2: Booking Information</h3>
-                    <div>
-                      <label className="block text-xs md:text-sm font-semibold text-gray-700 mb-1 md:mb-2">Booking ID / Reference No. *</label>
-                      <input
-                        type="text"
-                        name="bookingId"
-                        value={formData.bookingId}
-                        onChange={handleInputChange}
-                        placeholder="e.g., BK-123456"
-                        className="w-full px-3 py-2 md:px-4 md:py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-xs md:text-sm"
-                        required
-                      />
+                  {/* Step 2: Booking Information */}
+                  <div className="space-y-4 pt-2 border-t border-slate-100">
+                    <div className="text-xs font-black tracking-wider uppercase text-[#0FA596]">
+                      STEP 2: BOOKING INFORMATION
                     </div>
-                    <div>
-                      <label className="block text-xs md:text-sm font-semibold text-gray-700 mb-1 md:mb-2">Email Address *</label>
-                      <input
-                        type="email"
-                        name="userEmail"
-                        value={formData.userEmail}
-                        onChange={handleInputChange}
-                        placeholder="your@email.com"
-                        className="w-full px-3 py-2 md:px-4 md:py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-xs md:text-sm"
-                        required
-                      />
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-extrabold text-slate-800 mb-1.5">Booking ID / Reference *</label>
+                        <input
+                          type="text"
+                          name="bookingId"
+                          value={formData.bookingId}
+                          onChange={handleInputChange}
+                          placeholder="e.g. BK-123456"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:border-[#0FA596] focus:ring-2 focus:ring-teal-100 text-xs font-medium outline-none transition-all"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-extrabold text-slate-800 mb-1.5">Registered Email *</label>
+                        <input
+                          type="email"
+                          name="userEmail"
+                          value={formData.userEmail}
+                          onChange={handleInputChange}
+                          placeholder="name@example.com"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:border-[#0FA596] focus:ring-2 focus:ring-teal-100 text-xs font-medium outline-none transition-all"
+                          required
+                        />
+                      </div>
                     </div>
+
                     <div>
-                      <label className="block text-xs md:text-sm font-semibold text-gray-700 mb-1 md:mb-2">Reason for Request *</label>
+                      <label className="block text-xs font-extrabold text-slate-800 mb-1.5">Reason for Request *</label>
                       <select
                         name="requestReason"
                         value={formData.requestReason}
                         onChange={handleInputChange}
-                        className="w-full px-3 py-2 md:px-4 md:py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-xs md:text-sm"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:border-[#0FA596] focus:ring-2 focus:ring-teal-100 text-xs font-medium outline-none transition-all bg-white"
                         required
                       >
-                        <option value="">Select a reason...</option>
-                        <option value="not-satisfied">Not Satisfied with Property</option>
-                        <option value="change-plans">Change in Plans</option>
-                        <option value="relocation">Relocation</option>
-                        <option value="financial">Financial Constraints</option>
-                        <option value="other">Other</option>
+                        <option value="">-- Select Reason --</option>
+                        <option value="Photos mismatch physical room">Photos mismatch physical property</option>
+                        <option value="Landlord cancelled booking">Landlord cancelled booking</option>
+                        <option value="Coaching center relocated">Coaching center relocated</option>
+                        <option value="Personal / Medical emergency">Personal / Medical emergency</option>
+                        <option value="Other">Other Reason</option>
                       </select>
                     </div>
                   </div>
 
-                  {/* Refund Payment Details */}
-                  {requestType === "refund" && (
-                    <div className="space-y-3.5 bg-gray-50 p-4 md:p-6 rounded-lg border border-gray-200">
-                      <h3 className="text-sm md:text-lg font-bold">Step 3: Refund Payment Method</h3>
-                      <div className="space-y-3">
-                        <div>
-                          <label className="block text-xs md:text-sm font-semibold text-gray-700 mb-1.5">Payment Method *</label>
-                          <div className="flex gap-4 text-xs md:text-sm">
-                            <label className="flex items-center">
-                              <input
-                                type="radio"
-                                name="paymentMethod"
-                                value="bank"
-                                checked={formData.paymentMethod === "bank"}
-                                onChange={handleInputChange}
-                                className="mr-2"
-                              />
-                              <span>Bank Transfer</span>
-                            </label>
-                            <label className="flex items-center">
-                              <input
-                                type="radio"
-                                name="paymentMethod"
-                                value="upi"
-                                checked={formData.paymentMethod === "upi"}
-                                onChange={handleInputChange}
-                                className="mr-2"
-                              />
-                              <span>UPI</span>
-                            </label>
-                          </div>
-                        </div>
+                  {/* Dynamic Section based on Request Type */}
+                  {requestType === "refund" ? (
+                    <div className="space-y-4 pt-2 border-t border-slate-100">
+                      <div className="text-xs font-black tracking-wider uppercase text-[#0FA596]">
+                        STEP 3: PAYOUT METHOD DETAILS
+                      </div>
 
-                        {formData.paymentMethod === "bank" && (
-                          <>
-                            <div>
-                              <label className="block text-xs md:text-sm font-semibold text-gray-700 mb-1">Bank Name *</label>
-                              <input
-                                type="text"
-                                name="bankName"
-                                value={formData.bankName}
-                                onChange={handleInputChange}
-                                placeholder="e.g., HDFC Bank"
-                                className="w-full px-3 py-2 md:px-4 md:py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-xs md:text-sm"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs md:text-sm font-semibold text-gray-700 mb-1">Account Holder Name *</label>
-                              <input
-                                type="text"
-                                name="accountHolder"
-                                value={formData.accountHolder}
-                                onChange={handleInputChange}
-                                placeholder="Your full name"
-                                className="w-full px-3 py-2 md:px-4 md:py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-xs md:text-sm"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs md:text-sm font-semibold text-gray-700 mb-1">Account Number *</label>
-                              <input
-                                type="text"
-                                name="accountNumber"
-                                value={formData.accountNumber}
-                                onChange={handleInputChange}
-                                placeholder="Your account number"
-                                className="w-full px-3 py-2 md:px-4 md:py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-xs md:text-sm"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs md:text-sm font-semibold text-gray-700 mb-1">IFSC Code *</label>
-                              <input
-                                type="text"
-                                name="ifscCode"
-                                value={formData.ifscCode}
-                                onChange={handleInputChange}
-                                placeholder="e.g., HDFC0000001"
-                                className="w-full px-3 py-2 md:px-4 md:py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-xs md:text-sm"
-                              />
-                            </div>
-                          </>
-                        )}
+                      <div className="flex items-center gap-4">
+                        <label className="flex items-center gap-2 cursor-pointer text-xs font-extrabold text-slate-800">
+                          <input
+                            type="radio"
+                            name="paymentMethod"
+                            value="bank"
+                            checked={formData.paymentMethod === "bank"}
+                            onChange={handleInputChange}
+                            className="accent-[#0FA596]"
+                          />
+                          <span>Bank Account Transfer</span>
+                        </label>
 
-                        {formData.paymentMethod === "upi" && (
+                        <label className="flex items-center gap-2 cursor-pointer text-xs font-extrabold text-slate-800">
+                          <input
+                            type="radio"
+                            name="paymentMethod"
+                            value="upi"
+                            checked={formData.paymentMethod === "upi"}
+                            onChange={handleInputChange}
+                            className="accent-[#0FA596]"
+                          />
+                          <span>Instant UPI (GPay / PhonePe / Paytm)</span>
+                        </label>
+                      </div>
+
+                      {formData.paymentMethod === "bank" ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
                           <div>
-                            <label className="block text-xs md:text-sm font-semibold text-gray-700 mb-1">UPI ID *</label>
+                            <label className="block text-[11px] font-extrabold text-slate-700 mb-1">Bank Name *</label>
                             <input
                               type="text"
-                              name="upiId"
-                              value={formData.upiId}
+                              name="bankName"
+                              value={formData.bankName}
                               onChange={handleInputChange}
-                              placeholder="e.g., yourname@upi"
-                              className="w-full px-3 py-2 md:px-4 md:py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-xs md:text-sm"
+                              placeholder="e.g. HDFC Bank"
+                              className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-[#0FA596] text-xs outline-none bg-white font-medium"
+                              required
                             />
                           </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
 
-                  {/* Alternative Property Details */}
-                  {requestType === "alternative" && (
-                    <div className="space-y-3.5 bg-gray-50 p-4 md:p-6 rounded-lg border border-gray-200">
-                      <h3 className="text-sm md:text-lg font-bold">Step 3: Preferred Area</h3>
+                          <div>
+                            <label className="block text-[11px] font-extrabold text-slate-700 mb-1">Account Holder Name *</label>
+                            <input
+                              type="text"
+                              name="accountHolder"
+                              value={formData.accountHolder}
+                              onChange={handleInputChange}
+                              placeholder="Full Name as on Bank Account"
+                              className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-[#0FA596] text-xs outline-none bg-white font-medium"
+                              required
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-extrabold text-slate-700 mb-1">Account Number *</label>
+                            <input
+                              type="text"
+                              name="accountNumber"
+                              value={formData.accountNumber}
+                              onChange={handleInputChange}
+                              placeholder="Account Number"
+                              className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-[#0FA596] text-xs outline-none bg-white font-medium"
+                              required
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-extrabold text-slate-700 mb-1">IFSC Code *</label>
+                            <input
+                              type="text"
+                              name="ifscCode"
+                              value={formData.ifscCode}
+                              onChange={handleInputChange}
+                              placeholder="e.g. HDFC0001234"
+                              className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-[#0FA596] text-xs outline-none bg-white font-medium uppercase"
+                              required
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
+                          <label className="block text-[11px] font-extrabold text-slate-700 mb-1">UPI ID *</label>
+                          <input
+                            type="text"
+                            name="upiId"
+                            value={formData.upiId}
+                            onChange={handleInputChange}
+                            placeholder="username@upi or mobile@paytm"
+                            className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-[#0FA596] text-xs outline-none bg-white font-medium"
+                            required
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-4 pt-2 border-t border-slate-100">
+                      <div className="text-xs font-black tracking-wider uppercase text-[#0FA596]">
+                        STEP 3: PREFERRED STAY REQUIREMENTS
+                      </div>
+
                       <div>
-                        <label className="block text-xs md:text-sm font-semibold text-gray-700 mb-1">Preferred Area / City *</label>
-                        <select
+                        <label className="block text-xs font-extrabold text-slate-800 mb-1.5">Preferred Area / Locality</label>
+                        <input
+                          type="text"
                           name="preferredArea"
                           value={formData.preferredArea}
                           onChange={handleInputChange}
-                          className="w-full px-3 py-2 md:px-4 md:py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-xs md:text-sm"
-                        >
-                          <option value="">Select your preferred area...</option>
-                          <option value="kota">Kota</option>
-                          <option value="indore">Indore</option>
-                          <option value="ahmedabad">Ahmedabad</option>
-                          <option value="pune">Pune</option>
-                          <option value="bangalore">Bangalore</option>
-                        </select>
+                          placeholder="e.g. Landmark City, Kunhari, Kota"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:border-[#0FA596] text-xs outline-none font-medium"
+                        />
                       </div>
                     </div>
                   )}
 
-                  {/* Comments */}
+                  {/* Comments / Extra Information */}
                   <div>
-                    <label className="block text-xs md:text-sm font-semibold text-gray-700 mb-1 md:mb-2">Additional Comments</label>
+                    <label className="block text-xs font-extrabold text-slate-800 mb-1.5">Additional Notes / Comments</label>
                     <textarea
                       name="comments"
                       value={formData.comments}
                       onChange={handleInputChange}
-                      placeholder="Any additional information..."
-                      rows="3"
-                      className="w-full px-3 py-2 md:px-4 md:py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 text-xs md:text-sm"
+                      rows={3}
+                      placeholder="Any extra details regarding your visit or room preferences..."
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:border-[#0FA596] text-xs outline-none font-medium"
                     ></textarea>
                   </div>
 
                   {/* Submit Button */}
-                  <div className="pt-3 flex gap-3 text-xs md:text-sm">
+                  <div className="pt-2">
                     <button
                       type="submit"
                       disabled={submitting}
-                      className="flex-1 bg-blue-600 text-white px-4 py-2.5 md:px-6 md:py-3 rounded-lg font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl bg-[#0FA596] hover:bg-teal-600 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-teal-500/25 transition-all disabled:opacity-50"
                     >
                       {submitting ? (
                         <>
                           <Loader2 className="w-4 h-4 animate-spin" />
-                          Submitting...
+                          <span>Submitting Claim...</span>
                         </>
                       ) : (
                         <>
                           <Send className="w-4 h-4" />
-                          Submit Request
+                          <span>Submit Official Request</span>
                         </>
                       )}
                     </button>
-                    <button
-                      type="reset"
-                      disabled={submitting}
-                      className="flex-1 bg-gray-200 text-gray-800 px-4 py-2.5 md:px-6 md:py-3 rounded-lg font-semibold hover:bg-gray-300 transition flex items-center justify-center gap-2 disabled:opacity-50"
-                    >
-                      <RefreshCcw className="w-4 h-4" /> Clear
-                    </button>
                   </div>
+
                 </form>
               </div>
             </div>
+
           </div>
-        </div>
         </section>
       </main>
 
       <WebsiteFooter />
+      <MobileBottomNav />
     </div>
   );
 }
-

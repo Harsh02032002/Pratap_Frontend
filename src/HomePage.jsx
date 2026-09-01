@@ -32,28 +32,28 @@ const staticOfferings = [
   {
     title: 'PG',
     category: 'PG',
-    link: '/website/ourproperty?type=pg',
+    link: '/pg',
     description: 'Comfortable paying guest accommodations with all amenities',
     image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=600&auto=format&fit=crop'
   },
   {
     title: 'Hostel',
     category: 'Hostel',
-    link: '/website/ourproperty?type=hostel',
+    link: '/hostels',
     description: 'Affordable hostel living for students and working professionals',
     image: 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?q=80&w=600&auto=format&fit=crop'
   },
   {
     title: 'Co-living',
     category: 'Co-living',
-    link: '/website/ourproperty?type=co-living',
+    link: '/co-living',
     description: 'Modern co-living spaces with community and facilities',
     image: 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?q=80&w=600&auto=format&fit=crop'
   },
   {
     title: 'Apartment/Flats',
     category: 'Apartment',
-    link: '/website/ourproperty?type=apartment',
+    link: '/apartments',
     description: 'Private apartments for individuals and small groups',
     image: 'https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?q=80&w=600&auto=format&fit=crop'
   },
@@ -232,7 +232,7 @@ function DesktopWhatWeOffer() {
       t: "PG (Paying Guest)", 
       d: "Comfortable PGs with food & essential amenities.", 
       cta: "Explore PGs", 
-      href: "/website/ourproperty?type=pg", 
+      href: "/pg", 
       badge: "bg-teal-50 text-teal-700 border-teal-200/80",
       bullets: ["Students Preferred", "Meals & WiFi"],
       img: "https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?w=600&q=80" 
@@ -242,7 +242,7 @@ function DesktopWhatWeOffer() {
       t: "Hostels", 
       d: "Affordable hostels with great student community.", 
       cta: "Explore Hostels", 
-      href: "/website/ourproperty?type=hostel", 
+      href: "/hostels", 
       badge: "bg-orange-50 text-orange-700 border-orange-200/80",
       bullets: ["Budget Friendly", "Shared & Private"],
       img: "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=600&q=80" 
@@ -252,7 +252,7 @@ function DesktopWhatWeOffer() {
       t: "Co-living", 
       d: "Stylish co-living spaces for modern lifestyle.", 
       cta: "Explore Co-living", 
-      href: "/website/ourproperty?type=co-living", 
+      href: "/co-living", 
       badge: "bg-purple-50 text-purple-700 border-purple-200/80",
       bullets: ["For Professionals", "Fully Furnished"],
       img: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=600&q=80" 
@@ -262,7 +262,7 @@ function DesktopWhatWeOffer() {
       t: "Apartments", 
       d: "Private & shared apartments for independent living.", 
       cta: "Explore Apartments", 
-      href: "/website/ourproperty?type=apartment", 
+      href: "/apartments", 
       badge: "bg-sky-50 text-sky-700 border-sky-200/80",
       bullets: ["Independent Living", "Long Term Stays"],
       img: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&q=80" 

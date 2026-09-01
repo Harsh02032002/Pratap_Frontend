@@ -872,50 +872,109 @@ export default function OurPropertyPage() {
   <div className="max-w-7xl mx-auto flex items-center text-xs font-semibold text-slate-500 gap-2 flex-wrap">
     <Link to="/" className="hover:text-teal-600 transition-colors">Home</Link>
     <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-    <span className="text-slate-800 font-bold">Properties</span>
+    <Link to="/properties" className="hover:text-teal-600 transition-colors">Properties</Link>
+    {initialCity && (
+      <>
+        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+        <span className="text-slate-800 font-bold">{initialCity}</span>
+      </>
+    )}
+    {!initialCity && initialType && (
+      <>
+        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+        <span className="text-slate-800 font-bold">{initialType}</span>
+      </>
+    )}
+    {!initialCity && !initialType && (
+      <><ChevronRight className="w-3.5 h-3.5 text-slate-400" /><span className="text-slate-800 font-bold">All Properties</span></>
+    )}
   </div>
 </div>
 
-{/* --- STATIC HERO HEADER (compact, never changes on filter) --- */}
-<div className="relative w-full py-2 md:py-2.5 px-4 md:px-8 bg-gradient-to-br from-[#F4F7FA] via-white to-teal-50/30 border-b border-slate-200 overflow-hidden">
-  <div className="max-w-[1550px] mx-auto flex flex-col md:flex-row items-center justify-between gap-4 z-10 relative">
-    <div className="flex-1 text-left max-w-2xl">
-      <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight leading-tight mb-1">
-        Browse Rental Properties
-      </h1>
-      <p className="text-[11px] text-slate-600 font-semibold leading-tight mb-2">
-        Explore verified PGs, hostels, co-living spaces and apartments across top cities. Smart Bidding. 100% Verified.
-      </p>
-      <div className="flex flex-wrap items-center gap-1.5">
-        <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white border border-slate-200 text-teal-700 text-[10px] font-extrabold shadow-2xs">
-          <Shield className="w-3 h-3 text-teal-600" />
-          <span>Smart Bidding</span>
-        </div>
-        <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white border border-slate-200 text-emerald-700 text-[10px] font-extrabold shadow-2xs">
-          <Check className="w-3 h-3 text-emerald-600" />
-          <span>Verified Properties</span>
-        </div>
-        <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white border border-slate-200 text-amber-700 text-[10px] font-extrabold shadow-2xs">
-          <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
-          <span>Trusted by Students</span>
+{/* --- DYNAMIC HERO HEADER (based on URL only — compact on mobile) --- */}
+{(initialCity || initialType) ? (
+  <div className="relative w-full py-2.5 md:py-5 px-3 md:px-8 bg-gradient-to-br from-[#F4F7FA] via-white to-teal-50/40 border-b border-slate-200 overflow-hidden">
+    <div className="max-w-[1550px] mx-auto flex flex-col md:flex-row items-center justify-between gap-3 md:gap-6 z-10 relative">
+      <div className="flex-1 text-left max-w-2xl">
+        <h1 className="text-base sm:text-xl md:text-2xl lg:text-3xl font-black text-slate-900 tracking-tight leading-tight mb-1 sm:mb-2">
+          {initialCity && initialType
+            ? <>{initialType} in <span className="text-teal-600">{initialCity}</span></>
+            : initialCity
+              ? <>Properties in <span className="text-teal-600">{initialCity}</span></>
+              : <>Find the Perfect <span className="text-teal-600">{initialType}</span> That Feels Like Home</>
+          }
+        </h1>
+        <p className="text-[11px] sm:text-xs md:text-sm text-slate-600 font-semibold leading-tight sm:leading-snug mb-2 sm:mb-3">
+          {initialCity
+            ? `Find verified PGs, Hostels, Co-living spaces and Apartments in ${initialCity}. Smart Bidding. 100% Verified.`
+            : `Discover verified ${(initialType || 'properties').toLowerCase()}s across top cities. Smart Bidding. 100% Verified.`
+          }
+        </p>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-slate-200 text-teal-700 text-[10px] font-extrabold shadow-2xs">
+            <Shield className="w-3 h-3 text-teal-600" /><span>Smart Bidding</span>
+          </div>
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-slate-200 text-emerald-700 text-[10px] font-extrabold shadow-2xs">
+            <Check className="w-3 h-3 text-emerald-600" /><span>Verified Properties</span>
+          </div>
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-slate-200 text-amber-700 text-[10px] font-extrabold shadow-2xs">
+            <Star className="w-3 h-3 text-amber-500 fill-amber-500" /><span>Trusted by Students</span>
+          </div>
         </div>
       </div>
-    </div>
-    {/* Right side photo banner card - HIDDEN ON MOBILE */}
-    <div className="hidden md:block relative w-[220px] lg:w-[240px] h-20 rounded-xl overflow-hidden shadow-xs border border-slate-200 shrink-0">
-      <img
-        src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&auto=format&fit=crop"
-        alt="Properties"
-        className="w-full h-full object-cover"
-      />
-      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent"></div>
-      <div className="absolute bottom-2 left-2.5 right-2.5 text-white">
-        <div className="text-xs font-black">All Top Cities</div>
-        <div className="text-[9px] text-white/90 font-medium">Find verified student stays near top coaching hubs.</div>
+      {/* Right photo card */}
+      <div className="hidden md:block relative w-[260px] lg:w-[300px] h-32 rounded-2xl overflow-hidden shadow-md border border-slate-200 shrink-0">
+        <img
+          src={initialCity
+            ? `https://source.unsplash.com/featured/600x300/?${encodeURIComponent(initialCity)},city`
+            : "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=800&auto=format&fit=crop"}
+          alt={initialCity || initialType || "Properties"}
+          className="w-full h-full object-cover"
+          onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&auto=format&fit=crop"; }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent"></div>
+        <div className="absolute bottom-3 left-3 right-3 text-white">
+          {initialCity && <div className="flex items-center gap-1 text-[10px] font-black mb-0.5"><MapPin className="w-3 h-3" />{initialCity}{initialCity === 'Kota' ? ', Rajasthan' : ''}</div>}
+          <div className="text-sm font-black">{initialCity ? `25,000+ Students` : `Top ${initialType || 'Properties'}`}</div>
+          <div className="text-[9px] text-white/80 font-medium">Trust Roomhy in {initialCity || 'top cities'}</div>
+        </div>
       </div>
     </div>
   </div>
-</div>
+) : (
+  /* Static hero for /properties — compact, no city/type */
+  <div className="relative w-full py-2 md:py-2.5 px-3 md:px-8 bg-gradient-to-br from-[#F4F7FA] via-white to-teal-50/30 border-b border-slate-200 overflow-hidden">
+    <div className="max-w-[1550px] mx-auto flex flex-col md:flex-row items-center justify-between gap-3 md:gap-4 z-10 relative">
+      <div className="flex-1 text-left max-w-2xl">
+        <h1 className="text-base sm:text-xl font-black text-slate-900 tracking-tight leading-tight mb-1">
+          Browse Rental Properties
+        </h1>
+        <p className="text-[11px] text-slate-600 font-semibold leading-tight mb-2">
+          Explore verified PGs, hostels, co-living spaces and apartments across top cities. Smart Bidding. 100% Verified.
+        </p>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white border border-slate-200 text-teal-700 text-[10px] font-extrabold shadow-2xs">
+            <Shield className="w-3 h-3 text-teal-600" /><span>Smart Bidding</span>
+          </div>
+          <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white border border-slate-200 text-emerald-700 text-[10px] font-extrabold shadow-2xs">
+            <Check className="w-3 h-3 text-emerald-600" /><span>Verified Properties</span>
+          </div>
+          <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white border border-slate-200 text-amber-700 text-[10px] font-extrabold shadow-2xs">
+            <Star className="w-3 h-3 text-amber-500 fill-amber-500" /><span>Trusted by Students</span>
+          </div>
+        </div>
+      </div>
+      <div className="hidden md:block relative w-[220px] lg:w-[240px] h-20 rounded-xl overflow-hidden shadow-xs border border-slate-200 shrink-0">
+        <img src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&auto=format&fit=crop" alt="Properties" className="w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent"></div>
+        <div className="absolute bottom-2 left-2.5 right-2.5 text-white">
+          <div className="text-xs font-black">All Top Cities</div>
+          <div className="text-[9px] text-white/90 font-medium">Find verified student stays near top coaching hubs.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
 
 
 
@@ -1763,6 +1822,36 @@ export default function OurPropertyPage() {
                           </Link>
                         );
                       })}
+                  </div>
+
+                  {/* City Quick Links for Type Pages — e.g. PG in Kota, PG in Jaipur */}
+                  <div className="mt-5 pt-5 border-t border-slate-100">
+                    <h4 className="text-sm font-extrabold text-slate-800 mb-3 flex items-center gap-2">
+                      <MapPin className="w-3.5 h-3.5 text-teal-600" />
+                      <span>{selectedType} in Top Cities</span>
+                    </h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+                      {[
+                        { city: 'Kota', image: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=300&q=70' },
+                        { city: 'Jaipur', image: 'https://images.unsplash.com/photo-1599661046827-dacff0c0f09a?w=300&q=70' },
+                        { city: 'Delhi', image: 'https://images.unsplash.com/photo-1587474260584-136574528ed5?w=300&q=70' },
+                        { city: 'Indore', image: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=300&q=70' },
+                        { city: 'Bhopal', image: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=300&q=70' },
+                        { city: 'Sikar', image: 'https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?w=300&q=70' }
+                      ].map((item) => (
+                        <Link
+                          key={item.city}
+                          to={`/${getTypeSlug(selectedType)}-in-${slugify(item.city)}`}
+                          className="group flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-100 bg-slate-50/60 hover:bg-teal-50/60 hover:border-teal-200 transition-all shadow-2xs"
+                        >
+                          <img src={item.image} alt={item.city} className="w-9 h-9 object-cover rounded-lg shrink-0" />
+                          <div className="overflow-hidden">
+                            <span className="block text-xs font-bold text-slate-800 group-hover:text-teal-700 truncate">{item.city}</span>
+                            <span className="block text-[10px] font-semibold text-teal-600">{selectedType} →</span>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}

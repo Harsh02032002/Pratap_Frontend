@@ -1,25 +1,21 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import WebsiteNavbar from "../../components/website/WebsiteNavbar";
 import WebsiteFooter from "../../components/website/WebsiteFooter";
 import MobileBottomNav from "../../components/website/MobileBottomNav";
 import { Link } from "react-router-dom";
-import { 
-  Building2, Globe, Shield, Users, Award, Sparkles, CheckCircle2,
-  PhoneCall, ShieldCheck, Linkedin, Instagram, Mail, ArrowRight,
-  Headphones, Check, Zap, MapPin, Heart, ChevronRight, Eye, Rocket, Star
+import {
+  ShieldCheck, CheckCircle2, PhoneCall, Linkedin, Instagram, Mail, ArrowRight,
+  Check, Zap, Rocket, Eye, Users, Sparkles, Building2, Shield, Heart, Globe, Award
 } from 'lucide-react';
 import { fetchJson } from "../../utils/api";
 import useSEO from "../../hooks/useSEO";
 
 export default function AboutPage() {
-  useSEO({ 
-    pageKey: 'about', 
+  useSEO({
+    pageKey: 'about',
     fallbackTitle: 'About Us | Smart Bidding Student Stays | Roomhy.com',
     fallbackDescription: "Learn about Roomhy.com's mission to provide 100% verified, broker-free student and professional living across India with transparent budget bidding."
   });
-
-  const [layoutSections, setLayoutSections] = useState([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (window.location.pathname !== '/about-us') {
@@ -27,272 +23,318 @@ export default function AboutPage() {
     }
   }, []);
 
-  // Fetch layout settings from API if configured
   useEffect(() => {
     const fetchLayout = async () => {
-      let resolved = false;
-      const timeoutPromise = new Promise((resolve) => {
-        setTimeout(() => {
-          if (!resolved) {
-            console.warn('About layout API call timed out, falling back to defaults');
-            resolve({ success: false, timeout: true });
-          }
-        }, 3000);
-      });
-
       try {
-        const apiPromise = fetchJson('/api/page-layouts/about');
-        const res = await Promise.race([apiPromise, timeoutPromise]);
-        
-        resolved = true;
-        if (res && res.success && res.data && res.data.sections) {
-          const sorted = res.data.sections.sort((a, b) => a.order - b.order);
-          setLayoutSections(sorted);
-        }
+        await fetchJson('/api/page-layouts/about');
       } catch (err) {
-        console.warn('Failed to load About page layout:', err);
-      } finally {
-        setLoading(false);
+        // silent fallback
       }
     };
     fetchLayout();
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col font-sans bg-[#F8FAFC] text-slate-900 selection:bg-teal-500 selection:text-white">
+    <div className="min-h-screen flex flex-col font-sans bg-white text-slate-900 selection:bg-teal-500 selection:text-white">
       <WebsiteNavbar />
 
       <main className="flex-grow">
-        
-        {/* ============================================================
-         * 1. EDITORIAL HERO — BRAND STORY
-         * ============================================================ */}
-        <section className="relative bg-gradient-to-br from-slate-50 via-white to-teal-50/20 border-b border-slate-200/80 pt-8 pb-10 lg:pt-12 lg:pb-14 px-4 sm:px-6 lg:px-12 overflow-hidden">
-          <div className="max-w-[1360px] mx-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+
+        {/* ================================================================
+         * 1. HERO — ULTRA PREMIUM MODERN PROPTECH HERO
+         * ================================================================ */}
+        <section className="relative border-b border-slate-200/70 text-slate-900 py-10 md:py-14 px-4 md:px-8 overflow-hidden bg-gradient-to-br from-slate-50 via-white to-teal-50/50">
+          {/* Subtle Ambient Background Glow */}
+          <div className="absolute top-0 right-1/4 w-96 h-96 bg-teal-200/20 rounded-full blur-3xl pointer-events-none"></div>
+          <div className="absolute bottom-0 left-10 w-72 h-72 bg-emerald-200/20 rounded-full blur-3xl pointer-events-none"></div>
+
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8 md:gap-12 relative z-10">
+            
+            {/* Left Column: Headline & Value Props */}
+            <div className="flex-1 text-left max-w-2xl space-y-4">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-teal-50 to-emerald-50 border border-teal-200/80 text-[#0FA596] text-xs font-black tracking-wide shadow-2xs">
+                <Sparkles className="w-4 h-4 text-[#0FA596] animate-pulse" />
+                <span className="uppercase tracking-wider text-[11px]">About Roomhy Technology</span>
+              </div>
               
-              {/* Left Column (~55%) */}
-              <div className="lg:col-span-7 space-y-5">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50 border border-teal-200/80 text-[#0FA596] text-[11px] font-extrabold shadow-2xs">
-                  <Sparkles className="w-3.5 h-3.5 text-[#0FA596]" />
-                  <span className="uppercase tracking-widest">ABOUT ROOMHY TECHNOLOGY</span>
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-[3.2rem] font-black tracking-tight text-slate-950 leading-[1.15]">
+                Making student housing <br className="hidden sm:inline" />
+                <span className="bg-gradient-to-r from-[#0FA596] via-teal-600 to-emerald-500 bg-clip-text text-transparent">
+                  simpler, smarter &amp; transparent.
+                </span>
+              </h1>
+
+              <p className="text-sm md:text-base text-slate-600 font-medium leading-relaxed max-w-xl">
+                We created Roomhy to eliminate the stress of discovering and managing properties. Whether you are looking for a comfortable student stay or managing rentals as a host, Roomhy brings everything together on one direct, broker-free platform.
+              </p>
+
+              {/* Trust Indicators Bar */}
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2.5 pt-3 border-t border-slate-200/80">
+                <div className="flex items-center gap-2 text-xs font-black text-slate-800 tracking-wide uppercase">
+                  <div className="w-5 h-5 rounded-full bg-teal-100 flex items-center justify-center">
+                    <ShieldCheck className="w-3.5 h-3.5 text-[#0FA596]" />
+                  </div>
+                  <span>Smart Bidding</span>
                 </div>
-
-                <h1 className="text-3xl sm:text-4xl lg:text-[3rem] font-black text-slate-950 tracking-tight leading-[1.3] sm:leading-[1.28]">
-                  Making student housing <br className="hidden sm:inline" />
-                  <span className="text-[#0FA596]">simpler, smarter</span> &amp; <span className="text-[#0FA596]">transparent.</span>
-                </h1>
-
-                <p className="text-slate-600 text-xs sm:text-sm md:text-base leading-relaxed font-medium max-w-xl">
-                  We created Roomhy to eliminate the stress of discovering and managing properties. Whether you are looking for a comfortable student stay or managing rentals as a host, Roomhy brings everything together on one direct, broker-free platform.
-                </p>
-
-                {/* Subtle Trust Indicators with Vertical Separators */}
-                <div className="pt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-bold text-slate-700 border-t border-slate-200/80">
-                  <div className="flex items-center gap-1.5 text-slate-900 pt-1">
-                    <ShieldCheck className="w-4 h-4 text-[#0FA596]" />
-                    <span>SMART BIDDING</span>
+                <span className="text-slate-300 hidden sm:inline">|</span>
+                <div className="flex items-center gap-2 text-xs font-black text-slate-800 tracking-wide uppercase">
+                  <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                   </div>
-                  <span className="text-slate-300 hidden sm:inline pt-1">|</span>
-                  <div className="flex items-center gap-1.5 text-slate-900 pt-1">
-                    <CheckCircle2 className="w-4 h-4 text-[#0FA596]" />
-                    <span>VERIFIED SPACES</span>
+                  <span>Verified Spaces</span>
+                </div>
+                <span className="text-slate-300 hidden sm:inline">|</span>
+                <div className="flex items-center gap-2 text-xs font-black text-slate-800 tracking-wide uppercase">
+                  <div className="w-5 h-5 rounded-full bg-sky-100 flex items-center justify-center">
+                    <PhoneCall className="w-3.5 h-3.5 text-sky-600" />
                   </div>
-                  <span className="text-slate-300 hidden sm:inline pt-1">|</span>
-                  <div className="flex items-center gap-1.5 text-slate-900 pt-1">
-                    <PhoneCall className="w-4 h-4 text-[#0FA596]" />
-                    <span>DIRECT OWNER CONNECT</span>
-                  </div>
+                  <span>Direct Owner Connect</span>
                 </div>
               </div>
+            </div>
 
-              {/* Right Column (~45%) — Editorial Image Framing */}
-              <div className="lg:col-span-5 relative">
-                <div className="relative rounded-3xl overflow-hidden shadow-[0_12px_40px_rgba(15,23,42,0.1)] border border-slate-200/90 aspect-4/3 lg:aspect-5/4 group">
-                  <img 
-                    src="https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&q=80&w=1200" 
-                    alt="Modern Roomhy Living Space" 
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/50 via-transparent to-transparent"></div>
-                  
-                  {/* Subtle Asymmetric Label */}
-                  <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/60 shadow-sm flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span className="text-[10px] font-black tracking-wider uppercase text-slate-900">
-                      BUILT FOR STUDENTS
-                    </span>
+            {/* Right Column: High-End Photo Card & Live Stats Bar */}
+            <div className="w-full md:w-[380px] lg:w-[420px] shrink-0 space-y-4">
+              <div className="relative rounded-3xl overflow-hidden shadow-[0_16px_40px_rgba(15,165,150,0.12)] border border-slate-200/90 aspect-[4/3] group">
+                <img
+                  src="https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&q=80&w=1200"
+                  alt="Modern Roomhy Living Space"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent" />
+                
+                {/* Floating Glassmorphic Pill Badge */}
+                <div className="absolute bottom-3.5 left-3.5 right-3.5 bg-white/95 backdrop-blur-md p-3 rounded-2xl border border-white/60 shadow-md flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <div>
+                      <div className="text-xs font-black text-slate-900">Built for Students</div>
+                      <div className="text-[10px] font-bold text-slate-500">Broker-Free Living</div>
+                    </div>
                   </div>
+                  <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black border border-emerald-200/80 shadow-2xs">
+                    100% Verified
+                  </span>
                 </div>
               </div>
 
             </div>
+
           </div>
         </section>
 
-        {/* ============================================================
-         * 2. BRAND EDITORIAL STATEMENT (COMPACT & BALANCED WHITESPACE)
-         * ============================================================ */}
-        <section className="bg-white py-7 lg:py-9 px-4 sm:px-6 lg:px-12 border-b border-slate-100">
-          <div className="max-w-3xl mx-auto text-center space-y-3">
-            <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-slate-950 tracking-tight leading-snug">
-              &ldquo;Finding a place to live should not begin with a broker.&rdquo;
-            </h2>
-            <div className="h-0.5 w-12 bg-[#0FA596] mx-auto rounded-full"></div>
-            <p className="text-slate-600 text-xs sm:text-sm md:text-base font-medium leading-relaxed max-w-xl mx-auto">
-              Roomhy is building a simpler way for students to discover verified stays, connect directly with property owners, and choose a place that fits their budget.
-            </p>
-          </div>
-        </section>
+        {/* ================================================================
+         * 2. BRAND MANIFESTO — ULTRA MODERN CENTERPIECE CARD
+         * ================================================================ */}
+        <section className="bg-white py-12 lg:py-16 px-4 sm:px-8 lg:px-14 border-b border-slate-100 relative overflow-hidden">
+          <div className="max-w-5xl mx-auto">
+            <div className="relative rounded-3xl p-8 sm:p-12 md:p-14 bg-gradient-to-br from-[#F2FAF8] via-white to-emerald-50/70 border border-teal-200/80 shadow-[0_12px_36px_rgba(15,165,150,0.08)] overflow-hidden text-center">
+              {/* Translucent background glow spheres */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-teal-300/10 rounded-full blur-3xl pointer-events-none"></div>
+              <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-300/10 rounded-full blur-3xl pointer-events-none"></div>
 
-        {/* ============================================================
-         * 3. OUR PURPOSE — MISSION & VISION (EDITORIAL 2-COLUMN)
-         * ============================================================ */}
-        <section className="bg-[#F8FAFC] py-10 lg:py-14 px-4 sm:px-6 lg:px-12 border-b border-slate-200/80">
-          <div className="max-w-[1360px] mx-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14 items-start">
-              
-              {/* Left Title Box (~35%) */}
-              <div className="lg:col-span-4 space-y-2.5 sticky top-28">
-                <span className="text-[11px] font-black uppercase tracking-[0.2em] text-[#0FA596]">
-                  OUR PURPOSE
-                </span>
-                <h2 className="text-2xl sm:text-3xl font-black text-slate-950 tracking-tight leading-tight">
-                  Our Mission &amp; Vision
+              <div className="relative z-10 max-w-3xl mx-auto space-y-4">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/90 border border-teal-200 text-[#0FA596] text-[10px] sm:text-xs font-black tracking-widest uppercase shadow-2xs">
+                  <Sparkles className="w-3.5 h-3.5 text-[#0FA596]" />
+                  <span>OUR CORE MANIFESTO</span>
+                </div>
+
+                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-slate-950 leading-tight">
+                  &ldquo;Finding a place to live should not begin with a{" "}
+                  <span className="bg-gradient-to-r from-[#0FA596] to-emerald-500 bg-clip-text text-transparent underline decoration-teal-300 decoration-wavy decoration-2">
+                    broker.
+                  </span>&rdquo;
                 </h2>
-                <p className="text-slate-500 text-xs md:text-sm font-medium leading-relaxed pt-1">
-                  We are building Roomhy with a clear focus — to make finding and living in student accommodation seamless, direct, and reliable.
-                </p>
-              </div>
 
-              {/* Right Editorial Cards (~65%) */}
-              <div className="lg:col-span-8 space-y-4">
-                
-                {/* 01 OUR MISSION */}
-                <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-md transition-all space-y-2 group">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-black tracking-widest text-[#0FA596]">01 / OUR MISSION</span>
-                    <ShieldCheck className="w-4.5 h-4.5 text-[#0FA596] group-hover:scale-110 transition-transform" />
+                <div className="h-1 w-20 bg-gradient-to-r from-[#0FA596] via-teal-400 to-emerald-400 rounded-full mx-auto shadow-2xs my-3"></div>
+
+                <p className="text-slate-600 text-sm sm:text-base font-medium leading-relaxed max-w-xl mx-auto">
+                  Roomhy is building a simpler way for students to discover verified stays, connect directly with property owners, and choose a place that fits their budget.
+                </p>
+
+                {/* 3 Pill Highlights at bottom */}
+                <div className="flex flex-wrap items-center justify-center gap-3 pt-4 border-t border-teal-100/80 mt-6">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-teal-200/60 text-slate-800 text-xs font-extrabold shadow-2xs">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-[#0FA596]" />
+                    <span>Zero Brokerage Fees</span>
                   </div>
-                  <h3 className="text-lg font-extrabold text-slate-900">Direct, Broker-Free Living</h3>
-                  <p className="text-slate-600 text-xs md:text-sm font-medium leading-relaxed">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-teal-200/60 text-slate-800 text-xs font-extrabold shadow-2xs">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>100% Verified Listings</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-teal-200/60 text-slate-800 text-xs font-extrabold shadow-2xs">
+                    <PhoneCall className="w-3.5 h-3.5 text-sky-600" />
+                    <span>Direct Owner Connect</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ================================================================
+         * 3. OUR PURPOSE — 3 MODERN CARDS GRID
+         * ================================================================ */}
+        <section className="bg-[#F8FBFA] py-14 lg:py-18 px-5 sm:px-8 lg:px-14 border-b border-slate-100">
+          <div className="max-w-7xl mx-auto space-y-8">
+
+            {/* Header */}
+            <div className="max-w-2xl space-y-1.5">
+              <span className="text-[11px] font-black uppercase tracking-[0.2em] text-[#0FA596]">
+                OUR PURPOSE
+              </span>
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-950 tracking-tight">
+                Our Mission &amp; Vision
+              </h2>
+              <p className="text-slate-600 text-sm sm:text-base font-medium leading-relaxed">
+                We are building Roomhy with a clear focus — to make finding and living in student accommodation seamless, direct, and reliable.
+              </p>
+            </div>
+
+            {/* 3 Modern Cards Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+              {/* Card 01 / OUR MISSION */}
+              <div className="group bg-white rounded-3xl p-7 border border-slate-200/80 shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between relative overflow-hidden">
+                <div className="h-1 w-full bg-gradient-to-r from-[#0FA596] to-emerald-400 absolute top-0 left-0"></div>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-black tracking-[0.2em] text-[#0FA596] uppercase">
+                      01 / OUR MISSION
+                    </span>
+                    <div className="w-9 h-9 rounded-2xl bg-teal-50 text-[#0FA596] flex items-center justify-center group-hover:bg-[#0FA596] group-hover:text-white transition-colors">
+                      <ShieldCheck className="w-5 h-5" />
+                    </div>
+                  </div>
+                  <h3 className="text-lg font-extrabold text-slate-950 tracking-tight">
+                    Direct, Broker-Free Living
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-600 font-medium leading-relaxed">
                     We're on a mission to dismantle the friction of middleman brokerages and hidden fees. By providing a transparent bidding and booking platform, we ensure every student finds a place that fits their budget directly.
                   </p>
                 </div>
+              </div>
 
-                {/* 02 OUR VISION */}
-                <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-md transition-all space-y-2 group">
+              {/* Card 02 / OUR VISION */}
+              <div className="group bg-white rounded-3xl p-7 border border-slate-200/80 shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between relative overflow-hidden">
+                <div className="h-1 w-full bg-gradient-to-r from-purple-500 to-indigo-500 absolute top-0 left-0"></div>
+                <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-black tracking-widest text-purple-600">02 / OUR VISION</span>
-                    <Eye className="w-4.5 h-4.5 text-purple-600 group-hover:scale-110 transition-transform" />
+                    <span className="text-[11px] font-black tracking-[0.2em] text-purple-600 uppercase">
+                      02 / OUR VISION
+                    </span>
+                    <div className="w-9 h-9 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                      <Eye className="w-5 h-5" />
+                    </div>
                   </div>
-                  <h3 className="text-lg font-extrabold text-slate-900">Empowerment Through Technology</h3>
-                  <p className="text-slate-600 text-xs md:text-sm font-medium leading-relaxed">
+                  <h3 className="text-lg font-extrabold text-slate-950 tracking-tight">
+                    Empowerment Through Technology
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-600 font-medium leading-relaxed">
                     Giving students the power to bid, book, and live without brokers or hidden charges. Pioneering a new transparent standard for India's youth to find student accommodation online.
                   </p>
                 </div>
+              </div>
 
-                {/* 03 WHAT DRIVES US */}
-                <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-md transition-all space-y-2 group">
+              {/* Card 03 / WHAT DRIVES US */}
+              <div className="group bg-white rounded-3xl p-7 border border-slate-200/80 shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between relative overflow-hidden">
+                <div className="h-1 w-full bg-gradient-to-r from-amber-500 to-orange-500 absolute top-0 left-0"></div>
+                <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-black tracking-widest text-amber-600">03 / WHAT DRIVES US</span>
-                    <Users className="w-4.5 h-4.5 text-amber-600 group-hover:scale-110 transition-transform" />
+                    <span className="text-[11px] font-black tracking-[0.2em] text-amber-600 uppercase">
+                      03 / WHAT DRIVES US
+                    </span>
+                    <div className="w-9 h-9 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center group-hover:bg-amber-500 group-hover:text-white transition-colors">
+                      <Users className="w-5 h-5" />
+                    </div>
                   </div>
-                  <h3 className="text-lg font-extrabold text-slate-900">Student-Centric Innovation</h3>
-                  <p className="text-slate-600 text-xs md:text-sm font-medium leading-relaxed">
+                  <h3 className="text-lg font-extrabold text-slate-950 tracking-tight">
+                    Student-Centric Innovation
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-600 font-medium leading-relaxed">
                     As we expand, we continue to improve the platform based on what property owners and student tenants actually need — keeping the experience 100% focused on trust, speed, and affordability.
                   </p>
                 </div>
-
               </div>
 
             </div>
+
           </div>
         </section>
 
-        {/* ============================================================
-         * 4. OUR VALUES — ELEGANT CARDS WITH HOVER EFFECTS
-         * ============================================================ */}
-        <section className="bg-white py-10 lg:py-14 px-4 sm:px-6 lg:px-12 border-b border-slate-200/80">
-          <div className="max-w-[1360px] mx-auto space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
-              <div>
-                <span className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
-                  GUIDING PRINCIPLES
-                </span>
-                <h2 className="text-2xl sm:text-3xl font-black text-slate-950 tracking-tight mt-0.5">
-                  Our Values
-                </h2>
-              </div>
+        {/* ================================================================
+         * 4. OUR VALUES — 4-COLUMN INTERACTIVE PANEL
+         * ================================================================ */}
+        <section className="bg-white py-14 lg:py-18 px-5 sm:px-8 lg:px-14 border-b border-slate-100">
+          <div className="max-w-7xl mx-auto space-y-8">
+
+            <div className="space-y-1">
+              <span className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
+                GUIDING PRINCIPLES
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-black text-slate-950 tracking-tight">
+                Our Values
+              </h2>
             </div>
 
+            {/* 4 Equal Cards Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              
-              <div className="bg-[#F8FAFC] p-5 rounded-2xl border border-slate-200/80 hover:border-[#0FA596]/50 hover:bg-white transition-all space-y-2 shadow-2xs group">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-black text-[#0FA596]">01</span>
-                  <Check className="w-4 h-4 text-[#0FA596] group-hover:scale-110 transition-transform" />
-                </div>
-                <h4 className="text-base font-extrabold text-slate-900">Transparency</h4>
-                <p className="text-xs text-slate-500 font-medium leading-relaxed">Direct owner contact, clear pricing, and no hidden fees.</p>
-              </div>
-
-              <div className="bg-[#F8FAFC] p-5 rounded-2xl border border-slate-200/80 hover:border-purple-400/50 hover:bg-white transition-all space-y-2 shadow-2xs group">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-black text-purple-600">02</span>
-                  <Zap className="w-4 h-4 text-purple-600 group-hover:scale-110 transition-transform" />
-                </div>
-                <h4 className="text-base font-extrabold text-slate-900">Empowerment</h4>
-                <p className="text-xs text-slate-500 font-medium leading-relaxed">Direct bidding tools giving students control over their budget.</p>
-              </div>
-
-              <div className="bg-[#F8FAFC] p-5 rounded-2xl border border-slate-200/80 hover:border-amber-400/50 hover:bg-white transition-all space-y-2 shadow-2xs group">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-black text-amber-600">03</span>
-                  <ShieldCheck className="w-4 h-4 text-amber-600 group-hover:scale-110 transition-transform" />
-                </div>
-                <h4 className="text-base font-extrabold text-slate-900">Trust</h4>
-                <p className="text-xs text-slate-500 font-medium leading-relaxed">100% physically verified stays, real photos, and safe environments.</p>
-              </div>
-
-              <div className="bg-[#F8FAFC] p-5 rounded-2xl border border-slate-200/80 hover:border-emerald-400/50 hover:bg-white transition-all space-y-2 shadow-2xs group">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-black text-emerald-600">04</span>
-                  <Rocket className="w-4 h-4 text-emerald-600 group-hover:scale-110 transition-transform" />
-                </div>
-                <h4 className="text-base font-extrabold text-slate-900">Speed &amp; Simplicity</h4>
-                <p className="text-xs text-slate-500 font-medium leading-relaxed">Fast 1-click booking requests and instant owner communication.</p>
-              </div>
-
+              {[
+                { num: "01", title: "Transparency", desc: "Direct owner contact, clear pricing, and no hidden fees.", icon: Check, color: "teal" },
+                { num: "02", title: "Empowerment", desc: "Direct bidding tools giving students control over their budget.", icon: Zap, color: "purple" },
+                { num: "03", title: "Trust", desc: "100% physically verified stays, real photos, and safe environments.", icon: ShieldCheck, color: "amber" },
+                { num: "04", title: "Speed & Simplicity", desc: "Fast 1-click booking requests and instant owner communication.", icon: Rocket, color: "emerald" },
+              ].map((v) => {
+                const IconComponent = v.icon;
+                return (
+                  <div
+                    key={v.num}
+                    className="bg-[#F8FBFA] p-6 rounded-3xl border border-slate-200/80 hover:border-[#0FA596]/50 hover:bg-white transition-all duration-300 space-y-3 shadow-2xs hover:shadow-md group cursor-default"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-[#0FA596]">{v.num}</span>
+                      <div className="w-8 h-8 rounded-xl bg-teal-50 text-[#0FA596] flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <IconComponent className="w-4 h-4" />
+                      </div>
+                    </div>
+                    <h4 className="text-base font-extrabold text-slate-950">{v.title}</h4>
+                    <p className="text-xs text-slate-500 font-medium leading-relaxed">{v.desc}</p>
+                  </div>
+                );
+              })}
             </div>
+
           </div>
         </section>
 
-        {/* ============================================================
-         * 5. WHY CHOOSE ROOMHY? (FULL-WIDTH DARK NAVY BRAND SECTION)
-         * ============================================================ */}
-        <section className="bg-[#0B192C] text-white py-12 lg:py-16 px-4 sm:px-6 lg:px-12 border-b border-slate-800">
-          <div className="max-w-[1360px] mx-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14 items-center">
-              
-              {/* Left Column (~45%) */}
-              <div className="lg:col-span-5 space-y-4">
+        {/* ================================================================
+         * 5. WHY CHOOSE ROOMHY — DARK NAVY CONTRAST SECTION
+         * ================================================================ */}
+        <section className="bg-[#0B1730] text-white py-16 lg:py-20 px-5 sm:px-8 lg:px-14 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+          <div className="max-w-7xl mx-auto relative z-10">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
+
+              {/* Left Column */}
+              <div className="lg:col-span-5 space-y-5">
                 <span className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-400">
                   WHY CHOOSE ROOMHY?
                 </span>
                 
                 <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight leading-tight">
-                  Built around what students actually need.
+                  Built around what <br className="hidden sm:inline" />
+                  students actually need.
                 </h2>
 
-                <p className="text-slate-300 text-xs sm:text-sm font-medium leading-relaxed">
+                <p className="text-slate-300 text-sm font-medium leading-relaxed">
                   Roomhy makes it simpler to explore verified accommodation options, compare pricing, and secure a place that fits your lifestyle.
                 </p>
 
                 <div className="pt-2">
-                  <Link 
-                    to="/properties" 
-                    className="inline-flex items-center gap-2.5 px-6 py-3 bg-[#0FA596] hover:bg-teal-400 text-white font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer hover:translate-x-1"
+                  <Link
+                    to="/properties"
+                    className="inline-flex items-center gap-2.5 px-6 py-3 bg-gradient-to-r from-[#0FA596] to-teal-500 hover:from-teal-500 hover:to-emerald-500 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-teal-500/20 transition-all hover:scale-105"
                   >
                     <span>Explore Properties</span>
                     <ArrowRight className="w-4 h-4" />
@@ -300,70 +342,57 @@ export default function AboutPage() {
                 </div>
               </div>
 
-              {/* Right Column (~55%) — Clean 2x2 Grid with Thin Dividers */}
-              <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-5 border-t lg:border-t-0 lg:border-l border-slate-800 pt-6 lg:pt-0 lg:pl-10">
-                
-                <div className="p-4 bg-white/5 rounded-xl border border-white/10 space-y-1.5 hover:border-teal-400/40 transition-all">
-                  <div className="text-xs font-black text-teal-400">01 / BIDDING</div>
-                  <h4 className="text-base font-extrabold text-white">Smart Bidding</h4>
-                  <p className="text-xs text-slate-400 leading-relaxed font-medium">Innovative budget bidding feature letting students request custom prices directly from owners.</p>
-                </div>
-
-                <div className="p-4 bg-white/5 rounded-xl border border-white/10 space-y-1.5 hover:border-teal-400/40 transition-all">
-                  <div className="text-xs font-black text-teal-400">02 / VERIFICATION</div>
-                  <h4 className="text-base font-extrabold text-white">Verified Listings</h4>
-                  <p className="text-xs text-slate-400 leading-relaxed font-medium">All PGs, Hostels, and Apartments are physically verified for safety and quality amenities.</p>
-                </div>
-
-                <div className="p-4 bg-white/5 rounded-xl border border-white/10 space-y-1.5 hover:border-teal-400/40 transition-all">
-                  <div className="text-xs font-black text-teal-400">03 / CONTACT</div>
-                  <h4 className="text-base font-extrabold text-white">Direct Owner Contact</h4>
-                  <p className="text-xs text-slate-400 leading-relaxed font-medium">Connect and finalize move-in details directly with hosts without broker intervention.</p>
-                </div>
-
-                <div className="p-4 bg-white/5 rounded-xl border border-white/10 space-y-1.5 hover:border-teal-400/40 transition-all">
-                  <div className="text-xs font-black text-teal-400">04 / SUPPORT</div>
-                  <h4 className="text-base font-extrabold text-white">24/7 Assistance</h4>
-                  <p className="text-xs text-slate-400 leading-relaxed font-medium">Dedicated support desk ready to help students with booking, relocation, and queries anytime.</p>
-                </div>
-
+              {/* Right Column: 2x2 Glassmorphic Cards Grid */}
+              <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-4 lg:border-l border-slate-800 lg:pl-10">
+                {[
+                  { num: "01 / BIDDING", title: "Smart Bidding", desc: "Innovative budget bidding feature letting students request custom prices directly from owners." },
+                  { num: "02 / VERIFICATION", title: "Verified Listings", desc: "All PGs, Hostels, and Apartments are physically verified for safety and quality amenities." },
+                  { num: "03 / CONTACT", title: "Direct Owner Contact", desc: "Connect and finalize move-in details directly with hosts without broker intervention." },
+                  { num: "04 / SUPPORT", title: "24/7 Assistance", desc: "Dedicated support desk ready to help students with booking, relocation, and queries anytime." },
+                ].map((f) => (
+                  <div
+                    key={f.title}
+                    className="p-5 bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 space-y-2 hover:border-teal-400/50 hover:bg-white/10 transition-all duration-300"
+                  >
+                    <div className="text-[10px] font-black text-teal-400 tracking-wider uppercase">{f.num}</div>
+                    <h4 className="text-base font-extrabold text-white">{f.title}</h4>
+                    <p className="text-xs text-slate-300 leading-relaxed font-medium">{f.desc}</p>
+                  </div>
+                ))}
               </div>
 
             </div>
           </div>
         </section>
 
-        {/* ============================================================
-         * 6. FOUNDER STORY — SOPHISTICATED EDITORIAL LAYOUT
-         * ============================================================ */}
-        <section className="bg-[#F8FAFC] py-12 lg:py-16 px-4 sm:px-6 lg:px-12 border-b border-slate-200/80">
-          <div className="max-w-[1360px] mx-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14 items-center">
+        {/* ================================================================
+         * 6. FOUNDER SECTION — RESHAM SINGH (FOUNDER & DIRECTOR)
+         * ================================================================ */}
+        <section className="bg-[#F8FBFA] py-16 lg:py-20 px-5 sm:px-8 lg:px-14 border-t border-slate-100">
+          <div className="max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
               
-              {/* Left Column: Founder Portrait (~42%) */}
-              <div className="lg:col-span-5 relative flex justify-center">
-                <div className="relative w-full max-w-sm aspect-4/5 rounded-3xl overflow-hidden shadow-[0_16px_40px_rgba(15,23,42,0.12)] border border-slate-200 group">
-                  <img 
-                    src="/website/images/ceo1.png" 
-                    alt="Resham Singh - Founder Roomhy" 
+              {/* Left Column: Founder Portrait */}
+              <div className="lg:col-span-5 flex justify-center relative">
+                <div className="relative w-full max-w-sm aspect-[4/5] rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(15,23,42,0.12)] border border-slate-200 group">
+                  <img
+                    src="/website/images/ceo1.png"
+                    alt="Resham Singh — Founder Roomhy"
                     className="w-full h-full object-cover object-[center_top] scale-105 group-hover:scale-110 transition-transform duration-700 origin-top"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = '/website/images/ceo1.png';
-                    }}
+                    onError={(e) => { e.target.onerror = null; e.target.src = '/website/images/ceo1.png'; }}
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent"></div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent"></div>
                   
-                  <div className="absolute bottom-4 left-4 right-4 text-white">
-                    <div className="text-lg font-black">Resham Singh</div>
-                    <div className="text-xs font-extrabold text-teal-300">Founder &amp; Director, Roomhy</div>
+                  <div className="absolute bottom-5 left-5 right-5 text-white">
+                    <div className="text-xl font-black">Resham Singh</div>
+                    <div className="text-xs font-black text-teal-300 uppercase tracking-wider mt-0.5">Founder &amp; Director, Roomhy</div>
                   </div>
                 </div>
               </div>
 
-              {/* Right Column: Founder Story & Numbered Points (~58%) */}
+              {/* Right Column: Founder Story & Key Pillars */}
               <div className="lg:col-span-7 space-y-5">
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                   <span className="text-[11px] font-black uppercase tracking-[0.2em] text-[#0FA596]">
                     THE MINDS BEHIND ROOMHY
                   </span>
@@ -377,12 +406,12 @@ export default function AboutPage() {
                 </p>
 
                 {/* Editorial Quote Statement */}
-                <blockquote className="p-3.5 rounded-xl bg-white border-l-4 border-[#0FA596] shadow-2xs text-slate-800 text-xs md:text-sm font-semibold italic leading-relaxed">
+                <blockquote className="p-4 rounded-2xl bg-gradient-to-r from-teal-50/80 to-emerald-50/80 border-l-4 border-[#0FA596] shadow-2xs text-slate-800 text-xs md:text-sm font-semibold italic leading-relaxed">
                   &ldquo;Building Roomhy is about making student housing more transparent, accessible, and human.&rdquo;
                 </blockquote>
 
-                {/* Simple Numbered List with Thin Separators */}
-                <div className="divide-y divide-slate-200 pt-1 text-xs md:text-sm font-semibold text-slate-800">
+                {/* Numbered Highlights */}
+                <div className="divide-y divide-slate-200/80 pt-1 text-xs md:text-sm font-semibold text-slate-800">
                   <div className="py-2.5 flex items-start gap-3">
                     <span className="font-black text-[#0FA596]">01</span>
                     <span>Pioneering India's premier smart bidding student housing platform.</span>
@@ -399,16 +428,16 @@ export default function AboutPage() {
 
                 {/* Social Connect Links */}
                 <div className="flex items-center gap-3 pt-1">
-                  <a href="https://www.linkedin.com/company/roomhy-com/" target="_blank" rel="noreferrer" className="h-8 px-3 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-[#0FA596] hover:text-white hover:border-[#0FA596] flex items-center gap-1.5 text-xs font-bold transition-all shadow-2xs">
-                    <Linkedin className="w-3.5 h-3.5" />
+                  <a href="https://www.linkedin.com/company/roomhy-com/" target="_blank" rel="noreferrer" className="h-9 px-3.5 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-[#0FA596] hover:text-white hover:border-[#0FA596] flex items-center gap-2 text-xs font-extrabold transition-all shadow-2xs">
+                    <Linkedin className="w-4 h-4" />
                     <span>LinkedIn</span>
                   </a>
-                  <a href="https://www.instagram.com/roomhy.com_/" target="_blank" rel="noreferrer" className="h-8 px-3 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-[#0FA596] hover:text-white hover:border-[#0FA596] flex items-center gap-1.5 text-xs font-bold transition-all shadow-2xs">
-                    <Instagram className="w-3.5 h-3.5" />
+                  <a href="https://www.instagram.com/roomhy.com_/" target="_blank" rel="noreferrer" className="h-9 px-3.5 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-[#0FA596] hover:text-white hover:border-[#0FA596] flex items-center gap-2 text-xs font-extrabold transition-all shadow-2xs">
+                    <Instagram className="w-4 h-4" />
                     <span>Instagram</span>
                   </a>
-                  <a href="mailto:team@roomhy.com" className="h-8 px-3 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-[#0FA596] hover:text-white hover:border-[#0FA596] flex items-center gap-1.5 text-xs font-bold transition-all shadow-2xs">
-                    <Mail className="w-3.5 h-3.5" />
+                  <a href="mailto:team@roomhy.com" className="h-9 px-3.5 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-[#0FA596] hover:text-white hover:border-[#0FA596] flex items-center gap-2 text-xs font-extrabold transition-all shadow-2xs">
+                    <Mail className="w-4 h-4" />
                     <span>Email</span>
                   </a>
                 </div>
@@ -418,43 +447,41 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* ============================================================
-         * 7. STATISTICS BAR (SOPHISTICATED DARK NAVY COMPACT STRIP)
-         * ============================================================ */}
-        <section className="bg-[#0D182E] text-white py-8 lg:py-10 px-4 sm:px-6 lg:px-12 border-b border-slate-800">
-          <div className="max-w-[1360px] mx-auto">
+        {/* ================================================================
+         * 7. STATISTICS BAR (DARK COMPACT METRICS STRIP)
+         * ================================================================ */}
+        <section className="bg-[#0D1A2E] text-white py-10 px-5 sm:px-8 lg:px-14 border-t border-slate-800">
+          <div className="max-w-7xl mx-auto">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 divide-y lg:divide-y-0 lg:divide-x divide-slate-800 text-center">
-              
               <div className="pt-2 lg:pt-0">
-                <div className="text-2xl lg:text-3xl font-black text-white tracking-tight">5+</div>
-                <div className="text-[11px] font-bold text-slate-400 mt-0.5 uppercase tracking-wider">Active Cities</div>
+                <div className="text-3xl lg:text-4xl font-black text-white tracking-tight">5+</div>
+                <div className="text-[11px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Active Cities</div>
               </div>
 
               <div className="pt-2 lg:pt-0">
-                <div className="text-2xl lg:text-3xl font-black text-white tracking-tight">5,000+</div>
-                <div className="text-[11px] font-bold text-slate-400 mt-0.5 uppercase tracking-wider">Operational Beds</div>
+                <div className="text-3xl lg:text-4xl font-black text-white tracking-tight">5,000+</div>
+                <div className="text-[11px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Operational Beds</div>
               </div>
 
               <div className="pt-2 lg:pt-0">
-                <div className="text-2xl lg:text-3xl font-black text-white tracking-tight">75+</div>
-                <div className="text-[11px] font-bold text-slate-400 mt-0.5 uppercase tracking-wider">Verified Properties</div>
+                <div className="text-3xl lg:text-4xl font-black text-white tracking-tight">75+</div>
+                <div className="text-[11px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Verified Properties</div>
               </div>
 
               <div className="pt-2 lg:pt-0">
-                <div className="text-2xl lg:text-3xl font-black text-white tracking-tight">25K+</div>
-                <div className="text-[11px] font-bold text-slate-400 mt-0.5 uppercase tracking-wider">Happy Students</div>
+                <div className="text-3xl lg:text-4xl font-black text-white tracking-tight">25K+</div>
+                <div className="text-[11px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Happy Students</div>
               </div>
-
             </div>
           </div>
         </section>
 
-        {/* ============================================================
-         * 8. STUDENT JOURNEY — "FROM SEARCHING TO SETTLING IN"
-         * ============================================================ */}
-        <section className="bg-white py-12 lg:py-16 px-4 sm:px-6 lg:px-12 border-b border-slate-200/80">
-          <div className="max-w-[1360px] mx-auto space-y-8">
-            
+        {/* ================================================================
+         * 8. THE ROOMHY EXPERIENCE — HORIZONTAL STEPPER JOURNEY
+         * ================================================================ */}
+        <section className="bg-white py-14 lg:py-18 px-5 sm:px-8 lg:px-14 border-b border-slate-100">
+          <div className="max-w-7xl mx-auto space-y-10">
+
             <div className="text-center max-w-xl mx-auto space-y-1.5">
               <span className="text-[11px] font-black uppercase tracking-[0.2em] text-[#0FA596]">
                 THE ROOMHY EXPERIENCE
@@ -464,60 +491,80 @@ export default function AboutPage() {
               </h2>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-              
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
+              {/* Horizontal Line Connector for Desktop */}
+              <div className="hidden md:block absolute top-12 left-1/6 right-1/6 h-0.5 bg-slate-200 z-0"></div>
+
               {/* Step 01 */}
-              <div className="p-5 rounded-2xl bg-[#F8FAFC] border border-slate-200/80 space-y-2 hover:border-teal-300 transition-all shadow-2xs">
-                <div className="text-xs font-black tracking-widest text-[#0FA596]">STEP 01</div>
-                <h3 className="text-base font-extrabold text-slate-900">Discover</h3>
+              <div className="relative z-10 bg-[#F8FBFA] p-6 rounded-3xl border border-slate-200/80 space-y-3 hover:border-[#0FA596]/50 transition-all shadow-2xs hover:-translate-y-1 group">
+                <div className="w-12 h-12 rounded-2xl bg-[#0FA596] text-white flex items-center justify-center font-black text-sm shadow-md shadow-teal-500/20 group-hover:scale-110 transition-transform">
+                  01
+                </div>
+                <span className="text-[11px] font-black tracking-wider text-[#0FA596] uppercase block">DISCOVER</span>
+                <h3 className="text-lg font-extrabold text-slate-950">Browse Verified Stays</h3>
                 <p className="text-xs text-slate-600 font-medium leading-relaxed">
                   Browse 100% physically verified PGs, hostels, co-living spaces and student apartments in top educational hubs.
                 </p>
               </div>
 
               {/* Step 02 */}
-              <div className="p-5 rounded-2xl bg-[#F8FAFC] border border-slate-200/80 space-y-2 hover:border-purple-300 transition-all shadow-2xs">
-                <div className="text-xs font-black tracking-widest text-purple-600">STEP 02</div>
-                <h3 className="text-base font-extrabold text-slate-900">Choose</h3>
+              <div className="relative z-10 bg-[#F8FBFA] p-6 rounded-3xl border border-slate-200/80 space-y-3 hover:border-purple-300 transition-all shadow-2xs hover:-translate-y-1 group">
+                <div className="w-12 h-12 rounded-2xl bg-purple-600 text-white flex items-center justify-center font-black text-sm shadow-md shadow-purple-500/20 group-hover:scale-110 transition-transform">
+                  02
+                </div>
+                <span className="text-[11px] font-black tracking-wider text-purple-600 uppercase block">CHOOSE</span>
+                <h3 className="text-lg font-extrabold text-slate-950">Fast Bidding &amp; Offers</h3>
                 <p className="text-xs text-slate-600 font-medium leading-relaxed">
                   Compare stays, view verified room photos, check amenities, and place custom budget bids directly with hosts.
                 </p>
               </div>
 
               {/* Step 03 */}
-              <div className="p-5 rounded-2xl bg-[#F8FAFC] border border-slate-200/80 space-y-2 hover:border-emerald-300 transition-all shadow-2xs">
-                <div className="text-xs font-black tracking-widest text-emerald-600">STEP 03</div>
-                <h3 className="text-base font-extrabold text-slate-900">Connect</h3>
+              <div className="relative z-10 bg-[#F8FBFA] p-6 rounded-3xl border border-slate-200/80 space-y-3 hover:border-emerald-300 transition-all shadow-2xs hover:-translate-y-1 group">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-black text-sm shadow-md shadow-emerald-500/20 group-hover:scale-110 transition-transform">
+                  03
+                </div>
+                <span className="text-[11px] font-black tracking-wider text-emerald-600 uppercase block">CONNECT</span>
+                <h3 className="text-lg font-extrabold text-slate-950">Direct Owner Move-in</h3>
                 <p className="text-xs text-slate-600 font-medium leading-relaxed">
                   Talk directly with verified property owners, finalize move-in details without brokers, and settle into your new home.
                 </p>
               </div>
-
             </div>
 
           </div>
         </section>
 
-        {/* ============================================================
-         * 9. FINAL BRAND CTA SECTION
-         * ============================================================ */}
-        <section className="bg-gradient-to-br from-[#063836] via-[#0A4D4A] to-[#042C2A] text-white py-12 lg:py-16 px-4 sm:px-6 lg:px-12 text-center">
-          <div className="max-w-3xl mx-auto space-y-4">
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight leading-tight text-white">
-              Find a place that feels like home.
-            </h2>
-            <p className="text-teal-100/80 text-xs sm:text-sm font-medium leading-relaxed max-w-xl mx-auto">
-              Join thousands of students finding broker-free, verified PGs, Hostels, and Apartments across India today.
-            </p>
+        {/* ================================================================
+         * 9. FINAL BRAND CTA CONTAINER
+         * ================================================================ */}
+        <section className="py-12 lg:py-16 px-5 sm:px-8 lg:px-14 bg-white">
+          <div className="max-w-6xl mx-auto">
+            <div className="bg-gradient-to-br from-slate-900 via-[#0B1730] to-teal-950 text-white rounded-3xl p-10 md:p-14 text-center shadow-2xl relative overflow-hidden border border-teal-500/20">
+              <div className="absolute top-0 right-0 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
-            <div className="pt-2">
-              <Link 
-                to="/properties" 
-                className="inline-flex items-center gap-2.5 px-7 py-3 bg-[#0FA596] hover:bg-teal-400 text-white font-extrabold text-xs rounded-xl shadow-lg transition-all cursor-pointer hover:scale-105"
-              >
-                <span>Explore Properties</span>
-                <ArrowRight className="w-4 h-4" />
-              </Link>
+              <div className="max-w-2xl mx-auto space-y-4 relative z-10">
+                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight text-white">
+                  Find a place that <br className="hidden sm:inline" />
+                  <span className="bg-gradient-to-r from-teal-300 to-emerald-300 bg-clip-text text-transparent">
+                    feels like home.
+                  </span>
+                </h2>
+                
+                <p className="text-slate-300 text-xs sm:text-sm font-medium leading-relaxed">
+                  Join thousands of students finding broker-free, verified PGs, Hostels, and Apartments across India today.
+                </p>
+
+                <div className="pt-3">
+                  <Link
+                    to="/properties"
+                    className="inline-flex items-center gap-2.5 px-8 py-3.5 bg-gradient-to-r from-[#0FA596] to-teal-400 hover:from-teal-400 hover:to-emerald-400 text-white font-extrabold text-xs rounded-xl shadow-xl shadow-teal-500/30 transition-all hover:scale-105 group"
+                  >
+                    <span>Explore Properties</span>
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </Link>
+                </div>
+              </div>
             </div>
           </div>
         </section>

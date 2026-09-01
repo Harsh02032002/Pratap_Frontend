@@ -102,39 +102,56 @@ export default function FAQPage() {
       <WebsiteNavbar />
 
       <main className="flex-grow">
-        {/* --- HERO BANNER --- */}
-        <section
-          className="relative border-b border-[#DCE7EF]/80 text-slate-900 py-12 md:py-16 px-4 md:px-8 overflow-hidden"
-          style={{
-            background: 'radial-gradient(circle at 50% 20%, rgba(15,165,150,0.08), transparent 55%), linear-gradient(180deg, #FFFFFF 0%, #F5FAFF 100%)'
-          }}
-        >
-          <div className="max-w-4xl mx-auto text-center relative z-10">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-teal-50/80 border border-teal-200/80 text-[#0FA596] text-xs font-extrabold mb-3.5 shadow-2xs">
-              <HelpCircle className="w-3.5 h-3.5 text-[#0FA596]" />
-              <span>Help Center &amp; FAQs</span>
+        {/* --- HERO BANNER (MATCHING CONTACT/ABOUT PAGE STANDARD DESIGN) --- */}
+        <section className="relative border-b border-[#DCE7EF]/80 text-slate-900 py-5 md:py-6 px-4 md:px-8 overflow-hidden bg-gradient-to-r from-slate-50 via-white to-teal-50/40">
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+            {/* Left Column: Heading & Search Bar */}
+            <div className="flex-1 text-left max-w-2xl">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50/90 border border-teal-200/90 text-[#0FA596] text-xs font-extrabold mb-2 shadow-2xs">
+                <HelpCircle className="w-3.5 h-3.5 text-[#0FA596]" />
+                <span>Help Center &amp; FAQs</span>
+              </div>
+              
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-slate-900 mb-1.5 leading-tight">
+                Frequently Asked <span className="text-[#0FA596]">Questions</span>
+              </h1>
+
+              <p className="text-xs md:text-sm text-slate-600 font-medium leading-relaxed mb-3">
+                Have questions about zero brokerage, room verification, fast bidding, or refunds? Find instant answers below.
+              </p>
+
+              {/* Search Input Bar */}
+              <div className="relative max-w-xl">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                  <Search className="w-4 h-4" />
+                </div>
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search any question (e.g. bidding, refund, brokerage)..."
+                  className="w-full pl-9 pr-4 py-2.5 bg-white border border-[#DCE7EF] rounded-xl text-xs sm:text-sm font-semibold text-slate-900 placeholder-slate-400 shadow-2xs focus:outline-none focus:border-[#0FA596] focus:ring-2 focus:ring-[#0FA596]/15 transition-all"
+                />
+              </div>
             </div>
 
-            <h1 className="text-3xl md:text-5xl font-black tracking-tight text-slate-900 mb-3 leading-tight">
-              Frequently Asked <span className="text-[#0FA596]">Questions</span>
-            </h1>
-
-            <p className="text-sm md:text-base text-slate-600 max-w-lg mx-auto font-medium leading-relaxed mb-6">
-              Have questions about zero brokerage, room verification, fast bidding, or refunds? Find instant answers below.
-            </p>
-
-            {/* Search Input Bar */}
-            <div className="relative max-w-xl mx-auto">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
-                <Search className="w-4 h-4" />
-              </div>
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search any question (e.g. bidding, refund, brokerage)..."
-                className="w-full pl-10 pr-4 py-3 bg-white border border-[#DCE7EF] rounded-2xl text-sm font-semibold text-slate-900 placeholder-slate-400 shadow-[0_4px_18px_rgba(15,23,42,0.04)] focus:outline-none focus:border-[#0FA596] focus:ring-2 focus:ring-[#0FA596]/15 transition-all"
+            {/* Right Column: Aesthetic Photo Card */}
+            <div className="relative w-full md:w-[340px] h-32 md:h-36 rounded-2xl overflow-hidden shadow-lg border border-slate-200/90 shrink-0 group">
+              <img
+                src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop"
+                alt="Roomhy FAQ Help Guide"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
               />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent" />
+              <div className="absolute bottom-2 left-3 right-3 bg-white/95 backdrop-blur-md p-2 rounded-xl border border-white/50 shadow-xs flex items-center justify-between">
+                <div>
+                  <div className="text-[11px] font-black text-slate-900">Student Help Desk</div>
+                  <div className="text-[9px] font-bold text-slate-500">Zero Brokerage Stays</div>
+                </div>
+                <span className="px-2 py-0.5 rounded-full bg-teal-100 text-teal-800 text-[9px] font-extrabold border border-teal-200">
+                  Instant Answers
+                </span>
+              </div>
             </div>
           </div>
         </section>
