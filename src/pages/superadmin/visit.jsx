@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { 
   Building2, Users, Shield, Clock, Search, 
   ArrowUpRight, ArrowDownRight, MoreVertical, 
@@ -12,10 +12,99 @@ import {
   UserPlus, Send, Lock, ChevronDown, Wifi, ShieldCheck,
   UtensilsCrossed, Cigarette, PawPrint, BedDouble, DoorOpen
 } from "lucide-react";
-import { fetchJson, getAuthHeader } from "../../utils/api";
+import toast from "react-hot-toast";
+import { fetchJson, getAuthHeader, getApiBase } from "../../utils/api";
+import { compressImage, PRESETS } from "../../utils/imageCompression";
 import { PROPERTY_TIERS, normalizeTierKey } from "../../utils/propertyTiers";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
+
+/** One photo tile. `badge` says which of the two groups it belongs to. */
+function PhotoThumb({ url, badge, onRemove }) {
+  return (
+    <div className="relative group rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-slate-900 aspect-video">
+      <img
+        src={url}
+        alt=""
+        className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity"
+        onError={e => e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23cbd5e1' viewBox='0 0 24 24'%3E%3Cpath d='M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z'/%3E%3C/svg%3E"}
+      />
+      <div className="absolute inset-x-0 bottom-0 bg-slate-950/80 backdrop-blur-xs p-2 text-[9px] font-bold">
+        {badge}
+      </div>
+      <button type="button" onClick={onRemove}
+        className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-md">
+        <X className="w-3 h-3" />
+      </button>
+    </div>
+  );
+}
+
+// ─── Toasts ───────────────────────────────────────────────────────────────────
+// Submitting a report has more to say than a one-liner — which owner was
+// mailed, that the property is not live yet — and a native alert() forced all
+// of it into one blocking string the user had to dismiss before carrying on.
+// A toast can carry a title, that detail, and a dismiss, without stealing focus
+// from the form. The <Toaster/> is already mounted app-wide in App.jsx.
+
+const TOAST_VARIANTS = {
+  success: { Icon: CheckCircle2,   ring: "ring-emerald-500/20", chip: "bg-emerald-50 text-emerald-600", bar: "bg-emerald-500" },
+  warning: { Icon: AlertTriangle,  ring: "ring-amber-500/20",   chip: "bg-amber-50 text-amber-600",     bar: "bg-amber-500"   },
+  error:   { Icon: XCircle,        ring: "ring-rose-500/20",    chip: "bg-rose-50 text-rose-600",       bar: "bg-rose-500"    },
+  info:    { Icon: Info,           ring: "ring-blue-500/20",    chip: "bg-blue-50 text-blue-600",       bar: "bg-blue-500"    },
+};
+
+/**
+ * One toast card: coloured rail, icon chip, title, optional detail, dismiss.
+ *
+ * `t.visible` is what react-hot-toast flips to drive enter/leave, so the
+ * transition is expressed here rather than left to the library's default.
+ */
+function ActionToast({ t, variant = "info", title, detail, hint }) {
+  const { Icon, ring, chip, bar } = TOAST_VARIANTS[variant] || TOAST_VARIANTS.info;
+  return (
+    <div
+      role={variant === "error" ? "alert" : "status"}
+      className={cn(
+        "pointer-events-auto w-[360px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl bg-white shadow-xl ring-1",
+        ring,
+        "transition-all duration-200 ease-out",
+        t.visible ? "translate-y-0 opacity-100 scale-100" : "-translate-y-1 opacity-0 scale-95"
+      )}
+    >
+      <div className="flex">
+        <div className={cn("w-1 shrink-0", bar)} />
+        <div className="flex flex-1 items-start gap-3 p-3.5">
+          <div className={cn("mt-0.5 grid size-8 shrink-0 place-items-center rounded-xl", chip)}>
+            <Icon className="size-[18px]" strokeWidth={2.4} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[13px] font-bold leading-snug text-slate-900">{title}</p>
+            {detail && <p className="mt-0.5 break-words text-[12px] leading-relaxed text-slate-600">{detail}</p>}
+            {hint && (
+              <p className="mt-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">{hint}</p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => toast.dismiss(t.id)}
+            aria-label="Dismiss"
+            className="-m-1 shrink-0 rounded-lg p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Errors linger; the rest clear themselves. */
+const notify = (variant, title, detail, hint) =>
+  toast.custom(
+    (t) => <ActionToast t={t} variant={variant} title={title} detail={detail} hint={hint} />,
+    { duration: variant === "error" ? 6000 : variant === "success" ? 4500 : 5000 }
+  );
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -245,50 +334,36 @@ export default function Visit() {
   const videoRef = React.useRef(null);
   const streamRef = React.useRef(null);
 
-  // Helper to add timestamp watermark onto image canvas
-  const stampImageWithTime = (imageSrc) => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0);
+  const [photoUploading, setPhotoUploading] = useState(0);
 
-        const now = new Date();
-        const timeStr = now.toLocaleString("en-IN", {
-          day: "2-digit", month: "short", year: "numeric",
-          hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true
-        });
-        const bannerText = `📍 ROOMHY VERIFICATION • ${timeStr}`;
-
-        const bannerHeight = Math.max(32, Math.round(canvas.height * 0.065));
-        ctx.fillStyle = "rgba(15, 23, 42, 0.8)";
-        ctx.fillRect(0, canvas.height - bannerHeight, canvas.width, bannerHeight);
-
-        ctx.fillStyle = "#38bdf8";
-        ctx.font = `bold ${Math.max(12, Math.round(bannerHeight * 0.45))}px sans-serif`;
-        ctx.textBaseline = "middle";
-        ctx.fillText(bannerText, 16, canvas.height - (bannerHeight / 2));
-
-        const stampedUrl = canvas.toDataURL("image/jpeg", 0.85);
-        resolve({ url: stampedUrl, capturedAt: timeStr });
-      };
-      img.onerror = () => {
-        const nowStr = new Date().toLocaleString("en-IN");
-        resolve({ url: imageSrc, capturedAt: nowStr });
-      };
-      img.src = imageSrc;
+  /**
+   * Put a photo in Cloudinary and return its https URL.
+   *
+   * Visit photos used to be stored as base64 data: URLs straight in Mongo, and
+   * the public listing endpoint drops anything starting with "data:" — so every
+   * photo taken through this form was invisible on the website no matter how it
+   * was classified. Uploading gives a real URL the site can actually render,
+   * and keeps multi-megabyte base64 blobs out of the visit document.
+   */
+  const uploadPhotoToCloud = async (blob, filename) => {
+    const body = new FormData();
+    body.append("file", blob, filename);
+    const res = await fetch(`${getApiBase()}/api/upload`, {
+      method: "POST",
+      headers: { ...getAuthHeader() },   // NOT Content-Type: the browser sets the multipart boundary
+      body,
     });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !(data.url || data.secure_url)) {
+      throw new Error(data.message || data.error || `Upload failed (${res.status})`);
+    }
+    return data.url || data.secure_url;
   };
 
-  const addPhotoWithUrl = async (urlStr) => {
+  const addPhotoWithUrl = (urlStr) => {
     if (!urlStr) return;
-    const stamped = await stampImageWithTime(urlStr);
-    setFormPhotos(prev => [...prev, stamped.url]);
-    setFormPhotoDetails(prev => [...prev, stamped]);
+    setFormPhotos(prev => [...prev, urlStr]);
+    setFormPhotoDetails(prev => [...prev, { url: urlStr, source: "url" }]);
     setFormPhotoUrl("");
   };
 
@@ -310,7 +385,7 @@ export default function Visit() {
         }
       }, 100);
     } catch (err) {
-      alert("Camera access failed: " + err.message + ". You can upload a photo file instead.");
+      notify("warning", "Camera unavailable", `${err.message}. You can upload a photo file instead.`);
       setCameraModalOpen(false);
     }
   };
@@ -323,7 +398,17 @@ export default function Visit() {
     setCameraModalOpen(false);
   };
 
-  const capturePhotoFromCamera = async () => {
+  /**
+   * Snap the frame and burn the timestamp into the pixels.
+   *
+   * Drawn onto the image itself rather than kept beside it in the database,
+   * because the photo gets forwarded, screenshotted and attached to disputes
+   * long after it leaves this form, and metadata does not survive any of that.
+   *
+   * Only live captures are stamped. An uploaded file is stored untouched — see
+   * handleFileUpload for why stamping one would be misleading.
+   */
+  const capturePhotoFromCamera = () => {
     if (!videoRef.current) return;
     const video = videoRef.current;
     const canvas = document.createElement("canvas");
@@ -332,51 +417,97 @@ export default function Visit() {
     const ctx = canvas.getContext("2d");
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    const now = new Date();
-    const timeStr = now.toLocaleString("en-IN", {
+    const timeStr = new Date().toLocaleString("en-IN", {
       day: "2-digit", month: "short", year: "numeric",
       hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true
     });
-    const bannerText = `📷 ROOMHY LIVE VISIT • ${timeStr}`;
 
-    const bannerHeight = Math.max(32, Math.round(canvas.height * 0.065));
-    ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
+    // Scale every dimension off the image height so the banner is equally
+    // legible on a 720p webcam frame and a 12MP phone capture.
+    const unit = Math.max(11, Math.round(canvas.height * 0.022));
+    const pad = Math.round(unit * 0.8);
+    const bannerHeight = unit + pad * 2;
+
+    ctx.fillStyle = "rgba(15, 23, 42, 0.86)";
     ctx.fillRect(0, canvas.height - bannerHeight, canvas.width, bannerHeight);
+    ctx.fillStyle = "#f43f5e";
+    ctx.fillRect(0, canvas.height - bannerHeight, Math.max(3, Math.round(unit * 0.28)), bannerHeight);
 
-    ctx.fillStyle = "#38bdf8";
-    ctx.font = `bold ${Math.max(12, Math.round(bannerHeight * 0.45))}px sans-serif`;
     ctx.textBaseline = "middle";
-    ctx.fillText(bannerText, 16, canvas.height - (bannerHeight / 2));
-
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
-    setFormPhotos(prev => [...prev, dataUrl]);
-    setFormPhotoDetails(prev => [...prev, { url: dataUrl, capturedAt: timeStr }]);
+    ctx.fillStyle = "#e2e8f0";
+    ctx.font = `bold ${unit}px sans-serif`;
+    ctx.fillText(
+      `ROOMHY LIVE VISIT  •  ${timeStr}`,
+      pad + Math.round(unit * 0.9),
+      canvas.height - bannerHeight / 2
+    );
 
     stopCamera();
+
+    setPhotoUploading(n => n + 1);
+    canvas.toBlob(async (blob) => {
+      try {
+        if (!blob) throw new Error("Could not read the captured frame");
+        const url = await uploadPhotoToCloud(blob, `live-capture-${Date.now()}.jpg`);
+        setFormPhotos(prev => [...prev, url]);
+        setFormPhotoDetails(prev => [...prev, { url, capturedAt: timeStr, source: "camera" }]);
+      } catch (err) {
+        notify("error", "Could not save the photo", `${err.message}. The capture was not added — please take it again.`);
+      } finally {
+        setPhotoUploading(n => n - 1);
+      }
+    }, "image/jpeg", 0.85);
   };
 
   const handleFileUpload = async (e) => {
     const files = Array.from(e.target.files || []);
-    for (const file of files) {
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const stamped = await stampImageWithTime(event.target.result);
-        setFormPhotos(prev => [...prev, stamped.url]);
-        setFormPhotoDetails(prev => [...prev, stamped]);
-      };
-      reader.readAsDataURL(file);
-    }
     e.target.value = "";
+    for (const file of files) {
+      setPhotoUploading(n => n + 1);
+      try {
+        // These are the public listing photos, so shrink them before they go up.
+        const small = await compressImage(file, PRESETS.PHOTO);
+        const url = await uploadPhotoToCloud(small, small.name || file.name || "photo.jpg");
+        setFormPhotos(prev => [...prev, url]);
+        setFormPhotoDetails(prev => [...prev, { url, source: "upload" }]);
+      } catch (err) {
+        notify("error", "Photo upload failed", `${file.name}: ${err.message}. It was not added — please try again.`);
+      } finally {
+        setPhotoUploading(n => n - 1);
+      }
+    }
   };
 
   // UI state
   const [saving, setSaving] = useState(false);
+  // Rejection is a two-step action: the comment is optional, but it is the only
+  // thing that tells the employee WHY their report came back, so it gets a
+  // proper modal rather than a window.prompt.
+  const [rejectModal, setRejectModal] = useState(null);
+  const [rejectReason, setRejectReason] = useState("");
+  // Id for the report currently being filled in. Held in a ref so a retry after
+  // a failed submit reuses it instead of minting a new one — a fresh id per
+  // click made every retry a NEW visit report and a SECOND KYC email to the
+  // owner. Cleared by resetForm() once the report is actually filed.
+  const draftVisitIdRef = useRef(null);
   const [openSections, setOpenSections] = useState({
     owner: true, property: true, location: true, occupancy: false,
     features: false, roomTypes: false, policies: false, ratings: false, photos: false
   });
 
   const toggleSection = (key) => setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
+  // Photos grouped by HOW they were added — a live capture is timestamped on
+  // the spot, an upload is a file chosen from disk. This is a presentation
+  // split only: both kinds are published to the website exactly the same.
+  //
+  // The original index is carried along because formPhotos and formPhotoDetails
+  // stay a single parallel pair — removePhoto(idx) addresses the flat list.
+  const indexedPhotos = formPhotos.map((url, idx) => ({ url, idx, detail: formPhotoDetails[idx] || { url } }));
+  const livePhotos = indexedPhotos.filter(p => p.detail.source === "camera");
+  // Anything not marked as a live capture, including older entries saved before
+  // `source` was recorded.
+  const uploadedPhotos = indexedPhotos.filter(p => p.detail.source !== "camera");
+
   const toggleAmenity = (a) => setFormAmenities(prev => { const n = new Set(prev); n.has(a) ? n.delete(a) : n.add(a); return n; });
 
   // ─── Data Loading ───────────────────────────────────────────────────────────
@@ -428,6 +559,7 @@ export default function Visit() {
     setFormCleanlinessRating(0); setFormOwnerBehaviour(""); setFormStudentReviews(""); setFormInternalRemarks("");
     setFormPhotoUrl(""); setFormPhotos([]); setFormPhotoDetails([]); setFormRoomTypes([]);
     setOpenSections({ owner: true, property: true, location: true, occupancy: false, features: false, roomTypes: false, policies: false, ratings: false, photos: false });
+    draftVisitIdRef.current = null;
   };
 
   // ─── Onboarding Handler ─────────────────────────────────────────────────────
@@ -435,18 +567,21 @@ export default function Visit() {
   const handleOnboard = async (e) => {
     e.preventDefault();
     if (!formName || !formPhone || !formEmail || !formPropertyName) {
-      return alert("Please fill required fields: Owner Name, Email, Phone, Property Name");
+      return notify("warning", "Missing required details", "Owner name, email, phone and property name are all needed before this report can be filed.");
     }
     // Rent drives the public listing price — a property published at ₹0 is not usable.
     if (!(parseInt(formRent, 10) > 0)) {
-      return alert("Please enter the Monthly Rent (it is shown on the website listing).");
+      return notify("warning", "Monthly rent is required", "Rent drives the public listing price — a property published at ₹0 is not usable.");
     }
     setSaving(true);
     try {
-      // Submit the visit report. The backend issues the owner's credentials and
-      // emails the digital-KYC link as part of this call; the property is only
-      // created and published once the owner finishes KYC and a superadmin approves.
-      const visitId = `v_${Date.now()}`;
+      // Submit the visit report. The backend files it and replies immediately,
+      // then issues the owner's credentials and emails the digital-KYC link in
+      // the background — doing that inline took the request past the server's
+      // 10s deadline. The property is only created and published once the owner
+      // finishes KYC and a superadmin approves.
+      if (!draftVisitIdRef.current) draftVisitIdRef.current = `v_${Date.now()}`;
+      const visitId = draftVisitIdRef.current;
       const submitRes = await fetchJson("/api/visits/submit", {
         method: "POST",
         headers: { ...getAuthHeader(), "Content-Type": "application/json" },
@@ -487,7 +622,12 @@ export default function Visit() {
           internalRemarks: formInternalRemarks,
           photos: formPhotos,
           photoDetails: formPhotoDetails,
-          photoTimestamps: formPhotoDetails.reduce((acc, p) => ({ ...acc, [p.url]: p.capturedAt }), {}),
+          // Only live captures have a verified time, so only they appear here.
+          // Uploads used to get an entry too, which made a file chosen from disk
+          // look like it had been timestamped at the property.
+          photoTimestamps: formPhotoDetails.reduce(
+            (acc, p) => (p.capturedAt ? { ...acc, [p.url]: p.capturedAt } : acc), {}
+          ),
           roomTypes: formRoomTypes,
           bankAccountHolderName: formBankHolderName,
           bankAccountNumber: formBankAccountNumber,
@@ -501,22 +641,38 @@ export default function Visit() {
         }),
       });
 
-      if (submitRes?.kycLinkSent === false) {
-        alert(
-          `⚠️ Visit report saved, but the KYC email could not be sent to ${formEmail}.\n\n` +
-          `${submitRes?.kycLinkError || ""}\n\nUse "Resend KYC" on the report to try again.`
+      // The backend now files the report and replies immediately, then sends
+      // the KYC email in the background — mailing inside the request pushed it
+      // past the server's 10s deadline, which answered 503 for a submission
+      // that had actually succeeded. So delivery is reported as in-flight here;
+      // the report's KYC column shows the real outcome, and "Resend KYC" is
+      // there if it did not arrive.
+      if (submitRes?.duplicate) {
+        notify(
+          "info",
+          "Already submitted",
+          "This report was filed a moment ago, so it was not filed again. The owner has only been contacted once.",
+          "No duplicate created"
+        );
+      } else if (submitRes?.kycLinkSent === false) {
+        notify(
+          "warning",
+          "Report saved, KYC email not sent",
+          `${submitRes?.kycLinkError || `Could not email ${formEmail}.`} Use “Resend KYC” on the report to try again.`
         );
       } else {
-        alert(
-          `✅ Visit report submitted!\n\nA digital KYC link has been emailed to ${formEmail}.\n\n` +
-          `Once the owner completes KYC, this report can be approved and the property published.`
+        notify(
+          "success",
+          "Visit report submitted",
+          `The digital KYC link is on its way to ${formEmail}.`,
+          "Publishes after KYC + approval"
         );
       }
       resetForm();
       setCurrentView("list");
       loadVisits();
     } catch (err) {
-      alert(err?.message || "Failed to submit visit report");
+      notify("error", "Could not submit the report", err?.message || "Something went wrong. Nothing was saved — please try again.");
       console.error("Visit submit error:", err);
     } finally {
       setSaving(false);
@@ -533,10 +689,51 @@ export default function Visit() {
         method: "POST",
         headers: { ...getAuthHeader(), "Content-Type": "application/json" },
       });
-      alert(`✅ KYC link sent to ${v.ownerEmail || "the owner"}.${res?.loginId ? `\n\nOwner Login ID: ${res.loginId}` : ""}`);
+      notify(
+        "success",
+        "KYC link sent",
+        `Emailed to ${v.ownerEmail || "the owner"}.`,
+        res?.loginId ? `Owner login ID: ${res.loginId}` : null
+      );
       loadVisits();
     } catch (err) {
-      alert(err?.message || "Failed to send KYC link");
+      notify("error", "Could not send the KYC link", err?.message || "The email did not go out. Please try again.");
+    } finally {
+      setActingId(null);
+    }
+  };
+
+  const rejectVisit = async () => {
+    const v = rejectModal;
+    if (!v) return;
+    const id = v.visitId || v._id;
+    setActingId(id);
+    try {
+      await fetchJson("/api/visits/reject", {
+        method: "POST",
+        headers: { ...getAuthHeader(), "Content-Type": "application/json" },
+        body: JSON.stringify({
+          visitId: id,
+          // Trimmed so a stray space is not stored as a reason and shown to the
+          // employee as an empty comment bubble.
+          rejectReason: rejectReason.trim(),
+          rejectAction: "cancel",
+        }),
+      });
+      notify(
+        "success",
+        "Report rejected",
+        rejectReason.trim()
+          ? `${v.staffName || "The employee"} will see your comment on this report.`
+          : `${v.propertyName || "The report"} was rejected without a comment.`,
+        rejectReason.trim() ? null : "Add a reason next time so staff know why"
+      );
+      setRejectModal(null);
+      setRejectReason("");
+      setViewingVisit(null);
+      loadVisits();
+    } catch (err) {
+      notify("error", "Could not reject", err?.message || "The rejection did not go through. Please try again.");
     } finally {
       setActingId(null);
     }
@@ -544,11 +741,14 @@ export default function Visit() {
 
   const approveVisit = async (v) => {
     const id = v.visitId || v._id;
-    if (!isTierSelected(v)) { alert("Select a property tier before approving."); return; }
+    if (!isTierSelected(v)) {
+      notify("warning", "Select a property tier", "A tier has to be assigned before the property can be published.");
+      return;
+    }
     if (!window.confirm(`Approve "${v.propertyName || "this property"}" and publish it on the website?`)) return;
     setActingId(id);
     try {
-      await fetchJson("/api/visits/approve", {
+      const res = await fetchJson("/api/visits/approve", {
         method: "POST",
         headers: { ...getAuthHeader(), "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -560,11 +760,20 @@ export default function Visit() {
           tier: tierFor(v),
         }),
       });
-      alert("✅ Approved. The property is now published on the website.");
+      const name = v.propertyName || "The property";
+      if (res?.alreadyApproved) {
+        notify("info", "Already approved", `${name} was approved earlier, so nothing changed.`, "No duplicate approval");
+      } else if (res?.ownerProperty && res.ownerProperty.isPublished === false) {
+        // Approval and listing are not the same step: the backend only lists a
+        // property that has vacancy, so claiming it is live here would be wrong.
+        notify("warning", "Approved, but not listed yet", `${name} has no vacant rooms, so it stays off the website until vacancy is added.`);
+      } else {
+        notify("success", "Property published", `${name} is now live on the website.`, "Owner emailed their credentials");
+      }
       setViewingVisit(null);
       loadVisits();
     } catch (err) {
-      alert(err?.message || "Failed to approve visit");
+      notify("error", "Could not approve", err?.message || "The approval did not go through. Please try again.");
     } finally {
       setActingId(null);
     }
@@ -954,61 +1163,90 @@ export default function Visit() {
 
               {/* ─── Section 8: Photos & Camera ───────────────────────────────── */}
               <div>
-                <SectionHeader icon={Camera} title="Photos & Camera Verification" subtitle="Capture property photos with live date/time stamp" open={openSections.photos} onToggle={() => toggleSection("photos")} color="rose" />
+                <SectionHeader icon={Camera} title="Photos" subtitle="Live camera captures and uploaded photos" open={openSections.photos} onToggle={() => toggleSection("photos")} color="rose" />
                 {openSections.photos && (
-                  <div className="px-8 pb-8 space-y-4">
-                    {/* Action buttons */}
-                    <div className="flex flex-wrap items-center gap-3">
-                      <button type="button" onClick={startCamera}
-                        className="px-5 py-3.5 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-xs font-bold transition-all flex items-center gap-2 shadow-lg shadow-rose-600/20">
-                        <Camera className="w-4 h-4" /> Open Live Camera
-                      </button>
+                  <div className="px-8 pb-8 space-y-6">
 
-                      <label className="px-5 py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-slate-900/10">
-                        <ImageIcon className="w-4 h-4" /> Upload Photo File
-                        <input type="file" accept="image/*" capture="environment" multiple onChange={handleFileUpload} className="hidden" />
-                      </label>
-                    </div>
-
-                    {/* URL Input */}
-                    <div className="flex gap-3">
-                      <div className="flex-1">
-                        <FormField label="Or Paste Photo URL" value={formPhotoUrl} onChange={e => setFormPhotoUrl(e.target.value)} placeholder="https://example.com/photo.jpg" />
-                      </div>
-                      <div className="flex items-end">
-                        <button type="button" onClick={() => addPhotoWithUrl(formPhotoUrl)}
-                          className="px-5 py-4 bg-blue-600 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg shadow-blue-200">
-                          <Plus className="w-4 h-4" /> Add URL
+                    {/* ── 1. Live camera ── */}
+                    <div className="rounded-2xl border border-rose-100 bg-rose-50/40 p-5">
+                      <div className="flex items-start justify-between gap-4 flex-wrap">
+                        <div>
+                          <p className="text-[11px] font-black text-rose-600 uppercase tracking-widest">
+                            Step 1 — Live camera capture
+                          </p>
+                          <p className="text-[11px] text-slate-500 mt-1 max-w-md leading-relaxed">
+                            Taken on the spot and stamped with the date and time.
+                          </p>
+                        </div>
+                        <button type="button" onClick={startCamera}
+                          className="px-5 py-3.5 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-xs font-bold transition-all flex items-center gap-2 shadow-lg shadow-rose-600/20 shrink-0">
+                          <Camera className="w-4 h-4" /> Open Live Camera
                         </button>
                       </div>
+
+                      {livePhotos.length > 0 ? (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                          {livePhotos.map(({ url, detail, idx }) => (
+                            <PhotoThumb key={idx} url={url} onRemove={() => removePhoto(idx)}
+                              badge={<span className="truncate flex items-center gap-1 text-sky-400">
+                                <Clock size={10} className="shrink-0" /> {detail.capturedAt}
+                              </span>} />
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-[11px] text-slate-400 mt-4 italic">No live photos captured yet.</p>
+                      )}
                     </div>
 
-                    {/* Thumbnails with timestamp badges */}
-                    {formPhotos.length > 0 && (
-                      <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Captured Photos ({formPhotos.length})</p>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
-                          {formPhotos.map((url, idx) => {
-                            const detail = formPhotoDetails[idx] || { url, capturedAt: new Date().toLocaleString("en-IN") };
-                            return (
-                              <div key={idx} className="relative group rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-slate-900 aspect-video flex flex-col justify-between">
-                                <img src={url} alt="" className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" onError={e => e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23cbd5e1' viewBox='0 0 24 24'%3E%3Cpath d='M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z'/%3E%3C/svg%3E"} />
-                                <div className="absolute inset-x-0 bottom-0 bg-slate-950/80 backdrop-blur-xs p-2 flex items-center justify-between text-[9px] font-bold text-sky-400">
-                                  <span className="truncate flex items-center gap-1">
-                                    <Clock size={10} className="text-sky-400 shrink-0" />
-                                    {detail.capturedAt || "Stamped"}
-                                  </span>
-                                </div>
-                                <button type="button" onClick={() => removePhoto(idx)}
-                                  className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-md">
-                                  <X className="w-3 h-3" />
-                                </button>
-                              </div>
-                            );
-                          })}
+                    {/* ── 2. Uploads ── */}
+                    <div className="rounded-2xl border border-blue-100 bg-blue-50/40 p-5">
+                      <div className="flex items-start justify-between gap-4 flex-wrap">
+                        <div>
+                          <p className="text-[11px] font-black text-blue-600 uppercase tracking-widest">
+                            Step 2 — Uploaded photos
+                          </p>
+                          <p className="text-[11px] text-slate-500 mt-1 max-w-md leading-relaxed">
+                            Clean, unstamped photos of the property.
+                          </p>
+                        </div>
+                        <label className="px-5 py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-slate-900/10 shrink-0">
+                          <ImageIcon className="w-4 h-4" /> Upload Photo File
+                          <input type="file" accept="image/*" multiple onChange={handleFileUpload} className="hidden" />
+                        </label>
+                      </div>
+
+                      <div className="flex gap-3 mt-4">
+                        <div className="flex-1">
+                          <FormField label="Or Paste Photo URL" value={formPhotoUrl} onChange={e => setFormPhotoUrl(e.target.value)} placeholder="https://example.com/photo.jpg" />
+                        </div>
+                        <div className="flex items-end">
+                          <button type="button" onClick={() => addPhotoWithUrl(formPhotoUrl)}
+                            className="px-5 py-4 bg-blue-600 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg shadow-blue-200">
+                            <Plus className="w-4 h-4" /> Add URL
+                          </button>
                         </div>
                       </div>
-                    )}
+
+                      {photoUploading > 0 && (
+                        <p className="text-[11px] font-bold text-blue-600 mt-3 flex items-center gap-2">
+                          <Loader2 size={13} className="animate-spin" />
+                          Uploading {photoUploading} photo{photoUploading > 1 ? "s" : ""}…
+                        </p>
+                      )}
+
+                      {uploadedPhotos.length > 0 ? (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                          {uploadedPhotos.map(({ url, idx }) => (
+                            <PhotoThumb key={idx} url={url} onRemove={() => removePhoto(idx)}
+                              badge={<span className="truncate flex items-center gap-1 text-slate-300">
+                                <ImageIcon size={10} className="shrink-0" /> Uploaded file
+                              </span>} />
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-[11px] text-slate-400 mt-4 italic">No photos uploaded yet.</p>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -1160,10 +1398,19 @@ export default function Visit() {
                       <td className="p-4">
                         <span className={cn(
                           "px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider",
-                          v.status === "approved" ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-amber-50 text-amber-600 border border-amber-100"
+                          v.status === "approved" ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                            : v.status === "rejected" ? "bg-rose-50 text-rose-600 border border-rose-100"
+                            : "bg-amber-50 text-amber-600 border border-amber-100"
                         )}>
                           {v.status || "pending"}
                         </span>
+                        {/* The reason belongs next to the status, not buried in
+                            the detail modal — this row is what the employee scans. */}
+                        {v.status === "rejected" && v.rejectReason && (
+                          <p className="mt-1 max-w-[180px] text-[10px] font-normal leading-snug text-rose-500" title={v.rejectReason}>
+                            “{v.rejectReason}”
+                          </p>
+                        )}
                       </td>
                       <td className="p-4 pr-6">
                         <div className="flex items-center justify-end gap-2">
@@ -1171,7 +1418,7 @@ export default function Visit() {
                             className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold uppercase transition-all">
                             View
                           </button>
-                          {v.status !== "approved" && (
+                          {v.status !== "approved" && v.status !== "rejected" && (
                             <>
                               <button
                                 onClick={() => resendKyc(v)}
@@ -1189,6 +1436,16 @@ export default function Visit() {
                                   className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all border bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed"
                                 >
                                   {actingId === (v.visitId || v._id) ? "..." : "Approve"}
+                                </button>
+                              )}
+                              {canApprove && (
+                                <button
+                                  onClick={() => { setRejectModal(v); setRejectReason(""); }}
+                                  disabled={actingId === (v.visitId || v._id)}
+                                  title="Reject this report and send the employee a reason"
+                                  className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all border bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100 disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed"
+                                >
+                                  Reject
                                 </button>
                               )}
                             </>
@@ -1240,6 +1497,33 @@ export default function Visit() {
             {/* Body */}
             <div className="overflow-y-auto p-8 space-y-8 flex-1">
               {/* Owner's submitted digital KYC — this is what gates approval */}
+              {/* First thing in the report when it has come back — an employee
+                  opening this needs the reason before anything else. */}
+              {viewingVisit.status === "rejected" && (
+                <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-rose-100 text-rose-600">
+                      <XCircle size={16} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-black uppercase tracking-widest text-rose-600">
+                        Report rejected
+                        {viewingVisit.rejectedAt && (
+                          <span className="ml-2 font-bold normal-case tracking-normal text-rose-400">
+                            {new Date(viewingVisit.rejectedAt).toLocaleString("en-IN")}
+                          </span>
+                        )}
+                      </p>
+                      {viewingVisit.rejectReason ? (
+                        <p className="mt-1.5 text-[13px] leading-relaxed text-rose-900">“{viewingVisit.rejectReason}”</p>
+                      ) : (
+                        <p className="mt-1.5 text-[12px] italic text-rose-500">No reason was given.</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <DetailSection icon={ShieldCheck} title="Owner Digital KYC" color="emerald">
                 {!viewingVisit.generatedCredentials?.loginId ? (
                   <p className="text-xs font-semibold text-slate-500 bg-slate-50 rounded-xl p-4 border border-slate-100">
@@ -1288,6 +1572,14 @@ export default function Visit() {
               </DetailSection>
 
               <DetailSection icon={Star} title="Publish Tier" color="indigo">
+                {canApprove && viewingVisit.status !== "approved" && viewingVisit.status !== "rejected" && (
+                  <button
+                    onClick={() => { setRejectModal(viewingVisit); setRejectReason(""); }}
+                    className="px-5 py-3 rounded-2xl text-[11px] font-bold uppercase tracking-wider border bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100 transition-all"
+                  >
+                    Reject
+                  </button>
+                )}
                 {canApprove && viewingVisit.status !== "approved" ? (
                   <select
                     value={tierFor(viewingVisit)}
@@ -1420,25 +1712,73 @@ export default function Visit() {
               )}
 
               {viewingVisit.photos?.length > 0 && (
-                <DetailSection icon={Camera} title="Photos & Capture Timestamps" color="rose">
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {viewingVisit.photos.map((url, idx) => {
-                      const capturedAt = (viewingVisit.photoDetails && viewingVisit.photoDetails[idx]?.capturedAt) ||
-                        (viewingVisit.photoTimestamps && viewingVisit.photoTimestamps[url]) ||
-                        new Date(viewingVisit.submittedAt || Date.now()).toLocaleString("en-IN");
-                      return (
-                        <div key={idx} className="bg-slate-900 rounded-2xl overflow-hidden border border-slate-100 shadow-sm group">
-                          <div className="relative aspect-video">
-                            <img src={url} alt="" className="w-full h-full object-cover" />
-                            <div className="absolute inset-x-0 bottom-0 bg-slate-950/80 backdrop-blur-xs p-2 flex items-center gap-1.5 text-[9px] font-bold text-sky-400">
-                              <Clock size={11} className="shrink-0 text-sky-400" />
-                              <span className="truncate">{capturedAt}</span>
-                            </div>
+                <DetailSection icon={Camera} title="Photos" color="rose">
+                  {(() => {
+                    // Same grouping as the form: by how the photo was taken.
+                    // Both kinds are published; this only makes the report
+                    // readable at a glance.
+                    const rows = (viewingVisit.photos || []).map((url, idx) => {
+                      const detail = viewingVisit.photoDetails?.[idx] || {};
+                      const capturedAt = detail.capturedAt ||
+                        (viewingVisit.photoTimestamps && viewingVisit.photoTimestamps[url]) || null;
+                      return { url, idx, capturedAt, isLive: detail.source === "camera" };
+                    });
+                    const live = rows.filter(r => r.isLive);
+                    const uploaded = rows.filter(r => !r.isLive);
+
+                    const Tile = ({ r, badge }) => (
+                      <div className="bg-slate-900 rounded-2xl overflow-hidden border border-slate-100 shadow-sm">
+                        <div className="relative aspect-video">
+                          <img src={r.url} alt="" className="w-full h-full object-cover" />
+                          <div className="absolute inset-x-0 bottom-0 bg-slate-950/80 backdrop-blur-xs p-2 text-[9px] font-bold">
+                            {badge}
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
+                      </div>
+                    );
+
+                    return (
+                      <div className="space-y-5">
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-widest text-rose-600 mb-2">
+                            Live camera captures ({live.length})
+                          </p>
+                          {live.length ? (
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                              {live.map(r => (
+                                <Tile key={r.idx} r={r} badge={
+                                  <span className="truncate flex items-center gap-1.5 text-sky-400">
+                                    <Clock size={11} className="shrink-0" />{r.capturedAt || "Live capture"}
+                                  </span>
+                                } />
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-[11px] italic text-slate-400">No live photos were captured.</p>
+                          )}
+                        </div>
+
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-widest text-blue-600 mb-2">
+                            Uploaded photos ({uploaded.length})
+                          </p>
+                          {uploaded.length ? (
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                              {uploaded.map(r => (
+                                <Tile key={r.idx} r={r} badge={
+                                  <span className="truncate flex items-center gap-1.5 text-slate-300">
+                                    <ImageIcon size={11} className="shrink-0" /> Uploaded file
+                                  </span>
+                                } />
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-[11px] italic text-slate-400">No photos were uploaded.</p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </DetailSection>
               )}
             </div>
@@ -1480,6 +1820,65 @@ export default function Visit() {
       )}
 
       {/* ═══ LIVE CAMERA MODAL ═══ */}
+      {/* ═══ REJECT MODAL ═══ */}
+      {rejectModal && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl overflow-hidden max-w-md w-full shadow-2xl">
+            <div className="p-5 border-b border-slate-100 flex items-start gap-3">
+              <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-rose-50 text-rose-600">
+                <XCircle size={18} />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm font-black text-slate-900">Reject this visit report</h3>
+                <p className="text-[11px] text-slate-500 mt-0.5 truncate">
+                  {rejectModal.propertyName || "Unnamed property"} — submitted by {rejectModal.staffName || "staff"}
+                </p>
+              </div>
+            </div>
+
+            <div className="p-5">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                Reason for rejection <span className="text-slate-300">(optional)</span>
+              </label>
+              <textarea
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                rows={4}
+                autoFocus
+                maxLength={500}
+                placeholder="e.g. Photos are unclear and the rent does not match what the owner quoted."
+                className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-[13px] text-slate-800 placeholder:text-slate-400 outline-none transition-colors focus:border-rose-400 focus:bg-white resize-none"
+              />
+              <div className="mt-1.5 flex items-center justify-between">
+                <p className="text-[10px] text-slate-400">
+                  Shown to {rejectModal.staffName || "the employee"} on their copy of this report.
+                </p>
+                <p className="text-[10px] text-slate-300 tabular-nums">{rejectReason.length}/500</p>
+              </div>
+            </div>
+
+            <div className="p-5 pt-0 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => { setRejectModal(null); setRejectReason(""); }}
+                className="px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-wider text-slate-500 hover:bg-slate-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={rejectVisit}
+                disabled={actingId === (rejectModal.visitId || rejectModal._id)}
+                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-bold uppercase tracking-wider shadow-lg shadow-rose-600/20 transition-all disabled:opacity-50 flex items-center gap-2"
+              >
+                {actingId === (rejectModal.visitId || rejectModal._id) && <Loader2 size={13} className="animate-spin" />}
+                Reject report
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {cameraModalOpen && (
         <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden max-w-lg w-full shadow-2xl flex flex-col">
@@ -1493,8 +1892,9 @@ export default function Visit() {
             </div>
             <div className="relative bg-black aspect-video flex items-center justify-center overflow-hidden">
               <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
+              {/* Mirrors the stamp that will be burnt into the photo. */}
               <div className="absolute bottom-2 left-2 bg-slate-950/80 px-3 py-1 rounded-full text-[10px] font-mono text-sky-400 font-bold">
-                📍 {new Date().toLocaleString("en-IN")}
+                {new Date().toLocaleString("en-IN")}
               </div>
             </div>
             <div className="p-5 flex items-center justify-between bg-slate-900 gap-4">

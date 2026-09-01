@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession } from "../../utils/propertyowner";
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, getActiveOwnerPropertyId, fetchOwnerProperties } from "../../utils/propertyowner";
 import { fetchPenaltyConfigs, savePenaltyConfig } from "../../utils/rentCollectionApi";
 import { Settings, Save, RefreshCw, Info } from "lucide-react";
 
@@ -79,6 +79,12 @@ export default function PenaltyConfigPage() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
   const [sampleRent, setSampleRent] = useState(8000);
+  // Penalty configs are scoped: a property-level config overrides the owner-wide
+  // default (backend resolves unit → property → owner-default → global), so this
+  // page edits whichever scope the sidebar's active property points at.
+  const activePropertyId = getActiveOwnerPropertyId();
+  const [activePropertyName, setActivePropertyName] = useState("");
+  const [inheritingDefault, setInheritingDefault] = useState(false);
 
   // Live preview — computed directly from form state, no API call needed
   const previewRows = calcPreviewBreakdown(sampleRent, form);
@@ -92,27 +98,51 @@ export default function PenaltyConfigPage() {
     if (!owner?._id && !owner?.loginId) return;
     setLoading(true);
     try {
-      const data = await fetchPenaltyConfigs(owner._id || owner.loginId);
+      const data = await fetchPenaltyConfigs(owner._id || owner.loginId, true);
       setGlobalDefaults(data.globalDefaults);
-      const def = (data.configs || []).find(c => c.isDefault && !c.propertyId);
-      if (def) {
+
+      const configs = data.configs || [];
+      const ownerDefault = configs.find(c => c.isDefault && !c.propertyId);
+      const propertyConfig = activePropertyId
+        ? configs.find(c => String(c.propertyId?._id || c.propertyId || "") === String(activePropertyId) && !c.unitId)
+        : null;
+
+      // A property with no config of its own inherits the owner-wide default until
+      // the owner saves here — prefill from it so the numbers on screen match what
+      // the engine would actually apply today.
+      const source = propertyConfig || ownerDefault;
+      setInheritingDefault(Boolean(activePropertyId && !propertyConfig));
+
+      if (source) {
         setForm({
-          gracePeriodDays:             def.gracePeriodDays             ?? 0,
-          minorPenaltyDay:             def.minorPenaltyDay             ?? 7,
-          majorPenaltyDay:             def.majorPenaltyDay             ?? 12,
-          rentDueDay:                  def.rentDueDay                  ?? 1,
-          phase1ReminderFrequencyDays: def.phase1ReminderFrequencyDays ?? 1,
-          minorPenalty:  def.minorPenalty  || defaultForm().minorPenalty,
-          majorPenalty:  def.majorPenalty  || defaultForm().majorPenalty,
-          notifications: def.notifications || defaultForm().notifications,
+          gracePeriodDays:             source.gracePeriodDays             ?? 0,
+          minorPenaltyDay:             source.minorPenaltyDay             ?? 7,
+          majorPenaltyDay:             source.majorPenaltyDay             ?? 12,
+          rentDueDay:                  source.rentDueDay                  ?? 1,
+          phase1ReminderFrequencyDays: source.phase1ReminderFrequencyDays ?? 1,
+          minorPenalty:  source.minorPenalty  || defaultForm().minorPenalty,
+          majorPenalty:  source.majorPenalty  || defaultForm().majorPenalty,
+          notifications: source.notifications || defaultForm().notifications,
         });
+      } else {
+        setForm(defaultForm());
+      }
+
+      if (activePropertyId) {
+        try {
+          const props = await fetchOwnerProperties(owner.loginId, true);
+          const active = (props || []).find(p => String(p._id || p.id) === String(activePropertyId));
+          setActivePropertyName(active?.title || active?.name || "");
+        } catch (_) {
+          // Name is cosmetic — the config still loads and saves against the right id.
+        }
       }
     } catch (err) {
       showToast(err.message || "Failed to load config", "error");
     } finally {
       setLoading(false);
     }
-  }, [owner?._id, owner?.loginId]);
+  }, [owner?._id, owner?.loginId, activePropertyId]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -122,11 +152,15 @@ export default function PenaltyConfigPage() {
     try {
       await savePenaltyConfig({
         ownerId:     owner._id || owner.loginId,
-        isDefault:   true,
+        propertyId:  activePropertyId || null,
+        isDefault:   !activePropertyId,
         isActive:    true,
         ...form,
       });
-      showToast("Penalty config saved!");
+      setInheritingDefault(false);
+      showToast(activePropertyId
+        ? `Penalty config saved for ${activePropertyName || "this property"}!`
+        : "Account-wide default penalty config saved!");
     } catch (err) {
       showToast(err.message || "Save failed", "error");
     } finally {
@@ -158,6 +192,22 @@ export default function PenaltyConfigPage() {
         <div>
           <h1 className="font-serif text-[38px] md:text-[44px] leading-[1.05] text-foreground">Penalty Settings</h1>
           <p className="mt-1.5 text-[13.5px] text-muted-foreground">Configure the 3-phase penalty system for late rent. Changes apply to new invoices.</p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {activePropertyId ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[12px] font-semibold text-emerald-700">
+                Editing: {activePropertyName || "active property"}
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[12px] font-semibold text-slate-600">
+                Editing: account-wide default (all properties without their own settings)
+              </span>
+            )}
+            {inheritingDefault && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[12px] font-semibold text-amber-700">
+                Currently inheriting the account default — saving creates settings just for this property
+              </span>
+            )}
+          </div>
         </div>
         {globalDefaults && (
           <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-[12.5px] text-blue-700 flex items-start gap-2">

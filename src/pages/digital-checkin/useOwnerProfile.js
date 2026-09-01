@@ -11,6 +11,7 @@ import {
   hasAadhaarSecondaryMarkers,
   extractAadhaarFromText
 } from "./utils";
+import { compressImage, PRESETS } from "../../utils/imageCompression";
 
 const emptyDoc = { file: null, preview: "", name: "", type: "", uploaded: false, url: "" };
 
@@ -412,17 +413,36 @@ export const useOwnerProfile = () => {
       setDocUploading(true);
       setDocStatus({ type: "", text: "" });
 
-      const toPayload = async (doc) => {
+      // Shrink before encoding. These go up as base64 inside a JSON body, which
+      // inflates the bytes by a third on top of whatever the camera or a
+      // screenshot produced — a 4MB PNG becomes a 5.6MB request, and on a
+      // domestic uplink that alone was enough to stall the upload out.
+      // compressImage never throws: anything it cannot handle comes back
+      // unchanged, so this can only make the payload smaller or leave it as-is.
+      const toPayload = async (doc, preset) => {
         if (!doc.file) return null;
-        const dataUrl = await fileToDataUrl(doc.file);
+        const file = preset ? await compressImage(doc.file, preset) : doc.file;
+        const dataUrl = await fileToDataUrl(file);
         return { dataUrl, name: doc.name, type: doc.type };
       };
 
+      const [ownerPhotoPayload, bankProofPayload, aadhaarPayload] = await Promise.all([
+        toPayload(ownerPhoto, PRESETS.PHOTO),
+        // A bank statement has to stay readable, so near-lossless and generous
+        // on both axes rather than the photo budget.
+        toPayload(bankProof, PRESETS.DOCUMENT),
+        // Deliberately NOT compressed: this image is fed to Aadhaar OCR on the
+        // server, and re-encoding it has not been validated against real
+        // documents. Same call the repo's raw-upload scanner already exempts
+        // for the Tesseract paths — see scripts/scanRawImageUploads.mjs.
+        toPayload(aadhaarDoc, null)
+      ]);
+
       const payload = {
         loginId,
-        ownerPhoto: ownerPhoto.file ? await toPayload(ownerPhoto) : null,
-        bankProof: bankProof.file ? await toPayload(bankProof) : null,
-        aadhaarImage: aadhaarDoc.file ? await toPayload(aadhaarDoc) : null
+        ownerPhoto: ownerPhotoPayload,
+        bankProof: bankProofPayload,
+        aadhaarImage: aadhaarPayload
       };
 
       const data = await postExpectSuccess("/api/checkin/owner/documents", payload, apiBases);

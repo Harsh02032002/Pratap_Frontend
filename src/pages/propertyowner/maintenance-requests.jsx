@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerEmployees } from "../../utils/propertyowner";
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerEmployees, filterStaffByProperty, getActiveOwnerPropertyId } from "../../utils/propertyowner";
 import { apiFetch } from "../../utils/api";
 import { cacheGet, cacheSet, cacheInvalidate } from "../../utils/cache";
 import {
@@ -29,14 +29,22 @@ export default function MaintenanceRequestsPage() {
   const [assignedStaffId, setAssignedStaffId] = useState("");
   const [formBusy, setFormBusy] = useState(false);
 
+  // The active property scopes both the task list and the staff dropdown. A
+  // Warden at one building must not see, or be able to assign, another
+  // building's staff.
+  const activePropertyId = getActiveOwnerPropertyId();
+
   const fetchStaffList = async ({ force = false } = {}) => {
     const staff = await fetchOwnerEmployees(owner.loginId, { force });
-    setStaffList(staff);
-    return staff;
+    const scoped = filterStaffByProperty(staff, activePropertyId);
+    setStaffList(scoped);
+    return scoped;
   };
 
   const fetchTasksAndStaff = async () => {
-    const MAINT_KEY = `maintenance:${owner.loginId}`;
+    // Cache key includes the property, or switching properties would show the
+    // previous one's tasks from cache.
+    const MAINT_KEY = `maintenance:${owner.loginId}:${activePropertyId || "all"}`;
     const cachedTasks = cacheGet(MAINT_KEY);
     if (cachedTasks) {
       setTasks(cachedTasks);
@@ -46,7 +54,8 @@ export default function MaintenanceRequestsPage() {
     }
     try {
       setLoading(true);
-      const tasksData = await apiFetch(`/api/maintenance/owner/${owner.loginId}`);
+      const qs = activePropertyId ? `?propertyId=${encodeURIComponent(activePropertyId)}` : "";
+      const tasksData = await apiFetch(`/api/maintenance/owner/${owner.loginId}${qs}`);
       const tasks = tasksData?.tasks || [];
       setTasks(tasks);
       cacheSet(MAINT_KEY, tasks, 2 * 60 * 1000);
@@ -60,7 +69,7 @@ export default function MaintenanceRequestsPage() {
 
   useEffect(() => {
     fetchTasksAndStaff();
-  }, [owner.loginId]);
+  }, [owner.loginId, activePropertyId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -71,6 +80,7 @@ export default function MaintenanceRequestsPage() {
         method: "POST",
         body: JSON.stringify({
           ownerLoginId: owner.loginId,
+          propertyId: activePropertyId || null,
           title,
           frequency,
           scheduledDate,
@@ -88,7 +98,9 @@ export default function MaintenanceRequestsPage() {
       fetchTasksAndStaff();
     } catch (err) {
       console.error("Error creating task:", err);
-      toast.error("Failed to create maintenance task");
+      // e.g. "Select a property for this maintenance task" when the owner is
+      // on the All Properties view.
+      toast.error(err?.message || "Failed to create maintenance task");
     } finally {
       setFormBusy(false);
     }
@@ -110,6 +122,9 @@ export default function MaintenanceRequestsPage() {
   const assignStaff = async (id, staffId) => {
     try {
       const staffObj = staffList.find(s => s._id === staffId);
+      // The backend re-checks that this staff member belongs to the task's
+      // property and rejects with 403 if not — surface that instead of
+      // failing silently.
       const data = await apiFetch(`/api/maintenance/${id}/assign`, {
         method: "PATCH",
         body: JSON.stringify({ assignedStaffId: staffId, assignedStaffName: staffObj ? staffObj.name : null })
@@ -124,6 +139,8 @@ export default function MaintenanceRequestsPage() {
       }
     } catch (err) {
       console.error("Failed to assign staff", err);
+      toast.error(err?.message || "Could not assign that staff member");
+      fetchTasksAndStaff();
     }
   };
 

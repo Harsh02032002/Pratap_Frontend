@@ -19,43 +19,54 @@ export const getParamValue = (names) => {
   return "";
 };
 
-export const postWithFallback = async (path, payload, bases = getApiBases()) => {
+/**
+ * Whether a base that answered with `status` is worth abandoning for the next one.
+ *
+ * The base list exists to find a reachable backend, not to retry work. These
+ * are POSTs: once a server has answered, it has RECEIVED and acted on the body,
+ * and re-sending it to another base repeats whatever it already did. That is
+ * how one "Upload Documents" click became two full Cloudinary uploads of the
+ * same photos — the first base answered 5xx, and the loop dutifully uploaded
+ * everything again to the second.
+ *
+ * A 404 is the exception worth keeping: it means this base has no such route
+ * (a stale or wrong deployment), so nothing was acted on and the next base is
+ * the whole point.
+ */
+const shouldTryNextBase = (status) => status === 404;
+
+const postJson = async (path, payload, bases, requireSuccessFlag) => {
   let lastErr = null;
   for (const base of bases) {
+    let res;
     try {
-      const res = await fetch(`${base}${path}`, {
+      res = await fetch(`${base}${path}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok) return data;
-      lastErr = new Error(data.message || `HTTP ${res.status}`);
     } catch (err) {
+      // No HTTP response at all — unreachable base, so the next one is fair game.
       lastErr = err;
+      continue;
     }
+
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && (!requireSuccessFlag || data?.success)) return data;
+
+    const err = new Error(data.message || `HTTP ${res.status}`);
+    err.status = res.status;
+    if (!shouldTryNextBase(res.status)) throw err;
+    lastErr = err;
   }
   throw lastErr || new Error("Request failed");
 };
 
-export const postExpectSuccess = async (path, payload, bases = getApiBases()) => {
-  let lastErr = null;
-  for (const base of bases) {
-    try {
-      const res = await fetch(`${base}${path}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok && data?.success) return data;
-      lastErr = new Error(data.message || `HTTP ${res.status}`);
-    } catch (err) {
-      lastErr = err;
-    }
-  }
-  throw lastErr || new Error("Request failed");
-};
+export const postWithFallback = (path, payload, bases = getApiBases()) =>
+  postJson(path, payload, bases, false);
+
+export const postExpectSuccess = (path, payload, bases = getApiBases()) =>
+  postJson(path, payload, bases, true);
 
 export const getWithFallback = async (path, bases = getApiBases()) => {
   let lastErr = null;

@@ -3,7 +3,7 @@ import WebsiteFooter from "../../components/website/WebsiteFooter";
 import MobileBottomNav from "../../components/website/MobileBottomNav";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { fetchPropertyByVisitId, getPropertyReviews, getPropertyReviewStats, checkUserReview, submitReview, trackPropertyView, trackPropertyClick, fetchJson } from "../../utils/api";
+import { fetchPropertyByVisitId, getPropertyReviews, getPropertyReviewStats, checkUserReview, submitReview, trackPropertyView, trackPropertyClick, fetchJson, firstNonEmptyList } from "../../utils/api";
 import useSEO from "../../hooks/useSEO";
 
 // Extract city from property name (e.g., "HOSTEL - Vastrapur, Ahmedabad" -> "Ahmedabad")
@@ -745,7 +745,18 @@ export default function PropertyDetailsPage() {
             
             // Image fields - prioritize new fields
             image: foundProperty.featuredImage || foundProperty.propertyInfo?.photos?.[0] || foundProperty.propertyImage || foundProperty.image || `https://picsum.photos/800/600?random=${Math.floor(Math.random() * 100)}`,
-            images: foundProperty.images || foundProperty.propertyInfo?.photos || foundProperty.propertyImages || [foundProperty.featuredImage || foundProperty.propertyImage || foundProperty.image || `https://picsum.photos/800/600?random=${Math.floor(Math.random() * 100)}`],
+            // Picked by first NON-EMPTY source, not by `||`. An empty array is
+            // truthy, so `foundProperty.images || …` stopped dead on the `[]`
+            // that Property carries and never reached propertyInfo.photos —
+            // which is why approved properties rendered "No images available"
+            // while their photos sat in the record all along.
+            images: firstNonEmptyList(
+              foundProperty.images,
+              foundProperty.propertyInfo?.photos,
+              foundProperty.propertyImages,
+              [foundProperty.featuredImage || foundProperty.propertyImage || foundProperty.image].filter(Boolean),
+              [`https://picsum.photos/800/600?random=${Math.floor(Math.random() * 100)}`]
+            ),
             
             // Description and basic info
             description: foundProperty.description || "No description provided",

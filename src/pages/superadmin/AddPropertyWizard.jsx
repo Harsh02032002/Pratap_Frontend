@@ -305,6 +305,10 @@ export default function AddPropertyWizard({ propEditId, isModal, onClose }) {
                 if (rt.images) photosMap[idx] = rt.images;
               });
               setRoomTypePhotos(photosMap);
+            } else {
+              // Same reasoning as the gallery above — drop the stock room photos
+              // so editing a real property cannot publish them.
+              setRoomTypePhotos({});
             }
             
             if (p.amenities) {
@@ -317,8 +321,23 @@ export default function AddPropertyWizard({ propEditId, isModal, onClose }) {
               setCustomAmenities(customs);
             }
             
+            // Seed the gallery from what this property ACTUALLY has.
+            //
+            // Previously this only replaced the stock seed when propertyViews
+            // already existed. A property approved from a visit report has no
+            // propertyViews, so the editor showed four categories of Unsplash
+            // stock photos as though they were the listing — and because saving
+            // writes `images: propertyPhotos`, pressing Save replaced the real
+            // gallery with those stock URLs. Showing placeholders for a live
+            // property is not just misleading, it overwrites real data.
             if (p.propertyViews && p.propertyViews.length > 0) {
               setPropertyViews(p.propertyViews);
+            } else {
+              const existing = [p.images, p.photos, p.propertyInfo?.photos]
+                .find(list => Array.isArray(list) && list.length > 0) || [];
+              // Empty rather than stock when there is genuinely nothing: an
+              // empty gallery is honest, a fake one gets published.
+              setPropertyViews(existing.length ? [{ label: "Main", images: existing }] : []);
             }
             
             if (p.propertyDetails) {
@@ -1315,8 +1334,14 @@ export default function AddPropertyWizard({ propEditId, isModal, onClose }) {
                         <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-sm text-blue-600 flex-shrink-0">
                            <Info className="w-4 h-4" />
                         </div>
+                        {/* The pre-populated samples only exist when creating a
+                            property. While editing, these are the real listing
+                            photos and calling them "reference images" invites
+                            someone to delete a live gallery. */}
                         <p className="text-[10px] font-bold text-slate-600 leading-relaxed pt-1.5">
-                           ⚠️ REFERENCE IMAGES: High-quality sample/reference photos have been pre-populated to help you visualize a complete premium listing. You can freely delete or replace them. Supported formats: JPG, PNG, MP4. Max size: 20MB per file.
+                           {editId
+                             ? "These are this property's live listing photos. Anything you add, replace or delete here changes what appears on the website as soon as you save. Supported formats: JPG, PNG, MP4. Max size: 20MB per file."
+                             : "⚠️ REFERENCE IMAGES: High-quality sample/reference photos have been pre-populated to help you visualize a complete premium listing. You can freely delete or replace them. Supported formats: JPG, PNG, MP4. Max size: 20MB per file."}
                         </p>
                      </div>
                   
