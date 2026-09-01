@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { 
   Building2, Users, Shield, Clock, Search, 
   ArrowUpRight, ArrowDownRight, MoreVertical, 
@@ -371,6 +371,11 @@ export default function Visit() {
 
   // UI state
   const [saving, setSaving] = useState(false);
+  // Id for the report currently being filled in. Held in a ref so a retry after
+  // a failed submit reuses it instead of minting a new one — a fresh id per
+  // click made every retry a NEW visit report and a SECOND KYC email to the
+  // owner. Cleared by resetForm() once the report is actually filed.
+  const draftVisitIdRef = useRef(null);
   const [openSections, setOpenSections] = useState({
     owner: true, property: true, location: true, occupancy: false,
     features: false, roomTypes: false, policies: false, ratings: false, photos: false
@@ -428,6 +433,7 @@ export default function Visit() {
     setFormCleanlinessRating(0); setFormOwnerBehaviour(""); setFormStudentReviews(""); setFormInternalRemarks("");
     setFormPhotoUrl(""); setFormPhotos([]); setFormPhotoDetails([]); setFormRoomTypes([]);
     setOpenSections({ owner: true, property: true, location: true, occupancy: false, features: false, roomTypes: false, policies: false, ratings: false, photos: false });
+    draftVisitIdRef.current = null;
   };
 
   // ─── Onboarding Handler ─────────────────────────────────────────────────────
@@ -443,10 +449,13 @@ export default function Visit() {
     }
     setSaving(true);
     try {
-      // Submit the visit report. The backend issues the owner's credentials and
-      // emails the digital-KYC link as part of this call; the property is only
-      // created and published once the owner finishes KYC and a superadmin approves.
-      const visitId = `v_${Date.now()}`;
+      // Submit the visit report. The backend files it and replies immediately,
+      // then issues the owner's credentials and emails the digital-KYC link in
+      // the background — doing that inline took the request past the server's
+      // 10s deadline. The property is only created and published once the owner
+      // finishes KYC and a superadmin approves.
+      if (!draftVisitIdRef.current) draftVisitIdRef.current = `v_${Date.now()}`;
+      const visitId = draftVisitIdRef.current;
       const submitRes = await fetchJson("/api/visits/submit", {
         method: "POST",
         headers: { ...getAuthHeader(), "Content-Type": "application/json" },
@@ -501,10 +510,21 @@ export default function Visit() {
         }),
       });
 
+      // The backend now files the report and replies immediately, then sends
+      // the KYC email in the background — mailing inside the request pushed it
+      // past the server's 10s deadline, which answered 503 for a submission
+      // that had actually succeeded. So delivery is reported as in-flight here;
+      // the report's KYC column shows the real outcome, and "Resend KYC" is
+      // there if it did not arrive.
       if (submitRes?.kycLinkSent === false) {
         alert(
           `⚠️ Visit report saved, but the KYC email could not be sent to ${formEmail}.\n\n` +
           `${submitRes?.kycLinkError || ""}\n\nUse "Resend KYC" on the report to try again.`
+        );
+      } else if (submitRes?.kycLinkPending) {
+        alert(
+          `✅ Visit report submitted!\n\nThe digital KYC link is being emailed to ${formEmail} — it usually arrives within a minute.\n\n` +
+          `Once the owner completes KYC, this report can be approved and the property published.`
         );
       } else {
         alert(
