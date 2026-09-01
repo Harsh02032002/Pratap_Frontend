@@ -69,7 +69,7 @@ const staticOfferings = [
 /* Reusable Desktop Section Wrapper */
 function DesktopSection({ title, sub, children, right }) {
   return (
-    <section className="mx-auto max-w-7xl px-4 py-6 lg:px-8">
+    <section className="mx-auto max-w-[1440px] px-4 py-6 md:px-8">
       <div className="relative mb-5 text-center">
         <div className="mx-auto max-w-2xl">
           <h2 className="font-display text-2xl font-extrabold text-slate-900 md:text-3xl">{title}</h2>
@@ -110,10 +110,10 @@ function DesktopHero({ searchQuery, setSearchQuery, selectedGender, setSelectedG
         />
       </div>
 
-      <div className="relative z-10 mx-auto max-w-7xl px-4 lg:px-8">
+      <div className="relative z-10 mx-auto max-w-[1440px] px-4 md:px-8">
         <div className="max-w-2xl">
           <span className={`inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-bold shadow-sm ${BRAND} border ${BRAND_BORDER}/20`}>
-            <ShieldCheck className="h-4 w-4" /> Zero Brokerage
+            <ShieldCheck className="h-4 w-4" /> Smart Bidding
           </span>
           <h1 className="mt-3 font-display text-3xl font-extrabold leading-[1.08] tracking-tight text-[#1a2b3c] md:text-4xl lg:text-[2.85rem]">
             Premium Student & <br />
@@ -180,9 +180,9 @@ function DesktopHero({ searchQuery, setSearchQuery, selectedGender, setSelectedG
           </form>
         </div>
 
-        <div className="mt-4 max-w-6xl rounded-xl bg-white px-6 py-3 shadow-sm border border-slate-100 flex flex-wrap items-center justify-between gap-y-2 gap-x-4 relative z-10">
+        <div className="mt-4 max-w-[1440px] w-full rounded-xl bg-white px-6 py-3 shadow-sm border border-slate-100 flex flex-wrap items-center justify-between gap-y-2 gap-x-4 relative z-10">
           {[
-            { i: ShieldCheck, t: "Zero Brokerage", s: "No hidden charges" },
+            { i: ShieldCheck, t: "Smart Bidding", s: "Best price deals" },
             { i: BadgeCheck, t: "Verified Properties", s: "100% verified listings" },
             { i: Tag, t: "Lowest Price Guarantee", s: "Best price, always" },
             { i: Headphones, t: "24/7 Support", s: "Always here to help" },
@@ -224,27 +224,90 @@ function DesktopHero({ searchQuery, setSearchQuery, selectedGender, setSelectedG
 
 function DesktopWhatWeOffer() {
   const items = [
-    { icon: Bed, t: "PG (Paying Guest)", d: "Comfortable PGs with food & essentials.", cta: "Explore PGs", href: "/website/ourproperty?type=pg", c: "bg-emerald-50 text-emerald-600", img: "https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=500&q=70" },
-    { icon: Building2, t: "Hostels", d: "Affordable hostels with great amenities.", cta: "Explore Hostels", href: "/website/ourproperty?type=hostel", c: "bg-orange-50 text-orange-600", img: "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=500&q=70" },
-    { icon: Sofa, t: "Co-living", d: "Stylish co-living spaces for modern lifestyle.", cta: "Explore Co-living", href: "/website/ourproperty?type=co-living", c: "bg-violet-50 text-violet-600", img: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=500&q=70" },
-    { icon: Home, t: "Apartments", d: "Private & shared apartments for independent living.", cta: "Explore Apartments", href: "/website/ourproperty?type=apartment", c: "bg-sky-50 text-sky-600", img: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=500&q=70" }
+    { 
+      icon: Bed, 
+      t: "PG (Paying Guest)", 
+      d: "Comfortable PGs with food & essential amenities.", 
+      cta: "Explore PGs", 
+      href: "/website/ourproperty?type=pg", 
+      badge: "bg-teal-50 text-teal-700 border-teal-200/80",
+      bullets: ["Students Preferred", "Meals & WiFi"],
+      img: "https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?w=600&q=80" 
+    },
+    { 
+      icon: Building2, 
+      t: "Hostels", 
+      d: "Affordable hostels with great student community.", 
+      cta: "Explore Hostels", 
+      href: "/website/ourproperty?type=hostel", 
+      badge: "bg-orange-50 text-orange-700 border-orange-200/80",
+      bullets: ["Budget Friendly", "Shared & Private"],
+      img: "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=600&q=80" 
+    },
+    { 
+      icon: Sofa, 
+      t: "Co-living", 
+      d: "Stylish co-living spaces for modern lifestyle.", 
+      cta: "Explore Co-living", 
+      href: "/website/ourproperty?type=co-living", 
+      badge: "bg-purple-50 text-purple-700 border-purple-200/80",
+      bullets: ["For Professionals", "Fully Furnished"],
+      img: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=600&q=80" 
+    },
+    { 
+      icon: Home, 
+      t: "Apartments", 
+      d: "Private & shared apartments for independent living.", 
+      cta: "Explore Apartments", 
+      href: "/website/ourproperty?type=apartment", 
+      badge: "bg-sky-50 text-sky-700 border-sky-200/80",
+      bullets: ["Independent Living", "Long Term Stays"],
+      img: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&q=80" 
+    }
   ];
 
   return (
     <DesktopSection title="What We Offer" sub="Choose from a variety of accommodation types tailored for students and professionals.">
       <div className="grid grid-cols-4 gap-4">
-        {items.map(({ icon: I, t, d, cta, href, c, img }) => (
-          <Link key={t} to={href} className="group flex overflow-hidden rounded-2xl border border-slate-200 bg-white transition hover:-translate-y-0.5 hover:shadow-lg">
-            <div className="relative w-2/5 shrink-0">
-              <img src={img} alt={t} className="h-full w-full object-cover" />
-              <div className={`absolute left-2.5 top-2.5 grid h-8 w-8 place-items-center rounded-lg ${c}`}>
-                <I className="h-4 w-4" />
+        {items.map(({ icon: I, t, d, cta, href, badge, bullets, img }) => (
+          <Link 
+            key={t} 
+            to={href} 
+            className="group flex overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-2xs hover:shadow-lg hover:border-teal-300/80 hover:-translate-y-0.5 transition-all duration-300 h-36"
+          >
+            {/* LEFT SIDE: Image Thumbnail (50% EQUAL WIDTH w-1/2) */}
+            <div className="relative w-1/2 shrink-0 overflow-hidden bg-slate-100">
+              <img src={img} alt={t} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/30 via-transparent to-transparent"></div>
+              <div className="absolute top-2 left-2 w-7 h-7 rounded-lg bg-white/95 backdrop-blur-md shadow-xs text-teal-600 flex items-center justify-center border border-slate-200/80">
+                <I className="h-3.5 w-3.5" />
               </div>
             </div>
-            <div className="flex flex-1 flex-col p-3.5">
-              <h3 className="font-display text-sm font-bold text-slate-800">{t}</h3>
-              <p className="mt-1 text-xs leading-snug text-slate-500">{d}</p>
-              <span className={`mt-auto pt-2 text-xs font-semibold ${BRAND}`}>{cta} →</span>
+
+            {/* RIGHT SIDE: Details & Clean Subtle Text Link (50% EQUAL WIDTH w-1/2) */}
+            <div className="flex w-1/2 flex-col p-3 justify-between min-w-0">
+              <div className="space-y-1">
+                <h3 className="font-display text-xs font-extrabold text-slate-900 tracking-tight truncate">{t}</h3>
+                <p className="text-[10px] leading-snug text-slate-500 font-medium line-clamp-2">{d}</p>
+                
+                {/* Feature Badges */}
+                <div className="flex flex-wrap gap-1 pt-0.5">
+                  {bullets.map((b) => (
+                    <span key={b} className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-extrabold border ${badge}`}>
+                      <Check className="w-2.5 h-2.5 shrink-0" />
+                      <span className="truncate">{b}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Clean Subtle Text Link (No Bulky Solid Button) */}
+              <div className="pt-1.5 border-t border-slate-100 flex items-center justify-between">
+                <span className="text-[11px] font-extrabold text-teal-600 group-hover:text-teal-700 inline-flex items-center gap-1 transition-colors">
+                  <span>{cta}</span>
+                  <span className="transition-transform group-hover:translate-x-1 font-bold">→</span>
+                </span>
+              </div>
             </div>
           </Link>
         ))}
@@ -304,23 +367,23 @@ function DesktopTrending({ properties }) {
       sub="Most popular properties among students"
       right={<Link to="/website/ourproperty" className={`text-sm font-semibold ${BRAND}`}>View all properties →</Link>}
     >
-      <div className="relative group px-1">
+      <div className="relative group">
         {/* Floating Left Arrow */}
         <button
           onClick={() => scroll('left')}
-          className="absolute -left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white shadow-lg border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-[oklch(0.68_0.15_165)] hover:text-white transition-all hover:scale-110 active:scale-95"
+          className="absolute -left-6 md:-left-8 lg:-left-12 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-transparent hover:bg-slate-200/50 text-slate-700 hover:text-teal-600 flex items-center justify-center transition-all hover:scale-125 active:scale-95 cursor-pointer opacity-70 hover:opacity-100"
           title="Scroll Left"
         >
-          <ChevronLeft className="w-5 h-5" />
+          <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
         </button>
 
         {/* Floating Right Arrow */}
         <button
           onClick={() => scroll('right')}
-          className="absolute -right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white shadow-lg border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-[oklch(0.68_0.15_165)] hover:text-white transition-all hover:scale-110 active:scale-95"
+          className="absolute -right-6 md:-right-8 lg:-right-12 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-transparent hover:bg-slate-200/50 text-slate-700 hover:text-teal-600 flex items-center justify-center transition-all hover:scale-125 active:scale-95 cursor-pointer opacity-70 hover:opacity-100"
           title="Scroll Right"
         >
-          <ChevronRight className="w-5 h-5" />
+          <ChevronRight className="w-6 h-6 stroke-[2.5]" />
         </button>
 
         <div
@@ -438,7 +501,7 @@ function DesktopPopularAreas() {
 
 function DesktopWhyChoose() {
   const items = [
-    { icon: ShieldCheck, t: "Zero Brokerage", d: "Connect directly with property owners. No hidden charges.", c: "bg-emerald-100 text-emerald-600" },
+    { icon: ShieldCheck, t: "Smart Bidding", d: "Bid your budget and get instant verified deals.", c: "bg-emerald-100 text-emerald-600" },
     { icon: BadgeCheck, t: "Verified Properties", d: "Every listing is verified by our team for your safety.", c: "bg-orange-100 text-orange-600" },
     { icon: Wallet, t: "Best Price Guarantee", d: "Find the best prices compared to other platforms.", c: "bg-purple-100 text-purple-600" },
     { icon: Sofa, t: "Fully Furnished", d: "Move in with just your suitcase. All essentials included.", c: "bg-amber-100 text-amber-600" },
@@ -554,19 +617,19 @@ function DesktopFindYourStay() {
 
 function DesktopZeroBrokerageSavings() {
   return (
-    <DesktopSection title="" sub="">
-      <div className="rounded-3xl bg-gradient-to-br from-[#ecf7f4] via-[#f0faf6] to-[#f4fbf8] p-10 border border-emerald-100/80 shadow-sm relative overflow-hidden">
+    <section className="mx-auto max-w-[1440px] px-4 py-4 md:px-8">
+      <div className="w-full rounded-3xl bg-gradient-to-br from-[#ecf7f4] via-[#f0faf6] to-[#f4fbf8] py-6 lg:py-7 pl-4 lg:pl-6 pr-6 lg:pr-8 border border-emerald-100/80 shadow-sm relative overflow-hidden">
         <div className="grid grid-cols-12 gap-8 items-center">
           <div className="col-span-4 space-y-4">
             <h2 className="font-display text-3xl lg:text-4xl font-extrabold text-slate-900 leading-tight">
-              Zero Brokerage.<br />
+              Smart Bidding.<br />
               <span className="text-emerald-600">100% Savings.</span>
             </h2>
             <p className="text-xs lg:text-sm text-slate-600 font-medium leading-relaxed">
               Connect directly with verified property owners and save thousands on brokerage.
             </p>
             <ul className="space-y-2 pt-1">
-              {["No Commission", "No Hidden Charges", "Direct Owner Contact", "Transparent Pricing"].map((item) => (
+              {["No Hidden Charges", "Direct Owner Contact", "Transparent Pricing"].map((item) => (
                 <li key={item} className="flex items-center gap-2 text-xs font-bold text-slate-800">
                   <div className="h-4 w-4 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
                     <Check className="h-2.5 w-2.5 stroke-[3]" />
@@ -599,10 +662,6 @@ function DesktopZeroBrokerageSavings() {
                   <span className="text-rose-500 font-extrabold">✕</span> Expensive
                 </li>
               </ul>
-              <div className="pt-2 border-t border-slate-100">
-                <p className="text-[11px] font-bold text-slate-400 uppercase">You Pay</p>
-                <p className="text-base font-extrabold text-rose-500">₹15,000+ <span className="text-xs font-normal text-rose-400">Extra</span></p>
-              </div>
             </div>
 
             <div className="z-10 h-9 w-9 rounded-full bg-emerald-500 text-white flex items-center justify-center font-extrabold text-xs shadow-md shrink-0">
@@ -615,7 +674,7 @@ function DesktopZeroBrokerageSavings() {
               </span>
               <ul className="space-y-2 text-xs font-medium text-slate-700 pt-1">
                 <li className="flex items-center justify-center gap-1.5 text-emerald-600 font-bold">
-                  <Check className="h-3.5 w-3.5 text-emerald-500 stroke-[3]" /> Zero Brokerage
+                  <Check className="h-3.5 w-3.5 text-emerald-500 stroke-[3]" /> Smart Bidding
                 </li>
                 <li className="flex items-center justify-center gap-1.5 text-slate-700 font-semibold">
                   <Check className="h-3.5 w-3.5 text-emerald-500 stroke-[3]" /> No Hidden Charges
@@ -630,10 +689,6 @@ function DesktopZeroBrokerageSavings() {
                   <Check className="h-3.5 w-3.5 text-emerald-500 stroke-[3]" /> Best Prices
                 </li>
               </ul>
-              <div className="pt-2 border-t border-slate-100">
-                <p className="text-[11px] font-bold text-emerald-600 uppercase">You Save</p>
-                <p className="text-base font-extrabold text-emerald-600">₹15,000+ <span className="text-xs font-normal text-emerald-500">Every Month</span></p>
-              </div>
             </div>
           </div>
 
@@ -648,13 +703,13 @@ function DesktopZeroBrokerageSavings() {
           </div>
         </div>
       </div>
-    </DesktopSection>
+    </section>
   );
 }
 
 function DesktopTestimonials() {
   const items = [
-    { n: "Rahul Sharma", r: "IIT JEE Student, Kota", q: "Roomhy made finding my hostel so easy! Zero brokerage and no hidden charges. Highly recommended!", a: "https://i.pravatar.cc/80?img=12" },
+    { n: "Rahul Sharma", r: "IIT JEE Student, Kota", q: "Roomhy made finding my hostel so easy! Smart bidding and no hidden charges. Highly recommended!", a: "https://i.pravatar.cc/80?img=12" },
     { n: "Priya Patel", r: "NEET Student, Sikar", q: "Great platform! I found a safe PG near my college within a day. The owner was very cooperative.", a: "https://i.pravatar.cc/80?img=32" },
     { n: "Vikram Singh", r: "Allen Student, Kota", q: "Verified properties and direct owner contact saved me both money and time.", a: "https://i.pravatar.cc/80?img=15" },
     { n: "Anjali Mehta", r: "IT Professional, Indore", q: "Love the variety of options. Co-living spaces are amazing and budget friendly.", a: "https://i.pravatar.cc/80?img=47" },
@@ -749,7 +804,7 @@ function DesktopListYourPropertyBanner() {
 function DesktopLatestBlog() {
   const blogs = [
     { tag: "TIPS", title: "7 Tips to Find the Perfect PG in Kota", img: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=500&q=80" },
-    { tag: "SAVINGS", title: "How Zero Brokerage Saves You ₹10,000+ Every Academic Year", img: "https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=500&q=80" },
+    { tag: "SAVINGS", title: "How Smart Bidding Saves You ₹10,000+ Every Academic Year", img: "https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=500&q=80" },
     { tag: "GUIDE", title: "PG vs Hostel vs Co-living – Which is Right for You?", img: "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=500&q=80" },
     { tag: "BUDGET", title: "How to Save Money While Living Away From Home", img: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=500&q=80" }
   ];
@@ -779,7 +834,7 @@ function DesktopLatestBlog() {
 
 function DesktopFAQ() {
   const faqs = [
-    { q: "How does zero brokerage work?", a: "You connect directly with verified property owners on Roomhy — no middlemen, no brokerage fees, ever." },
+    { q: "How does Smart Bidding work?", a: "Place custom budget bids directly to verified property owners on Roomhy and get instant savings." },
     { q: "What documents are required to book?", a: "A valid government ID (Aadhaar / passport) and a student/employee ID is usually enough." },
     { q: "How can I contact the property owner?", a: "Once you shortlist a property, use the built-in chat or call button to reach the owner directly." },
     { q: "Can I get a refund if I cancel?", a: "Yes — refunds follow the cancellation policy shown on each listing before you book." },
@@ -788,7 +843,7 @@ function DesktopFAQ() {
     { q: "Can I visit the property before booking?", a: "Absolutely. You can schedule a free visit directly from the property page." },
     { q: "Is Roomhy safe for girls?", a: "Yes. We list only verified girls-only and co-ed properties with strict safety checks and CCTV." },
   ];
-  const [open, setOpen] = useState(0);
+  const [open, setOpen] = useState(null);
 
   return (
     <DesktopSection title="Frequently Asked Questions" sub="Everything you need to know before you book" right={<Link to="/faq" className={`text-sm font-semibold ${BRAND}`}>View all FAQs →</Link>}>
@@ -818,7 +873,7 @@ function DesktopFAQ() {
 /* ========================================================================= */
 
 export default function HomePage() {
-  useSEO({ pageKey: 'home', fallbackTitle: 'Roomhy - Zero Brokerage Student PGs, Hostels & Co-living' });
+  useSEO({ pageKey: 'home', fallbackTitle: 'Roomhy - Smart Bidding Student PGs, Hostels & Co-living' });
   const navigate = useNavigate();
 
   const [properties, setProperties] = useState([]);
@@ -1122,10 +1177,7 @@ export default function HomePage() {
         <DesktopHowItWorks onOpenVideoModal={() => setVideoModalOpen(true)} />
         <DesktopTrending properties={properties} />
         <DesktopCities />
-        <DesktopPopularAreas />
         <DesktopWhyChoose />
-        <DesktopLifeAtRoomhy />
-        <DesktopFindYourStay />
         <DesktopZeroBrokerageSavings />
         <DesktopTestimonials />
         <DesktopListYourPropertyBanner />
@@ -1286,7 +1338,7 @@ export default function HomePage() {
               ✕
             </button>
             <h3 className="text-xl font-extrabold text-slate-800 mb-2">Roomhy Platform Tour</h3>
-            <p className="text-xs text-slate-500 mb-4">Discover how 100% zero brokerage student housing works.</p>
+            <p className="text-xs text-slate-500 mb-4">Discover how Smart Bidding student housing works.</p>
             <div className="aspect-video bg-slate-900 rounded-2xl flex items-center justify-center text-slate-400 text-sm font-semibold">
               <span>[ Official Roomhy Video Tour ]</span>
             </div>

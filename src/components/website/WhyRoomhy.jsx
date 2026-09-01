@@ -3,7 +3,7 @@ import { useRef, useState } from 'react';
 const allPoints = [
   // Why Roomhy points (first 3)
   {
-    title: "Zero Brokerage Always",
+    title: "Smart Bidding Always",
     description: "Tired of paying brokers just to see a room? With Roomhy, you connect directly with verified property owners. No middlemen, no extra charges.",
     image: "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?auto=format&fit=crop&w=800&q=80",
   },

@@ -14,11 +14,7 @@ import MobileVideoSection from '../../components/website/MobileVideoSection';
 import { fetchCities, fetchProperties, trackPropertyClick, getPropertyDetailsUrl } from '../../utils/api';
 import useSEO from '../../hooks/useSEO';
 
-const cityAreas = {
-  'Kota': ['Vigyan Nagar', 'Rajeev Gandhi Nagar', 'Indra Vihar', 'Mahaveer Nagar'],
-  'Sikar': ['Piprali Road', 'Subhash Chowk', 'Station Road', 'Nawalgarh Road'],
-  'Indore': ['Vijay Nagar', 'Bhawar Kuan', 'Rajwada', 'Palasia']
-};
+const cityAreas = {};
 
 const staticCities = [
   { name: 'Kota', properties: '2,500+', image: 'https://picsum.photos/600/400?random=1' },
@@ -800,18 +796,20 @@ export default function WebsiteIndex() {
               {trendingProperties.length > trendingPerView && canShowPrevTrending && (
                 <button 
                   onClick={prevTrending}
-                  className="absolute -left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center hover:shadow-xl transition-all"
+                  aria-label="Previous Trending Properties"
+                  className="absolute -left-7 lg:-left-11 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/40 backdrop-blur-md border border-white/60 text-slate-700 shadow-xs flex items-center justify-center hover:bg-white/90 hover:text-slate-900 hover:scale-110 transition-all opacity-60 hover:opacity-100"
                 >
-                  <ChevronLeft className="w-5 h-5 text-gray-600" />
+                  <ChevronLeft className="w-5 h-5 text-gray-700" />
                 </button>
               )}
               
               {trendingProperties.length > trendingPerView && canShowNextTrending && (
                 <button 
                   onClick={nextTrending}
-                  className="absolute -right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center hover:shadow-xl transition-all"
+                  aria-label="Next Trending Properties"
+                  className="absolute -right-7 lg:-right-11 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/40 backdrop-blur-md border border-white/60 text-slate-700 shadow-xs flex items-center justify-center hover:bg-white/90 hover:text-slate-900 hover:scale-110 transition-all opacity-60 hover:opacity-100"
                 >
-                  <ChevronRight className="w-5 h-5 text-gray-600" />
+                  <ChevronRight className="w-5 h-5 text-gray-700" />
                 </button>
               )}
 

@@ -989,45 +989,72 @@ export default function AddTenant() {
               <h2 className="text-sm font-black text-slate-800 uppercase tracking-tight">2. Room Assignment</h2>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <FormSelect 
-                label="Property" 
-                required
-                value={roomAssignment.propertyId}
-                onChange={e => setRoomAssignment({...roomAssignment, propertyId: e.target.value})}
-                options={properties.map(p => ({ label: p.title, value: p._id }))}
-                placeholder="Select property"
-                error={errors.propertyId}
-              />
-              <FormField 
-                label="Building / Block" 
-                required
-                value={roomAssignment.building}
-                onChange={e => setRoomAssignment({...roomAssignment, building: e.target.value})}
-                placeholder="Select building"
-                error={errors.building}
-              />
-              <FormField 
-                label="Floor" 
-                required
-                value={roomAssignment.floor}
-                onChange={e => setRoomAssignment({...roomAssignment, floor: e.target.value})}
-                placeholder="Select floor"
-                error={errors.floor}
-              />
-              <FormSelect 
-                label="Room / Unit" 
-                required
-                value={roomAssignment.roomUnit}
-                onChange={e => setRoomAssignment({...roomAssignment, roomUnit: e.target.value})}
-                options={
-                  roomAssignment.propertyId && rooms.length === 0 
-                    ? [{ label: "No rooms available", value: "" }] 
-                    : rooms.map(r => ({ label: r.title, value: r.title }))
+            {(() => {
+              const getRoomFloor = (r) => {
+                const f = r.floor || r.floorNo || r.floorNumber || r.level;
+                if (!f || String(f).trim() === '') return 'Ground Floor';
+                const str = String(f).trim();
+                if (/^\d+$/.test(str)) {
+                  const num = parseInt(str);
+                  if (num === 0) return 'Ground Floor';
+                  if (num === 1) return '1st Floor';
+                  if (num === 2) return '2nd Floor';
+                  if (num === 3) return '3rd Floor';
+                  return `${num}th Floor`;
                 }
-                placeholder={roomAssignment.propertyId ? "Select room" : "Select property first"}
-                error={errors.roomUnit}
-              />
+                return str;
+              };
+
+              const floorOptions = [...new Set(rooms.map(getRoomFloor))].sort();
+              const roomsForFloor = (!roomAssignment.floor || roomAssignment.floor === 'All Floors')
+                ? rooms
+                : rooms.filter(r => getRoomFloor(r) === roomAssignment.floor);
+
+              return (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                  <FormSelect 
+                    label="Property" 
+                    required
+                    value={roomAssignment.propertyId}
+                    onChange={e => setRoomAssignment({...roomAssignment, propertyId: e.target.value, floor: "", roomUnit: "", bed: ""})}
+                    options={properties.map(p => ({ label: p.title || p.name, value: p._id }))}
+                    placeholder="Select property"
+                    error={errors.propertyId}
+                  />
+                  <FormField 
+                    label="Building / Block" 
+                    required
+                    value={roomAssignment.building}
+                    onChange={e => setRoomAssignment({...roomAssignment, building: e.target.value})}
+                    placeholder="Select building"
+                    error={errors.building}
+                  />
+                  <FormSelect 
+                    label="Floor" 
+                    required
+                    value={roomAssignment.floor}
+                    onChange={e => setRoomAssignment({...roomAssignment, floor: e.target.value, roomUnit: "", bed: ""})}
+                    options={
+                      floorOptions.length > 0
+                        ? [{ label: "All Floors", value: "All Floors" }, ...floorOptions.map(f => ({ label: f, value: f }))]
+                        : (roomAssignment.propertyId ? [{ label: "All Floors", value: "All Floors" }] : [])
+                    }
+                    placeholder={roomAssignment.propertyId ? "Select floor" : "Select property first"}
+                    error={errors.floor}
+                  />
+                  <FormSelect 
+                    label="Room / Unit" 
+                    required
+                    value={roomAssignment.roomUnit}
+                    onChange={e => setRoomAssignment({...roomAssignment, roomUnit: e.target.value})}
+                    options={
+                      roomAssignment.propertyId && roomsForFloor.length === 0 
+                        ? [{ label: "No rooms available", value: "" }] 
+                        : roomsForFloor.map(r => ({ label: r.title || r.number || r.roomNo, value: r.title || r.number || r.roomNo }))
+                    }
+                    placeholder={roomAssignment.propertyId ? "Select room" : "Select property first"}
+                    error={errors.roomUnit}
+                  />
               <FormSelect 
                 label="Room Type" 
                 value={roomAssignment.roomType}
@@ -1073,6 +1100,8 @@ export default function AddTenant() {
                 error={errors.rentAgreementType}
               />
             </div>
+              );
+            })()}
           </section>
 
           {/* Section 3: Tenancy Details */}

@@ -130,42 +130,23 @@ export default function WebsiteTerms() {
   ];
 
   const renderHero = () => {
-    const content = getSectionContent('terms-hero', {
-      title: 'Terms & Conditions',
-      subtitle: ''
-    });
     return (
-      <div 
-        key="terms-hero" 
-        className="relative w-full py-8 md:py-12 px-4 md:px-8 overflow-hidden border-b border-stone-200/80 text-center"
-        style={{
-          background: 'linear-gradient(135deg, #EAEFF5 0%, #F5F7FA 50%, #E5EDF5 100%)'
-        }}
-      >
-        <div 
-          className="absolute inset-0 opacity-[0.25] pointer-events-none"
-          style={{
-            backgroundImage: `radial-gradient(circle at 20% 30%, rgba(200, 215, 230, 0.4) 0%, transparent 40%), radial-gradient(circle at 80% 70%, rgba(210, 225, 240, 0.4) 0%, transparent 40%), linear-gradient(45deg, rgba(255,255,255,0.6) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.6) 75%)`,
-            backgroundSize: '100% 100%, 100% 100%, 60px 60px'
-          }}
-        ></div>
-        <div className="relative max-w-6xl mx-auto flex flex-col items-center justify-center text-center">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-[#1E293B] tracking-wider uppercase leading-tight mb-4 drop-shadow-xs">
-            {(content.title || 'TERMS & CONDITIONS').toUpperCase()}
-          </h1>
-          <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3">
-            <div className="px-3.5 py-1.5 rounded-full border border-slate-300/80 bg-white/70 backdrop-blur-xs text-slate-800 text-xs md:text-sm font-semibold tracking-wider uppercase shadow-2xs">
-              LEGAL TERMS
-            </div>
-            <div className="px-3.5 py-1.5 rounded-full border border-slate-300/80 bg-white/70 backdrop-blur-xs text-slate-800 text-xs md:text-sm font-semibold tracking-wider uppercase shadow-2xs">
-              PLATFORM RULES
-            </div>
-            <div className="px-3.5 py-1.5 rounded-full border border-slate-300/80 bg-white/70 backdrop-blur-xs text-slate-800 text-xs md:text-sm font-semibold tracking-wider uppercase shadow-2xs">
-              USER RIGHTS
-            </div>
+      <section className="relative bg-gradient-to-br from-[#F4F7FA] via-white to-teal-50/60 border-b border-slate-200/80 text-slate-900 py-10 md:py-12 px-4 md:px-8 overflow-hidden">
+        <div className="max-w-7xl mx-auto text-center relative z-10">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-teal-50 border border-teal-200/80 text-teal-700 text-xs font-bold mb-3 shadow-2xs">
+            <FileText className="w-3.5 h-3.5 text-teal-600" />
+            <span>Legal Framework & Guidelines</span>
           </div>
+          
+          <h1 className="text-3xl md:text-5xl font-black tracking-tight text-slate-900 mb-2.5">
+            Terms & <span className="text-teal-600">Conditions</span>
+          </h1>
+
+          <p className="text-sm md:text-base text-slate-600 max-w-xl mx-auto font-medium leading-relaxed">
+            Please read these terms and conditions carefully before using Roomhy's platform and services.
+          </p>
         </div>
-      </div>
+      </section>
     );
   };
 

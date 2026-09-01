@@ -109,20 +109,14 @@ const websiteFooterHtml = (year) => `
           </div>
 
           <div class="mt-6 flex items-center gap-4 text-gray-600">
-            <a href="#" title="Facebook" class="hover:text-blue-600" aria-label="Facebook">
+            <a href="https://www.facebook.com/profile.php?id=61587850180193" target="_blank" rel="noopener noreferrer" title="Facebook" class="hover:text-blue-600" aria-label="Facebook">
               <i class="fab fa-facebook-f"></i>
             </a>
-            <a href="#" title="X" class="hover:text-blue-600" aria-label="X">
-              <i class="fab fa-x-twitter"></i>
-            </a>
-            <a href="#" title="Instagram" class="hover:text-blue-600" aria-label="Instagram">
+            <a href="https://www.instagram.com/roomhy.com_/" target="_blank" rel="noopener noreferrer" title="Instagram" class="hover:text-blue-600" aria-label="Instagram">
               <i class="fab fa-instagram"></i>
             </a>
-            <a href="#" title="LinkedIn" class="hover:text-blue-600" aria-label="LinkedIn">
+            <a href="https://www.linkedin.com/company/roomhy-com/" target="_blank" rel="noopener noreferrer" title="LinkedIn" class="hover:text-blue-600" aria-label="LinkedIn">
               <i class="fab fa-linkedin-in"></i>
-            </a>
-            <a href="#" title="YouTube" class="hover:text-blue-600" aria-label="YouTube">
-              <i class="fab fa-youtube"></i>
             </a>
           </div>
         </div>

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import WebsiteNavbar from "../../components/website/WebsiteNavbar";
 import WebsiteFooter from "../../components/website/WebsiteFooter";
 import MobileBottomNav from "../../components/website/MobileBottomNav";
-import { Mail, Phone, MapPin, Send, Headphones } from "lucide-react";
+import { Mail, Phone, MapPin, Send, Headphones, Clock, Sparkles, MessageSquare, ShieldCheck } from "lucide-react";
 import { fetchJson } from "../../utils/api";
 import useSEO from "../../hooks/useSEO";
 
@@ -28,75 +28,11 @@ export default function ContactPage() {
 
   const [submitting, setSubmitting] = useState(false);
 
-  /*
-   * ============================================================
-   * PAGE LAYOUT API DISABLED
-   * Contact page content is now completely hardcoded.
-   *
-   * Old API:
-   * /api/page-layouts/contact
-   *
-   * This was causing old email, phone and address to appear.
-   * ============================================================
-   */
-
-  // useEffect(() => {
-  //   const fetchLayout = async () => {
-  //     let resolved = false;
-
-  //     const timeoutPromise = new Promise((resolve) => {
-  //       setTimeout(() => {
-  //         if (!resolved) {
-  //           console.warn(
-  //             "Contact layout API call timed out, falling back to defaults"
-  //           );
-  //           resolve({ success: false, timeout: true });
-  //         }
-  //       }, 3000);
-  //     });
-
-  //     try {
-  //       const apiPromise = fetchJson("/api/page-layouts/contact");
-  //       const res = await Promise.race([apiPromise, timeoutPromise]);
-
-  //       resolved = true;
-
-  //       if (
-  //         res &&
-  //         res.success &&
-  //         res.data &&
-  //         res.data.sections
-  //       ) {
-  //         const sorted = res.data.sections.sort(
-  //           (a, b) => a.order - b.order
-  //         );
-
-  //         setLayoutSections(sorted);
-  //       }
-  //     } catch (err) {
-  //       console.warn(
-  //         "Failed to load contact page layout:",
-  //         err
-  //       );
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
-
-  //   fetchLayout();
-  // }, []);
-
-  /*
-   * ============================================================
-   * HARDCODED CONTACT DETAILS
-   * ============================================================
-   */
-
   const contactDetails = {
     email: "team@roomhy.com",
     phone: "+91 8764425030",
-    address:
-      "847, Balaji Nagar, Rangbari, Near Pani Ki Tanki, Kota, Rajasthan 324005, India",
+    address: "847, Balaji Nagar, Rangbari, Near Pani Ki Tanki, Kota, Rajasthan 324005, India",
+    workingHours: "Mon - Sat: 9:00 AM - 7:00 PM IST"
   };
 
   const handleSubmit = async (e) => {
@@ -116,7 +52,7 @@ export default function ContactPage() {
 
       alert(
         response?.message ||
-        "Thank you for your message! We'll get back to you within 24 hours."
+        "Thank you for your message! We'll get back to you within 2-4 hours."
       );
 
       setFormData({
@@ -137,261 +73,172 @@ export default function ContactPage() {
     }
   };
 
-  /*
-   * ============================================================
-   * HERO SECTION
-   * ============================================================
-   */
-
-  const renderHero = () => {
-    return (
-      <div 
-        key="contact-hero" 
-        className="relative w-full py-8 md:py-12 px-4 md:px-8 overflow-hidden border-b border-stone-200/80 text-center"
-        style={{
-          background: 'linear-gradient(135deg, #EAEFF5 0%, #F5F7FA 50%, #E5EDF5 100%)'
-        }}
-      >
-        <div 
-          className="absolute inset-0 opacity-[0.25] pointer-events-none"
-          style={{
-            backgroundImage: `radial-gradient(circle at 20% 30%, rgba(200, 215, 230, 0.4) 0%, transparent 40%), radial-gradient(circle at 80% 70%, rgba(210, 225, 240, 0.4) 0%, transparent 40%), linear-gradient(45deg, rgba(255,255,255,0.6) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.6) 75%)`,
-            backgroundSize: '100% 100%, 100% 100%, 60px 60px'
-          }}
-        ></div>
-        <div className="relative max-w-6xl mx-auto flex flex-col items-center justify-center text-center">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-[#1E293B] tracking-wider uppercase leading-tight mb-4 drop-shadow-xs">
-            GET IN TOUCH
-          </h1>
-          <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3">
-            <div className="px-3.5 py-1.5 rounded-full border border-slate-300/80 bg-white/70 backdrop-blur-xs text-slate-800 text-xs md:text-sm font-semibold tracking-wider uppercase shadow-2xs">
-              24/7 SUPPORT
-            </div>
-            <div className="px-3.5 py-1.5 rounded-full border border-slate-300/80 bg-white/70 backdrop-blur-xs text-slate-800 text-xs md:text-sm font-semibold tracking-wider uppercase shadow-2xs">
-              QUICK ASSISTANCE
-            </div>
-            <div className="px-3.5 py-1.5 rounded-full border border-slate-300/80 bg-white/70 backdrop-blur-xs text-slate-800 text-xs md:text-sm font-semibold tracking-wider uppercase shadow-2xs">
-              DIRECT HELP
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  /*
-   * ============================================================
-   * CONTACT CARDS
-   * ============================================================
-   */
-
-  const renderCards = () => {
-    const contactCards = [
-      {
-        icon: Mail,
-        title: "Email Us",
-        detail: contactDetails.email,
-        sub: "We reply within 24 hours",
-        href: `mailto:${contactDetails.email}`,
-        color: "from-amber-500 to-orange-500",
-      },
-
-      {
-        icon: Phone,
-        title: "Call Us",
-        detail: contactDetails.phone,
-        sub: "Mon-Sat, 9AM-7PM IST",
-        href: `tel:${contactDetails.phone}`,
-        color: "from-blue-500 to-indigo-500",
-      },
-
-      {
-        icon: MapPin,
-        title: "Visit Us",
-        detail: contactDetails.address,
-        sub: "ROOMHY TECHNOLOGY",
-        href: "#",
-        color: "from-emerald-500 to-teal-500",
-      },
-    ];
-
-    return (
-      <section className="py-16 px-4 max-w-5xl mx-auto -mt-16 relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {contactCards.map((card, index) => {
-            const Icon = card.icon;
-
-            return (
-              <a
-                key={index}
-                href={card.href}
-                className="group bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300"
-              >
-                <div
-                  className={`w-12 h-12 rounded-xl bg-gradient-to-br ${card.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}
-                >
-                  <Icon
-                    size={24}
-                    className="text-white"
-                  />
-                </div>
-
-                <h3 className="text-lg font-bold text-gray-900 mb-1">
-                  {card.title}
-                </h3>
-
-                <p className="text-gray-900 font-medium">
-                  {card.detail}
-                </p>
-
-                <p className="text-gray-500 text-sm mt-1">
-                  {card.sub}
-                </p>
-              </a>
-            );
-          })}
-        </div>
-      </section>
-    );
-  };
-
-  /*
-   * ============================================================
-   * CONTACT FORM
-   * ============================================================
-   */
-
-  const renderForm = () => {
-    const fields = [
-      {
-        label: "Full Name",
-        name: "name",
-        type: "text",
-        placeholder: "Enter your name",
-        required: true,
-      },
-      {
-        label: "Email Address",
-        name: "email",
-        type: "email",
-        placeholder: "Enter your email",
-        required: true,
-      },
-      {
-        label: "Subject",
-        name: "subject",
-        type: "text",
-        placeholder: "How can we help?",
-        required: true,
-      },
-      {
-        label: "Message",
-        name: "message",
-        type: "textarea",
-        placeholder: "Tell us more...",
-        required: true,
-      },
-    ];
-
-    return (
-      <section className="py-16 px-4 max-w-3xl mx-auto">
-        <div className="bg-white rounded-3xl p-8 sm:p-12 shadow-sm border border-gray-100">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900">
-              Send Us a Message
-            </h2>
-
-            <p className="text-gray-500 mt-2">
-              We usually respond within 2-4 hours during business days.
-            </p>
-          </div>
-
-          <form
-            onSubmit={handleSubmit}
-            className="space-y-5"
-          >
-            {fields.map((field) => {
-              if (field.type === "textarea") {
-                return (
-                  <div key={field.name}>
-                    <label className="text-gray-700 text-sm font-semibold mb-1.5 block">
-                      {field.label}
-                    </label>
-
-                    <textarea
-                      value={formData[field.name] || ""}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          [field.name]: e.target.value,
-                        })
-                      }
-                      required={field.required}
-                      rows={5}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none transition-all text-gray-800 resize-none"
-                      placeholder={field.placeholder}
-                    />
-                  </div>
-                );
-              }
-
-              return (
-                <div key={field.name}>
-                  <label className="text-gray-700 text-sm font-semibold mb-1.5 block">
-                    {field.label}
-                  </label>
-
-                  <input
-                    type={field.type}
-                    value={formData[field.name] || ""}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        [field.name]: e.target.value,
-                      })
-                    }
-                    required={field.required}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none transition-all text-gray-800"
-                    placeholder={field.placeholder}
-                  />
-                </div>
-              );
-            })}
-
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold py-4 rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-amber-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {submitting ? (
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-              ) : (
-                <>
-                  <Send size={20} />
-                  Send Message
-                </>
-              )}
-            </button>
-          </form>
-        </div>
-      </section>
-    );
-  };
-
-  /*
-   * ============================================================
-   * PAGE
-   * ============================================================
-   */
-
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans">
       <WebsiteNavbar />
 
-      <main className="min-h-screen">
-        {renderHero()}
-        {renderCards()}
-        {renderForm()}
+      <main className="flex-grow">
+        {/* --- HERO BANNER (PREMIUM LIGHT GRADIENT) --- */}
+        <section className="relative bg-gradient-to-br from-[#F4F7FA] via-white to-teal-50/60 border-b border-slate-200/80 text-slate-900 py-10 md:py-12 px-4 md:px-8 overflow-hidden">
+          <div className="max-w-7xl mx-auto text-center relative z-10">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-teal-50 border border-teal-200/80 text-teal-700 text-xs font-bold mb-3 shadow-2xs">
+              <Headphones className="w-3.5 h-3.5 text-teal-600" />
+              <span>24/7 Dedicated Support</span>
+            </div>
+            
+            <h1 className="text-3xl md:text-5xl font-black tracking-tight text-slate-900 mb-2.5">
+              Get in Touch with <span className="text-teal-600">Roomhy</span>
+            </h1>
+
+            <p className="text-sm md:text-base text-slate-600 max-w-xl mx-auto font-medium leading-relaxed">
+              Have questions about booking, listings, or fast bidding? Our support team is here to help you anytime.
+            </p>
+          </div>
+        </section>
+
+        {/* --- MAIN CONTENT GRID (SPLIT CONTACT CARDS & FORM) --- */}
+        <section className="py-10 md:py-14 px-4 md:px-8 max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            
+            {/* LEFT COLUMN: Contact Cards (4 Cols) */}
+            <div className="lg:col-span-4 space-y-4">
+              <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:border-teal-300 transition-all">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center shrink-0">
+                    <Mail className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-slate-900 text-sm">Email Us</h3>
+                    <p className="text-xs text-slate-500">Fast email response</p>
+                  </div>
+                </div>
+                <a href={`mailto:${contactDetails.email}`} className="text-sm font-bold text-teal-600 hover:underline break-all block mt-1">
+                  {contactDetails.email}
+                </a>
+              </div>
+
+              <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:border-teal-300 transition-all">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                    <Phone className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-slate-900 text-sm">Call Us</h3>
+                    <p className="text-xs text-slate-500">{contactDetails.workingHours}</p>
+                  </div>
+                </div>
+                <a href={`tel:${contactDetails.phone}`} className="text-sm font-bold text-slate-900 hover:text-teal-600 transition-colors block mt-1">
+                  {contactDetails.phone}
+                </a>
+              </div>
+
+              <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:border-teal-300 transition-all">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                    <MapPin className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-slate-900 text-sm">Head Office</h3>
+                    <p className="text-xs text-slate-500">Roomhy Technology</p>
+                  </div>
+                </div>
+                <p className="text-xs font-semibold text-slate-700 leading-relaxed mt-1">
+                  {contactDetails.address}
+                </p>
+              </div>
+
+              {/* Support Guarantee Box */}
+              <div className="bg-gradient-to-br from-teal-50 to-emerald-50 rounded-2xl p-5 border border-teal-200/70">
+                <div className="flex items-center gap-2.5 text-teal-800 font-extrabold text-xs mb-1">
+                  <ShieldCheck className="w-4 h-4 text-teal-600" />
+                  <span>Smart Bidding & Verified Stays</span>
+                </div>
+                <p className="text-[11px] text-teal-700 font-medium leading-relaxed">
+                  Need help with a property visit or security deposit refund? Our support agents respond directly via call or email.
+                </p>
+              </div>
+            </div>
+
+            {/* RIGHT COLUMN: Send Message Form (8 Cols) */}
+            <div className="lg:col-span-8 bg-white rounded-2xl p-6 md:p-8 border border-slate-200 shadow-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <MessageSquare className="w-5 h-5 text-teal-600" />
+                <h2 className="text-xl md:text-2xl font-black text-slate-900">Send Us a Message</h2>
+              </div>
+              <p className="text-xs md:text-sm text-slate-500 font-medium mb-6">
+                Fill out the details below and our support team will get back to you within 2-4 hours.
+              </p>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-extrabold text-slate-700 mb-1.5">Full Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="Enter your full name"
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:border-teal-500 focus:bg-white transition-all"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-extrabold text-slate-700 mb-1.5">Email Address *</label>
+                    <input
+                      type="email"
+                      required
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      placeholder="Enter your email address"
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:border-teal-500 focus:bg-white transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-extrabold text-slate-700 mb-1.5">Subject *</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.subject}
+                    onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                    placeholder="E.g. Booking enquiry, Owner listing, Refund request"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:border-teal-500 focus:bg-white transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-extrabold text-slate-700 mb-1.5">Message *</label>
+                  <textarea
+                    required
+                    rows={4}
+                    value={formData.message}
+                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                    placeholder="Describe your query in detail..."
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:border-teal-500 focus:bg-white transition-all resize-none"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full md:w-auto px-8 py-3 bg-teal-600 hover:bg-teal-700 text-white font-extrabold text-sm rounded-xl shadow-md hover:shadow-teal-600/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {submitting ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4" />
+                      <span>Send Message</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
+
+          </div>
+        </section>
       </main>
 
       <WebsiteFooter />

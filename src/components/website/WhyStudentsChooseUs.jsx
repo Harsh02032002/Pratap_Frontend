@@ -4,7 +4,7 @@ import { fetchFeaturedReviews } from '../../utils/api';
 
 const chooseUsPoints = [
   {
-    title: "Zero Brokerage",
+    title: "Smart Bidding",
     description: "Save your money for what matters. We connect you directly with property owners, with no hidden fees.",
     image: "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?auto=format&fit=crop&w=800&q=80",
   },

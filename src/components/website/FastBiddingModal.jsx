@@ -4,16 +4,8 @@ import { fetchCities, fetchProperties, fetchJson, getPropertyDetailsUrl, getApiB
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 
-const cityAreasMap = {
-  'Kota': ['Talwandi', 'Vigyan Nagar', 'Landmark City', 'Rajeev Gandhi Nagar', 'Indra Vihar', 'Mahaveer Nagar', 'Kunhari', 'Dadabari', 'Gumanpura'],
-  'Sikar': ['Piprali Road', 'Subhash Chowk', 'Station Road', 'Nawalgarh Road', 'Katrathal'],
-  'Indore': ['Vijay Nagar', 'Bhawar Kuan', 'Rajwada', 'Palasia', 'LIG Colony', 'Geeta Bhawan'],
-  'Jaipur': ['Malviya Nagar', 'Vaishali Nagar', 'Raja Park', 'Mansarovar', 'Tonk Road', 'Jagatpura', 'Gopalpura Bypass'],
-  'Delhi': ['Laxmi Nagar', 'Mukherjee Nagar', 'GTB Nagar', 'Satya Niketan', 'Karol Bagh', 'North Campus', 'South Campus'],
-  'Bhopal': ['MP Nagar', 'Arera Colony', 'Indrapuri', 'Kolar Road', 'Shahpura'],
-  'Bangalore': ['Koramangala', 'HSR Layout', 'Indiranagar', 'BTM Layout', 'Whitefield', 'Electronic City'],
-  'Pune': ['Kothrud', 'Viman Nagar', 'Hinjewadi', 'Baner', 'Wakad', 'Hadapsar']
-};
+// Cities & Localities map dynamically built from MongoDB database properties
+const cityAreasMap = {};
 
 export default function FastBiddingModal({ isOpen, onClose, initialData = {} }) {
   const { user, isAuthenticated } = useAuth();
@@ -113,12 +105,25 @@ export default function FastBiddingModal({ isOpen, onClose, initialData = {} }) 
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             userId,
+            user_id: userId,
+            name: user?.name || user?.firstName || 'Student',
             userName: user?.name || user?.firstName || 'Student',
+            phone: user?.phone || '9999999999',
             userPhone: user?.phone || '9999999999',
+            email: user?.email || '',
+            userEmail: user?.email || '',
             propertyId,
+            property_id: propertyId,
             propertyName: prop.propertyName || prop.name || prop.title || 'Property',
+            property_name: prop.propertyName || prop.name || prop.title || 'Property',
             ownerId,
+            owner_id: ownerId,
+            requestType: 'bid',
+            request_type: 'bid',
+            rentAmount: parseInt(prop.monthlyRent || prop.rent || 0, 10),
+            rent_amount: parseInt(prop.monthlyRent || prop.rent || 0, 10),
             bidAmount: budget,
+            bid_amount: budget,
             offeredAmount: budget,
             proposedPrice: budget,
             city: selectedCity || prop.city || 'Kota',
@@ -140,6 +145,30 @@ export default function FastBiddingModal({ isOpen, onClose, initialData = {} }) 
     }
   };
 
+  // Dynamically merge DB cities & localities with cityAreasMap
+  const dynamicCitiesMap = useMemo(() => {
+    const map = { ...cityAreasMap };
+    if (Array.isArray(allProperties)) {
+      allProperties.forEach(p => {
+        const c = p.city || p.propertyInfo?.city;
+        const a = p.locality || p.area || p.propertyInfo?.area || p.location;
+        if (c && typeof c === 'string' && c.trim()) {
+          const cityFormatted = c.trim().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+          if (!map[cityFormatted]) {
+            map[cityFormatted] = [];
+          }
+          if (a && typeof a === 'string' && a.trim()) {
+            const areaFormatted = a.trim().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+            if (!map[cityFormatted].includes(areaFormatted)) {
+              map[cityFormatted].push(areaFormatted);
+            }
+          }
+        }
+      });
+    }
+    return map;
+  }, [allProperties]);
+
   useEffect(() => {
     if (isOpen && window.innerWidth >= 768) {
       onClose();
@@ -149,7 +178,7 @@ export default function FastBiddingModal({ isOpen, onClose, initialData = {} }) 
 
   if (!isOpen) return null;
 
-  const currentAreas = cityAreasMap[selectedCity] || [];
+  const currentAreas = dynamicCitiesMap[selectedCity] || [];
   const filteredAreas = currentAreas.filter(a => a.toLowerCase().includes(areaSearch.toLowerCase()));
 
   return (
@@ -266,7 +295,7 @@ export default function FastBiddingModal({ isOpen, onClose, initialData = {} }) 
               }}
               className="w-full p-2.5 bg-slate-50/80 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all cursor-pointer"
             >
-              {Object.keys(cityAreasMap).map(city => (
+              {Object.keys(dynamicCitiesMap).map(city => (
                 <option key={city} value={city}>{city}</option>
               ))}
             </select>

@@ -1552,12 +1552,14 @@ export default function TenantRec() {
           {/* Section 2 */}
           {(!isMobile || activeMobileTab === 2) && (() => {
             const availableRooms = rooms.filter(r => {
-              const matchesSelected = roomAssignment.roomUnit && (r.title === roomAssignment.roomUnit || r.number === roomAssignment.roomUnit || r.roomNo === roomAssignment.roomUnit);
+              if (!r) return false;
+              const matchesSelected = roomAssignment.roomUnit && (r.title === roomAssignment.roomUnit || r.number === roomAssignment.roomUnit || r.roomNo === roomAssignment.roomUnit || r._id === roomAssignment.roomUnit);
               if (matchesSelected) return true;
 
-              if (r.isAvailable === false || r.isDeleted === true) {
-                return false;
-              }
+              if (r.isDeleted === true) return false;
+              if (Array.isArray(r.availableBeds) && r.availableBeds.length > 0) return true;
+              if (r.isAvailable !== false) return true;
+
               const bedsList = toLegacyBeds(r);
               return bedsList.some(b => {
                 const s = String(b.status || '').toLowerCase().trim();
@@ -1565,10 +1567,25 @@ export default function TenantRec() {
               });
             });
 
-            const floorOptions = [...new Set(availableRooms.map(r => r.floor).filter(Boolean))].sort();
-            const roomsForFloor = roomAssignment.floor
-              ? availableRooms.filter(r => !r.floor || r.floor === roomAssignment.floor)
-              : availableRooms;
+            const getRoomFloor = (r) => {
+              const f = r.floor || r.floorNo || r.floorNumber || r.level;
+              if (!f || String(f).trim() === '') return 'Ground Floor';
+              const str = String(f).trim();
+              if (/^\d+$/.test(str)) {
+                const num = parseInt(str);
+                if (num === 0) return 'Ground Floor';
+                if (num === 1) return '1st Floor';
+                if (num === 2) return '2nd Floor';
+                if (num === 3) return '3rd Floor';
+                return `${num}th Floor`;
+              }
+              return str;
+            };
+
+            const floorOptions = [...new Set(availableRooms.map(getRoomFloor))].sort();
+            const roomsForFloor = (!roomAssignment.floor || roomAssignment.floor === 'All Floors' || roomAssignment.floor === 'All / Ground Floor')
+              ? availableRooms
+              : availableRooms.filter(r => getRoomFloor(r) === roomAssignment.floor);
             
             const selectedRoom = availableRooms.find(r => (r.title || r.number || r.roomNo) === roomAssignment.roomUnit);
             const bedsList = selectedRoom ? toLegacyBeds(selectedRoom) : [];
@@ -1584,7 +1601,7 @@ export default function TenantRec() {
               setRoomAssignment(prev => ({
                 ...prev,
                 roomUnit: roomTitle,
-                floor: room?.floor || prev.floor,
+                floor: room ? getRoomFloor(room) : prev.floor,
                 roomType: room?.type || room?.roomType || prev.roomType,
                 bed: ""
               }));
@@ -1627,8 +1644,8 @@ export default function TenantRec() {
                     onChange={e => setRoomAssignment({ ...roomAssignment, floor: e.target.value, roomUnit: "", bed: "" })}
                     options={
                       floorOptions.length > 0
-                        ? floorOptions.map(f => ({ label: f, value: f }))
-                        : ["Ground Floor", "1st Floor", "2nd Floor", "3rd Floor", "4th Floor", "5th Floor"]
+                        ? [{ label: "All Floors", value: "All Floors" }, ...floorOptions.map(f => ({ label: f, value: f }))]
+                        : (roomAssignment.propertyId ? [{ label: "All Floors", value: "All Floors" }] : [])
                     }
                     placeholder={roomAssignment.propertyId ? "Select floor" : "Select property first"}
                     error={errors.floor}

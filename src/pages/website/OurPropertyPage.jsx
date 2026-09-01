@@ -2,8 +2,8 @@ import WebsiteNavbar from "../../components/website/WebsiteNavbar";
 import WebsiteFooter from "../../components/website/WebsiteFooter";
 import MobileBottomNav from "../../components/website/MobileBottomNav";
 import * as LucideIcons from "lucide-react";
-const { Filter, MapPin, Wallet, Home, Users, TrendingUp, Send, RefreshCw, ChevronLeft, ChevronRight, Building2, BookOpen, Star, Check, Phone, Wifi, Utensils, Car, Dumbbell, Tv, Wind, Droplets, Zap, X, Menu, Heart, ChevronDown, Clock, Shirt, Cctv, Video, Waves, Fan, Shield, Search, Bed } = LucideIcons;
-import { useState, useEffect, useRef } from "react";
+const { Filter, MapPin, Wallet, Home, Users, TrendingUp, Send, RefreshCw, ChevronLeft, ChevronRight, Building2, BookOpen, Star, Check, Phone, Wifi, Utensils, Car, Dumbbell, Tv, Wind, Droplets, Zap, X, Menu, Heart, ChevronDown, Clock, Shirt, Cctv, Video, Waves, Fan, Shield, Search, Bed, SlidersHorizontal, Sparkles, Tag } = LucideIcons;
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useSearchParams, Link, useNavigate, useParams, useLocation } from "react-router-dom";
 import { fetchProperties, searchPropertiesByLocation, getNearbyAreas, getInstitutions, getPriceRangeByType, trackPropertyClick, getApiBase, fetchJson, resolvePropertyOwnerLoginId } from "../../utils/api";
 import FastBiddingModal from "../../components/website/FastBiddingModal";
@@ -16,16 +16,8 @@ import useSEO from "../../hooks/useSEO";
 // Client-side memory cache to optimize performance and prevent duplicate SEO API lookups
 const seoCache = new Map();
 
-const cityAreasMap = {
-  'Kota': ['Talwandi', 'Vigyan Nagar', 'Landmark City', 'Rajeev Gandhi Nagar', 'Indra Vihar', 'Mahaveer Nagar', 'Kunhari', 'Dadabari', 'Gumanpura'],
-  'Sikar': ['Piprali Road', 'Subhash Chowk', 'Station Road', 'Nawalgarh Road', 'Katrathal'],
-  'Indore': ['Vijay Nagar', 'Bhawar Kuan', 'Rajwada', 'Palasia', 'LIG Colony', 'Geeta Bhawan'],
-  'Jaipur': ['Malviya Nagar', 'Vaishali Nagar', 'Raja Park', 'Mansarovar', 'Tonk Road', 'Jagatpura', 'Gopalpura Bypass'],
-  'Delhi': ['Laxmi Nagar', 'Mukherjee Nagar', 'GTB Nagar', 'Satya Niketan', 'Karol Bagh', 'North Campus', 'South Campus'],
-  'Bhopal': ['MP Nagar', 'Arera Colony', 'Indrapuri', 'Kolar Road', 'Shahpura'],
-  'Bangalore': ['Koramangala', 'HSR Layout', 'Indiranagar', 'BTM Layout', 'Whitefield', 'Electronic City'],
-  'Pune': ['Kothrud', 'Viman Nagar', 'Hinjewadi', 'Baner', 'Wakad', 'Hadapsar']
-};
+// Cities & Localities map dynamically built from MongoDB database properties
+const cityAreasMap = {};
 
 // Module-level helpers accessible to all components in this file
 const slugify = (text) => {
@@ -165,6 +157,7 @@ export default function OurPropertyPage() {
   const initialCity = cityFromUrl || parsedLoc?.city || (citySlug ? humanizeSlug(citySlug) : "");
   const initialArea = areaFromUrl || parsedLoc?.area || (areaSlug ? humanizeSlug(areaSlug) : "");
   const initialType = typeFromUrl || (parsedLoc ? parsedLoc.type : getTypeFromPathname(pathname)) || '';
+  const isLocationSpecificRoute = !!(citySlug || parsedLoc?.city || cleanPath.includes('-in-'));
 
   // Filter states
   const [selectedCity, setSelectedCity] = useState(initialCity);
@@ -319,6 +312,115 @@ export default function OurPropertyPage() {
   const [allRawProperties, setAllRawProperties] = useState([]);
   const [totalCount, setTotalCount] = useState(0); // Total from API
 
+  // Dynamically merge DB cities & localities with cityAreasMap
+  const dynamicCitiesMap = useMemo(() => {
+    const map = { ...cityAreasMap };
+    const targetProps = (allRawProperties && allRawProperties.length > 0) ? allRawProperties : properties;
+    
+    if (Array.isArray(targetProps)) {
+      targetProps.forEach(p => {
+        const c = p.city || p.propertyInfo?.city;
+        const a = p.locality || p.area || p.propertyInfo?.area || p.location;
+        if (c && typeof c === 'string' && c.trim()) {
+          const cityFormatted = c.trim().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+          if (!map[cityFormatted]) {
+            map[cityFormatted] = [];
+          }
+          if (a && typeof a === 'string' && a.trim()) {
+            const areaFormatted = a.trim().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+            if (!map[cityFormatted].includes(areaFormatted)) {
+              map[cityFormatted].push(areaFormatted);
+            }
+          }
+        }
+      });
+    }
+    return map;
+  }, [allRawProperties, properties]);
+
+  const [localitySearchQuery, setLocalitySearchQuery] = useState('');
+  const [showAllLocalities, setShowAllLocalities] = useState(false);
+
+  // Dynamically compute localities list for selected city (or all cities) from DB properties
+  const displayLocalities = useMemo(() => {
+    let rawList = [];
+    if (selectedCity) {
+      const matchedKey = Object.keys(dynamicCitiesMap).find(c => c.toLowerCase() === selectedCity.toLowerCase());
+      rawList = matchedKey ? (dynamicCitiesMap[matchedKey] || []) : [];
+    } else {
+      const allLocs = new Set();
+      Object.values(dynamicCitiesMap).forEach(arr => {
+        if (Array.isArray(arr)) arr.forEach(a => allLocs.add(a));
+      });
+      rawList = Array.from(allLocs);
+    }
+
+    const targetProps = (allRawProperties && allRawProperties.length > 0) ? allRawProperties : properties;
+    const localityCounts = {};
+    if (Array.isArray(targetProps)) {
+      targetProps.forEach(p => {
+        const areaName = p.locality || p.area || p.propertyInfo?.area || p.location;
+        if (areaName && typeof areaName === 'string' && areaName.trim()) {
+          const formatted = areaName.trim().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+          localityCounts[formatted] = (localityCounts[formatted] || 0) + 1;
+        }
+      });
+    }
+
+    let result = rawList.map(name => ({
+      name,
+      count: localityCounts[name] || 0
+    }));
+
+    if (localitySearchQuery.trim()) {
+      const q = localitySearchQuery.toLowerCase().trim();
+      result = result.filter(item => item.name.toLowerCase().includes(q));
+    }
+
+    return result.sort((a, b) => b.count - a.count);
+  }, [selectedCity, dynamicCitiesMap, allRawProperties, properties, localitySearchQuery]);
+
+  const [selectedRoomTypes, setSelectedRoomTypes] = useState([]);
+  const [selectedAmenities, setSelectedAmenities] = useState([]);
+  const [showAllAmenities, setShowAllAmenities] = useState(false);
+
+  // Dynamically compute all amenities and their property counts from DB properties
+  const displayAmenities = useMemo(() => {
+    const targetProps = (allRawProperties && allRawProperties.length > 0) ? allRawProperties : properties;
+    const amenityCounts = {};
+    
+    if (Array.isArray(targetProps)) {
+      targetProps.forEach(p => {
+        const ams = p.amenities || p.facilities || p.propertyInfo?.amenities || p.propertyInfo?.facilities || [];
+        const list = Array.isArray(ams) ? ams : (typeof ams === 'string' ? ams.split(',') : []);
+        
+        list.forEach(raw => {
+          if (!raw || typeof raw !== 'string') return;
+          const clean = raw.trim();
+          if (clean) {
+            const formatted = clean.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+            amenityCounts[formatted] = (amenityCounts[formatted] || 0) + 1;
+          }
+        });
+
+        if (p.wifi || p.propertyInfo?.wifi) amenityCounts['WiFi'] = (amenityCounts['WiFi'] || 0) + 1;
+        if (p.ac || p.propertyInfo?.ac) amenityCounts['AC'] = (amenityCounts['AC'] || 0) + 1;
+        if (p.food || p.meals || p.propertyInfo?.food) amenityCounts['Meals / Food'] = (amenityCounts['Meals / Food'] || 0) + 1;
+        if (p.laundry || p.propertyInfo?.laundry) amenityCounts['Laundry'] = (amenityCounts['Laundry'] || 0) + 1;
+        if (p.powerBackup || p.propertyInfo?.powerBackup) amenityCounts['Power Backup'] = (amenityCounts['Power Backup'] || 0) + 1;
+        if (p.security || p.cctv || p.propertyInfo?.security) amenityCounts['CCTV & Security'] = (amenityCounts['CCTV & Security'] || 0) + 1;
+      });
+    }
+
+    const defaultAmenities = ['WiFi', 'AC', 'Cooler', 'Meals / Food', 'Laundry', 'Power Backup', 'CCTV & Security', 'Geyser', 'Study Table', 'Parking', 'Gym'];
+    const allNames = Array.from(new Set([...defaultAmenities, ...Object.keys(amenityCounts)]));
+
+    return allNames.map(name => ({
+      name,
+      count: amenityCounts[name] || 0
+    })).sort((a, b) => b.count - a.count);
+  }, [allRawProperties, properties]);
+
   // Layout sections from CMS editor
   const [layoutSections, setLayoutSections] = useState([]);
 
@@ -400,6 +502,8 @@ export default function OurPropertyPage() {
             propertyId,
             propertyName: prop.name || prop.title || 'Property',
             ownerId,
+            requestType: 'bid',
+            request_type: 'bid',
             bidAmount: budget,
             offeredAmount: budget,
             proposedPrice: budget,
@@ -582,6 +686,39 @@ export default function OurPropertyPage() {
           const allowedLimit = isBiddingMode ? (limit + 3000) : limit;
           filtered = filtered.filter(p => p.price <= allowedLimit);
         }
+
+        if (selectedRoomTypes.length > 0) {
+          filtered = filtered.filter(p => {
+            const rawRoomTypes = p.roomTypes || p.propertyInfo?.roomTypes || p.type || '';
+            const roomStr = (Array.isArray(rawRoomTypes) ? rawRoomTypes.join(' ') : String(rawRoomTypes)).toLowerCase();
+            return selectedRoomTypes.some(rt => {
+              const rtLower = rt.toLowerCase();
+              if (rtLower.includes('single')) return roomStr.includes('single') || roomStr.includes('1');
+              if (rtLower.includes('double')) return roomStr.includes('double') || roomStr.includes('2');
+              if (rtLower.includes('triple')) return roomStr.includes('triple') || roomStr.includes('3');
+              if (rtLower.includes('four')) return roomStr.includes('four') || roomStr.includes('4');
+              return roomStr.includes(rtLower);
+            });
+          });
+        }
+
+        if (selectedAmenities.length > 0) {
+          filtered = filtered.filter(p => {
+            const ams = p.amenities || p.facilities || p.propertyInfo?.amenities || p.propertyInfo?.facilities || [];
+            const amStr = (Array.isArray(ams) ? ams.join(' ') : String(ams)).toLowerCase();
+            return selectedAmenities.every(am => {
+              const amLower = am.toLowerCase();
+              if (amLower.includes('wifi')) return amStr.includes('wifi') || p.wifi || p.propertyInfo?.wifi;
+              if (amLower.includes('ac')) return amStr.includes('ac') || amStr.includes('air') || p.ac || p.propertyInfo?.ac;
+              if (amLower.includes('food') || amLower.includes('meal')) return amStr.includes('food') || amStr.includes('meal') || amStr.includes('mess') || p.food || p.meals;
+              if (amLower.includes('laundry')) return amStr.includes('laundry') || amStr.includes('wash') || p.laundry;
+              if (amLower.includes('cooler')) return amStr.includes('cooler');
+              if (amLower.includes('power')) return amStr.includes('power') || amStr.includes('backup') || p.powerBackup;
+              if (amLower.includes('cctv') || amLower.includes('security')) return amStr.includes('cctv') || amStr.includes('security') || p.security;
+              return amStr.includes(amLower);
+            });
+          });
+        }
         
         // Extract colleges from ALL properties before applying college filter
         const collegesByProperty = {};
@@ -683,7 +820,7 @@ export default function OurPropertyPage() {
     };
     
     loadData();
-  }, [typeFromUrl, cityFromUrl, searchFromUrl, latitudeFromUrl, longitudeFromUrl, currentPage, selectedCity, selectedArea, selectedType, selectedGender, minPrice, maxPrice, selectedRatings, selectedColleges, sortBy]);
+  }, [typeFromUrl, cityFromUrl, searchFromUrl, latitudeFromUrl, longitudeFromUrl, currentPage, selectedCity, selectedArea, selectedType, selectedGender, minPrice, maxPrice, selectedRatings, selectedColleges, selectedRoomTypes, selectedAmenities, sortBy]);
 
 
   // Pagination handlers
@@ -750,12 +887,12 @@ export default function OurPropertyPage() {
 
   const getCityPopularAreas = () => {
     if (!selectedCity) return [];
-    const normalizedKey = Object.keys(cityAreasMap).find(c => c.toLowerCase() === selectedCity.toLowerCase());
-    const staticList = normalizedKey ? cityAreasMap[normalizedKey] : [];
+    const normalizedKey = Object.keys(dynamicCitiesMap).find(c => c.toLowerCase() === selectedCity.toLowerCase());
+    const staticList = normalizedKey ? dynamicCitiesMap[normalizedKey] : [];
 
     const dbAreas = totalProperties
       .filter(p => p.city?.toLowerCase() === selectedCity.toLowerCase())
-      .map(p => p.area)
+      .map(p => p.area || p.locality)
       .filter(Boolean);
 
     return Array.from(new Set([...staticList, ...dbAreas]));
@@ -811,13 +948,13 @@ export default function OurPropertyPage() {
               {displayTypeHeading}<span className="text-teal-600 font-bold">{selectedArea}, {selectedCity}</span>
             </h1>
             <p className="text-xs md:text-sm text-slate-600 font-semibold leading-relaxed mb-3">
-              Find verified {propertyTypePlural} in {selectedArea}, {selectedCity}. Zero Brokerage. 100% Verified.
+              Find verified {propertyTypePlural} in {selectedArea}, {selectedCity}. Smart Bidding. 100% Verified.
             </p>
 
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-slate-200 text-teal-700 text-[11px] font-extrabold shadow-xs">
                 <Shield className="w-3.5 h-3.5 text-teal-600" />
-                <span>Zero Brokerage</span>
+                <span>Smart Bidding</span>
               </div>
               <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-slate-200 text-emerald-700 text-[11px] font-extrabold shadow-xs">
                 <Check className="w-3.5 h-3.5 text-emerald-600" />
@@ -857,8 +994,8 @@ export default function OurPropertyPage() {
   if (selectedCity && !selectedArea) {
     const cityTitlePrefix = selectedType ? (selectedType === 'PG' ? 'PGs' : selectedType === 'Hostel' ? 'Hostels' : selectedType === 'Co-living' ? 'Co-living Spaces' : selectedType === 'Apartment' ? 'Apartments' : `${selectedType}s`) : 'Properties';
     const citySubtext = selectedType
-      ? `Find verified ${selectedType}s in ${selectedCity}. Zero Brokerage. 100% Verified.`
-      : `Find verified PGs, Hostels, Co-living spaces and Apartments in ${selectedCity}. Zero Brokerage. 100% Verified.`;
+      ? `Find verified ${selectedType}s in ${selectedCity}. Smart Bidding. 100% Verified.`
+      : `Find verified PGs, Hostels, Co-living spaces and Apartments in ${selectedCity}. Smart Bidding. 100% Verified.`;
 
     return (
       <div className="relative w-full py-3 md:py-5 px-4 md:px-8 bg-gradient-to-r from-slate-50 via-white to-teal-50/40 border-b border-slate-200 overflow-hidden">
@@ -874,7 +1011,7 @@ export default function OurPropertyPage() {
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-slate-200 text-teal-700 text-xs font-extrabold shadow-xs">
                 <Shield className="w-4 h-4 text-teal-600" />
-                <span>Zero Brokerage</span>
+                <span>Smart Bidding</span>
               </div>
               <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-slate-200 text-emerald-700 text-xs font-extrabold shadow-xs">
                 <Check className="w-4 h-4 text-emerald-600" />
@@ -917,41 +1054,41 @@ export default function OurPropertyPage() {
   // 3. MAIN CATEGORY HERO HEADER OR ORIGINAL PROPERTIES HERO HEADER
   if (!selectedType && !selectedCity) {
     return (
-      <div className="relative w-full py-3 md:py-4 px-4 md:px-8 bg-gradient-to-br from-[#F4F7FA] via-white to-teal-50/30 border-b border-slate-200 overflow-hidden">
-        <div className="max-w-[1550px] mx-auto flex flex-col md:flex-row items-center justify-between gap-6 z-10 relative">
+      <div className="relative w-full py-2 md:py-2.5 px-4 md:px-8 bg-gradient-to-br from-[#F4F7FA] via-white to-teal-50/30 border-b border-slate-200 overflow-hidden">
+        <div className="max-w-[1550px] mx-auto flex flex-col md:flex-row items-center justify-between gap-4 z-10 relative">
           <div className="flex-1 text-left max-w-2xl">
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight leading-tight mb-2">
+            <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight leading-tight mb-1">
               Browse Rental Properties
             </h1>
-            <p className="text-xs md:text-sm text-slate-600 font-semibold leading-relaxed mb-3">
-              Explore verified PGs, hostels, co-living spaces and apartments across top cities. Zero Brokerage. 100% Verified.
+            <p className="text-[11px] text-slate-600 font-semibold leading-tight mb-2">
+              Explore verified PGs, hostels, co-living spaces and apartments across top cities. Smart Bidding. 100% Verified.
             </p>
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-slate-200 text-teal-700 text-[11px] font-extrabold shadow-xs">
-                <Shield className="w-3.5 h-3.5 text-teal-600" />
-                <span>Zero Brokerage</span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white border border-slate-200 text-teal-700 text-[10px] font-extrabold shadow-2xs">
+                <Shield className="w-3 h-3 text-teal-600" />
+                <span>Smart Bidding</span>
               </div>
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-slate-200 text-emerald-700 text-[11px] font-extrabold shadow-xs">
-                <Check className="w-3.5 h-3.5 text-emerald-600" />
+              <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white border border-slate-200 text-emerald-700 text-[10px] font-extrabold shadow-2xs">
+                <Check className="w-3 h-3 text-emerald-600" />
                 <span>Verified Properties</span>
               </div>
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-slate-200 text-amber-700 text-[11px] font-extrabold shadow-xs">
-                <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+              <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white border border-slate-200 text-amber-700 text-[10px] font-extrabold shadow-2xs">
+                <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
                 <span>Trusted by Students</span>
               </div>
             </div>
           </div>
           {/* Right side photo banner card - HIDDEN ON MOBILE */}
-          <div className="hidden md:block relative w-full md:w-[320px] h-36 rounded-2xl overflow-hidden shadow-lg border border-slate-200">
+          <div className="hidden md:block relative w-[220px] lg:w-[240px] h-20 rounded-xl overflow-hidden shadow-xs border border-slate-200 shrink-0">
             <img
               src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&auto=format&fit=crop"
               alt="Properties"
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent"></div>
-            <div className="absolute bottom-3 left-3 right-3 text-white">
-              <div className="text-base font-black">All Top Cities</div>
-              <div className="text-[10px] text-white/90 font-medium">Find verified student stays near top coaching hubs.</div>
+            <div className="absolute bottom-2 left-2.5 right-2.5 text-white">
+              <div className="text-xs font-black">All Top Cities</div>
+              <div className="text-[9px] text-white/90 font-medium">Find verified student stays near top coaching hubs.</div>
             </div>
           </div>
         </div>
@@ -967,13 +1104,13 @@ export default function OurPropertyPage() {
             Find the <span className="text-teal-600 font-bold">Perfect {propertyTypeName}</span> That Feels Like Home
           </h1>
           <p className="text-xs md:text-sm text-slate-600 font-semibold leading-relaxed mb-4">
-            Discover verified {propertyTypeName}s in top cities. Choose your location, set your budget and find a stay that fits you best. Zero Brokerage. 100% Verified.
+            Discover verified {propertyTypeName}s in top cities. Choose your location, set your budget and find a stay that fits you best. Smart Bidding. 100% Verified.
           </p>
 
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-slate-200 text-teal-700 text-xs font-extrabold shadow-xs">
               <Shield className="w-4 h-4 text-teal-600" />
-              <span>Zero Brokerage</span>
+              <span>Smart Bidding</span>
             </div>
             <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-slate-200 text-emerald-700 text-xs font-extrabold shadow-xs">
               <Check className="w-4 h-4 text-emerald-600" />
@@ -1011,191 +1148,7 @@ export default function OurPropertyPage() {
 
 
 
-{/* --- POPULAR CITIES FOR PGs/PROPERTIES SECTION (HORIZONTAL CAROUSEL SLIDER) --- */}
-{!selectedCity && (
-  <section className="hidden md:block py-2.5 px-3 sm:px-4 md:px-6 bg-white border-b border-slate-200">
-    <div className="max-w-[1550px] mx-auto">
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <h2 className="text-lg md:text-xl font-black text-slate-900">Popular Cities for {selectedType ? `${selectedType}s` : 'Properties'}</h2>
-          <p className="text-xs text-slate-500 font-semibold mt-0.5">Explore top student hubs across India with zero brokerage.</p>
-        </div>
-        <Link
-          to="/cities"
-          className="text-xs font-bold text-teal-600 hover:text-teal-700 flex items-center gap-1 group transition-all shrink-0"
-        >
-          <span>View all cities</span>
-          <span className="group-hover:translate-x-1 transition-transform">→</span>
-        </Link>
-      </div>
 
-      <div className="relative px-6 md:px-10 group">
-        {/* Side Floating Left Arrow */}
-        <button
-          onClick={() => scrollHorizontal(popularCitiesScrollRef, 'left')}
-          className="hidden md:flex absolute left-0 md:-left-2 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white shadow-md border border-slate-200 items-center justify-center text-slate-700 hover:bg-teal-600 hover:text-white transition-all hover:scale-110 active:scale-95"
-          title="Scroll Left"
-        >
-          <ChevronLeft className="w-4 h-4" />
-        </button>
-
-        {/* Side Floating Right Arrow */}
-        <button
-          onClick={() => scrollHorizontal(popularCitiesScrollRef, 'right')}
-          className="hidden md:flex absolute right-0 md:-right-2 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white shadow-md border border-slate-200 items-center justify-center text-slate-700 hover:bg-teal-600 hover:text-white transition-all hover:scale-110 active:scale-95"
-          title="Scroll Right"
-        >
-          <ChevronRight className="w-4 h-4" />
-        </button>
-        <div
-          ref={popularCitiesScrollRef}
-          className="flex items-center gap-3 overflow-x-auto scroll-smooth scrollbar-hide py-1 px-1"
-        >
-          {[
-            { city: 'Kota', count: '512+ Properties', image: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=600&auto=format&fit=crop' },
-            { city: 'Jaipur', count: '320+ Properties', image: 'https://images.unsplash.com/photo-1599661046827-dacff0c0f09a?w=600&auto=format&fit=crop' },
-            { city: 'Delhi', count: '780+ Properties', image: 'https://images.unsplash.com/photo-1587474260584-136574528ed5?w=600&auto=format&fit=crop' },
-            { city: 'Indore', count: '210+ Properties', image: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=600&auto=format&fit=crop' },
-            { city: 'Bhopal', count: '190+ Properties', image: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=600&auto=format&fit=crop' },
-            { city: 'Nagpur', count: '150+ Properties', image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=600&auto=format&fit=crop' },
-            { city: 'Sikar', count: '120+ Properties', image: 'https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?w=600&auto=format&fit=crop' },
-            { city: 'Bangalore', count: '600+ Properties', image: 'https://images.unsplash.com/photo-1596178065887-1198b6148b2b?w=600&auto=format&fit=crop' },
-            { city: 'Pune', count: '430+ Properties', image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=600&auto=format&fit=crop' },
-            { city: 'Hyderabad', count: '380+ Properties', image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&auto=format&fit=crop' },
-          ].map((item) => {
-            const dynamicCount = (() => {
-              if (!allRawProperties || allRawProperties.length === 0) return item.count;
-              const matchCount = allRawProperties.filter(p => {
-                const pCity = (p.city || p.propertyInfo?.city || '').toLowerCase();
-                const matchesCity = pCity === item.city.toLowerCase();
-                const pType = (p.type || p.propertyType || p.property_type || '').toLowerCase();
-                const targetType = (selectedType || '').toLowerCase();
-                const matchesType = !targetType || pType === targetType || (targetType === 'pg' && pType.includes('pg'));
-                return matchesCity && matchesType;
-              }).length;
-              return matchCount > 0 ? `${matchCount}+ ${selectedType ? `${selectedType}s` : 'Properties'}` : item.count;
-            })();
-
-            return (
-              <Link
-                key={item.city}
-                to={`/${getTypeSlug(selectedType || (pathname.startsWith('/pg') ? 'PG' : ''))}-in-${slugify(item.city)}`}
-                className="w-[155px] sm:w-[170px] flex-shrink-0 group bg-white rounded-xl overflow-hidden border border-slate-200 shadow-2xs hover:shadow-md transition-all duration-300 flex flex-col justify-between"
-              >
-                <div className="h-28 overflow-hidden relative">
-                  <img
-                    src={item.image}
-                    alt={`${selectedType || 'Properties'} in ${item.city}`}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 rounded-t-xl"
-                  />
-                </div>
-                <div className="p-2.5 bg-white">
-                  <h3 className="font-extrabold text-slate-900 text-xs group-hover:text-teal-600 transition-colors truncate">
-                    {selectedType ? `${selectedType} in ` : 'Properties in '}{item.city}
-                  </h3>
-                  <p className="text-[11px] font-medium text-slate-500 mt-0.5">{dynamicCount}</p>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  </section>
-)}
-
-{/* --- EXPLORE PGs/PROPERTIES BY LOCALITIES SECTION (HORIZONTAL CAROUSEL SLIDER) --- */}
-{!selectedCity && (
-  <section className="hidden md:block py-2.5 px-3 sm:px-4 md:px-6 bg-[#F8FAFC] border-b border-slate-200">
-    <div className="max-w-[1550px] mx-auto">
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <h2 className="text-lg md:text-xl font-black text-slate-900">Explore {selectedType ? `${selectedType}s` : 'Properties'} by Localities</h2>
-          <p className="text-xs text-slate-500 font-semibold mt-0.5">Find stays right next to your coaching institute or college.</p>
-        </div>
-        <Link
-          to="/localities"
-          className="text-xs font-bold text-teal-600 hover:text-teal-700 flex items-center gap-1 group transition-all shrink-0"
-        >
-          <span>View all localities</span>
-          <span className="group-hover:translate-x-1 transition-transform">→</span>
-        </Link>
-      </div>
-
-      <div className="relative px-6 md:px-10 group">
-        {/* Side Floating Left Arrow */}
-        <button
-          onClick={() => scrollHorizontal(popularLocalitiesScrollRef, 'left')}
-          className="hidden md:flex absolute left-0 md:-left-2 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white shadow-md border border-slate-200 items-center justify-center text-slate-700 hover:bg-teal-600 hover:text-white transition-all hover:scale-110 active:scale-95"
-          title="Scroll Left"
-        >
-          <ChevronLeft className="w-4 h-4" />
-        </button>
-
-        {/* Side Floating Right Arrow */}
-        <button
-          onClick={() => scrollHorizontal(popularLocalitiesScrollRef, 'right')}
-          className="hidden md:flex absolute right-0 md:-right-2 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white shadow-md border border-slate-200 items-center justify-center text-slate-700 hover:bg-teal-600 hover:text-white transition-all hover:scale-110 active:scale-95"
-          title="Scroll Right"
-        >
-          <ChevronRight className="w-4 h-4" />
-        </button>
-        <div
-          ref={popularLocalitiesScrollRef}
-          className="flex items-center gap-3 overflow-x-auto scroll-smooth scrollbar-hide py-1 px-1"
-        >
-          {[
-            { area: 'Talwandi', city: 'Kota', count: '102+ Properties', image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&auto=format&fit=crop' },
-            { area: 'Vigyan Nagar', city: 'Kota', count: '88+ Properties', image: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&auto=format&fit=crop' },
-            { area: 'Landmark City', city: 'Kota', count: '67+ Properties', image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=600&auto=format&fit=crop' },
-            { area: 'Mahaveer Nagar', city: 'Kota', count: '74+ Properties', image: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=600&auto=format&fit=crop' },
-            { area: 'Indra Vihar', city: 'Kota', count: '54+ Properties', image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&auto=format&fit=crop' },
-            { area: 'Rajeev Gandhi Nagar', city: 'Kota', count: '48+ Properties', image: 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=600&auto=format&fit=crop' },
-            { area: 'Kunhari', city: 'Kota', count: '41+ Properties', image: 'https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?w=600&auto=format&fit=crop' },
-            { area: 'Pratap Nagar', city: 'Jaipur', count: '56+ Properties', image: 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=600&auto=format&fit=crop' },
-          ].map((item) => {
-            const dynamicAreaCount = (() => {
-              if (!allRawProperties || allRawProperties.length === 0) return item.count;
-              const matchCount = allRawProperties.filter(p => {
-                const pArea = (p.area || p.locality || p.propertyInfo?.area || '').toLowerCase();
-                const pCity = (p.city || p.propertyInfo?.city || '').toLowerCase();
-                const matchesArea = pArea.includes(item.area.toLowerCase()) || item.area.toLowerCase().includes(pArea);
-                const matchesCity = !item.city || pCity === item.city.toLowerCase();
-                const pType = (p.type || p.propertyType || p.property_type || '').toLowerCase();
-                const targetType = (selectedType || '').toLowerCase();
-                const matchesType = !targetType || pType === targetType || (targetType === 'pg' && pType.includes('pg'));
-                return matchesArea && matchesCity && matchesType;
-              }).length;
-              return matchCount > 0 ? `${matchCount}+ ${selectedType ? `${selectedType}s` : 'Properties'}` : item.count;
-            })();
-
-            return (
-              <Link
-                key={item.area}
-                to={`/${getTypeSlug(selectedType)}-in-${slugify(item.area)}-${slugify(item.city)}`}
-                className="w-[155px] sm:w-[170px] flex-shrink-0 group bg-white rounded-xl overflow-hidden border border-slate-200 shadow-2xs hover:shadow-md transition-all duration-300 flex flex-col justify-between"
-              >
-                <div className="h-28 overflow-hidden relative">
-                  <img
-                    src={item.image}
-                    alt={`${item.area}, ${item.city}`}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 rounded-t-xl"
-                  />
-                </div>
-                <div className="p-2.5 bg-white">
-                  <h3 className="font-extrabold text-slate-900 text-xs group-hover:text-teal-600 transition-colors truncate">
-                    {item.area}, {item.city}
-                  </h3>
-                  <p className="text-[11px] font-medium text-slate-500 mt-0.5">{dynamicAreaCount}</p>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  </section>
-)}
 
 
 
@@ -1280,18 +1233,18 @@ export default function OurPropertyPage() {
   </>
 )}
 
-        <section className="pt-4 pb-8 bg-white px-4 sm:px-6 md:px-8 border-b border-slate-200">
+        <section className="pt-0 pb-6 bg-slate-50/60 px-4 sm:px-6 md:px-8 border-b border-slate-200">
           <div className="max-w-[1550px] mx-auto">
 
             {/* --- FAST BIDDING HEADER BANNER (SITE GREEN/TEAL THEME) --- */}
             {isBiddingMode && (
-              <div className="mb-6 p-5 md:p-6 rounded-2xl md:rounded-3xl bg-gradient-to-r from-teal-50 via-emerald-50/80 to-teal-100/60 border border-teal-200/90 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-all animate-in fade-in duration-300">
-                <div className="flex items-start gap-3.5">
-                  <div className="w-12 h-12 rounded-2xl bg-teal-600/10 border border-teal-600/20 flex items-center justify-center text-teal-600 shrink-0 mt-0.5">
-                    <Zap className="w-6 h-6 fill-teal-600 text-teal-600" />
+              <div className="mb-3 p-3.5 md:p-4 rounded-2xl bg-gradient-to-r from-teal-50 via-emerald-50/80 to-teal-100/60 border border-teal-200/90 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-3 transition-all animate-in fade-in duration-300">
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-teal-600/10 border border-teal-600/20 flex items-center justify-center text-teal-600 shrink-0 mt-0.5">
+                    <Zap className="w-4 h-4 fill-teal-600 text-teal-600" />
                   </div>
                   <div>
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <div className="flex items-center gap-2 flex-wrap mb-0.5">
                       <span className="px-2.5 py-0.5 rounded-full bg-teal-100 text-teal-800 text-[10px] font-black uppercase tracking-wider border border-teal-200">
                         FAST BIDDING MODE ACTIVE
                       </span>
@@ -1299,30 +1252,30 @@ export default function OurPropertyPage() {
                         {totalProperties.length} Properties Matching
                       </span>
                     </div>
-                    <h2 className="text-lg md:text-2xl font-black tracking-tight text-slate-900">
+                    <h2 className="text-base md:text-lg font-black tracking-tight text-slate-900">
                       Set your filters below &amp; send 1-click bid request directly to property owners!
                     </h2>
-                    <p className="text-xs text-slate-600 font-semibold mt-0.5">
+                    <p className="text-[11px] text-slate-600 font-semibold mt-0.5">
                       Matching owners in {selectedCity || 'your city'} will receive your requested budget directly.
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 shrink-0 w-full md:w-auto justify-end pt-2 md:pt-0 border-t md:border-t-0 border-teal-200/60">
+                <div className="flex items-center gap-2 shrink-0 w-full md:w-auto justify-end pt-1.5 md:pt-0 border-t md:border-t-0 border-teal-200/60">
                   <button
                     type="button"
                     onClick={handleDesktopBidSubmit}
                     disabled={biddingSubmitting || totalProperties.length === 0}
-                    className="flex-1 md:flex-none px-6 py-3.5 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:bg-slate-300 text-white font-black text-xs md:text-sm shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+                    className="flex-1 md:flex-none px-5 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:bg-slate-300 text-white font-black text-xs shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
                   >
                     {biddingSubmitting ? (
                       <>
-                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                         <span>Placing Bids...</span>
                       </>
                     ) : (
                       <>
-                        <Send className="w-4 h-4" />
+                        <Send className="w-3.5 h-3.5" />
                         <span>Send Bid ({totalProperties.length} Properties)</span>
                       </>
                     )}
@@ -1334,20 +1287,20 @@ export default function OurPropertyPage() {
                       searchParams.delete('bid');
                       setSearchParams(searchParams);
                     }}
-                    className="w-10 h-10 rounded-xl bg-white hover:bg-slate-100 text-slate-500 hover:text-slate-900 border border-slate-200 flex items-center justify-center transition-colors cursor-pointer shrink-0 shadow-2xs"
+                    className="w-8 h-8 rounded-xl bg-white hover:bg-slate-100 text-slate-500 hover:text-slate-900 border border-slate-200 flex items-center justify-center transition-colors cursor-pointer shrink-0 shadow-2xs"
                     title="Exit Bidding Mode"
                   >
-                    <X className="w-5 h-5" />
+                    <X className="w-4 h-4" />
                   </button>
                 </div>
               </div>
             )}
 
             {/* Mobile Filter & Sort Trigger */}
-            <div className="lg:hidden flex items-center justify-between gap-2 mb-4">
+            <div className="lg:hidden flex items-center justify-between gap-2 mb-3">
               <button
                 onClick={() => setMobileFilterOpen(true)}
-                className="flex-1 flex items-center justify-center gap-2 bg-white px-4 py-2.5 rounded-lg shadow-sm border border-gray-200 text-gray-700 font-medium"
+                className="flex-1 flex items-center justify-center gap-2 bg-white px-3 py-2 rounded-lg shadow-sm border border-gray-200 text-gray-700 font-medium"
               >
                 <Filter className="w-4 h-4" />
                 <span>Filters</span>
@@ -1360,7 +1313,7 @@ export default function OurPropertyPage() {
               <div className="flex-1 relative">
                 <button 
                   onClick={() => setShowSort(!showSort)}
-                  className="w-full flex items-center justify-between gap-2 bg-white px-4 py-2.5 rounded-lg shadow-sm border border-gray-200 text-gray-700 font-medium"
+                  className="w-full flex items-center justify-between gap-2 bg-white px-3 py-2 rounded-lg shadow-sm border border-gray-200 text-gray-700 font-medium"
                 >
                   <span className="truncate">Sort: {sortBy}</span>
                   <ChevronDown className={`w-4 h-4 transition-transform ${showSort ? 'rotate-180' : ''}`} />
@@ -1375,7 +1328,7 @@ export default function OurPropertyPage() {
                           setSortBy(option);
                           setShowSort(false);
                         }}
-                        className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${sortBy === option ? 'text-blue-600 font-bold bg-blue-50/50' : 'text-gray-700'}`}
+                        className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${sortBy === option ? 'text-blue-600 font-bold bg-blue-50/50' : 'text-gray-700'}`}
                       >
                         {option}
                       </button>
@@ -1396,25 +1349,34 @@ export default function OurPropertyPage() {
               )}
 
               <aside className={`
-                lg:w-[280px] flex-shrink-0 lg:static lg:block lg:z-auto lg:transform-none lg:h-auto
-                fixed top-0 left-0 w-[85%] max-w-[320px] h-full max-h-screen z-50 transform transition-transform duration-300 ease-in-out bg-white shadow-2xl overflow-y-auto
+                lg:w-[260px] xl:w-[270px] flex-shrink-0 lg:static lg:block lg:z-auto lg:transform-none lg:h-auto
+                fixed top-0 left-0 w-[85%] max-w-[320px] h-full max-h-screen z-50 transform transition-transform duration-300 ease-in-out bg-white shadow-2xl lg:shadow-none lg:bg-transparent
                 ${mobileFilterOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
               `}>
-                <div className="bg-white p-5 rounded-none lg:rounded-2xl border-0 lg:border border-slate-200 shadow-none lg:shadow-xs lg:sticky lg:top-[85px] h-full max-h-full lg:max-h-[calc(100vh-100px)] overflow-y-auto w-full pb-24 lg:pb-5">
+                <div className="bg-gradient-to-b from-white via-white to-teal-50/20 rounded-2xl border border-slate-200/90 shadow-[0_4px_25px_rgb(0,0,0,0.04)] lg:sticky lg:top-[55px] w-full p-3.5 space-y-3 relative overflow-hidden">
+                  {/* Top Teal-Emerald Gradient Accent Line */}
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-teal-500 via-emerald-500 to-teal-600"></div>
+
                   {/* Header */}
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4 sticky top-0 bg-white z-10">
-                    <h3 className="text-base font-black text-slate-900">Filters</h3>
-                    <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-between pb-1.5 border-b border-slate-200/80 sticky top-0 bg-white/95 backdrop-blur-xs z-10 pt-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></div>
+                      <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-900">Filters</h3>
+                    </div>
+                    <div className="flex items-center gap-2">
                       <button
                         onClick={() => {
                           setSelectedCity('');
+                          setSelectedArea('');
                           setSelectedType('');
                           setSelectedGender('');
                           setMinPrice('');
                           setMaxPrice('');
                           setSelectedColleges([]);
+                          setSelectedRoomTypes([]);
+                          setSelectedAmenities([]);
                         }}
-                        className="text-rose-600 text-xs font-bold hover:underline cursor-pointer"
+                        className="px-2.5 py-0.5 rounded-full bg-slate-100/80 hover:bg-rose-50 hover:text-rose-600 text-slate-600 text-[11px] font-extrabold transition-all border border-slate-200/70 cursor-pointer"
                       >
                         Clear All
                       </button>
@@ -1424,199 +1386,197 @@ export default function OurPropertyPage() {
                         className="lg:hidden p-1 text-slate-500 hover:text-slate-900 rounded-lg hover:bg-slate-100"
                         title="Close Filters"
                       >
-                        <X className="w-5 h-5" />
+                        <X className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
 
-                  {/* 1. Property Type (Hidden on specific type routes like /pg-in-talwandi-kota) */}
-                  {!isSpecificTypeRoute && (
-                    <div className="mb-5 pb-5 border-b border-slate-100">
-                      <label className="block text-xs font-extrabold text-slate-900 uppercase tracking-wider mb-2.5">
-                        Property Type
-                      </label>
-                      <div className="space-y-1.5">
-                        {[
-                          { type: 'PG', label: 'PG', icon: Bed },
-                          { type: 'Hostel', label: 'Hostels', icon: Building2 },
-                          { type: 'Co-living', label: 'Co-living', icon: Users },
-                          { type: 'Apartment', label: 'Apartments', icon: Home }
-                        ].map(item => {
-                          const isSelected = (selectedType || '').toLowerCase() === item.type.toLowerCase() || (item.type === 'PG' && !selectedType && pathname.startsWith('/pg'));
-                          const IconComponent = item.icon;
-                          return (
-                            <button
-                              key={item.type}
-                              type="button"
-                              onClick={() => setSelectedType(isSelected ? '' : item.type)}
-                              className={`w-full flex items-center justify-between p-2.5 rounded-xl border text-xs font-bold transition-all text-left ${
-                                isSelected
-                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200 shadow-2xs'
-                                  : 'bg-slate-50 text-slate-700 border-slate-100 hover:bg-slate-100'
-                              }`}
-                            >
-                              <div className="flex items-center gap-2.5">
-                                <IconComponent className={`w-4 h-4 ${isSelected ? 'text-emerald-600' : 'text-slate-400'}`} />
-                                <span>{item.label}</span>
-                              </div>
-                              {isSelected && <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[3]" />}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* 2. Gender Pills */}
-                  <div className="mb-5 pb-5 border-b border-slate-100">
-                    <label className="block text-xs font-extrabold text-slate-900 uppercase tracking-wider mb-2.5">
-                      Gender
+                  {/* 1. CITY DROPDOWN */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-900 uppercase tracking-wider mb-1">
+                      City
                     </label>
-                    <div className="grid grid-cols-3 gap-1.5">
-                      {['Boys', 'Girls', 'Co-ed'].map(gender => {
-                        const isSelected = (selectedGender || '').toLowerCase() === gender.toLowerCase();
-                        return (
-                          <button
-                            key={gender}
-                            type="button"
-                            onClick={() => setSelectedGender(isSelected ? '' : gender)}
-                            className={`py-2 rounded-xl text-xs font-extrabold transition-all border text-center ${
-                              isSelected
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-300 shadow-2xs'
-                                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                            }`}
-                          >
-                            {gender}
-                          </button>
-                        );
-                      })}
+                    <div className="relative">
+                      <select
+                        value={selectedCity}
+                        onChange={(e) => {
+                          setSelectedCity(e.target.value);
+                          setSelectedArea('');
+                        }}
+                        className={`w-full py-2 px-3 rounded-xl border text-xs font-semibold text-slate-700 transition-all cursor-pointer pr-7 shadow-2xs appearance-none ${
+                          selectedCity 
+                            ? 'border-teal-500 bg-teal-50/50 text-teal-950 font-semibold ring-2 ring-teal-500/20 shadow-xs' 
+                            : 'border-slate-200/90 bg-slate-50/80 hover:bg-white focus:border-teal-500'
+                        }`}
+                      >
+                        <option value="">All Cities</option>
+                        {Object.keys(dynamicCitiesMap).map(c => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                     </div>
                   </div>
 
-                  {/* 3. Budget Range Slider */}
-                  <div className="mb-5 pb-5 border-b border-slate-100">
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">
-                        Budget Range
-                      </label>
-                    </div>
-                    <div className="flex items-center justify-between text-xs font-black text-slate-800 mb-3">
-                      <span>₹{(parseInt(minPrice) || 2000).toLocaleString()}</span>
-                      <span>₹{(parseInt(maxPrice) || 20000).toLocaleString()}{!maxPrice ? '+' : ''}</span>
-                    </div>
-
-                    <div className="px-1">
-                      <div className="relative h-1.5 bg-slate-200 rounded-full mb-4">
-                        <div
-                          className="absolute h-full bg-teal-500 rounded-full"
-                          style={{
-                            left: `${((parseInt(minPrice) || 2000) / 50000) * 100}%`,
-                            right: `${100 - ((parseInt(maxPrice) || 20000) / 50000) * 100}%`
-                          }}
-                        ></div>
-                        <input
-                          type="range"
-                          min="1000"
-                          max="50000"
-                          step="500"
-                          value={parseInt(minPrice) || 2000}
-                          onChange={(e) => {
-                            const val = parseInt(e.target.value);
-                            if (val < (parseInt(maxPrice) || 20000)) {
-                              setMinPrice(val === 2000 ? '' : String(val));
-                            }
-                          }}
-                          className="price-range-input"
-                          style={{ zIndex: (parseInt(minPrice) || 2000) > 45000 ? 5 : 3 }}
-                        />
-                        <input
-                          type="range"
-                          min="1000"
-                          max="50000"
-                          step="500"
-                          value={parseInt(maxPrice) || 20000}
-                          onChange={(e) => {
-                            const val = parseInt(e.target.value);
-                            if (val > (parseInt(minPrice) || 2000)) {
-                              setMaxPrice(val === 20000 ? '' : String(val));
-                            }
-                          }}
-                          className="price-range-input"
-                          style={{ zIndex: 4 }}
-                        />
-                      </div>
+                  {/* 2. LOCALITY / AREA DROPDOWN */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-900 uppercase tracking-wider mb-1">
+                      Locality / Area
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={selectedArea}
+                        onChange={(e) => setSelectedArea(e.target.value)}
+                        className={`w-full py-2 px-3 rounded-xl border text-xs font-semibold text-slate-700 transition-all cursor-pointer pr-7 shadow-2xs appearance-none ${
+                          selectedArea 
+                            ? 'border-teal-500 bg-teal-50/50 text-teal-950 font-semibold ring-2 ring-teal-500/20 shadow-xs' 
+                            : 'border-slate-200/90 bg-slate-50/80 hover:bg-white focus:border-teal-500'
+                        }`}
+                      >
+                        <option value="">All Localities {selectedCity ? `in ${selectedCity}` : ''}</option>
+                        {displayLocalities.map(loc => (
+                          <option key={loc.name} value={loc.name}>
+                            {loc.name} {loc.count > 0 ? `(${loc.count})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                     </div>
                   </div>
 
-                  {/* 4. Localities List */}
-                  <div className="mb-5 pb-5 border-b border-slate-100">
-                    <label className="block text-xs font-extrabold text-slate-900 uppercase tracking-wider mb-2.5">
-                      Localities
+                  {/* 3. PROPERTY TYPE DROPDOWN */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-900 uppercase tracking-wider mb-1">
+                      Property Type
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={selectedType}
+                        onChange={(e) => setSelectedType(e.target.value)}
+                        className={`w-full py-2 px-3 rounded-xl border text-xs font-semibold text-slate-700 transition-all cursor-pointer pr-7 shadow-2xs appearance-none ${
+                          selectedType 
+                            ? 'border-teal-500 bg-teal-50/50 text-teal-950 font-semibold ring-2 ring-teal-500/20 shadow-xs' 
+                            : 'border-slate-200/90 bg-slate-50/80 hover:bg-white focus:border-teal-500'
+                        }`}
+                      >
+                        <option value="">All Property Types</option>
+                        <option value="PG">PG (Paying Guest)</option>
+                        <option value="Hostel">Hostels</option>
+                        <option value="Co-living">Co-living</option>
+                        <option value="Apartment">Apartments</option>
+                      </select>
+                      <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    </div>
+                  </div>
+
+                  {/* 4. GENDER / CATEGORY DROPDOWN */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-900 uppercase tracking-wider mb-1">
+                      Gender / Category
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={selectedGender}
+                        onChange={(e) => setSelectedGender(e.target.value)}
+                        className={`w-full py-2 px-3 rounded-xl border text-xs font-semibold text-slate-700 transition-all cursor-pointer pr-7 shadow-2xs appearance-none ${
+                          selectedGender 
+                            ? 'border-teal-500 bg-teal-50/50 text-teal-950 font-semibold ring-2 ring-teal-500/20 shadow-xs' 
+                            : 'border-slate-200/90 bg-slate-50/80 hover:bg-white focus:border-teal-500'
+                        }`}
+                      >
+                        <option value="">All Genders (Boys / Girls / Co-ed)</option>
+                        <option value="Boys">Boys Only</option>
+                        <option value="Girls">Girls Only</option>
+                        <option value="Co-ed">Co-ed</option>
+                      </select>
+                      <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    </div>
+                  </div>
+
+                  {/* 5. PRICE FILTER DROPDOWN */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-900 uppercase tracking-wider mb-1">
+                      Price Filter
                     </label>
 
-                    {/* Search locality input */}
-                    <div className="relative mb-3">
-                      <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="text"
-                        placeholder="Search locality..."
-                        className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:border-teal-500"
-                      />
+                    <div className="relative">
+                      <select
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (!val) {
+                            setMinPrice('');
+                            setMaxPrice('');
+                          } else if (val.startsWith('lte_')) {
+                            setMinPrice('');
+                            setMaxPrice(val.replace('lte_', ''));
+                          } else if (val.startsWith('gte_')) {
+                            setMinPrice(val.replace('gte_', ''));
+                            setMaxPrice('');
+                          } else if (val.startsWith('eq_')) {
+                            const num = val.replace('eq_', '');
+                            setMinPrice(String(Math.max(0, parseInt(num) - 500)));
+                            setMaxPrice(String(parseInt(num) + 500));
+                          } else if (val.includes('-')) {
+                            const [minVal, maxVal] = val.split('-');
+                            setMinPrice(minVal);
+                            setMaxPrice(maxVal);
+                          }
+                        }}
+                        className={`w-full py-2 px-3 rounded-xl border text-xs font-semibold text-slate-700 transition-all cursor-pointer pr-7 shadow-2xs appearance-none ${
+                          minPrice || maxPrice 
+                            ? 'border-teal-500 bg-teal-50/50 text-teal-950 font-semibold ring-2 ring-teal-500/20 shadow-xs' 
+                            : 'border-slate-200/90 bg-slate-50/80 hover:bg-white focus:border-teal-500'
+                        }`}
+                      >
+                        <option value="">All Budgets (No Limit)</option>
+                        <option value="lte_5000">Less than ₹5,000 / mo</option>
+                        <option value="lte_8000">Less than ₹8,000 / mo</option>
+                        <option value="lte_12000">Less than ₹12,000 / mo</option>
+                        <option value="lte_15000">Less than ₹15,000 / mo</option>
+                        <option value="lte_20000">Less than ₹20,000 / mo</option>
+                        <option value="gte_10000">Greater than ₹10,000 / mo</option>
+                        <option value="gte_15000">Greater than ₹15,000 / mo</option>
+                        <option value="gte_20000">Greater than ₹20,000 / mo</option>
+                        <option value="eq_5000">Equal to ~₹5,000 / mo</option>
+                        <option value="eq_10000">Equal to ~₹10,000 / mo</option>
+                        <option value="eq_15000">Equal to ~₹15,000 / mo</option>
+                        <option value="3000-7000">Range: ₹3,000 – ₹7,000</option>
+                        <option value="7000-12000">Range: ₹7,000 – ₹12,000</option>
+                        <option value="12000-20000">Range: ₹12,000 – ₹20,000</option>
+                      </select>
+                      <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                     </div>
-
-                    <div className="space-y-2">
-                      {[
-                        { name: 'Talwandi', count: 23 },
-                        { name: 'Vigyan Nagar', count: 38 },
-                        { name: 'Mahaveer Nagar', count: 31 },
-                        { name: 'Indra Vihar', count: 19 },
-                        { name: 'Landmark City', count: 27 }
-                      ].map(loc => (
-                        <label key={loc.name} className="flex items-center justify-between text-xs font-bold text-slate-700 hover:text-teal-600 cursor-pointer group py-0.5">
-                          <div className="flex items-center gap-2">
-                            <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500" />
-                            <span>{loc.name}</span>
-                          </div>
-                          <span className="text-[10px] font-semibold text-slate-400 group-hover:text-teal-600">{loc.count}</span>
-                        </label>
-                      ))}
-                    </div>
-                    <button type="button" className="text-teal-600 font-extrabold text-xs mt-2 hover:underline">
-                      + View More
-                    </button>
                   </div>
 
-                  {/* 5. Room Type */}
-                  <div className="mb-5 pb-5 border-b border-slate-100">
-                    <label className="block text-xs font-extrabold text-slate-900 uppercase tracking-wider mb-2.5">
-                      Room Type
-                    </label>
-                    <div className="space-y-2">
-                      {['Single Room', 'Double Sharing', 'Triple Sharing', 'Four Sharing'].map(room => (
-                        <label key={room} className="flex items-center gap-2 text-xs font-bold text-slate-700 hover:text-teal-600 cursor-pointer py-0.5">
-                          <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500" />
-                          <span>{room}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* 6. Amenities */}
-                  <div className="mb-5">
-                    <label className="block text-xs font-extrabold text-slate-900 uppercase tracking-wider mb-2.5">
+                  {/* 6. AMENITIES DROPDOWN */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-900 uppercase tracking-wider mb-1">
                       Amenities
                     </label>
-                    <div className="space-y-2">
-                      {['WiFi', 'AC', 'Cooler', 'Meals / Food', 'Laundry'].map(amenity => (
-                        <label key={amenity} className="flex items-center gap-2 text-xs font-bold text-slate-700 hover:text-teal-600 cursor-pointer py-0.5">
-                          <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500" />
-                          <span>{amenity}</span>
-                        </label>
-                      ))}
+                    <div className="relative">
+                      <select
+                        value={selectedAmenities[0] || ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (!val) {
+                            setSelectedAmenities([]);
+                          } else {
+                            setSelectedAmenities([val]);
+                          }
+                        }}
+                        className={`w-full py-2 px-3 rounded-xl border text-xs font-semibold text-slate-700 transition-all cursor-pointer pr-7 shadow-2xs appearance-none ${
+                          selectedAmenities.length > 0 
+                            ? 'border-teal-500 bg-teal-50/50 text-teal-950 font-semibold ring-2 ring-teal-500/20 shadow-xs' 
+                            : 'border-slate-200/90 bg-slate-50/80 hover:bg-white focus:border-teal-500'
+                        }`}
+                      >
+                        <option value="">All Amenities</option>
+                        {displayAmenities.map(a => (
+                          <option key={a.name} value={a.name}>{a.name} {a.count > 0 ? `(${a.count})` : ''}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                     </div>
-                    <button type="button" className="text-teal-600 font-extrabold text-xs mt-2 hover:underline">
-                      + View More
-                    </button>
                   </div>
 
                   {/* Reset Filters Button */}
@@ -1624,24 +1584,27 @@ export default function OurPropertyPage() {
                     type="button"
                     onClick={() => {
                       setSelectedCity('');
+                      setSelectedArea('');
                       setSelectedType('');
                       setSelectedGender('');
                       setMinPrice('');
                       setMaxPrice('');
                       setSelectedColleges([]);
+                      setSelectedRoomTypes([]);
+                      setSelectedAmenities([]);
                     }}
-                    className="w-full py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-extrabold text-xs rounded-xl border border-slate-200 transition-all text-center mt-2 flex items-center justify-center gap-1.5"
+                    className="w-full py-2 bg-gradient-to-r from-teal-600 via-teal-700 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-black text-xs sm:text-sm rounded-xl shadow-xs hover:shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer mt-1 active:scale-98"
                   >
-                    <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
-                    <span>Reset Filters</span>
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Reset All Filters</span>
                   </button>
 
                   {/* Apply Filters Button for Mobile */}
-                  <div className="lg:hidden mt-6 pt-4 border-t border-slate-100 sticky bottom-0 bg-white pb-2 z-10">
+                  <div className="lg:hidden mt-4 pt-3 border-t border-slate-100 sticky bottom-0 bg-white pb-2 z-10">
                     <button
                       type="button"
                       onClick={() => setMobileFilterOpen(false)}
-                      className="w-full py-3 bg-teal-600 hover:bg-teal-700 text-white font-black text-xs rounded-xl shadow-md transition-all text-center"
+                      className="w-full py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-black text-xs rounded-xl shadow-md transition-all text-center"
                     >
                       Show Properties ({totalCount})
                     </button>
@@ -2032,7 +1995,7 @@ export default function OurPropertyPage() {
                   List your PG, Hostel or Co-living space {selectedCity ? `in ${locationDisplayName}` : ''} and connect with thousands of students.
                 </p>
                 <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mt-3 text-[11px] font-bold text-slate-700">
-                  <span className="flex items-center gap-1 text-emerald-600"><Check className="w-3.5 h-3.5" /> Zero Brokerage</span>
+                  <span className="flex items-center gap-1 text-emerald-600"><Check className="w-3.5 h-3.5" /> Smart Bidding</span>
                   <span className="flex items-center gap-1 text-emerald-600"><Check className="w-3.5 h-3.5" /> Verified Tenants</span>
                   <span className="flex items-center gap-1 text-emerald-600"><Check className="w-3.5 h-3.5" /> Quick Rent</span>
                   <span className="flex items-center gap-1 text-emerald-600"><Check className="w-3.5 h-3.5" /> Wide Reach</span>
@@ -2124,7 +2087,7 @@ function PropertyCard({ property, onBookNow }) {
   const detailPath = `/property-details/${propSlug}`;
 
   return (
-    <div className="bg-white rounded-2xl shadow-xs hover:shadow-xl transition-all duration-300 border border-slate-200 hover:border-teal-200 overflow-hidden mb-3.5 md:mb-4 group">
+    <div className="bg-white rounded-2xl shadow-xs hover:shadow-lg transition-all duration-300 border border-slate-200 hover:border-teal-200 overflow-hidden mb-2 md:mb-2.5 group">
       {/* ─── MOBILE CARD VIEW (MATCHING EXACT OYO MOBILE SCREENSHOT) ─── */}
       <div className="lg:hidden p-3.5 flex flex-col gap-2.5 cursor-pointer" onClick={() => navigate(detailPath)}>
         {/* 2-Photo Side-by-Side Grid Header */}
@@ -2185,8 +2148,8 @@ function PropertyCard({ property, onBookNow }) {
 
           {/* Social Proof / Urgency text (⚡ 5+ students booked recently) */}
           <div className="flex items-center gap-1 text-[11px] font-bold text-amber-600 mt-1">
-            <Zap className="w-3.5 h-3.5 fill-amber-500 text-amber-500 shrink-0" />
-            <span>5+ students booked this stay recently</span>
+            <Zap className="w-3 h-3 fill-amber-500 text-amber-500 shrink-0" />
+            <span>5+ students booked recently</span>
           </div>
 
           {/* Price Block */}
@@ -2206,9 +2169,9 @@ function PropertyCard({ property, onBookNow }) {
       </div>
 
       {/* ─── DESKTOP CARD VIEW (>= 1024px) ─── */}
-      <div className="hidden lg:flex flex-col lg:flex-row min-h-[210px]">
+      <div className="hidden lg:flex flex-col lg:flex-row h-[138px]">
         {/* Left Image Section - OYO Style Main Photo + Right Thumbnails */}
-        <div className={`relative w-full ${displayImages.length > 1 ? 'lg:w-[320px] xl:w-[350px]' : 'lg:w-[270px] xl:w-[290px]'} h-[200px] md:h-[210px] shrink-0 bg-slate-100 p-1 flex gap-1 rounded-t-2xl lg:rounded-tr-none lg:rounded-l-2xl overflow-hidden border-r border-slate-100`}>
+        <div className={`relative w-full ${displayImages.length > 1 ? 'lg:w-[220px] xl:w-[240px]' : 'lg:w-[180px] xl:w-[200px]'} h-[138px] shrink-0 bg-slate-100 p-0.5 flex gap-0.5 rounded-l-2xl overflow-hidden border-r border-slate-100`}>
           {/* Main Photo (Left) */}
           <div className="relative flex-1 h-full rounded-l-xl overflow-hidden group/img cursor-pointer" onClick={() => navigate(detailPath)}>
             <img
@@ -2289,101 +2252,89 @@ function PropertyCard({ property, onBookNow }) {
         </div>
 
         {/* Middle Content Details Area */}
-        <div className="flex-1 p-4 md:p-5 flex flex-col justify-between min-w-0">
+        <div className="flex-1 p-2.5 md:p-3 flex flex-col justify-between min-w-0">
           <div>
             {/* Title & Rating */}
-            <div className="flex items-start justify-between gap-3 mb-1">
+            <div className="flex items-center justify-between gap-2 mb-0.5">
               <Link
                 to={detailPath}
                 onClick={() => trackPropertyClick(property.id)}
-                className="text-lg md:text-xl font-black text-slate-900 hover:text-teal-600 transition-colors line-clamp-1"
+                className="text-sm md:text-base font-black text-slate-900 hover:text-teal-600 transition-colors line-clamp-1"
               >
                 {property.name}
               </Link>
 
               {displayRating && (
-                <div className="bg-emerald-500 text-white px-2 py-0.5 rounded-lg flex items-center gap-1 text-xs font-black shadow-2xs shrink-0">
+                <div className="bg-emerald-500 text-white px-1.5 py-0.5 rounded flex items-center gap-0.5 text-[11px] font-black shrink-0">
                   <span>{displayRating}</span>
-                  <Star className="w-3 h-3 fill-white stroke-none" />
+                  <Star className="w-2.5 h-2.5 fill-white stroke-none" />
                 </div>
               )}
             </div>
 
             {/* Location Subtitle */}
-            <p className="text-xs font-bold text-slate-500 flex items-center gap-1 mb-3 truncate">
-              <MapPin className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+            <p className="text-[11px] font-bold text-slate-500 flex items-center gap-1 mb-1 truncate">
+              <MapPin className="w-3 h-3 text-teal-600 shrink-0" />
               <span>{property.area ? `${property.area}, ` : ''}{property.location || property.city}</span>
             </p>
 
-            {/* Amenity Icons Row */}
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-semibold text-slate-600 mb-3">
-              <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100">
-                <Wifi className="w-3.5 h-3.5 text-slate-400" />
-                <span>WiFi</span>
-              </div>
-              <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100">
-                <Wind className="w-3.5 h-3.5 text-slate-400" />
-                <span>AC</span>
-              </div>
-              <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100">
-                <Utensils className="w-3.5 h-3.5 text-slate-400" />
-                <span>Meals</span>
-              </div>
-              <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100">
-                <Tv className="w-3.5 h-3.5 text-slate-400" />
-                <span>TV</span>
-              </div>
-            </div>
+            {/* Amenity Icons Row & Category Pills */}
+            <div className="flex flex-wrap items-center gap-1 text-[10px] font-bold text-slate-600 mb-1">
+              <span className="flex items-center gap-1 bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">
+                <Wifi className="w-3 h-3 text-slate-400" /> WiFi
+              </span>
+              <span className="flex items-center gap-1 bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">
+                <Wind className="w-3 h-3 text-slate-400" /> AC
+              </span>
+              <span className="flex items-center gap-1 bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">
+                <Utensils className="w-3 h-3 text-slate-400" /> Meals
+              </span>
+              <span className="flex items-center gap-1 bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">
+                <Tv className="w-3 h-3 text-slate-400" /> TV
+              </span>
 
-            {/* Category & Sharing Pills */}
-            <div className="flex flex-wrap items-center gap-2 mb-3">
-              <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[11px] font-extrabold border border-emerald-100">
+              <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-extrabold border border-emerald-100/80">
                 {property.category || property.gender || 'Boys PG'}
               </span>
-              <span className="px-2.5 py-1 rounded-lg bg-sky-50 text-sky-700 text-[11px] font-extrabold border border-sky-100">
+              <span className="px-1.5 py-0.5 rounded bg-sky-50 text-sky-700 font-extrabold border border-sky-100/80">
                 {property.sharing || '2 Sharing'}
               </span>
-              <span className="px-2.5 py-1 rounded-lg bg-purple-50 text-purple-700 text-[11px] font-extrabold border border-purple-100">
+              <span className="px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 font-extrabold border border-purple-100/80">
                 {property.type || 'PG'}
               </span>
             </div>
           </div>
 
           {/* Trust Badges */}
-          <div className="pt-3 border-t border-slate-100 flex items-center gap-4 text-xs font-extrabold text-slate-500">
+          <div className="pt-1 border-t border-slate-100 flex items-center gap-3 text-[10px] font-extrabold text-slate-500">
             <div className="flex items-center gap-1 text-emerald-600">
-              <Check className="w-3.5 h-3.5 stroke-[3]" />
-              <span>Zero Brokerage</span>
+              <Check className="w-3 h-3 stroke-[3]" />
+              <span>Smart Bidding</span>
             </div>
             <div className="flex items-center gap-1 text-emerald-600">
-              <Check className="w-3.5 h-3.5 stroke-[3]" />
+              <Check className="w-3 h-3 stroke-[3]" />
               <span>Instant Booking</span>
             </div>
           </div>
         </div>
 
         {/* Right Side Price & Buttons Section */}
-        <div className="w-full lg:w-[220px] p-4 md:p-5 bg-slate-50/50 border-t lg:border-t-0 lg:border-l border-slate-100 flex flex-row lg:flex-col justify-between items-center lg:items-end gap-3 shrink-0">
+        <div className="w-full lg:w-[175px] p-2.5 md:p-3 bg-slate-50/50 border-t lg:border-t-0 lg:border-l border-slate-100 flex flex-row lg:flex-col justify-between items-center lg:items-end gap-1.5 shrink-0">
           <div className="text-left lg:text-right">
-            <div className="flex items-baseline gap-2 justify-start lg:justify-end">
+            <div className="flex items-baseline gap-1.5 justify-start lg:justify-end">
               {hasDiscount && (
-                <span className="text-xs text-slate-400 font-bold line-through">₹{originalPrice.toLocaleString()}</span>
+                <span className="text-[11px] text-slate-400 font-bold line-through">₹{originalPrice.toLocaleString()}</span>
               )}
-              <div className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
+              <div className="text-lg md:text-xl font-black text-slate-900 tracking-tight">
                 ₹{property.price?.toLocaleString()}
               </div>
             </div>
-            <div className="text-[11px] font-bold text-slate-500 mt-0.5">
-              /month <span className="text-slate-400 font-normal">+ taxes &amp; fees</span>
+            <div className="text-[10px] font-bold text-slate-500">
+              /month <span className="text-slate-400 font-normal">+ taxes</span>
             </div>
-            {hasDiscount && (
-              <span className="inline-block mt-1 text-[10px] font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">
-                {discountPercent}% OFF
-              </span>
-            )}
           </div>
 
-          <div className="flex flex-col sm:flex-row lg:flex-col gap-2 w-auto lg:w-full shrink-0">
+          <div className="flex flex-col gap-1 w-auto lg:w-full shrink-0">
             <button
               onClick={(e) => {
                 e.preventDefault();
@@ -2391,7 +2342,7 @@ function PropertyCard({ property, onBookNow }) {
                 trackPropertyClick(property.id);
                 navigate(detailPath);
               }}
-              className="px-4 py-2.5 rounded-xl border border-slate-300 hover:border-slate-800 text-slate-800 font-extrabold text-xs transition-all hover:bg-white text-center whitespace-nowrap"
+              className="w-full py-1.5 px-2.5 rounded-lg border border-slate-300 hover:border-slate-800 text-slate-800 font-extrabold text-[11px] transition-all hover:bg-white text-center whitespace-nowrap shadow-2xs"
             >
               View Details
             </button>
@@ -2402,7 +2353,7 @@ function PropertyCard({ property, onBookNow }) {
                 e.stopPropagation();
                 if (onBookNow) onBookNow();
               }}
-              className="px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-black text-xs transition-all shadow-md hover:scale-[1.02] active:scale-95 text-center whitespace-nowrap"
+              className="w-full py-1.5 px-2.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-black text-[11px] transition-all shadow-xs text-center whitespace-nowrap"
             >
               Book Now
             </button>

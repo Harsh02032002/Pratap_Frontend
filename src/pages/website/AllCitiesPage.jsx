@@ -93,7 +93,7 @@ export default function AllCitiesPage() {
                   <Shield className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-[11px] font-extrabold text-slate-900 leading-none">Zero Brokerage</div>
+                  <div className="text-[11px] font-extrabold text-slate-900 leading-none">Smart Bidding</div>
                   <div className="text-[9px] text-slate-500 font-medium">No hidden charges</div>
                 </div>
               </div>
@@ -157,7 +157,7 @@ export default function AllCitiesPage() {
                 Top Student Hubs
               </span>
               <div className="text-xl font-black">Find Stays in 50+ Cities</div>
-              <div className="text-xs text-slate-200 font-medium mt-0.5">Explore Kota, Jaipur, Delhi, Indore &amp; more with Zero Brokerage.</div>
+              <div className="text-xs text-slate-200 font-medium mt-0.5">Explore Kota, Jaipur, Delhi, Indore &amp; more with Smart Bidding.</div>
             </div>
           </div>
         </div>
@@ -245,7 +245,7 @@ export default function AllCitiesPage() {
                 Can't Decide Which City or PG is Right for You?
               </h2>
               <p className="text-xs sm:text-sm text-teal-50 font-medium leading-relaxed mb-6">
-                Submit your details, bid your budget, and let Roomhy find the best matching PG for you with zero brokerage.
+                Submit your details, bid your budget, and let Roomhy find the best matching PG for you with Smart Bidding.
               </p>
 
               <div className="grid grid-cols-2 gap-2 text-xs font-bold">
@@ -259,7 +259,7 @@ export default function AllCitiesPage() {
                 </div>
                 <div className="flex items-center gap-2 bg-white/10 p-2 rounded-xl border border-white/15">
                   <Check className="w-4 h-4 text-emerald-300 shrink-0" />
-                  <span>Zero Brokerage</span>
+                  <span>Smart Bidding</span>
                 </div>
                 <div className="flex items-center gap-2 bg-white/10 p-2 rounded-xl border border-white/15">
                   <Check className="w-4 h-4 text-emerald-300 shrink-0" />

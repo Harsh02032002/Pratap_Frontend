@@ -59,7 +59,7 @@ export default function WebsiteNavbar() {
     <>
       <div className="sticky top-0 z-50 flex flex-col">
         {/* Top Row: Main Navbar */}
-        <nav className="bg-white border-b border-gray-100 shadow-sm">
+        <nav className="bg-white">
           <div className="w-full px-3 sm:px-4 md:px-6">
             <div className="flex items-center justify-between h-16 w-full">
               {/* Left: Logo */}
@@ -94,7 +94,7 @@ export default function WebsiteNavbar() {
 
               {/* Right: Utilities */}
               <div className="hidden md:flex flex-1 items-center justify-end space-x-4 text-sm font-semibold text-gray-700">
-                <Link to="/list-property" className="flex items-center space-x-1.5 hover:text-teal-600 transition-colors px-3 py-1.5 border border-gray-200 rounded-lg hover:border-teal-500">
+                <Link to="/list-property" className="flex items-center space-x-1.5 whitespace-nowrap shrink-0 hover:text-teal-600 transition-colors px-3 py-1.5 border border-gray-200 rounded-lg hover:border-teal-500">
                   <Building2 className="w-4 h-4 text-teal-600" />
                   <span>List your property</span>
                 </Link>
@@ -107,9 +107,9 @@ export default function WebsiteNavbar() {
                       navigate('/bidding');
                     }
                   }}
-                  className="flex items-center space-x-1.5 text-[#EE4266] hover:text-[#d63a5b] transition-colors font-bold px-3 py-1.5 rounded-lg border border-[#EE4266]/20 bg-[#EE4266]/5 cursor-pointer"
+                  className="flex items-center space-x-1.5 text-teal-700 bg-teal-50/90 border border-teal-200/80 hover:bg-teal-600 hover:text-white transition-all font-bold px-3.5 py-1.5 rounded-lg cursor-pointer shadow-2xs group"
                 >
-                  <Zap className="w-4 h-4 text-[#EE4266]" />
+                  <Zap className="w-4 h-4 text-teal-600 group-hover:text-white transition-colors" />
                   <span>Bid Now</span>
                 </button>
 
@@ -140,9 +140,13 @@ export default function WebsiteNavbar() {
                       )}
                     </div>
                   ) : (
-                    <Link to="/login" className="flex items-center space-x-1.5 bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg font-bold transition-all shadow-sm">
-                      <User className="w-4 h-4" />
-                      <span>Login / Signup</span>
+                    <Link 
+                      to="/login" 
+                      title="Login / Signup"
+                      aria-label="Login or Signup"
+                      className="flex items-center justify-center h-9 w-9 rounded-full bg-teal-600 hover:bg-teal-700 text-white transition-all shadow-sm hover:scale-105"
+                    >
+                      <User className="w-4.5 h-4.5" />
                     </Link>
                   )}
                 </div>

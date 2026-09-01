@@ -94,40 +94,23 @@ export default function WebsiteRefundRequest() {
       <WebsiteNavbar />
 
       <main className="min-h-screen">
-        {/* --- COMPACT & STYLISH HEADER --- */}
-        <div className="relative w-full py-5 md:py-10 px-4 md:px-6 overflow-hidden border-b border-stone-200/50" 
-             style={{ background: 'linear-gradient(135deg, #FFFAF5 0%, #FDFCFB 50%, #F5F7FA 100%)' }}>
-          
-          {/* Background Pattern */}
-          <div className="absolute inset-0 opacity-[0.03] pointer-events-none" 
-               style={{ backgroundImage: `url("https://www.transparenttextures.com/patterns/pinstripe.png")` }}>
-          </div>
-
-          <div className="relative max-w-7xl mx-auto flex flex-col items-center text-center">
-            
-            {/* Icon */}
-            <div className="w-8 h-8 md:w-12 md:h-12 rounded-xl bg-green-100 flex items-center justify-center mb-2 md:mb-4">
-              <RefreshCcw size={18} className="text-green-600 md:w-6 md:h-6" />
+        {/* --- HERO BANNER (UNIFIED LIGHT GRADIENT) --- */}
+        <section className="relative bg-gradient-to-br from-[#F4F7FA] via-white to-teal-50/60 border-b border-slate-200/80 text-slate-900 py-10 md:py-12 px-4 md:px-8 overflow-hidden">
+          <div className="max-w-7xl mx-auto text-center relative z-10">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-teal-50 border border-teal-200/80 text-teal-700 text-xs font-bold mb-3 shadow-2xs">
+              <RefreshCcw className="w-3.5 h-3.5 text-teal-600" />
+              <span>Direct Refund & Alternative Stay Request</span>
             </div>
             
-            {/* MAIN HEADING */}
-            <div className="flex items-center gap-2 md:gap-4 mb-1 md:mb-2">
-              <div className="h-[1px] w-6 md:w-8 bg-[#C5A059]/40 hidden md:block"></div>
-              <h1 className="text-2xl md:text-4xl font-bold text-[#1A1A1A] tracking-tight">
-                Refund <span className="text-[#C5A059] font-serif italic font-medium">Request</span>
-              </h1>
-              <div className="h-[1px] w-6 md:w-8 bg-[#C5A059]/40 hidden md:block"></div>
-            </div>
+            <h1 className="text-3xl md:text-5xl font-black tracking-tight text-slate-900 mb-2.5">
+              Refund <span className="text-teal-600">Request</span>
+            </h1>
 
-            {/* SUB-HEADING */}
-            <p className="text-xs md:text-lg text-stone-500 font-normal opacity-90 max-w-xl mx-auto">
-              Submit your refund or alternative property request
+            <p className="text-sm md:text-base text-slate-600 max-w-xl mx-auto font-medium leading-relaxed">
+              Submit your booking reference to request a deposit refund or alternative property allocation.
             </p>
-
-            {/* Bottom Accent Dot */}
-            <div className="mt-2 md:mt-4 w-1.5 h-1.5 rounded-full bg-[#C5A059]/30"></div>
           </div>
-        </div>
+        </section>
 
         {/* Form Section */}
         <section className="py-6 md:py-16 bg-white">
