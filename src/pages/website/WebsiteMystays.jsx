@@ -156,11 +156,36 @@ export default function WebsiteMystays() {
     if (!dateString) return "N/A";
     try {
       const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "N/A";
       return date.toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" });
     } catch {
       return dateString;
     }
   };
+
+  // Smart date resolver — uses actual field if set, else falls back to createdAt
+  const getCheckInDate = (booking) => {
+    return (
+      booking.check_in_date ||
+      booking.checkInDate ||
+      booking.start_date ||
+      booking.created_at ||
+      booking.createdAt ||
+      booking.submittedAt
+    );
+  };
+
+  const getCheckOutDate = (booking) => {
+    const explicit = booking.check_out_date || booking.checkOutDate || booking.end_date;
+    if (explicit) return explicit;
+    // Fallback: check-in + 30 days
+    const checkIn = getCheckInDate(booking);
+    if (!checkIn) return null;
+    const d = new Date(checkIn);
+    d.setDate(d.getDate() + 30);
+    return d.toISOString();
+  };
+
 
   const openRefundModal = (booking, type = "refund") => {
     setSelectedBooking(booking);
@@ -526,13 +551,13 @@ export default function WebsiteMystays() {
                             <div>
                               <p className="text-xs text-gray-600 font-semibold uppercase">Check-in</p>
                               <p className="font-bold text-gray-900 text-sm">
-                                {formatDate(booking.check_in_date || booking.checkInDate || booking.start_date)}
+                                {formatDate(getCheckInDate(booking))}
                               </p>
                             </div>
                             <div>
                               <p className="text-xs text-gray-600 font-semibold uppercase">Check-out</p>
                               <p className="font-bold text-gray-900 text-sm">
-                                {formatDate(booking.check_out_date || booking.checkOutDate || booking.end_date)}
+                                {formatDate(getCheckOutDate(booking))}
                               </p>
                             </div>
                           </div>

@@ -226,6 +226,7 @@ function DesktopHero({ searchQuery, setSearchQuery, selectedGender, setSelectedG
 }
 
 function DesktopWhatWeOffer() {
+  const [imgIdx, setImgIdx] = React.useState({});
   const items = [
     { 
       icon: Bed, 
@@ -235,7 +236,11 @@ function DesktopWhatWeOffer() {
       href: "/pg", 
       badge: "bg-teal-50 text-teal-700 border-teal-200/80",
       bullets: ["Students Preferred", "Meals & WiFi"],
-      img: "https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?w=600&q=80" 
+      images: [
+        "https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?w=600&q=80",
+        "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=80",
+        "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&q=80"
+      ]
     },
     { 
       icon: Building2, 
@@ -245,7 +250,11 @@ function DesktopWhatWeOffer() {
       href: "/hostels", 
       badge: "bg-orange-50 text-orange-700 border-orange-200/80",
       bullets: ["Budget Friendly", "Shared & Private"],
-      img: "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=600&q=80" 
+      images: [
+        "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=600&q=80",
+        "https://images.unsplash.com/photo-1536376072261-38c75010e6c9?w=600&q=80",
+        "https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=600&q=80"
+      ]
     },
     { 
       icon: Sofa, 
@@ -255,7 +264,11 @@ function DesktopWhatWeOffer() {
       href: "/co-living", 
       badge: "bg-purple-50 text-purple-700 border-purple-200/80",
       bullets: ["For Professionals", "Fully Furnished"],
-      img: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=600&q=80" 
+      images: [
+        "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=600&q=80",
+        "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=600&q=80",
+        "https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&q=80"
+      ]
     },
     { 
       icon: Home, 
@@ -265,55 +278,85 @@ function DesktopWhatWeOffer() {
       href: "/apartments", 
       badge: "bg-sky-50 text-sky-700 border-sky-200/80",
       bullets: ["Independent Living", "Long Term Stays"],
-      img: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&q=80" 
+      images: [
+        "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&q=80",
+        "https://images.unsplash.com/photo-1484154218962-a197022b5858?w=600&q=80",
+        "https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?w=600&q=80"
+      ]
     }
   ];
 
   return (
     <DesktopSection title="What We Offer" sub="Choose from a variety of accommodation types tailored for students and professionals.">
       <div className="grid grid-cols-4 gap-4">
-        {items.map(({ icon: I, t, d, cta, href, badge, bullets, img }) => (
-          <Link 
-            key={t} 
-            to={href} 
-            className="group flex overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-2xs hover:shadow-lg hover:border-teal-300/80 hover:-translate-y-0.5 transition-all duration-300 h-36"
-          >
-            {/* LEFT SIDE: Image Thumbnail (50% EQUAL WIDTH w-1/2) */}
-            <div className="relative w-1/2 shrink-0 overflow-hidden bg-slate-100">
-              <img src={img} alt={t} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/30 via-transparent to-transparent"></div>
-              <div className="absolute top-2 left-2 w-7 h-7 rounded-lg bg-white/95 backdrop-blur-md shadow-xs text-teal-600 flex items-center justify-center border border-slate-200/80">
-                <I className="h-3.5 w-3.5" />
-              </div>
-            </div>
-
-            {/* RIGHT SIDE: Details & Clean Subtle Text Link (50% EQUAL WIDTH w-1/2) */}
-            <div className="flex w-1/2 flex-col p-3 justify-between min-w-0">
-              <div className="space-y-1">
-                <h3 className="font-display text-xs font-extrabold text-slate-900 tracking-tight truncate">{t}</h3>
-                <p className="text-[10px] leading-snug text-slate-500 font-medium line-clamp-2">{d}</p>
-                
-                {/* Feature Badges */}
-                <div className="flex flex-wrap gap-1 pt-0.5">
-                  {bullets.map((b) => (
-                    <span key={b} className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-extrabold border ${badge}`}>
-                      <Check className="w-2.5 h-2.5 shrink-0" />
-                      <span className="truncate">{b}</span>
-                    </span>
+        {items.map(({ icon: I, t, d, cta, href, badge, bullets, images }) => {
+          const idx = imgIdx[t] || 0;
+          const total = images.length;
+          return (
+            <Link 
+              key={t} 
+              to={href} 
+              className="group flex overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-2xs hover:shadow-lg hover:border-teal-300/80 hover:-translate-y-0.5 transition-all duration-300 h-36"
+            >
+              {/* LEFT SIDE: Image with carousel arrows */}
+              <div className="relative w-1/2 shrink-0 overflow-hidden bg-slate-100">
+                <img src={images[idx]} alt={t} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/30 via-transparent to-transparent"></div>
+                <div className="absolute top-2 left-2 w-7 h-7 rounded-lg bg-white/95 backdrop-blur-md shadow-xs text-teal-600 flex items-center justify-center border border-slate-200/80">
+                  <I className="h-3.5 w-3.5" />
+                </div>
+                {/* Image counter */}
+                <div className="absolute top-2 right-2 bg-black/60 text-white px-1.5 py-0.5 rounded text-[10px] font-bold">{idx + 1}/{total}</div>
+                {/* Left arrow */}
+                <button
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setImgIdx(prev => ({ ...prev, [t]: (idx - 1 + total) % total })); }}
+                  className="absolute left-1 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/40 hover:bg-black/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10"
+                >
+                  <ChevronLeft className="w-4 h-4 text-white" />
+                </button>
+                {/* Right arrow */}
+                <button
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setImgIdx(prev => ({ ...prev, [t]: (idx + 1) % total })); }}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/40 hover:bg-black/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10"
+                >
+                  <ChevronRight className="w-4 h-4 text-white" />
+                </button>
+                {/* Dot indicators */}
+                <div className="absolute bottom-1 left-0 right-0 flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                  {images.map((_, i) => (
+                    <span key={i} className={`w-1 h-1 rounded-full ${i === idx ? 'bg-white' : 'bg-white/50'}`} />
                   ))}
                 </div>
               </div>
 
-              {/* Clean Subtle Text Link (No Bulky Solid Button) */}
-              <div className="pt-1.5 border-t border-slate-100 flex items-center justify-between">
-                <span className="text-[11px] font-extrabold text-teal-600 group-hover:text-teal-700 inline-flex items-center gap-1 transition-colors">
-                  <span>{cta}</span>
-                  <span className="transition-transform group-hover:translate-x-1 font-bold">→</span>
-                </span>
+              {/* RIGHT SIDE: Details & Clean Subtle Text Link (50% EQUAL WIDTH w-1/2) */}
+              <div className="flex w-1/2 flex-col p-3 justify-between min-w-0">
+                <div className="space-y-1">
+                  <h3 className="font-display text-xs font-extrabold text-slate-900 tracking-tight truncate">{t}</h3>
+                  <p className="text-[10px] leading-snug text-slate-500 font-medium line-clamp-2">{d}</p>
+                  
+                  {/* Feature Badges */}
+                  <div className="flex flex-wrap gap-1 pt-0.5">
+                    {bullets.map((b) => (
+                      <span key={b} className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-extrabold border ${badge}`}>
+                        <Check className="w-2.5 h-2.5 shrink-0" />
+                        <span className="truncate">{b}</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Clean Subtle Text Link (No Bulky Solid Button) */}
+                <div className="pt-1.5 border-t border-slate-100 flex items-center justify-between">
+                  <span className="text-[11px] font-extrabold text-teal-600 group-hover:text-teal-700 inline-flex items-center gap-1 transition-colors">
+                    <span>{cta}</span>
+                    <span className="transition-transform group-hover:translate-x-1 font-bold">→</span>
+                  </span>
+                </div>
               </div>
-            </div>
-          </Link>
-        ))}
+            </Link>
+          );
+        })}
       </div>
     </DesktopSection>
   );
@@ -342,6 +385,7 @@ function DesktopHowItWorks({ onOpenVideoModal }) {
 
 function DesktopTrending({ properties }) {
   const scrollRef = React.useRef(null);
+  const [cardImgIdx2, setCardImgIdx2] = React.useState({});
 
   const scroll = (direction) => {
     if (scrollRef.current) {
@@ -354,12 +398,12 @@ function DesktopTrending({ properties }) {
   };
 
   const fallbackProperties = [
-    { _id: "1", name: "ABC Residence", location: "Vigyan Nagar, Kota", rent: 2000, rating: 4.6, reviews: 120, image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=70" },
-    { _id: "2", name: "HL Residency", location: "Landmark City, Kota", rent: 2500, rating: 4.5, reviews: 98, image: "https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=600&q=70" },
-    { _id: "3", name: "Sunshine PG", location: "Talwandi, Kota", rent: 2500, rating: 4.3, reviews: 76, image: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=600&q=70" },
-    { _id: "4", name: "Cozy Stay Boys PG", location: "Mahaveer Nagar, Kota", rent: 2500, rating: 4.6, reviews: 110, image: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&q=70" },
-    { _id: "5", name: "Green View Hostel", location: "Indra Vihar, Kota", rent: 2300, rating: 4.4, reviews: 95, image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=70" },
-    { _id: "6", name: "Royal Heights PG", location: "Vijay Nagar, Indore", rent: 3200, rating: 4.8, reviews: 140, image: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=600&q=70" },
+    { _id: "1", name: "ABC Residence", location: "Vigyan Nagar, Kota", rent: 2000, rating: 4.6, reviews: 120, image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=70", images: ["https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=70","https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&q=70","https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=600&q=70"] },
+    { _id: "2", name: "HL Residency", location: "Landmark City, Kota", rent: 2500, rating: 4.5, reviews: 98, image: "https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=600&q=70", images: ["https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=600&q=70","https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?w=600&q=70","https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=600&q=70"] },
+    { _id: "3", name: "Sunshine PG", location: "Talwandi, Kota", rent: 2500, rating: 4.3, reviews: 76, image: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=600&q=70", images: ["https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=600&q=70","https://images.unsplash.com/photo-1513694203232-719a280e022f?w=600&q=70","https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&q=70"] },
+    { _id: "4", name: "Cozy Stay Boys PG", location: "Mahaveer Nagar, Kota", rent: 2500, rating: 4.6, reviews: 110, image: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&q=70", images: ["https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&q=70","https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=600&q=70","https://images.unsplash.com/photo-1513694203232-719a280e022f?w=600&q=70"] },
+    { _id: "5", name: "Green View Hostel", location: "Indra Vihar, Kota", rent: 2300, rating: 4.4, reviews: 95, image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=70", images: ["https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=70","https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?w=600&q=70","https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=600&q=70"] },
+    { _id: "6", name: "Royal Heights PG", location: "Vijay Nagar, Indore", rent: 3200, rating: 4.8, reviews: 140, image: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=600&q=70", images: ["https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=600&q=70","https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&q=70","https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?w=600&q=70"] },
   ];
 
   const displayList = properties && properties.length > 0 ? properties : fallbackProperties;
@@ -393,31 +437,62 @@ function DesktopTrending({ properties }) {
           ref={scrollRef}
           className="flex items-center gap-4 overflow-x-auto scroll-smooth scrollbar-hide py-2 px-1"
         >
-          {displayList.map((c) => (
-            <Link key={c._id || c.id} to={`/website/propertydetails/${c._id || c.id}`} className="w-[230px] shrink-0 group overflow-hidden rounded-2xl border border-slate-200 bg-white transition hover:-translate-y-0.5 hover:shadow-lg">
-              <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
-                <img src={c.image} alt={c.name} className="h-full w-full object-cover transition group-hover:scale-105" />
-                <span className={`absolute left-2 top-2 inline-flex items-center gap-1 rounded-full ${BRAND_BG} px-2 py-0.5 text-[10px] font-bold text-white shadow-xs`}>
-                  <BadgeCheck className="h-3 w-3" /> Verified
-                </span>
-              </div>
-              <div className="p-3">
-                <h3 className="truncate font-display text-sm font-bold text-slate-800">{c.name}</h3>
-                <p className="mt-0.5 truncate text-[11px] text-slate-500 font-medium">{c.location}</p>
-                <div className="mt-1.5 flex items-center gap-1">
-                  <span className={`inline-flex items-center gap-0.5 rounded ${BRAND_BG} px-1.5 py-0.5 text-[10px] font-bold text-white`}>
-                    <Star className="h-2.5 w-2.5 fill-white" /> {c.rating || 4.5}
+          {displayList.map((c) => {
+            const propImgs = c.images && c.images.length > 0 ? c.images : [c.image];
+            const imgIdx = cardImgIdx2[c._id || c.id] || 0;
+            const totalImgs = propImgs.length;
+            return (
+              <Link key={c._id || c.id} to={`/website/propertydetails/${c._id || c.id}`} className="w-[230px] shrink-0 group overflow-hidden rounded-2xl border border-slate-200 bg-white transition hover:-translate-y-0.5 hover:shadow-lg">
+                <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
+                  <img src={propImgs[imgIdx]} alt={c.name} className="h-full w-full object-cover transition group-hover:scale-105" />
+                  <span className={`absolute left-2 top-2 inline-flex items-center gap-1 rounded-full ${BRAND_BG} px-2 py-0.5 text-[10px] font-bold text-white shadow-xs`}>
+                    <BadgeCheck className="h-3 w-3" /> Verified
                   </span>
-                  <span className="text-[10px] text-slate-500 font-medium">({c.reviews || 95})</span>
+                  {/* Left arrow */}
+                  {totalImgs > 1 && (
+                    <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCardImgIdx2(prev => ({ ...prev, [c._id || c.id]: (imgIdx - 1 + totalImgs) % totalImgs })); }}
+                      className="absolute left-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/40 hover:bg-black/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10">
+                      <ChevronLeft className="w-3.5 h-3.5 text-white" />
+                    </button>
+                  )}
+                  {/* Right arrow */}
+                  {totalImgs > 1 && (
+                    <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCardImgIdx2(prev => ({ ...prev, [c._id || c.id]: (imgIdx + 1) % totalImgs })); }}
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/40 hover:bg-black/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10">
+                      <ChevronRight className="w-3.5 h-3.5 text-white" />
+                    </button>
+                  )}
+                  {/* Dots */}
+                  {totalImgs > 1 && (
+                    <div className="absolute bottom-1.5 left-0 right-0 flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                      {propImgs.map((_, i) => <span key={i} className={`w-1.5 h-1.5 rounded-full ${i === imgIdx ? 'bg-white' : 'bg-white/50'}`} />)}
+                    </div>
+                  )}
                 </div>
-                <div className="mt-2 flex items-baseline gap-1">
-                  <span className="text-sm font-extrabold text-slate-900">₹{Number(c.price ? c.price.replace(/[^0-9]/g, '') : c.rent).toLocaleString('en-IN')}</span>
-                  <span className="text-[10px] text-slate-500 font-medium">/ mo</span>
-                  <span className="ml-auto text-[10px] font-bold text-orange-500">40% off</span>
+                <div className="p-3">
+                  <h3 className="truncate font-display text-sm font-bold text-slate-800">{c.name}</h3>
+                  <p className="mt-0.5 truncate text-[11px] text-slate-500 font-medium">{c.location}</p>
+                  <div className="mt-1.5 flex items-center gap-1">
+                    {(c.rating || c.averageRating) ? (
+                      <>
+                        <span className={`inline-flex items-center gap-0.5 rounded ${BRAND_BG} px-1.5 py-0.5 text-[10px] font-bold text-white`}>
+                          <Star className="h-2.5 w-2.5 fill-white" /> {(c.rating || c.averageRating).toFixed ? (c.rating || c.averageRating).toFixed(1) : (c.rating || c.averageRating)}
+                        </span>
+                        {c.reviews || c.reviewCount ? <span className="text-[10px] text-slate-500 font-medium">({c.reviews || c.reviewCount})</span> : null}
+                      </>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 font-medium">No rating yet</span>
+                    )}
+                  </div>
+                  <div className="mt-2 flex items-baseline gap-1">
+                    <span className="text-sm font-extrabold text-slate-900">₹{Number(c.price ? c.price.replace(/[^0-9]/g, '') : c.rent).toLocaleString('en-IN')}</span>
+                    <span className="text-[10px] text-slate-500 font-medium">/ mo</span>
+                    <span className="ml-auto text-[10px] font-bold text-orange-500">40% off</span>
+                  </div>
                 </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </div>
       </div>
     </DesktopSection>
@@ -580,39 +655,65 @@ function DesktopLifeAtRoomhy() {
 }
 
 function DesktopFindYourStay() {
+  const [cardImgIdx, setCardImgIdx] = React.useState({});
   const cards = [
-    { title: "PG (Paying Guest)", icon: Bed, color: "bg-emerald-500 text-white", bgCard: "bg-emerald-50/50 border-emerald-100", bullets: ["Best for students", "Affordable", "Meals included", "Monthly stay"], img: "https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?w=500&q=80", type: "pg" },
-    { title: "Hostels", icon: Building2, color: "bg-orange-500 text-white", bgCard: "bg-orange-50/50 border-orange-100", bullets: ["Best for students", "Budget friendly", "Shared facilities", "Daily / Monthly"], img: "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=500&q=80", type: "hostel" },
-    { title: "Co-living", icon: Sofa, color: "bg-purple-500 text-white", bgCard: "bg-purple-50/50 border-purple-100", bullets: ["Best for professionals", "Flexible stay", "Community living", "Fully furnished"], img: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=500&q=80", type: "co-living" },
-    { title: "Apartments", icon: Home, color: "bg-sky-500 text-white", bgCard: "bg-sky-50/50 border-sky-100", bullets: ["Best for families/pros", "Private & shared", "Long term stay", "Independent living"], img: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=500&q=80", type: "apartment" }
+    { title: "PG (Paying Guest)", icon: Bed, color: "bg-emerald-500 text-white", bgCard: "bg-emerald-50/50 border-emerald-100", bullets: ["Best for students", "Affordable", "Meals included", "Monthly stay"], images: ["https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?w=500&q=80","https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=500&q=80","https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=500&q=80"], type: "pg" },
+    { title: "Hostels", icon: Building2, color: "bg-orange-500 text-white", bgCard: "bg-orange-50/50 border-orange-100", bullets: ["Best for students", "Budget friendly", "Shared facilities", "Daily / Monthly"], images: ["https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=500&q=80","https://images.unsplash.com/photo-1536376072261-38c75010e6c9?w=500&q=80","https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=500&q=80"], type: "hostel" },
+    { title: "Co-living", icon: Sofa, color: "bg-purple-500 text-white", bgCard: "bg-purple-50/50 border-purple-100", bullets: ["Best for professionals", "Flexible stay", "Community living", "Fully furnished"], images: ["https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=500&q=80","https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=500&q=80","https://images.unsplash.com/photo-1497366216548-37526070297c?w=500&q=80"], type: "co-living" },
+    { title: "Apartments", icon: Home, color: "bg-sky-500 text-white", bgCard: "bg-sky-50/50 border-sky-100", bullets: ["Best for families/pros", "Private & shared", "Long term stay", "Independent living"], images: ["https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=500&q=80","https://images.unsplash.com/photo-1484154218962-a197022b5858?w=500&q=80","https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?w=500&q=80"], type: "apartment" }
   ];
 
   return (
     <DesktopSection title="Find Your Perfect Stay" sub="Different needs, perfect spaces.">
       <div className="grid grid-cols-4 gap-4">
-        {cards.map((c) => (
-          <Link key={c.title} to={`/website/ourproperty?type=${c.type}`} className={`flex flex-col justify-between rounded-3xl border ${c.bgCard} p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md`}>
-            <div>
-              <div className="flex items-center gap-2.5 mb-4">
-                <div className={`flex h-8 w-8 items-center justify-center rounded-xl ${c.color}`}>
-                  <c.icon className="h-4 w-4" />
+        {cards.map((c) => {
+          const idx = cardImgIdx[c.type] || 0;
+          const total = c.images.length;
+          return (
+            <Link key={c.title} to={`/website/ourproperty?type=${c.type}`} className={`flex flex-col justify-between rounded-3xl border ${c.bgCard} p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md group`}>
+              <div>
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className={`flex h-8 w-8 items-center justify-center rounded-xl ${c.color}`}>
+                    <c.icon className="h-4 w-4" />
+                  </div>
+                  <h3 className="font-display text-base font-bold text-slate-800">{c.title}</h3>
                 </div>
-                <h3 className="font-display text-base font-bold text-slate-800">{c.title}</h3>
+                <ul className="space-y-2 mb-6">
+                  {c.bullets.map((b) => (
+                    <li key={b} className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                      <Check className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                      <span>{b}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <ul className="space-y-2 mb-6">
-                {c.bullets.map((b) => (
-                  <li key={b} className="flex items-center gap-2 text-xs font-semibold text-slate-700">
-                    <Check className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                    <span>{b}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="relative h-32 w-full overflow-hidden rounded-2xl mt-2">
-              <img src={c.img} alt={c.title} className="h-full w-full object-cover" />
-            </div>
-          </Link>
-        ))}
+              {/* Image with carousel */}
+              <div className="relative h-32 w-full overflow-hidden rounded-2xl mt-2">
+                <img src={c.images[idx]} alt={c.title} className="h-full w-full object-cover transition-all duration-300" />
+                {/* Left arrow */}
+                <button
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCardImgIdx(prev => ({ ...prev, [c.type]: (idx - 1 + total) % total })); }}
+                  className="absolute left-1 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/40 hover:bg-black/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10"
+                >
+                  <ChevronLeft className="w-4 h-4 text-white" />
+                </button>
+                {/* Right arrow */}
+                <button
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCardImgIdx(prev => ({ ...prev, [c.type]: (idx + 1) % total })); }}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/40 hover:bg-black/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10"
+                >
+                  <ChevronRight className="w-4 h-4 text-white" />
+                </button>
+                {/* Dot indicators */}
+                <div className="absolute bottom-1 left-0 right-0 flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                  {c.images.map((_, i) => (
+                    <span key={i} className={`w-1.5 h-1.5 rounded-full ${i === idx ? 'bg-white' : 'bg-white/50'}`} />
+                  ))}
+                </div>
+              </div>
+            </Link>
+          );
+        })}
       </div>
     </DesktopSection>
   );
@@ -991,8 +1092,25 @@ export default function HomePage() {
 
   const handleSearchSubmit = (e, selectedTabType) => {
     if (e && e.preventDefault) e.preventDefault();
+    const query = searchQuery.trim();
     const params = new URLSearchParams();
-    if (searchQuery.trim()) params.append('search', searchQuery.trim());
+    
+    // Try to detect city and area from query text
+    const knownCities = ['kota', 'sikar', 'indore', 'jaipur', 'delhi', 'mumbai', 'pune', 'bangalore', 'bengaluru', 'hyderabad', 'bhopal', 'nagpur', 'lucknow', 'chandigarh', 'noida', 'gurugram'];
+    if (query) {
+      const lowerQ = query.toLowerCase();
+      const matchedCity = knownCities.find(c => lowerQ.includes(c));
+      if (matchedCity) {
+        // Extract city and area from search
+        const cityFormatted = matchedCity.charAt(0).toUpperCase() + matchedCity.slice(1);
+        params.append('city', cityFormatted);
+        const areaText = lowerQ.replace(matchedCity, '').replace(/,/g, '').trim();
+        if (areaText) params.append('area', areaText.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '));
+      } else {
+        params.append('search', query);
+      }
+    }
+    
     if (selectedTabType || selectedType) params.append('type', selectedTabType || selectedType);
     if (selectedGender) params.append('gender', selectedGender);
     if (selectedBudget) params.append('maxPrice', selectedBudget);

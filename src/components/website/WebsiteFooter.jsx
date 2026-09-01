@@ -372,6 +372,18 @@ export default function WebsiteFooter() {
             </a>
           </div>
         </div>
+
+        {/* Company Address & GSTIN */}
+        <div className="mx-auto max-w-[1440px] mt-2.5 pt-2.5 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-1.5 text-[10px] text-slate-400 font-medium">
+          <div className="flex items-start gap-1.5">
+            <MapPin className="w-3 h-3 text-slate-300 shrink-0 mt-0.5" />
+            <span>847, Balaji Nagar, Rangbari, Near Pani Ki Tanki, Kota, Rajasthan 324005, India</span>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <FileText className="w-3 h-3 text-slate-300 shrink-0" />
+            <span>GSTIN: <span className="font-black text-slate-500 tracking-wide">08SLWPS2629G1ZZ</span></span>
+          </div>
+        </div>
       </div>
     </footer>
   );

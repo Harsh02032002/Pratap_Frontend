@@ -17,6 +17,7 @@ import useSEO from "../../hooks/useSEO";
 const seoCache = new Map();
 const propertyCache = new Map();
 const nearbyDataCache = new Map();
+const overpassCollegesCache = new Map(); // cache colleges per city-set to avoid 429 rate limit
 
 async function getCachedOrFetch(cacheMap, key, fetcher, ttlMs = 10 * 60 * 1000) {
   const cached = cacheMap.get(key);
@@ -275,6 +276,7 @@ export default function OurPropertyPage() {
   const [institutions, setInstitutions] = useState([]);
   const [nearbyAreas, setNearbyAreas] = useState([]);
   const [allColleges, setAllColleges] = useState([]);
+  const [collegesLoading, setCollegesLoading] = useState(false);
   const [selectedColleges, setSelectedColleges] = useState([]);
   const [availableCities, setAvailableCities] = useState([]);
   const [priceRange, setPriceRange] = useState({ min: 0, max: 0, average: 0, count: 0 });
@@ -553,6 +555,59 @@ export default function OurPropertyPage() {
     setShowDirectBookingModal(false);
   };
 
+  // 0. COLLEGES FETCH — Overpass API, sequential with delay to avoid 429 rate limit + session cache
+  useEffect(() => {
+    if (availableCities.length === 0) return;
+    let cancelled = false;
+
+    // Cache key based on sorted city list
+    const cacheKey = availableCities.slice(0, 5).sort().join('|');
+
+    // Return cached result immediately if available
+    if (overpassCollegesCache.has(cacheKey)) {
+      setAllColleges(overpassCollegesCache.get(cacheKey));
+      return;
+    }
+
+    const EXCLUDE_WORDS = ['ground', 'park', 'field', 'stadium', 'garden', 'playground', 'sports', 'club', 'gym', 'hospital', 'clinic', 'hotel', 'mall', 'market', 'temple', 'church', 'mosque', 'masjid', 'mandir', 'dispensary'];
+
+    const run = async () => {
+      setCollegesLoading(true);
+      const allFound = new Set();
+
+      // Sequential requests — 1.2s delay between each to respect Overpass 1 req/sec limit
+      for (const city of availableCities.slice(0, 5)) {
+        if (cancelled) break;
+        try {
+          const q = `[out:json][timeout:25];area["name"="${city}"]["place"~"city|town|village"]->.a;(node["amenity"="college"]["name"](area.a);way["amenity"="college"]["name"](area.a);node["amenity"="university"]["name"](area.a);way["amenity"="university"]["name"](area.a);node["amenity"="school"]["name"](area.a);way["amenity"="school"]["name"](area.a););out;`;
+          const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(q)}`);
+          if (res.ok) {
+            const json = await res.json();
+            (json.elements || []).forEach(e => {
+              const name = (e.tags?.name || '').trim();
+              if (name.length >= 4) {
+                const lower = name.toLowerCase();
+                if (!EXCLUDE_WORDS.some(w => lower.includes(w))) allFound.add(name);
+              }
+            });
+          }
+        } catch (e) { /* silent */ }
+        // Wait 1.2s between requests to avoid 429
+        if (!cancelled) await new Promise(r => setTimeout(r, 1200));
+      }
+
+      if (!cancelled) {
+        const result = Array.from(allFound).sort();
+        overpassCollegesCache.set(cacheKey, result); // cache for this session
+        setAllColleges(result);
+        setCollegesLoading(false);
+      }
+    };
+
+    run();
+    return () => { cancelled = true; };
+  }, [availableCities]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // 1. SERVER DATA FETCHING — runs ONLY when search location / URL type parameters change
   useEffect(() => {
     let isCancelled = false;
@@ -618,16 +673,20 @@ export default function OurPropertyPage() {
 
         // Pre-extract colleges from dataset
         const collegesByProperty = {};
-        const allCollegesSet = new Set();
+        const propertyCollegesSet = new Set();
         formattedProperties.forEach(prop => {
           if (Array.isArray(prop.nearbyColleges) && prop.nearbyColleges.length > 0) {
             const names = prop.nearbyColleges.map(c => (typeof c === 'string' ? c : c.name)).filter(Boolean);
             collegesByProperty[prop.id] = names;
-            names.forEach(n => allCollegesSet.add(n));
+            names.forEach(n => propertyCollegesSet.add(n));
           }
         });
         setPropertyNearbyColleges(collegesByProperty);
-        setAllColleges(Array.from(allCollegesSet).sort());
+        // Merge with any colleges already fetched from dedicated endpoint
+        setAllColleges(prev => {
+          const merged = new Set([...prev, ...Array.from(propertyCollegesSet)]);
+          return Array.from(merged).sort();
+        });
 
         // Background fetch for nearby areas & institutions (cached, ONCE per city)
         const targetCity = cityFromUrl || (formattedProperties.length > 0 ? formattedProperties[0].city : '');
@@ -1130,6 +1189,10 @@ export default function OurPropertyPage() {
                           }}
                         >
                           <option value="">All Cities</option>
+                          {/* Always include URL city even before properties load */}
+                          {initialCity && !Object.keys(dynamicCitiesMap).some(c => c.toLowerCase() === initialCity.toLowerCase()) && (
+                            <option key={initialCity} value={initialCity}>{initialCity}</option>
+                          )}
                           {Object.keys(dynamicCitiesMap).map(c => (
                             <option key={c} value={c}>{c}</option>
                           ))}
@@ -1160,6 +1223,10 @@ export default function OurPropertyPage() {
                           }}
                         >
                           <option value="">All Localities {selectedCity ? `in ${selectedCity}` : ''}</option>
+                          {/* Always include URL area even before properties load */}
+                          {initialArea && !displayLocalities.some(l => l.name.toLowerCase() === initialArea.toLowerCase()) && (
+                            <option key={initialArea} value={initialArea}>{initialArea}</option>
+                          )}
                           {displayLocalities.map(loc => (
                             <option key={loc.name} value={loc.name}>
                               {loc.name} {loc.count > 0 ? `(${loc.count})` : ''}
@@ -1334,12 +1401,20 @@ export default function OurPropertyPage() {
                             transition: 'border-color 0.15s, background 0.15s',
                           }}
                         >
-                          <option value="">All Colleges &amp; Institutes</option>
-                          {(allColleges && allColleges.length > 0 ? allColleges : ['Allen Career Institute', 'Resonance', 'Motion Education', 'Bansal Classes', 'PW (Physics Wallah)', 'Reliable Institute', 'IIT / Coaching Hub']).map(c => (
-                            <option key={c} value={c}>{c}</option>
-                          ))}
+                          <option value="">{collegesLoading && allColleges.length === 0 ? '⏳ Loading...' : 'All Colleges & Institutes'}</option>
+                          {allColleges.length === 0 && !collegesLoading ? (
+                            <option disabled value="">No colleges found</option>
+                          ) : (
+                            allColleges.map(c => (
+                              <option key={c} value={c}>{c}</option>
+                            ))
+                          )}
                         </select>
-                        <ChevronDown style={{ width: '14px', height: '14px', color: '#64748B', position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                        {collegesLoading ? (
+                          <RefreshCw style={{ width: '11px', height: '11px', color: '#0F9F91', position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)' }} className="animate-spin" />
+                        ) : (
+                          <ChevronDown style={{ width: '14px', height: '14px', color: '#64748B', position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                        )}
                       </div>
                     </div>
 

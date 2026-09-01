@@ -1732,3 +1732,50 @@ export const fetchHomeOverviewStats = async () => {
 export const API_URL = getApiBase();
 
 export const apiFetch = (path, options = {}) => fetchJson(path, options);
+
+// ── Site-wide Stats (for dynamic number display) ──────────────────────────────
+
+/**
+ * Fetch dynamic site stats: total properties, per-city counts, total users.
+ * Used to replace static hardcoded numbers across the site.
+ * Cached for 10 minutes.
+ */
+export const fetchSiteStats = async () => {
+  try {
+    const data = await _fetchCached('/api/site-stats', 10 * 60 * 1000);
+    if (data && data.success) return data;
+    throw new Error('Invalid stats response');
+  } catch (_) {
+    // Fallback: compute from approved properties
+    try {
+      const props = await _fetchCached('/api/approved-properties', 10 * 60 * 1000);
+      const list = Array.isArray(props) ? props : (props?.data || props?.properties || []);
+      const total = list.length;
+      const byCity = {};
+      list.forEach(p => {
+        const c = (p.city || p.propertyInfo?.city || '').trim();
+        if (c) byCity[c] = (byCity[c] || 0) + 1;
+      });
+      const formatCount = (n) => n >= 1000 ? `${Math.floor(n / 100) * 100}+` : `${n}+`;
+      return {
+        success: true,
+        total,
+        totalFormatted: formatCount(total || 500),
+        byCity,
+        byCityFormatted: Object.fromEntries(Object.entries(byCity).map(([k, v]) => [k, formatCount(v)])),
+        totalUsers: null, // Not available from this endpoint
+        totalUsersFormatted: '50,000+', // Keep as static until dedicated endpoint available
+      };
+    } catch (__) {
+      return {
+        success: false,
+        total: 0,
+        totalFormatted: '500+',
+        byCity: { Kota: 0, Sikar: 0, Indore: 0 },
+        byCityFormatted: { Kota: '500+', Sikar: '300+', Indore: '800+' },
+        totalUsersFormatted: '50,000+',
+      };
+    }
+  }
+};
+

@@ -11,7 +11,7 @@ import MobileBottomNav from '../../components/website/MobileBottomNav';
 import MobileHamburgerMenu from '../../components/website/MobileHamburgerMenu';
 import MobilePropertiesSection from '../../components/website/MobilePropertiesSection';
 import MobileVideoSection from '../../components/website/MobileVideoSection';
-import { fetchCities, fetchProperties, trackPropertyClick, getPropertyDetailsUrl } from '../../utils/api';
+import { fetchCities, fetchProperties, trackPropertyClick, getPropertyDetailsUrl, fetchSiteStats } from '../../utils/api';
 import useSEO from '../../hooks/useSEO';
 
 const cityAreas = {};
@@ -264,6 +264,14 @@ export default function WebsiteIndex() {
             location: `${p.area || p.propertyInfo?.area ? (p.area || p.propertyInfo?.area) + ', ' : ''}${p.city || p.propertyInfo?.city || 'Kota'}`,
             monthlyRent: p.monthlyRent || p.rent || p.propertyInfo?.rent || 8000,
             image: p.featuredImage || p.images?.[0] || p.propertyInfo?.photos?.[0] || 'https://images.pexels.com/photos/1571468/pexels-photo-1571468.jpeg?auto=compress&cs=tinysrgb&w=600',
+            images: (() => {
+              const imgs = [];
+              if (p.featuredImage) imgs.push(p.featuredImage);
+              if (Array.isArray(p.images)) p.images.forEach(i => { if (i && !imgs.includes(i)) imgs.push(i); });
+              if (Array.isArray(p.propertyInfo?.photos)) p.propertyInfo.photos.forEach(i => { if (i && !imgs.includes(i)) imgs.push(i); });
+              if (imgs.length === 0) imgs.push('https://images.pexels.com/photos/1571468/pexels-photo-1571468.jpeg?auto=compress&cs=tinysrgb&w=600');
+              return imgs.slice(0, 5);
+            })(),
             verified: true
           }));
           setTrendingProperties(formattedProperties);
@@ -275,6 +283,22 @@ export default function WebsiteIndex() {
       }
     };
     loadData();
+  }, []);
+
+  // Load dynamic city stats separately (non-blocking)
+  useEffect(() => {
+    const loadCityStats = async () => {
+      try {
+        const stats = await fetchSiteStats();
+        if (stats && stats.byCityFormatted) {
+          setCities(prev => prev.map(c => ({
+            ...c,
+            properties: stats.byCityFormatted[c.name] || stats.byCityFormatted[c.name.toLowerCase()] || c.properties
+          })));
+        }
+      } catch (_) { /* keep static fallback */ }
+    };
+    loadCityStats();
   }, []);
 
   // Search handler
@@ -343,8 +367,22 @@ export default function WebsiteIndex() {
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     setHasSearched(true);
+    const query = searchQuery.trim();
     const params = new URLSearchParams();
-    if (searchQuery.trim()) params.append('search', searchQuery.trim());
+    // Detect city/area from query for smarter navigation
+    const knownCities = ['kota', 'sikar', 'indore', 'jaipur', 'delhi', 'mumbai', 'pune', 'bangalore', 'bengaluru', 'hyderabad', 'bhopal', 'nagpur', 'lucknow', 'chandigarh', 'noida', 'gurugram'];
+    if (query) {
+      const lowerQ = query.toLowerCase();
+      const matchedCity = knownCities.find(c => lowerQ.includes(c));
+      if (matchedCity) {
+        const cityFormatted = matchedCity.charAt(0).toUpperCase() + matchedCity.slice(1);
+        params.append('city', cityFormatted);
+        const areaText = lowerQ.replace(matchedCity, '').replace(/,/g, '').trim();
+        if (areaText) params.append('area', areaText.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '));
+      } else {
+        params.append('search', query);
+      }
+    }
     if (selectedType) params.append('type', selectedType.toLowerCase());
     const queryString = params.toString();
     navigate(queryString ? `/website/ourproperty?${queryString}` : '/website/ourproperty');
@@ -369,6 +407,7 @@ export default function WebsiteIndex() {
   const [trendingStartIndex, setTrendingStartIndex] = useState(0);
   const trendingPerView = 5;
   const [offeringSelectedImage, setOfferingSelectedImage] = useState({});
+  const [trendingCardImgIdx, setTrendingCardImgIdx] = useState({});
 
   const offeringScrollContainerRef = useRef(null);
   const trendingScrollContainerRef = useRef(null);
@@ -814,46 +853,77 @@ export default function WebsiteIndex() {
               )}
 
               <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-x-4 gap-y-6">
-                {visibleTrending.map((property) => (
-                  <Link 
-                    key={property._id} 
-                    to={getPropertyDetailsUrl(property)}
-                    className="group block cursor-pointer"
-                  >
-                    <div className="relative h-36 rounded-md overflow-hidden mb-2">
-                      <img
-                        src={property.image}
-                        alt={property.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        loading="lazy"
-                        width="300"
-                        height="144"
-                        onError={(e) => {
-                          e.target.src = `https://picsum.photos/600/400?random=${Math.floor(Math.random() * 100)}`;
-                        }}
-                      />
-                      {property.verified && (
-                        <div className="absolute top-2 left-2 bg-white/20 backdrop-blur border border-white/30 rounded px-1.5 py-0.5 flex items-center shadow-lg">
-                          <BadgeCheck className="w-3.5 h-3.5 text-teal-600 mr-1" />
-                          <span className="text-[10px] font-bold text-gray-900">Verified</span>
+                  {visibleTrending.map((property) => {
+                    const propImgs = property.images && property.images.length > 0 ? property.images : [property.image];
+                    const imgIdx = trendingCardImgIdx[property._id] || 0;
+                    const totalImgs = propImgs.length;
+                    return (
+                      <Link
+                        key={property._id}
+                        to={getPropertyDetailsUrl(property)}
+                        className="group block cursor-pointer"
+                      >
+                        <div className="relative h-36 rounded-md overflow-hidden mb-2">
+                          <img
+                            src={propImgs[imgIdx]}
+                            alt={property.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            loading="lazy"
+                            width="300"
+                            height="144"
+                            onError={(e) => {
+                              e.target.src = `https://picsum.photos/600/400?random=${Math.floor(Math.random() * 100)}`;
+                            }}
+                          />
+                          {property.verified && (
+                            <div className="absolute top-2 left-2 bg-white/20 backdrop-blur border border-white/30 rounded px-1.5 py-0.5 flex items-center shadow-lg">
+                              <BadgeCheck className="w-3.5 h-3.5 text-teal-600 mr-1" />
+                              <span className="text-[10px] font-bold text-gray-900">Verified</span>
+                            </div>
+                          )}
+                          {/* Left arrow */}
+                          {totalImgs > 1 && (
+                            <button
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setTrendingCardImgIdx(prev => ({ ...prev, [property._id]: (imgIdx - 1 + totalImgs) % totalImgs })); }}
+                              className="absolute left-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/40 hover:bg-black/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10"
+                            >
+                              <ChevronLeft className="w-4 h-4 text-white" />
+                            </button>
+                          )}
+                          {/* Right arrow */}
+                          {totalImgs > 1 && (
+                            <button
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setTrendingCardImgIdx(prev => ({ ...prev, [property._id]: (imgIdx + 1) % totalImgs })); }}
+                              className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/40 hover:bg-black/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10"
+                            >
+                              <ChevronRight className="w-4 h-4 text-white" />
+                            </button>
+                          )}
+                          {/* Dot indicators */}
+                          {totalImgs > 1 && (
+                            <div className="absolute bottom-1.5 left-0 right-0 flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                              {propImgs.map((_, i) => (
+                                <span key={i} className={`w-1.5 h-1.5 rounded-full ${i === imgIdx ? 'bg-white' : 'bg-white/50'}`} />
+                              ))}
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-gray-900 text-sm mb-0.5 line-clamp-1 group-hover:text-teal-600 transition-colors">{property.name || property.property_name || 'Roomhy Property'}</h3>
-                      <div className="text-gray-500 text-[11px] mb-1 line-clamp-1">
-                        {property.location}
-                      </div>
-                      <div className="flex items-baseline gap-1.5">
-                        <span className="text-base font-bold text-gray-900">
-                          {property.monthlyRent ? `₹${property.monthlyRent.toLocaleString()}` : (property.price || '₹0')}
-                        </span>
-                        <span className="text-[10px] text-gray-500 line-through">₹9,999</span>
-                        <span className="text-[10px] font-semibold text-[#f5a623]">40% off</span>
-                      </div>
-                    </div>
-                  </Link>
-                ))}
+                        <div>
+                          <h3 className="font-bold text-gray-900 text-sm mb-0.5 line-clamp-1 group-hover:text-teal-600 transition-colors">{property.name || property.property_name || 'Roomhy Property'}</h3>
+                          <div className="text-gray-500 text-[11px] mb-1 line-clamp-1">
+                            {property.location}
+                          </div>
+                          <div className="flex items-baseline gap-1.5">
+                            <span className="text-base font-bold text-gray-900">
+                              {property.monthlyRent ? `₹${property.monthlyRent.toLocaleString()}` : (property.price || '₹0')}
+                            </span>
+                            <span className="text-[10px] text-gray-500 line-through">₹9,999</span>
+                            <span className="text-[10px] font-semibold text-[#f5a623]">40% off</span>
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
               </div>
             </div>
           </div>
