@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession } from "../../utils/propertyowner";
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, getActiveOwnerPropertyId } from "../../utils/propertyowner";
 import {
   IndianRupee, TrendingUp, TrendingDown, ArrowUpRight,
   Calendar, CheckCircle, Clock, AlertTriangle, FileText, Download, Wallet
@@ -38,6 +38,9 @@ export default function RevenueOverviewPage() {
 
   const monthOptions = buildOptions();
 
+  // Revenue is read per property: the sidebar's active property scopes every
+  // figure below, so two properties owned by the same account never share totals.
+  const activePropertyId = getActiveOwnerPropertyId();
   const [selectedMonth, setSelectedMonth] = useState(computeMonth(0));
   const [activeTab, setActiveTab] = useState("tenants");
   const [loading, setLoading] = useState(true);
@@ -52,7 +55,8 @@ export default function RevenueOverviewPage() {
     recentPayments: [],
     recentPayouts: [],
     revenueChartData: [],
-    collectionBreakdown: { rent: { amount: 0, percent: 0 }, penalty: { amount: 0, percent: 0 }, electricity: { amount: 0, percent: 0 } }
+    collectionBreakdown: { rent: { amount: 0, percent: 0 }, penalty: { amount: 0, percent: 0 }, electricity: { amount: 0, percent: 0 } },
+    scope: null
   });
 
   useEffect(() => {
@@ -61,14 +65,16 @@ export default function RevenueOverviewPage() {
     const loadData = async () => {
       try {
         setLoading(true);
-        const res = await fetchJson(`/api/owners/${owner.loginId}/revenue-dashboard?month=${selectedMonth}`);
+        const propertyParam = activePropertyId ? `&propertyId=${encodeURIComponent(activePropertyId)}` : "";
+        const res = await fetchJson(`/api/owners/${owner.loginId}/revenue-dashboard?month=${selectedMonth}${propertyParam}`);
         if (res.success || res.summaryMetrics) {
           setDashboardData({
             summaryMetrics: res.summaryMetrics || { tenantCollected: 0, ownerPayouts: 0, pendingPayouts: 0, tenantDues: 0 },
             recentPayments: res.recentPayments || [],
             recentPayouts: res.recentPayouts || [],
             revenueChartData: res.revenueChartData || [],
-            collectionBreakdown: res.collectionBreakdown || { rent: { amount: 0, percent: 0 }, penalty: { amount: 0, percent: 0 }, electricity: { amount: 0, percent: 0 } }
+            collectionBreakdown: res.collectionBreakdown || { rent: { amount: 0, percent: 0 }, penalty: { amount: 0, percent: 0 }, electricity: { amount: 0, percent: 0 } },
+            scope: res.scope || null
           });
         } else {
           setError(res.error || "Failed to load dashboard data");
@@ -81,9 +87,70 @@ export default function RevenueOverviewPage() {
     };
 
     loadData();
-  }, [owner?.loginId, selectedMonth]);
+  }, [owner?.loginId, selectedMonth, activePropertyId]);
 
-  const { summaryMetrics, recentPayments, recentPayouts, revenueChartData, collectionBreakdown } = dashboardData;
+  const { summaryMetrics, recentPayments, recentPayouts, revenueChartData, collectionBreakdown, scope } = dashboardData;
+
+  // ── Statement download ─────────────────────────────────────────────────────
+  // Built from the data already on screen, so the file always matches what the
+  // page shows — same month, same property scope — with no second round trip.
+  const csvCell = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const csvRow = (cells) => cells.map(csvCell).join(",");
+
+  const triggerCsvDownload = (csvString, fileName) => {
+    // \uFEFF = UTF-8 BOM so Excel opens the rupee amounts correctly
+    const blob = new Blob(["\uFEFF" + csvString], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 300);
+  };
+
+  const handleDownloadStatement = () => {
+    const monthLabel = monthOptions.find(o => o.value === selectedMonth)?.label || selectedMonth;
+    const scopeLabel = activePropertyId ? (scope?.propertyName || "Selected property") : "All properties";
+
+    const lines = [
+      csvRow(["Revenue Statement"]),
+      csvRow(["Owner", owner?.name || owner?.loginId || ""]),
+      csvRow(["Owner ID", owner?.loginId || ""]),
+      csvRow(["Property", scopeLabel]),
+      csvRow(["Month", monthLabel]),
+      csvRow(["Generated", new Date().toLocaleString("en-IN")]),
+      "",
+      csvRow(["Summary", "Amount (INR)", "Scope"]),
+      csvRow(["Tenant Collections", summaryMetrics.tenantCollected, scopeLabel]),
+      // Payouts have no property reference in the ledger — say so in the file too,
+      // so a property-scoped statement can't be misread as property-level payouts.
+      csvRow(["Owner Payouts (Net)", summaryMetrics.ownerPayouts, "All properties"]),
+      csvRow(["Pending Payouts", summaryMetrics.pendingPayouts, "All properties"]),
+      csvRow(["Outstanding Dues", summaryMetrics.tenantDues, scopeLabel]),
+      "",
+      csvRow(["Collection Breakdown", "Amount (INR)", "Share"]),
+      csvRow(["Rent", collectionBreakdown.rent?.amount ?? 0, `${collectionBreakdown.rent?.percent ?? 0}%`]),
+      csvRow(["Electricity", collectionBreakdown.electricity?.amount ?? 0, `${collectionBreakdown.electricity?.percent ?? 0}%`]),
+      csvRow(["Late Fines & Penalties", collectionBreakdown.penalty?.amount ?? 0, `${collectionBreakdown.penalty?.percent ?? 0}%`]),
+      "",
+      csvRow(["Recent Payments"]),
+      csvRow(["Reference", "Tenant", "Room", "Category", "Date", "Status", "Amount (INR)"]),
+      ...(recentPayments.length
+        ? recentPayments.map(p => csvRow([p.id, p.tenant, p.room, p.category, p.date, p.status, p.amount]))
+        : [csvRow(["No payments recorded for this period"])]),
+      "",
+      csvRow(["Recent Payouts (all properties)"]),
+      csvRow(["Reference", "Title", "Method", "Date", "Status", "Amount (INR)"]),
+      ...(recentPayouts.length
+        ? recentPayouts.map(p => csvRow([p.id, p.title, p.method, p.date, p.status, p.amount]))
+        : [csvRow(["No payouts recorded for this period"])]),
+    ];
+
+    const scopeSlug = (scopeLabel || "statement").replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+    triggerCsvDownload(lines.join("\n"), `Revenue_Statement_${scopeSlug}_${selectedMonth}.csv`);
+  };
 
   const getStatusStyle = (status) => {
     switch (status) {
@@ -139,7 +206,10 @@ export default function RevenueOverviewPage() {
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-8">
         <div>
           <h1 className="font-serif text-[38px] md:text-[44px] leading-[1.05] text-foreground">Revenue Overview</h1>
-          <p className="mt-1.5 text-[13.5px] text-muted-foreground">Monitor collections from tenants and payouts settled to your account.</p>
+          <p className="mt-1.5 text-[13.5px] text-muted-foreground">
+            Monitor collections from tenants and payouts settled to your account.
+            {activePropertyId && scope?.propertyName ? ` Showing ${scope.propertyName}.` : ""}
+          </p>
         </div>
         <div className="flex items-center gap-2 md:mt-2">
           <select
@@ -151,7 +221,7 @@ export default function RevenueOverviewPage() {
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
-          <button onClick={() => alert(`Downloading Statement for ${dateRange}...`)} className="inline-flex items-center gap-1.5 h-10 px-4 rounded-xl bg-foreground text-background text-[13px] font-medium hover:opacity-90 transition-opacity">
+          <button onClick={handleDownloadStatement} className="inline-flex items-center gap-1.5 h-10 px-4 rounded-xl bg-foreground text-background text-[13px] font-medium hover:opacity-90 transition-opacity">
             <Download className="size-4" /> Download Statement
           </button>
         </div>
@@ -181,6 +251,9 @@ export default function RevenueOverviewPage() {
           </div>
           <span className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider">Owner Payouts (Net)</span>
           <h3 className="text-[28px] font-bold text-foreground mt-1">₹{summaryMetrics.ownerPayouts.toLocaleString("en-IN")}</h3>
+          {activePropertyId && (
+            <p className="text-[11px] text-muted-foreground mt-1">All properties — payouts settle to your account, not per property</p>
+          )}
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-6 shadow-soft">
@@ -192,6 +265,9 @@ export default function RevenueOverviewPage() {
           </div>
           <span className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider">Pending Payouts</span>
           <h3 className="text-[28px] font-bold text-foreground mt-1">₹{summaryMetrics.pendingPayouts.toLocaleString("en-IN")}</h3>
+          {activePropertyId && (
+            <p className="text-[11px] text-muted-foreground mt-1">All properties — payouts settle to your account, not per property</p>
+          )}
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-6 shadow-soft">
