@@ -351,6 +351,7 @@ const routeEntries = [
   ["/my-stays", "./pages/website/WebsiteMystays.jsx"],
   ["/refund-request", "./pages/website/WebsiteRefundRequest.jsx"],
   ["/cancellation", "./pages/website/WebsiteCancellation.jsx"],
+  ["/cancellation-policy", "./pages/website/WebsiteCancellation.jsx"],
   ["/refund-policy", "./pages/website/WebsiteRefund.jsx"],
   ["/blogs", "./pages/website/AboutPage.jsx"],
   ["/careers", "./pages/ComingSoon.jsx"],

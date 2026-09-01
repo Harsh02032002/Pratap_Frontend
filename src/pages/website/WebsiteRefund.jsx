@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import WebsiteNavbar from "../../components/website/WebsiteNavbar";
 import WebsiteFooter from "../../components/website/WebsiteFooter";
 import MobileBottomNav from "../../components/website/MobileBottomNav";
@@ -14,8 +14,10 @@ export default function WebsiteRefund() {
   });
 
   const [activeTab, setActiveTab] = useState(0);
+  const rightContainerRef = useRef(null);
 
   useEffect(() => {
+    window.scrollTo(0, 0);
     if (window.location.pathname !== '/refund-policy') {
       window.history.replaceState(null, '', '/refund-policy');
     }
@@ -141,8 +143,12 @@ export default function WebsiteRefund() {
                       onClick={(e) => {
                         e.preventDefault();
                         setActiveTab(i);
-                        const el = document.getElementById(sec.id);
-                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        const targetEl = document.getElementById(sec.id);
+                        const containerEl = rightContainerRef.current;
+                        if (targetEl && containerEl) {
+                          const targetTop = targetEl.offsetTop - containerEl.offsetTop;
+                          containerEl.scrollTo({ top: targetTop, behavior: 'smooth' });
+                        }
                       }}
                       className={`flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all ${
                         activeTab === i
@@ -177,7 +183,7 @@ export default function WebsiteRefund() {
             </div>
 
             {/* Right Detailed Cards (Fixed Portion Scrollable) */}
-            <div className="lg:col-span-8 space-y-6 lg:max-h-[calc(100vh-140px)] lg:overflow-y-auto lg:pr-3 no-scrollbar scroll-smooth">
+            <div ref={rightContainerRef} className="lg:col-span-8 space-y-6 lg:max-h-[calc(100vh-140px)] lg:overflow-y-auto lg:pr-3 no-scrollbar scroll-smooth">
               
               <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 border-l-4 border-l-[#0FA596] shadow-2xs space-y-2">
                 <h2 className="text-lg font-extrabold text-slate-950">Overview of Roomhy Refund Policy</h2>

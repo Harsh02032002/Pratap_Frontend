@@ -14,6 +14,7 @@ export default function WebsiteRefundRequest() {
   });
 
   useEffect(() => {
+    window.scrollTo(0, 0);
     if (window.location.pathname !== '/refund-request') {
       window.history.replaceState(null, '', '/refund-request');
     }
