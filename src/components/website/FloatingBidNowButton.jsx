@@ -24,7 +24,7 @@ export default function FloatingBidNowButton({ onOpenModal }) {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
-  if (location.pathname === '/website/chat') {
+  if (location.pathname === '/website/chat' || location.pathname === '/properties' || location.pathname.startsWith('/properties') || location.pathname === '/bidding' || location.pathname.startsWith('/bidding')) {
     return null;
   }
 

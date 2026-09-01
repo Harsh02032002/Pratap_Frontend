@@ -101,8 +101,9 @@ function DesktopHero({ searchQuery, setSearchQuery, selectedGender, setSelectedG
 
   return (
     <section className="relative bg-gradient-to-b from-[#f4fcfa] to-white pt-4 pb-4 lg:pt-6 lg:pb-6 overflow-hidden border-b border-slate-100">
-      <div className="absolute inset-y-0 right-0 w-full lg:w-[55%] z-0">
-        <div className="absolute inset-0 bg-gradient-to-r from-[#f4fcfa] via-[#f4fcfa]/80 to-transparent lg:w-48 z-10" />
+      {/* Right Image Container — Expanded to 68% width with subtle fade */}
+      <div className="absolute inset-y-0 right-0 w-full lg:w-[68%] z-0">
+        <div className="absolute inset-0 bg-gradient-to-r from-[#f4fcfa] via-[#f4fcfa]/60 to-transparent lg:w-32 z-10" />
         <img
           src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1600&q=80"
           alt="Premium Roomhy stay"
@@ -110,21 +111,23 @@ function DesktopHero({ searchQuery, setSearchQuery, selectedGender, setSelectedG
         />
       </div>
 
-      <div className="relative z-10 mx-auto max-w-[1440px] px-4 md:px-8">
-        <div className="max-w-2xl">
+      {/* Container — Flush to far left corner with no empty left margin */}
+      <div className="relative z-10 w-full pl-4 sm:pl-6 md:pl-8 lg:pl-10 pr-4">
+        <div className="max-w-xl">
           <span className={`inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-bold shadow-sm ${BRAND} border ${BRAND_BORDER}/20`}>
             <ShieldCheck className="h-4 w-4" /> Smart Bidding
           </span>
-          <h1 className="mt-3 font-display text-3xl font-extrabold leading-[1.08] tracking-tight text-[#1a2b3c] md:text-4xl lg:text-[2.85rem]">
+          <h1 className="mt-2.5 font-display text-3xl font-extrabold leading-[1.08] tracking-tight text-[#1a2b3c] md:text-4xl lg:text-[2.65rem]">
             Premium Student & <br />
             Professional <span className={BRAND}>Living</span>
           </h1>
-          <p className="mt-3 max-w-md text-xs font-medium text-slate-600 md:text-sm leading-relaxed">
+          <p className="mt-2.5 max-w-md text-xs font-medium text-slate-600 md:text-sm leading-relaxed">
             Find and book verified PGs, Hostels, Co-living spaces and Apartments in top cities.
           </p>
         </div>
 
-        <div className="mt-5 max-w-[54rem] rounded-2xl bg-white p-2 shadow-[0_4px_25px_rgb(0,0,0,0.06)] border border-slate-100">
+        {/* Search Container — Compact max-w-[46rem] so image is prominently visible on the right */}
+        <div className="mt-4 max-w-[46rem] rounded-2xl bg-white/95 backdrop-blur-md p-2 shadow-[0_4px_25px_rgb(0,0,0,0.08)] border border-slate-100">
           <div className="flex gap-3 border-b border-slate-100 px-3 pt-1">
             {tabs.map(({ k, icon: I, val }) => (
               <button 
@@ -997,7 +1000,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
+    <div className="min-h-screen bg-white flex flex-col font-sans">
       {/* Navbar - 100% UNTOUCHED ORIGINAL NAVBAR */}
       <WebsiteNavbar />
 

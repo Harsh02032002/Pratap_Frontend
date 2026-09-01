@@ -1,16 +1,18 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { 
-  Facebook, Instagram, Linkedin
+  Building2, Bed, Home, Users, Star, ShieldCheck, Search, ArrowRight, 
+  Phone, Mail, Heart, MapPin, CheckCircle2, Building, Sparkles, Lock, FileText,
+  Facebook, Instagram, Linkedin, Twitter, Youtube, MessageCircle
 } from "lucide-react";
 
 function Logo() {
   return (
-    <Link to="/" className="inline-flex items-center">
+    <Link to="/" className="inline-flex items-center -mt-2.5">
       <img 
         src="/website/roomhy_logo.jpeg" 
         alt="Roomhy Logo" 
-        className="h-7 md:h-8 w-auto object-contain mix-blend-multiply relative -top-1"
+        className="h-7 md:h-8 w-auto object-contain mix-blend-multiply"
         onError={(e) => {
           e.target.onerror = null;
           e.target.src = '/website/roomhy_logo.jpeg';
@@ -23,254 +25,351 @@ function Logo() {
 export default function WebsiteFooter() {
   return (
     <footer className="border-t border-slate-200/80 bg-[#f9fbfb] text-slate-700 font-sans relative pb-16 md:pb-0">
+      <div className="mx-auto max-w-[1440px] px-4 md:px-8 lg:px-12 py-10 space-y-8">
+        
+        {/* ========================================================================= */}
+        {/* MAIN MULTI-COLUMN FOOTER GRID                                             */}
+        {/* ========================================================================= */}
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-8 lg:gap-5 items-start">
+          
+          {/* COLUMN 1: BRAND INFO & TRUST BADGES */}
+          <div className="space-y-4">
+            <Logo />
+            <p className="text-xs text-slate-500 font-semibold leading-relaxed">
+              India's smart bidding platform for PGs, Hostels, Co-living Spaces &amp; Student Apartments.
+            </p>
 
-      {/* ========================================================================= */}
-      {/* MOBILE FOOTER                                                             */}
-      {/* ========================================================================= */}
-      <div className="md:hidden px-4 py-6 text-center space-y-4 bg-white border-t border-gray-100">
-        {/* Top Cities & Areas Pills */}
-        <div className="pb-3 border-b border-gray-100">
-          <p className="text-[11px] font-bold text-gray-800 mb-2">Top Cities &amp; Areas</p>
-          <div className="flex flex-wrap justify-center gap-1.5 text-[10px]">
-            <Link to="/website/ourproperty?city=kota" className="rounded-full bg-gray-50 px-2.5 py-1 text-gray-700 border border-gray-200 font-semibold">
-              Kota (2,500+)
-            </Link>
-            <Link to="/website/ourproperty?city=sikar" className="rounded-full bg-gray-50 px-2.5 py-1 text-gray-700 border border-gray-200 font-semibold">
-              Sikar (850+)
-            </Link>
-            <Link to="/website/ourproperty?city=indore" className="rounded-full bg-gray-50 px-2.5 py-1 text-gray-700 border border-gray-200 font-semibold">
-              Indore (1,800+)
-            </Link>
+            {/* Green Check Trust Badges List */}
+            <div className="space-y-1.5 pt-1 text-xs font-extrabold text-slate-700">
+              <div className="flex items-center gap-1.5 text-emerald-600">
+                <CheckCircle2 className="w-3.5 h-3.5 shrink-0 stroke-[2.5]" />
+                <span className="text-slate-800 text-[11px]">Smart Bidding</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-emerald-600">
+                <CheckCircle2 className="w-3.5 h-3.5 shrink-0 stroke-[2.5]" />
+                <span className="text-slate-800 text-[11px]">Verified Properties</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-teal-600">
+                <Bed className="w-3.5 h-3.5 shrink-0 stroke-[2.5]" />
+                <span className="text-slate-800 text-[11px]">50,000+ Beds</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-amber-500">
+                <Star className="w-3.5 h-3.5 shrink-0 fill-amber-400 stroke-none" />
+                <span className="text-slate-800 text-[11px]">Trusted by Students</span>
+              </div>
+            </div>
+
+            {/* Social Icons Row — ONLY Facebook, Instagram, LinkedIn */}
+            <div className="pt-1">
+              <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Follow us on</p>
+              <div className="flex items-center gap-2">
+                <a href="https://www.facebook.com/profile.php?id=61587850180193" target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="w-7 h-7 rounded-full bg-[#1877F2] text-white flex items-center justify-center shadow-xs hover:scale-110 transition-transform">
+                  <Facebook className="w-3.5 h-3.5 fill-white" />
+                </a>
+                <a href="https://www.instagram.com/roomhy.com_/" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="w-7 h-7 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 text-white flex items-center justify-center shadow-xs hover:scale-110 transition-transform">
+                  <Instagram className="w-3.5 h-3.5" />
+                </a>
+                <a href="https://www.linkedin.com/company/roomhy-com/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="w-7 h-7 rounded-full bg-[#0A66C2] text-white flex items-center justify-center shadow-xs hover:scale-110 transition-transform">
+                  <Linkedin className="w-3.5 h-3.5 fill-white" />
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* COLUMN 2: POPULAR CITIES */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-1.5 text-xs font-black text-emerald-700 uppercase tracking-wider">
+              <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span>Popular Cities</span>
+            </div>
+            <ul className="space-y-2 text-xs font-bold text-slate-600">
+              <li>
+                <Link to="/website/ourproperty?city=kota" className="hover:text-emerald-600 transition-colors flex items-center gap-1">
+                  <span className="text-slate-400 font-bold">&gt;</span> PG in Kota
+                </Link>
+              </li>
+              <li>
+                <Link to="/website/ourproperty?city=jaipur" className="hover:text-emerald-600 transition-colors flex items-center gap-1">
+                  <span className="text-slate-400 font-bold">&gt;</span> PG in Jaipur
+                </Link>
+              </li>
+              <li>
+                <Link to="/website/ourproperty?city=delhi" className="hover:text-emerald-600 transition-colors flex items-center gap-1">
+                  <span className="text-slate-400 font-bold">&gt;</span> PG in Delhi
+                </Link>
+              </li>
+              <li>
+                <Link to="/website/ourproperty?city=indore" className="hover:text-emerald-600 transition-colors flex items-center gap-1">
+                  <span className="text-slate-400 font-bold">&gt;</span> PG in Indore
+                </Link>
+              </li>
+              <li>
+                <Link to="/website/ourproperty?city=bangalore" className="hover:text-emerald-600 transition-colors flex items-center gap-1">
+                  <span className="text-slate-400 font-bold">&gt;</span> PG in Bangalore
+                </Link>
+              </li>
+              <li>
+                <Link to="/website/ourproperty?city=pune" className="hover:text-emerald-600 transition-colors flex items-center gap-1">
+                  <span className="text-slate-400 font-bold">&gt;</span> PG in Pune
+                </Link>
+              </li>
+            </ul>
+            <div className="pt-1">
+              <Link to="/website/ourproperty" className="text-xs font-black text-emerald-600 hover:text-emerald-700 inline-flex items-center gap-1 group">
+                View all cities <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+            </div>
+          </div>
+
+          {/* COLUMN 3: PROPERTY TYPES */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-1.5 text-xs font-black text-purple-700 uppercase tracking-wider">
+              <Building2 className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+              <span>Property Types</span>
+            </div>
+            <ul className="space-y-2 text-xs font-bold text-slate-600">
+              <li>
+                <Link to="/website/ourproperty?type=pg&gender=boys" className="hover:text-purple-600 transition-colors flex items-center gap-1">
+                  <span className="text-slate-400 font-bold">&gt;</span> PG for Boys
+                </Link>
+              </li>
+              <li>
+                <Link to="/website/ourproperty?type=pg&gender=girls" className="hover:text-purple-600 transition-colors flex items-center gap-1">
+                  <span className="text-slate-400 font-bold">&gt;</span> PG for Girls
+                </Link>
+              </li>
+              <li>
+                <Link to="/website/ourproperty?type=pg&gender=coed" className="hover:text-purple-600 transition-colors flex items-center gap-1">
+                  <span className="text-slate-400 font-bold">&gt;</span> Co-ed PG
+                </Link>
+              </li>
+              <li>
+                <Link to="/website/ourproperty?type=hostel" className="hover:text-purple-600 transition-colors flex items-center gap-1">
+                  <span className="text-slate-400 font-bold">&gt;</span> Hostels
+                </Link>
+              </li>
+              <li>
+                <Link to="/website/ourproperty?type=hostel&gender=boys" className="hover:text-purple-600 transition-colors flex items-center gap-1">
+                  <span className="text-slate-400 font-bold">&gt;</span> Boys Hostels
+                </Link>
+              </li>
+              <li>
+                <Link to="/website/ourproperty?type=hostel&gender=girls" className="hover:text-purple-600 transition-colors flex items-center gap-1">
+                  <span className="text-slate-400 font-bold">&gt;</span> Girls Hostels
+                </Link>
+              </li>
+              <li>
+                <Link to="/website/ourproperty?type=co-living" className="hover:text-purple-600 transition-colors flex items-center gap-1">
+                  <span className="text-slate-400 font-bold">&gt;</span> Co-living
+                </Link>
+              </li>
+              <li>
+                <Link to="/website/ourproperty?type=apartment" className="hover:text-purple-600 transition-colors flex items-center gap-1">
+                  <span className="text-slate-400 font-bold">&gt;</span> Apartments
+                </Link>
+              </li>
+            </ul>
+            <div className="pt-1">
+              <Link to="/website/ourproperty" className="text-xs font-black text-purple-600 hover:text-purple-700 inline-flex items-center gap-1 group">
+                View all properties <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+            </div>
+          </div>
+
+          {/* COLUMN 4: HOSTELS & CO-LIVING */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-1.5 text-xs font-black text-amber-700 uppercase tracking-wider">
+              <Building className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+              <span>Hostels</span>
+            </div>
+            <ul className="space-y-2 text-xs font-bold text-slate-600">
+              <li>
+                <Link to="/website/ourproperty?type=hostel&gender=boys" className="hover:text-amber-600 transition-colors flex items-center gap-1">
+                  <span className="text-slate-400 font-bold">&gt;</span> Hostels for Boys
+                </Link>
+              </li>
+              <li>
+                <Link to="/website/ourproperty?type=hostel&gender=girls" className="hover:text-amber-600 transition-colors flex items-center gap-1">
+                  <span className="text-slate-400 font-bold">&gt;</span> Hostels for Girls
+                </Link>
+              </li>
+              <li>
+                <Link to="/website/ourproperty?type=hostel&gender=coed" className="hover:text-amber-600 transition-colors flex items-center gap-1">
+                  <span className="text-slate-400 font-bold">&gt;</span> Co-ed Hostels
+                </Link>
+              </li>
+            </ul>
+
+            {/* Sub-block: CO-LIVING */}
+            <div className="pt-3 space-y-3 border-t border-slate-200/60">
+              <div className="flex items-center gap-1.5 text-xs font-black text-sky-700 uppercase tracking-wider">
+                <Users className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                <span>Co-living</span>
+              </div>
+              <ul className="space-y-2 text-xs font-bold text-slate-600">
+                <li>
+                  <Link to="/website/ourproperty?type=co-living&gender=boys" className="hover:text-sky-600 transition-colors flex items-center gap-1">
+                    <span className="text-slate-400 font-bold">&gt;</span> Co-living for Boys
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/website/ourproperty?type=co-living&gender=girls" className="hover:text-sky-600 transition-colors flex items-center gap-1">
+                    <span className="text-slate-400 font-bold">&gt;</span> Co-living for Girls
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/website/ourproperty?type=co-living&gender=coed" className="hover:text-sky-600 transition-colors flex items-center gap-1">
+                    <span className="text-slate-400 font-bold">&gt;</span> Co-ed Co-living
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* COLUMN 5: QUICK LINKS */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-1.5 text-xs font-black text-teal-700 uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+              <span>Quick Links</span>
+            </div>
+            <ul className="space-y-2 text-xs font-bold text-slate-600">
+              <li><Link to="/list-property" className="hover:text-teal-600 transition-colors">List Your Property</Link></li>
+              <li><Link to="/propertyowner/dashboard" className="hover:text-teal-600 transition-colors">Owner Dashboard</Link></li>
+              <li><Link to="/website/mystays" className="hover:text-teal-600 transition-colors">Tenant Dashboard / My Stays</Link></li>
+              <li><Link to="/about-us" className="hover:text-teal-600 transition-colors">About Us</Link></li>
+              <li><Link to="/contact-us" className="hover:text-teal-600 transition-colors">Contact Us</Link></li>
+              <li><Link to="/faq" className="hover:text-teal-600 transition-colors">FAQ</Link></li>
+              <li><Link to="/auth/login" className="hover:text-teal-600 transition-colors">Login / Register</Link></li>
+            </ul>
+          </div>
+
+          {/* COLUMN 6: POLICIES & LEGAL (Dedicated Top-Level Column) */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-1.5 text-xs font-black text-rose-700 uppercase tracking-wider">
+              <FileText className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+              <span>Policies &amp; Legal</span>
+            </div>
+            <ul className="space-y-2 text-xs font-bold text-slate-600">
+              <li><Link to="/privacy-policy" className="hover:text-rose-600 transition-colors">Privacy Policy</Link></li>
+              <li><Link to="/terms-and-conditions" className="hover:text-rose-600 transition-colors">Terms &amp; Conditions</Link></li>
+              <li><Link to="/refund-policy" className="hover:text-rose-600 transition-colors">Refund Policy</Link></li>
+              <li><Link to="/cancellation-policy" className="hover:text-rose-600 transition-colors">Cancellation Policy</Link></li>
+              <li><Link to="/website/refund-request" className="hover:text-rose-600 transition-colors">Refund Request</Link></li>
+            </ul>
+          </div>
+
+        </div>
+
+        {/* ========================================================================= */}
+        {/* POPULAR SEARCHES PILLS BANNER CARD                                         */}
+        {/* ========================================================================= */}
+        <div className="rounded-2xl bg-[#E8F7F2]/80 border border-teal-200/70 p-4 md:p-5 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+          <div className="flex items-center gap-2 text-emerald-800 font-extrabold text-xs shrink-0">
+            <div className="w-7 h-7 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <Search className="w-3.5 h-3.5 stroke-[3]" />
+            </div>
+            <span>POPULAR SEARCHES</span>
+          </div>
+
+          <div className="flex flex-wrap gap-2 flex-1">
+            {[
+              { label: 'PG in Kota', link: '/website/ourproperty?city=kota' },
+              { label: 'PG in Jaipur', link: '/website/ourproperty?city=jaipur' },
+              { label: 'PG in Delhi', link: '/website/ourproperty?city=delhi' },
+              { label: 'Hostels in Kota', link: '/website/ourproperty?city=kota&type=hostel' },
+              { label: 'Hostels in Jaipur', link: '/website/ourproperty?city=jaipur&type=hostel' },
+              { label: 'Hostels in Delhi', link: '/website/ourproperty?city=delhi&type=hostel' },
+              { label: 'Co-living in Bangalore', link: '/website/ourproperty?city=bangalore&type=co-living' },
+              { label: 'Co-living in Pune', link: '/website/ourproperty?city=pune&type=co-living' },
+              { label: 'Student Apartments', link: '/website/ourproperty?type=apartment' },
+              { label: 'Girls Hostel', link: '/website/ourproperty?type=hostel&gender=girls' },
+              { label: 'Boys Hostel', link: '/website/ourproperty?type=hostel&gender=boys' },
+              { label: 'Luxury PG', link: '/website/ourproperty?type=pg' },
+              { label: 'Budget PG', link: '/website/ourproperty?type=pg' },
+            ].map(item => (
+              <Link
+                key={item.label}
+                to={item.link}
+                className="px-3 py-1.5 rounded-full bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 text-xs font-bold border border-slate-200/80 shadow-2xs transition-colors"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
+
+          <Link to="/website/ourproperty" className="text-xs font-black text-emerald-700 hover:text-emerald-800 shrink-0 inline-flex items-center gap-1">
+            View all searches &rarr;
+          </Link>
+        </div>
+
+        {/* ========================================================================= */}
+        {/* TRUST BADGES SUMMARY ROW CARD                                             */}
+        {/* ========================================================================= */}
+        <div className="rounded-2xl bg-white border border-slate-200/90 p-4 md:p-5 shadow-2xs grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-5 h-5 stroke-[2.5]" />
+            </div>
+            <div>
+              <p className="text-xs font-black text-slate-900">Smart Bidding</p>
+              <p className="text-[11px] font-semibold text-slate-500">Best price deals</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center shrink-0">
+              <ShieldCheck className="w-5 h-5 stroke-[2.5]" />
+            </div>
+            <div>
+              <p className="text-xs font-black text-slate-900">Verified Listings</p>
+              <p className="text-[11px] font-semibold text-slate-500">100% verified properties</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 border border-purple-100 flex items-center justify-center shrink-0">
+              <Users className="w-5 h-5 stroke-[2.5]" />
+            </div>
+            <div>
+              <p className="text-xs font-black text-slate-900">50,000+ Students</p>
+              <p className="text-[11px] font-semibold text-slate-500">Trust us to find a home</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center shrink-0">
+              <Building2 className="w-5 h-5 stroke-[2.5]" />
+            </div>
+            <div>
+              <p className="text-xs font-black text-slate-900">10+ Cities</p>
+              <p className="text-[11px] font-semibold text-slate-500">Across India</p>
+            </div>
           </div>
         </div>
 
-        {/* Logo */}
-        <Logo />
-
-        {/* Subtitle */}
-        <p className="text-[11px] text-gray-500 max-w-xs mx-auto leading-tight font-medium">
-          Find student housing smarter, simpler, and broker-free with Roomhy.
-        </p>
-
-        {/* Contact Info */}
-        <p className="text-xs font-semibold text-gray-700">
-          Help &amp; Support • <a href="mailto:hello@roomhy.com" className="text-teal-600 font-bold">hello@roomhy.com</a>
-        </p>
-
-        {/* Social Icons Row (Facebook, Instagram, LinkedIn) */}
-        <div className="flex items-center justify-center gap-2.5 pt-1">
-          <a href="https://www.facebook.com/profile.php?id=61587850180193" target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="h-8 w-8 rounded-full bg-[#1877F2] text-white flex items-center justify-center shadow-xs hover:scale-110 transition-transform">
-            <Facebook className="h-4 w-4 fill-white" />
-          </a>
-          <a href="https://www.instagram.com/roomhy.com_/" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="h-8 w-8 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 text-white flex items-center justify-center shadow-xs hover:scale-110 transition-transform">
-            <Instagram className="h-4 w-4" />
-          </a>
-          <a href="https://www.linkedin.com/company/roomhy-com/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="h-8 w-8 rounded-full bg-[#0A66C2] text-white flex items-center justify-center shadow-xs hover:scale-110 transition-transform">
-            <Linkedin className="h-4 w-4 fill-white" />
-          </a>
-        </div>
-
-        {/* Address & Registration Block */}
-        <div className="text-[10px] text-gray-400 space-y-0.5 pt-2 max-w-xs mx-auto leading-relaxed border-t border-gray-100">
-          <p className="font-bold text-gray-700">ROOMHY TECHNOLOGY</p>
-          <p>647, Balaji Nagar, Rangbari, Near Pani Ki Tanki, Kota, Rajasthan 324005, India</p>
-          <p className="font-semibold text-gray-600">+91 8764425030</p>
-          <p>GSTIN: 08SLWPS2629Q1ZZ</p>
-        </div>
-
-        {/* Link Columns Grid (4 columns) */}
-        <div className="grid grid-cols-4 gap-2 pt-3 border-t border-gray-100 text-left text-[10px]">
-          <div>
-            <h4 className="font-bold text-gray-900 mb-1.5">Company</h4>
-            <ul className="space-y-1 text-gray-500 font-medium">
-              <li><Link to="/about-us">About Roomhy</Link></li>
-              <li><Link to="/contact-us">Contact</Link></li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-bold text-gray-900 mb-1.5">Explore</h4>
-            <ul className="space-y-1 text-gray-500 font-medium">
-              <li><Link to="/">Home</Link></li>
-              <li><Link to="/website/ourproperty">Our Properties</Link></li>
-              <li><Link to="/bidding">Fast Bidding</Link></li>
-              <li><Link to="/list-property">Post Property</Link></li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-bold text-gray-900 mb-1.5">Support</h4>
-            <ul className="space-y-1 text-gray-500 font-medium">
-              <li><Link to="/website/mystays">My Stays</Link></li>
-              <li><Link to="/contact-us">Refund Request</Link></li>
-              <li><Link to="/contact-us">Cancellation</Link></li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-bold text-gray-900 mb-1.5">Legal</h4>
-            <ul className="space-y-1 text-gray-500 font-medium">
-              <li><Link to="/faq">Terms &amp; Conditions</Link></li>
-              <li><Link to="/faq">Privacy Policy</Link></li>
-              <li><Link to="/faq">Refund Policy</Link></li>
-            </ul>
-          </div>
-        </div>
       </div>
 
       {/* ========================================================================= */}
-      {/* DESKTOP FOOTER                                                            */}
+      {/* BOTTOM COPYRIGHT & CONTACT BAR                                            */}
       {/* ========================================================================= */}
-      <div className="hidden md:block">
-        <div className="mx-auto max-w-[1440px] px-4 md:px-8 lg:px-12 py-10 space-y-8">
-
-          {/* Top Cities & Areas Section (Positioned FIRST at the top of Desktop Footer) */}
-          <div className="pb-8 border-b border-slate-200/80 space-y-4">
-            <h3 className="font-bold text-slate-900 text-xs tracking-tight">Top Cities &amp; Areas</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              
-              {/* Kota Card */}
-              <div className="rounded-xl bg-white p-4 border border-slate-200/80 shadow-2xs space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-900 text-sm">Kota</span>
-                  <span className="text-[11px] text-slate-400 font-medium">(2,500+)</span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {["Vigyan Nagar", "Rajeev Gandhi Nagar", "Indra Vihar", "Mahaveer Nagar"].map((area) => (
-                    <Link 
-                      key={area} 
-                      to={`/website/ourproperty?city=kota&search=${encodeURIComponent(area)}`}
-                      className="rounded-md bg-slate-100/90 px-2.5 py-1 text-[11px] font-medium text-slate-600 hover:bg-teal-50 hover:text-teal-700 transition-colors"
-                    >
-                      {area}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-
-              {/* Sikar Card */}
-              <div className="rounded-xl bg-white p-4 border border-slate-200/80 shadow-2xs space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-900 text-sm">Sikar</span>
-                  <span className="text-[11px] text-slate-400 font-medium">(850+)</span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {["Piprali Road", "Subhash Chowk", "Station Road"].map((area) => (
-                    <Link 
-                      key={area} 
-                      to={`/website/ourproperty?city=sikar&search=${encodeURIComponent(area)}`}
-                      className="rounded-md bg-slate-100/90 px-2.5 py-1 text-[11px] font-medium text-slate-600 hover:bg-teal-50 hover:text-teal-700 transition-colors"
-                    >
-                      {area}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-
-              {/* Indore Card */}
-              <div className="rounded-xl bg-white p-4 border border-slate-200/80 shadow-2xs space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-900 text-sm">Indore</span>
-                  <span className="text-[11px] text-slate-400 font-medium">(1,800+)</span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {["Vijay Nagar", "Bhawarkua", "Sapna Sangeeta"].map((area) => (
-                    <Link 
-                      key={area} 
-                      to={`/website/ourproperty?city=indore&search=${encodeURIComponent(area)}`}
-                      className="rounded-md bg-slate-100/90 px-2.5 py-1 text-[11px] font-medium text-slate-600 hover:bg-teal-50 hover:text-teal-700 transition-colors"
-                    >
-                      {area}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-
-            </div>
+      <div className="border-t border-slate-200/80 bg-white py-4 px-4 md:px-8">
+        <div className="mx-auto max-w-[1440px] flex flex-col md:flex-row items-center justify-between gap-3 text-xs font-bold text-slate-600">
+          <p>© {new Date().getFullYear()} Roomhy Technology Pvt. Ltd. All rights reserved.</p>
+          
+          <div className="flex items-center gap-1 text-slate-500">
+            <span>Made with</span>
+            <Heart className="w-3.5 h-3.5 fill-rose-500 text-rose-500 inline" />
+            <span>in India</span>
           </div>
 
-          {/* Top 5 Grid Columns (Positioned SECOND below Top Cities & Areas) */}
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-8 lg:gap-12 items-start justify-between">
-
-            {/* Column 1: Logo & Address info */}
-            <div className="space-y-4 -mt-1">
-              <Logo />
-              <p className="text-xs leading-relaxed text-slate-500 font-medium">
-                Find student housing smarter, simpler, and broker-free with Roomhy.
-              </p>
-
-              <p className="text-xs font-semibold text-slate-700">
-                Help &amp; Support • <a href="mailto:hello@roomhy.com" className="text-slate-600 font-bold hover:text-teal-600">hello@roomhy.com</a>
-              </p>
-
-              {/* 3 Social Circles (Facebook, Instagram, LinkedIn) */}
-              <div className="flex items-center gap-3 pt-1">
-                <a href="https://www.facebook.com/profile.php?id=61587850180193" target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="h-9 w-9 rounded-full bg-[#1877F2] text-white flex items-center justify-center transition-transform hover:scale-110 shadow-xs">
-                  <Facebook className="h-4 w-4 fill-white" />
-                </a>
-                <a href="https://www.instagram.com/roomhy.com_/" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="h-9 w-9 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 text-white flex items-center justify-center transition-transform hover:scale-110 shadow-xs">
-                  <Instagram className="h-4 w-4" />
-                </a>
-                <a href="https://www.linkedin.com/company/roomhy-com/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="h-9 w-9 rounded-full bg-[#0A66C2] text-white flex items-center justify-center transition-transform hover:scale-110 shadow-xs">
-                  <Linkedin className="h-4 w-4 fill-white" />
-                </a>
-              </div>
-
-              {/* Address & GST Block */}
-              <div className="text-[10px] text-slate-400 space-y-0.5 pt-3 leading-relaxed border-t border-slate-200/80 font-medium">
-                <p className="font-bold text-slate-700">ROOMHY TECHNOLOGY</p>
-                <p>647, Balaji Nagar, Rangbari, Near Pani Ki Tanki, Kota, Rajasthan 324005, India</p>
-                <p className="font-semibold text-slate-600">+91 8764425030</p>
-                <p>GSTIN: 08SLWPS2629Q1ZZ</p>
-              </div>
-            </div>
-
-            {/* Column 2: Company */}
-            <div className="space-y-3">
-              <h4 className="font-bold text-slate-900 text-xs">Company</h4>
-              <ul className="space-y-2.5 text-xs text-slate-600 font-medium">
-                <li><Link to="/about-us" className="hover:text-teal-600 transition-colors">About Roomhy</Link></li>
-                <li><Link to="/contact-us" className="hover:text-teal-600 transition-colors">Contact</Link></li>
-              </ul>
-            </div>
-
-            {/* Column 3: Explore */}
-            <div className="space-y-3">
-              <h4 className="font-bold text-slate-900 text-xs">Explore</h4>
-              <ul className="space-y-2.5 text-xs text-slate-600 font-medium">
-                <li><Link to="/" className="hover:text-teal-600 transition-colors">Home</Link></li>
-                <li><Link to="/website/ourproperty" className="hover:text-teal-600 transition-colors">Our Properties</Link></li>
-                <li><Link to="/bidding" className="hover:text-teal-600 transition-colors">Fast Bidding</Link></li>
-                <li><Link to="/list-property" className="hover:text-teal-600 transition-colors">Post Property</Link></li>
-              </ul>
-            </div>
-
-            {/* Column 4: Support */}
-            <div className="space-y-3">
-              <h4 className="font-bold text-slate-900 text-xs">Support</h4>
-              <ul className="space-y-2.5 text-xs text-slate-600 font-medium">
-                <li><Link to="/website/mystays" className="hover:text-teal-600 transition-colors">My Stays</Link></li>
-                <li><Link to="/contact-us" className="hover:text-teal-600 transition-colors">Refund Request</Link></li>
-                <li><Link to="/contact-us" className="hover:text-teal-600 transition-colors">Cancellation</Link></li>
-              </ul>
-            </div>
-
-            {/* Column 5: Legal */}
-            <div className="space-y-3">
-              <h4 className="font-bold text-slate-900 text-xs">Legal</h4>
-              <ul className="space-y-2.5 text-xs text-slate-600 font-medium">
-                <li><Link to="/faq" className="hover:text-teal-600 transition-colors">Terms &amp; Conditions</Link></li>
-                <li><Link to="/faq" className="hover:text-teal-600 transition-colors">Privacy Policy</Link></li>
-                <li><Link to="/faq" className="hover:text-teal-600 transition-colors">Refund Policy</Link></li>
-              </ul>
-            </div>
-
-          </div>
-
-        </div>
-
-        {/* COPYRIGHT BAR */}
-        <div className="border-t border-slate-200/80 bg-[#f9fbfb]">
-          <div className="mx-auto flex max-w-[1440px] px-4 md:px-8 lg:px-12 items-center justify-between py-4 text-xs font-semibold text-slate-700">
-            <p>© {new Date().getFullYear()} ROOMHY TECHNOLOGY. All rights reserved.</p>
+          <div className="flex items-center gap-4 text-slate-700">
+            <a href="mailto:team@roomhy.com" className="hover:text-emerald-600 transition-colors inline-flex items-center gap-1.5">
+              <Mail className="w-3.5 h-3.5 text-slate-400" /> team@roomhy.com
+            </a>
+            <span className="text-slate-300">|</span>
+            <a href="tel:+918764425030" className="hover:text-emerald-600 transition-colors inline-flex items-center gap-1.5 text-emerald-700 font-black">
+              <Phone className="w-3.5 h-3.5 text-emerald-600" /> +91 87644 25030
+            </a>
           </div>
         </div>
       </div>

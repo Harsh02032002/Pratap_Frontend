@@ -4,10 +4,10 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ===== Global: Prevent horizontal overflow on mobile ===== */
 html, body {
   overflow-x: hidden;
   max-width: 100%;
+  background-color: #ffffff !important;
 }
 
 /* ===== Price Range Dual Slider ===== */

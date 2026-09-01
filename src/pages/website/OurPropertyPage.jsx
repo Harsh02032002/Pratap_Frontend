@@ -2,7 +2,7 @@ import WebsiteNavbar from "../../components/website/WebsiteNavbar";
 import WebsiteFooter from "../../components/website/WebsiteFooter";
 import MobileBottomNav from "../../components/website/MobileBottomNav";
 import * as LucideIcons from "lucide-react";
-const { Filter, MapPin, Wallet, Home, Users, TrendingUp, Send, RefreshCw, ChevronLeft, ChevronRight, Building2, BookOpen, Star, Check, Phone, Wifi, Utensils, Car, Dumbbell, Tv, Wind, Droplets, Zap, X, Menu, Heart, ChevronDown, Clock, Shirt, Cctv, Video, Waves, Fan, Shield, Search, Bed, SlidersHorizontal, Sparkles, Tag } = LucideIcons;
+const { Filter, MapPin, Wallet, Home, Users, TrendingUp, Send, RefreshCw, ChevronLeft, ChevronRight, Building2, BookOpen, Star, Check, Phone, Wifi, Utensils, Car, Dumbbell, Tv, Wind, Droplets, Zap, X, Menu, Heart, ChevronDown, Clock, Shirt, Cctv, Video, Waves, Fan, Shield, Search, Bed, SlidersHorizontal, Sparkles, Tag, GraduationCap, School } = LucideIcons;
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useSearchParams, Link, useNavigate, useParams, useLocation } from "react-router-dom";
 import { fetchProperties, searchPropertiesByLocation, getNearbyAreas, getInstitutions, getPriceRangeByType, trackPropertyClick, getApiBase, fetchJson, resolvePropertyOwnerLoginId, firstNonEmptyList } from "../../utils/api";
@@ -13,8 +13,20 @@ import { useHtmlPage } from "../../utils/htmlPage";
 import axios from "axios";
 import useSEO from "../../hooks/useSEO";
 
-// Client-side memory cache to optimize performance and prevent duplicate SEO API lookups
+// Client-side memory cache to optimize performance and prevent duplicate API lookups
 const seoCache = new Map();
+const propertyCache = new Map();
+const nearbyDataCache = new Map();
+
+async function getCachedOrFetch(cacheMap, key, fetcher, ttlMs = 10 * 60 * 1000) {
+  const cached = cacheMap.get(key);
+  if (cached && Date.now() - cached.timestamp < ttlMs) {
+    return cached.data;
+  }
+  const data = await fetcher();
+  cacheMap.set(key, { data, timestamp: Date.now() });
+  return data;
+}
 
 // Cities & Localities map dynamically built from MongoDB database properties
 const cityAreasMap = {};
@@ -577,33 +589,31 @@ export default function OurPropertyPage() {
     setShowDirectBookingModal(false);
   };
 
-  // Fetch properties and related data dynamically
+  // 1. SERVER DATA FETCHING — runs ONLY when search location / URL type parameters change
   useEffect(() => {
-    const loadData = async () => {
+    let isCancelled = false;
+    const fetchServerData = async () => {
       try {
         setLoading(true);
+        const cacheKey = `properties:${latitudeFromUrl || ''}:${longitudeFromUrl || ''}:${typeFromUrl || ''}:${cityFromUrl || ''}`;
         
-        let allProperties = [];
-        let city = cityFromUrl;
-
-        // Fast initial fetch - backend now includes nearbyColleges
-        if (latitudeFromUrl && longitudeFromUrl) {
-          allProperties = await searchPropertiesByLocation(
-            parseFloat(latitudeFromUrl),
-            parseFloat(longitudeFromUrl),
-            typeFromUrl,
-            50
-          );
-          if (allProperties.length > 0 && !city) {
-            city = allProperties[0].city || allProperties[0].propertyInfo?.city;
+        const rawData = await getCachedOrFetch(propertyCache, cacheKey, async () => {
+          if (latitudeFromUrl && longitudeFromUrl) {
+            return await searchPropertiesByLocation(
+              parseFloat(latitudeFromUrl),
+              parseFloat(longitudeFromUrl),
+              typeFromUrl,
+              50
+            );
+          } else {
+            return await fetchProperties();
           }
-        } else {
-          allProperties = await fetchProperties();
-        }
-        
-        // Format properties — _formatProperty (in api.js) already normalized all fields.
-        // This pass only extracts the shape the listing UI needs; no re-normalization.
-        const formattedProperties = allProperties.map(p => ({
+        }, 5 * 60 * 1000);
+
+        if (isCancelled) return;
+
+        // Format properties
+        const formattedProperties = rawData.map(p => ({
           id: p._id || p.id || p.visitId || '',
           name: p.name || p.property_name || p.propertyName || 'Property',
           city: p.city || p.propertyInfo?.city || '',
@@ -627,103 +637,13 @@ export default function OurPropertyPage() {
           originalPrice: p.originalPrice || null,
         }));
 
-        // Extract unique cities from all properties for the filter sidebar
         setAllRawProperties(formattedProperties);
         const cities = [...new Set(formattedProperties.map(p => p.city).filter(Boolean))].sort();
         setAvailableCities(cities);
 
-        // Apply filters quickly
-        let filtered = formattedProperties;
-
-        if (selectedCity && selectedCity !== 'All Cities') {
-          filtered = filtered.filter(p =>
-            p.city?.toLowerCase() === selectedCity.toLowerCase() ||
-            p.location?.toLowerCase().includes(selectedCity.toLowerCase())
-          );
-        }
-        
-        if (selectedArea) {
-          filtered = filtered.filter(p => 
-            p.area?.toLowerCase().includes(selectedArea.toLowerCase()) || 
-            p.location?.toLowerCase().includes(selectedArea.toLowerCase())
-          );
-        }
-        
-        // Search by property name, city, area, or type
-        if (searchQuery) {
-          const query = searchQuery.toLowerCase();
-          filtered = filtered.filter(p => 
-            p.name?.toLowerCase().includes(query) ||
-            p.location?.toLowerCase().includes(query) ||
-            p.area?.toLowerCase().includes(query) ||
-            p.type?.toLowerCase().includes(query) ||
-            p.locality?.toLowerCase().includes(query)
-          );
-        }
-        
-        if (selectedType) {
-          const st = selectedType.toLowerCase();
-          filtered = filtered.filter(p => {
-            const pt = (p.type || '').toLowerCase();
-            if (st === 'pg') return pt.includes('pg') || pt.includes('guest');
-            if (st === 'hostel') return pt.includes('hostel');
-            if (st === 'co-living' || st === 'coliving') return pt.includes('co-living') || pt.includes('coliving');
-            if (st === 'apartment' || st === 'apartments') return pt.includes('apartment') || pt.includes('flat');
-            return pt.includes(st) || st.includes(pt);
-          });
-        }
-        
-        if (selectedGender) {
-          filtered = filtered.filter(p => p.gender?.toLowerCase() === selectedGender.toLowerCase());
-        }
-        
-        if (minPrice) {
-          filtered = filtered.filter(p => p.price >= parseInt(minPrice));
-        }
-        
-        if (maxPrice) {
-          const limit = parseInt(maxPrice);
-          const allowedLimit = isBiddingMode ? (limit + 3000) : limit;
-          filtered = filtered.filter(p => p.price <= allowedLimit);
-        }
-
-        if (selectedRoomTypes.length > 0) {
-          filtered = filtered.filter(p => {
-            const rawRoomTypes = p.roomTypes || p.propertyInfo?.roomTypes || p.type || '';
-            const roomStr = (Array.isArray(rawRoomTypes) ? rawRoomTypes.join(' ') : String(rawRoomTypes)).toLowerCase();
-            return selectedRoomTypes.some(rt => {
-              const rtLower = rt.toLowerCase();
-              if (rtLower.includes('single')) return roomStr.includes('single') || roomStr.includes('1');
-              if (rtLower.includes('double')) return roomStr.includes('double') || roomStr.includes('2');
-              if (rtLower.includes('triple')) return roomStr.includes('triple') || roomStr.includes('3');
-              if (rtLower.includes('four')) return roomStr.includes('four') || roomStr.includes('4');
-              return roomStr.includes(rtLower);
-            });
-          });
-        }
-
-        if (selectedAmenities.length > 0) {
-          filtered = filtered.filter(p => {
-            const ams = p.amenities || p.facilities || p.propertyInfo?.amenities || p.propertyInfo?.facilities || [];
-            const amStr = (Array.isArray(ams) ? ams.join(' ') : String(ams)).toLowerCase();
-            return selectedAmenities.every(am => {
-              const amLower = am.toLowerCase();
-              if (amLower.includes('wifi')) return amStr.includes('wifi') || p.wifi || p.propertyInfo?.wifi;
-              if (amLower.includes('ac')) return amStr.includes('ac') || amStr.includes('air') || p.ac || p.propertyInfo?.ac;
-              if (amLower.includes('food') || amLower.includes('meal')) return amStr.includes('food') || amStr.includes('meal') || amStr.includes('mess') || p.food || p.meals;
-              if (amLower.includes('laundry')) return amStr.includes('laundry') || amStr.includes('wash') || p.laundry;
-              if (amLower.includes('cooler')) return amStr.includes('cooler');
-              if (amLower.includes('power')) return amStr.includes('power') || amStr.includes('backup') || p.powerBackup;
-              if (amLower.includes('cctv') || amLower.includes('security')) return amStr.includes('cctv') || amStr.includes('security') || p.security;
-              return amStr.includes(amLower);
-            });
-          });
-        }
-        
-        // Extract colleges from ALL properties before applying college filter
+        // Pre-extract colleges from dataset
         const collegesByProperty = {};
         const allCollegesSet = new Set();
-
         formattedProperties.forEach(prop => {
           if (Array.isArray(prop.nearbyColleges) && prop.nearbyColleges.length > 0) {
             const names = prop.nearbyColleges.map(c => (typeof c === 'string' ? c : c.name)).filter(Boolean);
@@ -731,96 +651,159 @@ export default function OurPropertyPage() {
             names.forEach(n => allCollegesSet.add(n));
           }
         });
-
         setPropertyNearbyColleges(collegesByProperty);
         setAllColleges(Array.from(allCollegesSet).sort());
 
-        // Multi-college filter - show properties near ANY selected college
-        if (selectedColleges.length > 0) {
-          filtered = filtered.filter(p => {
-            const propColleges = collegesByProperty[p.id] || [];
-            return selectedColleges.some(selectedCollege => 
-              propColleges.some(college => 
-                college.toLowerCase().includes(selectedCollege.toLowerCase()) ||
-                selectedCollege.toLowerCase().includes(college.toLowerCase())
-              )
-            );
-          });
+        // Background fetch for nearby areas & institutions (cached, ONCE per city)
+        const targetCity = cityFromUrl || (formattedProperties.length > 0 ? formattedProperties[0].city : '');
+        if (targetCity) {
+          getCachedOrFetch(nearbyDataCache, `nearbyAreas:${targetCity}`, () =>
+            getNearbyAreas(parseFloat(latitudeFromUrl) || 0, parseFloat(longitudeFromUrl) || 0, targetCity)
+          ).then(areas => { if (!isCancelled) setNearbyAreas(areas); }).catch(() => {});
+
+          getCachedOrFetch(nearbyDataCache, `institutions:${targetCity}`, () =>
+            getInstitutions(targetCity)
+          ).then(insts => { if (!isCancelled) setInstitutions(insts); }).catch(() => {});
         }
-        
-        // Apply sort
-        if (sortBy === 'Price: Low to High') {
-          filtered = [...filtered].sort((a, b) => a.price - b.price);
-        } else if (sortBy === 'Price: High to Low') {
-          filtered = [...filtered].sort((a, b) => b.price - a.price);
-        } else if (sortBy === 'Newest First') {
-          filtered = [...filtered].sort((a, b) => (b.id > a.id ? 1 : -1));
-        }
-
-        // Store all filtered properties for pagination
-        setTotalProperties(filtered);
-
-        // Fix: Use the filtered length for accurate pagination counts
-        setTotalCount(filtered.length);
-
-        // Get current page properties
-        const indexOfLastProperty = currentPage * propertiesPerPage;
-        const indexOfFirstProperty = indexOfLastProperty - propertiesPerPage;
-        const currentProperties = filtered.slice(indexOfFirstProperty, indexOfLastProperty);
-        
-        // Show properties immediately with colleges from backend
-        setProperties(currentProperties);
-        
-        // Get price range quickly
-        if (filtered.length > 0) {
-          const prices = filtered.map(p => p.price);
-          const min = Math.min(...prices);
-          const max = Math.max(...prices);
-          const average = Math.round(prices.reduce((a, b) => a + b, 0) / prices.length);
-          setPriceRange({ min, max, average, count: filtered.length });
-        }
-
-        // Fetch additional data in background
-        if (city) {
-          setTimeout(async () => {
-            try {
-              const areas = await getNearbyAreas(
-                parseFloat(latitudeFromUrl) || 0,
-                parseFloat(longitudeFromUrl) || 0,
-                city
-              );
-              setNearbyAreas(areas);
-
-              const insts = await getInstitutions(city);
-              setInstitutions(insts);
-            } catch (err) {
-              console.error('Background data fetch failed:', err);
-            }
-          }, 200);
-        }
-
-        // Get price range for property type in background
-        if (typeFromUrl) {
-          setTimeout(async () => {
-            try {
-              const range = await getPriceRangeByType(typeFromUrl);
-              setPriceRange(range);
-            } catch (err) {
-              console.error('Price range fetch failed:', err);
-            }
-          }, 300);
-        }
-
-      } catch (error) {
-        console.error('Error fetching properties:', error);
-        setProperties([]);
+      } catch (err) {
+        console.error('Error loading properties dataset:', err);
       } finally {
-        setLoading(false);
+        if (!isCancelled) setLoading(false);
       }
     };
+
+    fetchServerData();
+    return () => { isCancelled = true; };
+  }, [typeFromUrl, cityFromUrl, latitudeFromUrl, longitudeFromUrl]);
+
+
+  // 2. CLIENT-SIDE FILTERING, SORTING, AND PAGINATION — runs instantly in memory!
+  useEffect(() => {
+    if (!allRawProperties || allRawProperties.length === 0) return;
+
+    let filtered = allRawProperties;
+
+    if (selectedCity && selectedCity !== 'All Cities') {
+      filtered = filtered.filter(p =>
+        p.city?.toLowerCase() === selectedCity.toLowerCase() ||
+        p.location?.toLowerCase().includes(selectedCity.toLowerCase())
+      );
+    }
     
-    loadData();
-  }, [typeFromUrl, cityFromUrl, searchFromUrl, latitudeFromUrl, longitudeFromUrl, currentPage, selectedCity, selectedArea, selectedType, selectedGender, minPrice, maxPrice, selectedRatings, selectedColleges, selectedRoomTypes, selectedAmenities, sortBy]);
+    if (selectedArea) {
+      filtered = filtered.filter(p => 
+        p.area?.toLowerCase().includes(selectedArea.toLowerCase()) || 
+        p.location?.toLowerCase().includes(selectedArea.toLowerCase())
+      );
+    }
+    
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(p => 
+        p.name?.toLowerCase().includes(query) ||
+        p.location?.toLowerCase().includes(query) ||
+        p.area?.toLowerCase().includes(query) ||
+        p.type?.toLowerCase().includes(query) ||
+        p.locality?.toLowerCase().includes(query)
+      );
+    }
+    
+    if (selectedType) {
+      const st = selectedType.toLowerCase();
+      filtered = filtered.filter(p => {
+        const pt = (p.type || '').toLowerCase();
+        if (st === 'pg') return pt.includes('pg') || pt.includes('guest');
+        if (st === 'hostel') return pt.includes('hostel');
+        if (st === 'co-living' || st === 'coliving') return pt.includes('co-living') || pt.includes('coliving');
+        if (st === 'apartment' || st === 'apartments') return pt.includes('apartment') || pt.includes('flat');
+        return pt.includes(st) || st.includes(pt);
+      });
+    }
+    
+    if (selectedGender) {
+      filtered = filtered.filter(p => p.gender?.toLowerCase() === selectedGender.toLowerCase());
+    }
+    
+    if (minPrice) {
+      filtered = filtered.filter(p => p.price >= parseInt(minPrice));
+    }
+    
+    if (maxPrice) {
+      const limit = parseInt(maxPrice);
+      const allowedLimit = isBiddingMode ? (limit + 3000) : limit;
+      filtered = filtered.filter(p => p.price <= allowedLimit);
+    }
+
+    if (selectedRoomTypes.length > 0) {
+      filtered = filtered.filter(p => {
+        const rawRoomTypes = p.roomTypes || p.propertyInfo?.roomTypes || p.type || '';
+        const roomStr = (Array.isArray(rawRoomTypes) ? rawRoomTypes.join(' ') : String(rawRoomTypes)).toLowerCase();
+        return selectedRoomTypes.some(rt => {
+          const rtLower = rt.toLowerCase();
+          if (rtLower.includes('single')) return roomStr.includes('single') || roomStr.includes('1');
+          if (rtLower.includes('double')) return roomStr.includes('double') || roomStr.includes('2');
+          if (rtLower.includes('triple')) return roomStr.includes('triple') || roomStr.includes('3');
+          if (rtLower.includes('four')) return roomStr.includes('four') || roomStr.includes('4');
+          return roomStr.includes(rtLower);
+        });
+      });
+    }
+
+    if (selectedAmenities.length > 0) {
+      filtered = filtered.filter(p => {
+        const ams = p.amenities || p.facilities || p.propertyInfo?.amenities || p.propertyInfo?.facilities || [];
+        const amStr = (Array.isArray(ams) ? ams.join(' ') : String(ams)).toLowerCase();
+        return selectedAmenities.every(am => {
+          const amLower = am.toLowerCase();
+          if (amLower.includes('wifi')) return amStr.includes('wifi') || p.wifi || p.propertyInfo?.wifi;
+          if (amLower.includes('ac')) return amStr.includes('ac') || amStr.includes('air') || p.ac || p.propertyInfo?.ac;
+          if (amLower.includes('food') || amLower.includes('meal')) return amStr.includes('food') || amStr.includes('meal') || amStr.includes('mess') || p.food || p.meals;
+          if (amLower.includes('laundry')) return amStr.includes('laundry') || amStr.includes('wash') || p.laundry;
+          if (amLower.includes('cooler')) return amStr.includes('cooler');
+          if (amLower.includes('power')) return amStr.includes('power') || amStr.includes('backup') || p.powerBackup;
+          if (amLower.includes('cctv') || amLower.includes('security')) return amStr.includes('cctv') || amStr.includes('security') || p.security;
+          return amStr.includes(amLower);
+        });
+      });
+    }
+
+    if (selectedColleges.length > 0) {
+      filtered = filtered.filter(p => {
+        const propColleges = propertyNearbyColleges[p.id] || [];
+        return selectedColleges.some(selectedCollege => 
+          propColleges.some(college => 
+            college.toLowerCase().includes(selectedCollege.toLowerCase()) ||
+            selectedCollege.toLowerCase().includes(college.toLowerCase())
+          )
+        );
+      });
+    }
+    
+    // Apply sort
+    if (sortBy === 'Price: Low to High') {
+      filtered = [...filtered].sort((a, b) => a.price - b.price);
+    } else if (sortBy === 'Price: High to Low') {
+      filtered = [...filtered].sort((a, b) => b.price - a.price);
+    } else if (sortBy === 'Newest First') {
+      filtered = [...filtered].sort((a, b) => (b.id > a.id ? 1 : -1));
+    }
+
+    setTotalProperties(filtered);
+    setTotalCount(filtered.length);
+
+    // Get current page properties
+    const indexOfLastProperty = currentPage * propertiesPerPage;
+    const indexOfFirstProperty = indexOfLastProperty - propertiesPerPage;
+    setProperties(filtered.slice(indexOfFirstProperty, indexOfLastProperty));
+    
+    if (filtered.length > 0) {
+      const prices = filtered.map(p => p.price);
+      const min = Math.min(...prices);
+      const max = Math.max(...prices);
+      const average = Math.round(prices.reduce((a, b) => a + b, 0) / prices.length);
+      setPriceRange({ min, max, average, count: filtered.length });
+    }
+  }, [allRawProperties, selectedCity, selectedArea, searchQuery, selectedType, selectedGender, minPrice, maxPrice, selectedRoomTypes, selectedAmenities, selectedColleges, sortBy, currentPage, isBiddingMode, propertyNearbyColleges, propertiesPerPage]);
 
 
   // Pagination handlers
@@ -904,7 +887,7 @@ export default function OurPropertyPage() {
 
       <main className="min-h-screen">
 {/* --- BREADCRUMBS BAR --- */}
-<div className="bg-[#F8FAFC] border-b border-slate-200/80 py-1.5 px-4 md:px-8">
+<div className="border-b border-slate-200/90 py-1.5 px-4 md:px-8" style={{ background: 'linear-gradient(90deg, #EFF6F9 0%, #F4F8FA 50%, #F0F6F8 100%)' }}>
   <div className="max-w-7xl mx-auto flex items-center text-xs font-semibold text-slate-500 gap-2 flex-wrap">
     <Link to="/" className="hover:text-teal-600 transition-colors">Home</Link>
     <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
@@ -928,10 +911,9 @@ export default function OurPropertyPage() {
   </div>
 </div>
 
-{/* --- DYNAMIC HERO HEADERS & DECORATIVE CAROUSELS (HIDDEN WHEN IN BIDDING MODE) --- */}
-{!isBiddingMode && (
-  <>
-    {isSectionVisible('our-property-hero') && (() => {
+{/* --- DYNAMIC HERO HEADERS & DECORATIVE CAROUSELS --- */}
+<>
+  {(() => {
   const displayTypeHeading = selectedType ? `${selectedType} in ` : 'Properties in ';
   const propertyTypeName = selectedType || 'Properties';
   const propertyTypePlural = selectedType
@@ -1172,7 +1154,7 @@ export default function OurPropertyPage() {
 
         <div className="p-2.5 bg-emerald-50/50 rounded-xl border border-emerald-100">
           <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center mb-1.5 font-bold">
-            <LucideIcons.Bus className="w-3.5 h-3.5" />
+            <Car className="w-3.5 h-3.5" />
           </div>
           <h3 className="font-extrabold text-slate-900 text-[11px] mb-0.5">Excellent Connectivity</h3>
           <p className="text-[10px] text-slate-500 font-medium leading-snug">Well connected by main roads, auto-rickshaws &amp; public transport.</p>
@@ -1206,6 +1188,7 @@ export default function OurPropertyPage() {
   </section>
 )}
 
+
 {/* --- POPULAR LOCALITIES IN CITY (FOR CITY PAGE SCREENSHOT 3) --- */}
 {selectedCity && !selectedArea && (
   <section className="hidden md:block py-8 px-4 md:px-8 bg-white border-b border-slate-200">
@@ -1230,71 +1213,15 @@ export default function OurPropertyPage() {
     </div>
   </section>
 )}
-  </>
-)}
+</>
 
-        <section className="pt-0 pb-6 bg-slate-50/60 px-4 sm:px-6 md:px-8 border-b border-slate-200">
-          <div className="max-w-[1550px] mx-auto">
+        <section
+          className="pt-0 pb-3 pl-0 pr-2 sm:pr-3 md:pr-4 border-b border-slate-200 bg-white"
+          style={{ background: '#FFFFFF' }}
+        >
+          <div className="max-w-[1600px] mx-auto">
 
-            {/* --- FAST BIDDING HEADER BANNER (SITE GREEN/TEAL THEME) --- */}
-            {isBiddingMode && (
-              <div className="mb-3 p-3.5 md:p-4 rounded-2xl bg-gradient-to-r from-teal-50 via-emerald-50/80 to-teal-100/60 border border-teal-200/90 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-3 transition-all animate-in fade-in duration-300">
-                <div className="flex items-start gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-teal-600/10 border border-teal-600/20 flex items-center justify-center text-teal-600 shrink-0 mt-0.5">
-                    <Zap className="w-4 h-4 fill-teal-600 text-teal-600" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                      <span className="px-2.5 py-0.5 rounded-full bg-teal-100 text-teal-800 text-[10px] font-black uppercase tracking-wider border border-teal-200">
-                        FAST BIDDING MODE ACTIVE
-                      </span>
-                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold border border-emerald-200">
-                        {totalProperties.length} Properties Matching
-                      </span>
-                    </div>
-                    <h2 className="text-base md:text-lg font-black tracking-tight text-slate-900">
-                      Set your filters below &amp; send 1-click bid request directly to property owners!
-                    </h2>
-                    <p className="text-[11px] text-slate-600 font-semibold mt-0.5">
-                      Matching owners in {selectedCity || 'your city'} will receive your requested budget directly.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0 w-full md:w-auto justify-end pt-1.5 md:pt-0 border-t md:border-t-0 border-teal-200/60">
-                  <button
-                    type="button"
-                    onClick={handleDesktopBidSubmit}
-                    disabled={biddingSubmitting || totalProperties.length === 0}
-                    className="flex-1 md:flex-none px-5 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:bg-slate-300 text-white font-black text-xs shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    {biddingSubmitting ? (
-                      <>
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        <span>Placing Bids...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Send className="w-3.5 h-3.5" />
-                        <span>Send Bid ({totalProperties.length} Properties)</span>
-                      </>
-                    )}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      searchParams.delete('bid');
-                      setSearchParams(searchParams);
-                    }}
-                    className="w-8 h-8 rounded-xl bg-white hover:bg-slate-100 text-slate-500 hover:text-slate-900 border border-slate-200 flex items-center justify-center transition-colors cursor-pointer shrink-0 shadow-2xs"
-                    title="Exit Bidding Mode"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            )}
+            {/* Top Bidding banner removed per user request */}
 
             {/* Mobile Filter & Sort Trigger */}
             <div className="lg:hidden flex items-center justify-between gap-2 mb-3">
@@ -1338,7 +1265,7 @@ export default function OurPropertyPage() {
               </div>
             </div>
 
-            <div className="flex flex-col lg:flex-row gap-4 lg:gap-5">
+            <div className="grid grid-cols-1 lg:grid-cols-[290px_1fr] gap-4 lg:gap-5 items-start">
               {/* Left Sidebar - Filters - Desktop: Always visible, Mobile: Overlay */}
               {/* Mobile Filter Overlay Backdrop */}
               {mobileFilterOpen && (
@@ -1349,19 +1276,31 @@ export default function OurPropertyPage() {
               )}
 
               <aside className={`
-                lg:w-[260px] xl:w-[270px] flex-shrink-0 lg:static lg:block lg:z-auto lg:transform-none lg:h-auto
-                fixed top-0 left-0 w-[85%] max-w-[320px] h-full max-h-screen z-50 transform transition-transform duration-300 ease-in-out bg-white shadow-2xl lg:shadow-none lg:bg-transparent
+                w-full shrink-0 lg:static lg:block lg:z-auto lg:transform-none lg:h-auto
+                fixed top-0 left-0 w-[85%] max-w-[290px] h-full max-h-screen z-50 transform transition-transform duration-300 ease-in-out bg-white shadow-2xl lg:shadow-none lg:bg-transparent
                 ${mobileFilterOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
               `}>
-                <div className="bg-gradient-to-b from-white via-white to-teal-50/20 rounded-2xl border border-slate-200/90 shadow-[0_4px_25px_rgb(0,0,0,0.04)] lg:sticky lg:top-[55px] w-full p-3.5 space-y-3 relative overflow-hidden">
-                  {/* Top Teal-Emerald Gradient Accent Line */}
-                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-teal-500 via-emerald-500 to-teal-600"></div>
-
-                  {/* Header */}
-                  <div className="flex items-center justify-between pb-1.5 border-b border-slate-200/80 sticky top-0 bg-white/95 backdrop-blur-xs z-10 pt-0.5">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></div>
-                      <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-900">Filters</h3>
+                <div
+                  className="lg:sticky lg:top-[68px] w-full overflow-hidden lg:max-h-[calc(100vh-80px)] lg:overflow-y-auto no-scrollbar"
+                  style={{
+                    background: '#FFFFFF',
+                    border: '1px solid #D8E7E8',
+                    borderRadius: '6px',
+                    boxShadow: '0 2px 10px 0 rgba(15,159,145,0.07)',
+                  }}
+                >
+                  {/* Header — soft blue→mint gradient, 46px */}
+                  <div
+                    className="flex items-center justify-between px-3.5"
+                    style={{
+                      height: '46px',
+                      background: 'linear-gradient(135deg, #D9F0FF 0%, #DDF8F2 55%, #E4FAF5 100%)',
+                      borderBottom: '1px solid #C8E9E3',
+                    }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <SlidersHorizontal style={{ width: '16px', height: '16px', color: '#0F9F91', flexShrink: 0 }} />
+                      <span style={{ fontSize: '13.5px', fontWeight: 900, color: '#0F172A', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Filters</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <button
@@ -1376,14 +1315,21 @@ export default function OurPropertyPage() {
                           setSelectedRoomTypes([]);
                           setSelectedAmenities([]);
                         }}
-                        className="px-2.5 py-0.5 rounded-full bg-slate-100/80 hover:bg-rose-50 hover:text-rose-600 text-slate-600 text-[11px] font-extrabold transition-all border border-slate-200/70 cursor-pointer"
+                        style={{
+                          fontSize: '11.5px', fontWeight: 700, color: '#0F9F91',
+                          background: '#FFFFFF', border: '1px solid #A8DDD7',
+                          borderRadius: '999px', padding: '3px 12px',
+                          cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = '#F0FBF8'; e.currentTarget.style.borderColor = '#0F9F91'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = '#FFFFFF'; e.currentTarget.style.borderColor = '#A8DDD7'; }}
                       >
                         Clear All
                       </button>
                       <button
                         type="button"
                         onClick={() => setMobileFilterOpen(false)}
-                        className="lg:hidden p-1 text-slate-500 hover:text-slate-900 rounded-lg hover:bg-slate-100"
+                        className="lg:hidden p-1 text-slate-400 hover:text-slate-700 rounded"
                         title="Close Filters"
                       >
                         <X className="w-4 h-4" />
@@ -1391,241 +1337,386 @@ export default function OurPropertyPage() {
                     </div>
                   </div>
 
-                  {/* 1. CITY DROPDOWN */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-900 uppercase tracking-wider mb-1">
-                      City
-                    </label>
-                    <div className="relative">
-                      <select
-                        value={selectedCity}
-                        onChange={(e) => {
-                          setSelectedCity(e.target.value);
-                          setSelectedArea('');
-                        }}
-                        className={`w-full py-2 px-3 rounded-xl border text-xs font-semibold text-slate-700 transition-all cursor-pointer pr-7 shadow-2xs appearance-none ${
-                          selectedCity 
-                            ? 'border-teal-500 bg-teal-50/50 text-teal-950 font-semibold ring-2 ring-teal-500/20 shadow-xs' 
-                            : 'border-slate-200/90 bg-slate-50/80 hover:bg-white focus:border-teal-500'
-                        }`}
-                      >
-                        <option value="">All Cities</option>
-                        {Object.keys(dynamicCitiesMap).map(c => (
-                          <option key={c} value={c}>{c}</option>
-                        ))}
-                      </select>
-                      <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  {/* Filter body — pure white, comfortable 12px 14px padding & 7px gap */}
+                  <div style={{ background: '#FFFFFF', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '7px' }}>
+
+                    {/* 1. CITY */}
+                    <div>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
+                        <MapPin style={{ width: '13.5px', height: '13.5px', color: '#0F9F91', flexShrink: 0 }} />
+                        <span style={{ fontSize: '11px', fontWeight: 800, color: '#0F172A', textTransform: 'uppercase', letterSpacing: '0.02em' }}>City</span>
+                      </label>
+                      <div className="relative">
+                        <select
+                          value={selectedCity}
+                          onChange={(e) => {
+                            setSelectedCity(e.target.value);
+                            setSelectedArea('');
+                          }}
+                          style={{
+                            width: '100%', height: '35px', borderRadius: '6px',
+                            border: `1px solid ${selectedCity ? '#62CFC0' : '#DCE7EF'}`,
+                            background: selectedCity ? '#F0FBF8' : '#FFFFFF',
+                            color: selectedCity ? '#087F73' : '#334155',
+                            fontSize: '12px', fontWeight: 600,
+                            padding: '0 28px 0 10px', appearance: 'none',
+                            cursor: 'pointer', outline: 'none',
+                            transition: 'border-color 0.15s, background 0.15s',
+                          }}
+                        >
+                          <option value="">All Cities</option>
+                          {Object.keys(dynamicCitiesMap).map(c => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
+                        </select>
+                        <ChevronDown style={{ width: '14px', height: '14px', color: '#64748B', position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                      </div>
                     </div>
-                  </div>
 
-                  {/* 2. LOCALITY / AREA DROPDOWN */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-900 uppercase tracking-wider mb-1">
-                      Locality / Area
-                    </label>
-                    <div className="relative">
-                      <select
-                        value={selectedArea}
-                        onChange={(e) => setSelectedArea(e.target.value)}
-                        className={`w-full py-2 px-3 rounded-xl border text-xs font-semibold text-slate-700 transition-all cursor-pointer pr-7 shadow-2xs appearance-none ${
-                          selectedArea 
-                            ? 'border-teal-500 bg-teal-50/50 text-teal-950 font-semibold ring-2 ring-teal-500/20 shadow-xs' 
-                            : 'border-slate-200/90 bg-slate-50/80 hover:bg-white focus:border-teal-500'
-                        }`}
-                      >
-                        <option value="">All Localities {selectedCity ? `in ${selectedCity}` : ''}</option>
-                        {displayLocalities.map(loc => (
-                          <option key={loc.name} value={loc.name}>
-                            {loc.name} {loc.count > 0 ? `(${loc.count})` : ''}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    {/* 2. LOCALITY / AREA */}
+                    <div>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
+                        <Building2 style={{ width: '13.5px', height: '13.5px', color: '#0F9F91', flexShrink: 0 }} />
+                        <span style={{ fontSize: '11px', fontWeight: 800, color: '#0F172A', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Locality / Area</span>
+                      </label>
+                      <div className="relative">
+                        <select
+                          value={selectedArea}
+                          onChange={(e) => setSelectedArea(e.target.value)}
+                          style={{
+                            width: '100%', height: '35px', borderRadius: '6px',
+                            border: `1px solid ${selectedArea ? '#62CFC0' : '#DCE7EF'}`,
+                            background: selectedArea ? '#F0FBF8' : '#FFFFFF',
+                            color: selectedArea ? '#087F73' : '#334155',
+                            fontSize: '12px', fontWeight: 600,
+                            padding: '0 28px 0 10px', appearance: 'none',
+                            cursor: 'pointer', outline: 'none',
+                            transition: 'border-color 0.15s, background 0.15s',
+                          }}
+                        >
+                          <option value="">All Localities {selectedCity ? `in ${selectedCity}` : ''}</option>
+                          {displayLocalities.map(loc => (
+                            <option key={loc.name} value={loc.name}>
+                              {loc.name} {loc.count > 0 ? `(${loc.count})` : ''}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown style={{ width: '14px', height: '14px', color: '#64748B', position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                      </div>
                     </div>
-                  </div>
 
-                  {/* 3. PROPERTY TYPE DROPDOWN */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-900 uppercase tracking-wider mb-1">
-                      Property Type
-                    </label>
-                    <div className="relative">
-                      <select
-                        value={selectedType}
-                        onChange={(e) => setSelectedType(e.target.value)}
-                        className={`w-full py-2 px-3 rounded-xl border text-xs font-semibold text-slate-700 transition-all cursor-pointer pr-7 shadow-2xs appearance-none ${
-                          selectedType 
-                            ? 'border-teal-500 bg-teal-50/50 text-teal-950 font-semibold ring-2 ring-teal-500/20 shadow-xs' 
-                            : 'border-slate-200/90 bg-slate-50/80 hover:bg-white focus:border-teal-500'
-                        }`}
-                      >
-                        <option value="">All Property Types</option>
-                        <option value="PG">PG (Paying Guest)</option>
-                        <option value="Hostel">Hostels</option>
-                        <option value="Co-living">Co-living</option>
-                        <option value="Apartment">Apartments</option>
-                      </select>
-                      <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    {/* 3. PROPERTY TYPE */}
+                    <div>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
+                        <Home style={{ width: '13.5px', height: '13.5px', color: '#0F9F91', flexShrink: 0 }} />
+                        <span style={{ fontSize: '11px', fontWeight: 800, color: '#0F172A', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Property Type</span>
+                      </label>
+                      <div className="relative">
+                        <select
+                          value={selectedType}
+                          onChange={(e) => setSelectedType(e.target.value)}
+                          style={{
+                            width: '100%', height: '35px', borderRadius: '6px',
+                            border: `1px solid ${selectedType ? '#62CFC0' : '#DCE7EF'}`,
+                            background: selectedType ? '#F0FBF8' : '#FFFFFF',
+                            color: selectedType ? '#087F73' : '#334155',
+                            fontSize: '12px', fontWeight: 600,
+                            padding: '0 28px 0 10px', appearance: 'none',
+                            cursor: 'pointer', outline: 'none',
+                            transition: 'border-color 0.15s, background 0.15s',
+                          }}
+                        >
+                          <option value="">All Property Types</option>
+                          <option value="PG">PG (Paying Guest)</option>
+                          <option value="Hostel">Hostels</option>
+                          <option value="Co-living">Co-living</option>
+                          <option value="Apartment">Apartments</option>
+                        </select>
+                        <ChevronDown style={{ width: '14px', height: '14px', color: '#64748B', position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                      </div>
                     </div>
-                  </div>
 
-                  {/* 4. GENDER / CATEGORY DROPDOWN */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-900 uppercase tracking-wider mb-1">
-                      Gender / Category
-                    </label>
-                    <div className="relative">
-                      <select
-                        value={selectedGender}
-                        onChange={(e) => setSelectedGender(e.target.value)}
-                        className={`w-full py-2 px-3 rounded-xl border text-xs font-semibold text-slate-700 transition-all cursor-pointer pr-7 shadow-2xs appearance-none ${
-                          selectedGender 
-                            ? 'border-teal-500 bg-teal-50/50 text-teal-950 font-semibold ring-2 ring-teal-500/20 shadow-xs' 
-                            : 'border-slate-200/90 bg-slate-50/80 hover:bg-white focus:border-teal-500'
-                        }`}
-                      >
-                        <option value="">All Genders (Boys / Girls / Co-ed)</option>
-                        <option value="Boys">Boys Only</option>
-                        <option value="Girls">Girls Only</option>
-                        <option value="Co-ed">Co-ed</option>
-                      </select>
-                      <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    {/* 4. GENDER / CATEGORY */}
+                    <div>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
+                        <Users style={{ width: '13.5px', height: '13.5px', color: '#0F9F91', flexShrink: 0 }} />
+                        <span style={{ fontSize: '11px', fontWeight: 800, color: '#0F172A', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Gender / Category</span>
+                      </label>
+                      <div className="relative">
+                        <select
+                          value={selectedGender}
+                          onChange={(e) => setSelectedGender(e.target.value)}
+                          style={{
+                            width: '100%', height: '35px', borderRadius: '6px',
+                            border: `1px solid ${selectedGender ? '#62CFC0' : '#DCE7EF'}`,
+                            background: selectedGender ? '#F0FBF8' : '#FFFFFF',
+                            color: selectedGender ? '#087F73' : '#334155',
+                            fontSize: '12px', fontWeight: 600,
+                            padding: '0 28px 0 10px', appearance: 'none',
+                            cursor: 'pointer', outline: 'none',
+                            transition: 'border-color 0.15s, background 0.15s',
+                          }}
+                        >
+                          <option value="">All Genders (Boys / Girls / Co-ed)</option>
+                          <option value="Boys">Boys Only</option>
+                          <option value="Girls">Girls Only</option>
+                          <option value="Co-ed">Co-ed</option>
+                        </select>
+                        <ChevronDown style={{ width: '14px', height: '14px', color: '#64748B', position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                      </div>
                     </div>
-                  </div>
 
-                  {/* 5. PRICE FILTER DROPDOWN */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-900 uppercase tracking-wider mb-1">
-                      Price Filter
-                    </label>
+                    {/* 5. PRICE FILTER */}
+                    <div>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
+                        <Tag style={{ width: '13.5px', height: '13.5px', color: '#0F9F91', flexShrink: 0 }} />
+                        <span style={{ fontSize: '11px', fontWeight: 800, color: '#0F172A', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Price Filter</span>
+                      </label>
+                      <div className="relative">
+                        <select
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (!val) {
+                              setMinPrice(''); setMaxPrice('');
+                            } else if (val.startsWith('lte_')) {
+                              setMinPrice(''); setMaxPrice(val.replace('lte_', ''));
+                            } else if (val.startsWith('gte_')) {
+                              setMinPrice(val.replace('gte_', '')); setMaxPrice('');
+                            } else if (val.startsWith('eq_')) {
+                              const num = val.replace('eq_', '');
+                              setMinPrice(String(Math.max(0, parseInt(num) - 500)));
+                              setMaxPrice(String(parseInt(num) + 500));
+                            } else if (val.includes('-')) {
+                              const [minVal, maxVal] = val.split('-');
+                              setMinPrice(minVal); setMaxPrice(maxVal);
+                            }
+                          }}
+                          style={{
+                            width: '100%', height: '35px', borderRadius: '6px',
+                            border: `1px solid ${(minPrice || maxPrice) ? '#62CFC0' : '#DCE7EF'}`,
+                            background: (minPrice || maxPrice) ? '#F0FBF8' : '#FFFFFF',
+                            color: (minPrice || maxPrice) ? '#087F73' : '#334155',
+                            fontSize: '12px', fontWeight: 600,
+                            padding: '0 28px 0 10px', appearance: 'none',
+                            cursor: 'pointer', outline: 'none',
+                            transition: 'border-color 0.15s, background 0.15s',
+                          }}
+                        >
+                          <option value="">All Budgets (No Limit)</option>
+                          <option value="lte_5000">Less than ₹5,000 / mo</option>
+                          <option value="lte_8000">Less than ₹8,000 / mo</option>
+                          <option value="lte_12000">Less than ₹12,000 / mo</option>
+                          <option value="lte_15000">Less than ₹15,000 / mo</option>
+                          <option value="lte_20000">Less than ₹20,000 / mo</option>
+                          <option value="gte_10000">Greater than ₹10,000 / mo</option>
+                          <option value="gte_15000">Greater than ₹15,000 / mo</option>
+                          <option value="gte_20000">Greater than ₹20,000 / mo</option>
+                          <option value="eq_5000">Equal to ~₹5,000 / mo</option>
+                          <option value="eq_10000">Equal to ~₹10,000 / mo</option>
+                          <option value="eq_15000">Equal to ~₹15,000 / mo</option>
+                          <option value="3000-7000">Range: ₹3,000 – ₹7,000</option>
+                          <option value="7000-12000">Range: ₹7,000 – ₹12,000</option>
+                          <option value="12000-20000">Range: ₹12,000 – ₹20,000</option>
+                        </select>
+                        <ChevronDown style={{ width: '14px', height: '14px', color: '#64748B', position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                      </div>
+                    </div>
 
-                    <div className="relative">
-                      <select
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (!val) {
+                    {/* 6. AMENITIES */}
+                    <div>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
+                        <Sparkles style={{ width: '13.5px', height: '13.5px', color: '#0F9F91', flexShrink: 0 }} />
+                        <span style={{ fontSize: '11px', fontWeight: 800, color: '#0F172A', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Amenities</span>
+                      </label>
+                      <div className="relative">
+                        <select
+                          value={selectedAmenities[0] || ''}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (!val) { setSelectedAmenities([]); } else { setSelectedAmenities([val]); }
+                          }}
+                          style={{
+                            width: '100%', height: '35px', borderRadius: '6px',
+                            border: `1px solid ${selectedAmenities.length > 0 ? '#62CFC0' : '#DCE7EF'}`,
+                            background: selectedAmenities.length > 0 ? '#F0FBF8' : '#FFFFFF',
+                            color: selectedAmenities.length > 0 ? '#087F73' : '#334155',
+                            fontSize: '12px', fontWeight: 600,
+                            padding: '0 28px 0 10px', appearance: 'none',
+                            cursor: 'pointer', outline: 'none',
+                            transition: 'border-color 0.15s, background 0.15s',
+                          }}
+                        >
+                          <option value="">All Amenities</option>
+                          {displayAmenities.map(a => (
+                            <option key={a.name} value={a.name}>{a.name} {a.count > 0 ? `(${a.count})` : ''}</option>
+                          ))}
+                        </select>
+                        <ChevronDown style={{ width: '14px', height: '14px', color: '#64748B', position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                      </div>
+                    </div>
+
+                    {/* 7. NEARBY COLLEGE / INSTITUTE */}
+                    <div>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
+                        <GraduationCap style={{ width: '13.5px', height: '13.5px', color: '#0F9F91', flexShrink: 0 }} />
+                        <span style={{ fontSize: '11px', fontWeight: 800, color: '#0F172A', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Nearby College / Institute</span>
+                      </label>
+                      <div className="relative">
+                        <select
+                          value={selectedColleges[0] || ''}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (!val) { setSelectedColleges([]); } else { setSelectedColleges([val]); }
+                          }}
+                          style={{
+                            width: '100%', height: '35px', borderRadius: '6px',
+                            border: `1px solid ${selectedColleges.length > 0 ? '#62CFC0' : '#DCE7EF'}`,
+                            background: selectedColleges.length > 0 ? '#F0FBF8' : '#FFFFFF',
+                            color: selectedColleges.length > 0 ? '#087F73' : '#334155',
+                            fontSize: '12px', fontWeight: 600,
+                            padding: '0 28px 0 10px', appearance: 'none',
+                            cursor: 'pointer', outline: 'none',
+                            transition: 'border-color 0.15s, background 0.15s',
+                          }}
+                        >
+                          <option value="">All Colleges &amp; Institutes</option>
+                          {(allColleges && allColleges.length > 0 ? allColleges : ['Allen Career Institute', 'Resonance', 'Motion Education', 'Bansal Classes', 'PW (Physics Wallah)', 'Reliable Institute', 'IIT / Coaching Hub']).map(c => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
+                        </select>
+                        <ChevronDown style={{ width: '14px', height: '14px', color: '#64748B', position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                      </div>
+                    </div>
+
+                    {/* Bottom Action Button: Bid Now in Bidding Mode, else Reset All Filters */}
+                    {isBiddingMode ? (
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <button
+                          type="button"
+                          onClick={handleDesktopBidSubmit}
+                          disabled={biddingSubmitting || totalProperties.length === 0}
+                          style={{
+                            flex: 1,
+                            height: '35px',
+                            borderRadius: '6px',
+                            background: 'linear-gradient(90deg, #BFD8FF 0%, #C8F2E8 100%)',
+                            border: 'none',
+                            color: '#0F172A',
+                            fontSize: '12px',
+                            fontWeight: 800,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                            cursor: 'pointer',
+                            transition: 'opacity 0.15s',
+                          }}
+                          className="hover:opacity-85 active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
+                        >
+                          {biddingSubmitting ? (
+                            <>
+                              <RefreshCw style={{ width: '14px', height: '14px', color: '#0F9F91' }} className="animate-spin" />
+                              <span>Placing Bids...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Send style={{ width: '14px', height: '14px', color: '#0F9F91' }} />
+                              <span>Bid Now ({totalProperties.length} Stays)</span>
+                            </>
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          title="Reset Filters"
+                          onClick={() => {
+                            setSelectedCity('');
+                            setSelectedArea('');
+                            setSelectedType('');
+                            setSelectedGender('');
                             setMinPrice('');
                             setMaxPrice('');
-                          } else if (val.startsWith('lte_')) {
-                            setMinPrice('');
-                            setMaxPrice(val.replace('lte_', ''));
-                          } else if (val.startsWith('gte_')) {
-                            setMinPrice(val.replace('gte_', ''));
-                            setMaxPrice('');
-                          } else if (val.startsWith('eq_')) {
-                            const num = val.replace('eq_', '');
-                            setMinPrice(String(Math.max(0, parseInt(num) - 500)));
-                            setMaxPrice(String(parseInt(num) + 500));
-                          } else if (val.includes('-')) {
-                            const [minVal, maxVal] = val.split('-');
-                            setMinPrice(minVal);
-                            setMaxPrice(maxVal);
-                          }
-                        }}
-                        className={`w-full py-2 px-3 rounded-xl border text-xs font-semibold text-slate-700 transition-all cursor-pointer pr-7 shadow-2xs appearance-none ${
-                          minPrice || maxPrice 
-                            ? 'border-teal-500 bg-teal-50/50 text-teal-950 font-semibold ring-2 ring-teal-500/20 shadow-xs' 
-                            : 'border-slate-200/90 bg-slate-50/80 hover:bg-white focus:border-teal-500'
-                        }`}
-                      >
-                        <option value="">All Budgets (No Limit)</option>
-                        <option value="lte_5000">Less than ₹5,000 / mo</option>
-                        <option value="lte_8000">Less than ₹8,000 / mo</option>
-                        <option value="lte_12000">Less than ₹12,000 / mo</option>
-                        <option value="lte_15000">Less than ₹15,000 / mo</option>
-                        <option value="lte_20000">Less than ₹20,000 / mo</option>
-                        <option value="gte_10000">Greater than ₹10,000 / mo</option>
-                        <option value="gte_15000">Greater than ₹15,000 / mo</option>
-                        <option value="gte_20000">Greater than ₹20,000 / mo</option>
-                        <option value="eq_5000">Equal to ~₹5,000 / mo</option>
-                        <option value="eq_10000">Equal to ~₹10,000 / mo</option>
-                        <option value="eq_15000">Equal to ~₹15,000 / mo</option>
-                        <option value="3000-7000">Range: ₹3,000 – ₹7,000</option>
-                        <option value="7000-12000">Range: ₹7,000 – ₹12,000</option>
-                        <option value="12000-20000">Range: ₹12,000 – ₹20,000</option>
-                      </select>
-                      <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    </div>
-                  </div>
-
-                  {/* 6. AMENITIES DROPDOWN */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-900 uppercase tracking-wider mb-1">
-                      Amenities
-                    </label>
-                    <div className="relative">
-                      <select
-                        value={selectedAmenities[0] || ''}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (!val) {
+                            setSelectedColleges([]);
+                            setSelectedRoomTypes([]);
                             setSelectedAmenities([]);
-                          } else {
-                            setSelectedAmenities([val]);
-                          }
+                          }}
+                          style={{
+                            width: '36px',
+                            height: '36px',
+                            borderRadius: '6px',
+                            background: '#F1F5F9',
+                            border: '1px solid #CBD5E1',
+                            color: '#475569',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedCity('');
+                          setSelectedArea('');
+                          setSelectedType('');
+                          setSelectedGender('');
+                          setMinPrice('');
+                          setMaxPrice('');
+                          setSelectedColleges([]);
+                          setSelectedRoomTypes([]);
+                          setSelectedAmenities([]);
                         }}
-                        className={`w-full py-2 px-3 rounded-xl border text-xs font-semibold text-slate-700 transition-all cursor-pointer pr-7 shadow-2xs appearance-none ${
-                          selectedAmenities.length > 0 
-                            ? 'border-teal-500 bg-teal-50/50 text-teal-950 font-semibold ring-2 ring-teal-500/20 shadow-xs' 
-                            : 'border-slate-200/90 bg-slate-50/80 hover:bg-white focus:border-teal-500'
-                        }`}
+                        style={{
+                          width: '100%', height: '35px', borderRadius: '6px',
+                          background: 'linear-gradient(90deg, #BFD8FF 0%, #C8F2E8 100%)',
+                          border: 'none', color: '#0F172A',
+                          fontSize: '12px', fontWeight: 800,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          gap: '6px', cursor: 'pointer', transition: 'opacity 0.15s',
+                          marginTop: '3px',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.opacity = '0.85'; }}
+                        onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
                       >
-                        <option value="">All Amenities</option>
-                        {displayAmenities.map(a => (
-                          <option key={a.name} value={a.name}>{a.name} {a.count > 0 ? `(${a.count})` : ''}</option>
-                        ))}
-                      </select>
-                      <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <RefreshCw style={{ width: '14px', height: '14px', color: '#0F9F91' }} />
+                        <span>Reset All Filters</span>
+                      </button>
+                    )}
+
+                    {/* Mobile only: Apply button */}
+                    <div className="lg:hidden pt-2 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => setMobileFilterOpen(false)}
+                        className="w-full py-2 bg-teal-600 hover:bg-teal-700 text-white font-black text-xs rounded-xl shadow-md transition-all text-center"
+                      >
+                        Show Properties ({totalCount})
+                      </button>
                     </div>
-                  </div>
 
-                  {/* Reset Filters Button */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedCity('');
-                      setSelectedArea('');
-                      setSelectedType('');
-                      setSelectedGender('');
-                      setMinPrice('');
-                      setMaxPrice('');
-                      setSelectedColleges([]);
-                      setSelectedRoomTypes([]);
-                      setSelectedAmenities([]);
-                    }}
-                    className="w-full py-2 bg-gradient-to-r from-teal-600 via-teal-700 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-black text-xs sm:text-sm rounded-xl shadow-xs hover:shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer mt-1 active:scale-98"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                    <span>Reset All Filters</span>
-                  </button>
-
-                  {/* Apply Filters Button for Mobile */}
-                  <div className="lg:hidden mt-4 pt-3 border-t border-slate-100 sticky bottom-0 bg-white pb-2 z-10">
-                    <button
-                      type="button"
-                      onClick={() => setMobileFilterOpen(false)}
-                      className="w-full py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-black text-xs rounded-xl shadow-md transition-all text-center"
-                    >
-                      Show Properties ({totalCount})
-                    </button>
                   </div>
                 </div>
               </aside>
 
+
+
               {/* Right Content - Properties */}
               <div className="flex-1 min-w-0 lg:sticky lg:top-[85px] lg:max-h-[calc(100vh-100px)] lg:overflow-y-auto lg:pr-2 no-scrollbar">
-                <div className="flex items-center justify-between md:mb-4 mb-0 bg-white py-2 px-1 rounded-xl border-b border-slate-100">
+                <div className="flex items-center justify-between mb-1.5 py-0.5 px-0">
                   <div className="hidden md:block text-xs font-extrabold text-slate-700">
                     Showing {((currentPage - 1) * propertiesPerPage) + 1} to {Math.min(currentPage * propertiesPerPage, totalCount)} of {totalCount} properties {selectedCity ? `in ${selectedCity}` : ''}
                   </div>
                   {/* Desktop Custom Sort */}
-                  <div className="hidden md:block relative min-w-[200px]">
+                  <div className="hidden md:block relative min-w-[180px]">
                     <button 
                       onClick={() => setShowSort(!showSort)}
-                      className="w-full flex items-center justify-between gap-3 bg-white px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:border-gray-400 transition-colors"
+                      className="w-full flex items-center justify-between gap-2 bg-white px-3 py-1 rounded-md border border-slate-200 text-xs font-bold text-slate-700 hover:border-slate-300 transition-colors shadow-2xs"
                     >
                       <span>Sort by: {sortBy}</span>
-                      <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${showSort ? 'rotate-180' : ''}`} />
+                      <ChevronDown className={`w-3.5 h-3.5 text-slate-500 transition-transform ${showSort ? 'rotate-180' : ''}`} />
                     </button>
                     
                     {showSort && (
@@ -2094,7 +2185,15 @@ function PropertyCard({ property, onBookNow }) {
   const detailPath = `/property-details/${propSlug}`;
 
   return (
-    <div className="bg-white rounded-2xl shadow-xs hover:shadow-lg transition-all duration-300 border border-slate-200 hover:border-teal-200 overflow-hidden mb-2 md:mb-2.5 group">
+    <div
+      className="bg-white hover:border-[#0FA596]/40 transition-all duration-300 overflow-hidden mb-1.5 group"
+      style={{
+        background: '#FFFFFF',
+        border: '1px solid #DCE7EC',
+        borderRadius: '12px',
+        boxShadow: '0 2px 8px rgba(15,23,42,0.04)',
+      }}
+    >
       {/* ─── MOBILE CARD VIEW (MATCHING EXACT OYO MOBILE SCREENSHOT) ─── */}
       <div className="lg:hidden p-3.5 flex flex-col gap-2.5 cursor-pointer" onClick={() => navigate(detailPath)}>
         {/* 2-Photo Side-by-Side Grid Header */}
@@ -2176,11 +2275,11 @@ function PropertyCard({ property, onBookNow }) {
       </div>
 
       {/* ─── DESKTOP CARD VIEW (>= 1024px) ─── */}
-      <div className="hidden lg:flex flex-col lg:flex-row h-[138px]">
+      <div className="hidden lg:flex flex-col lg:flex-row h-[110px]">
         {/* Left Image Section - OYO Style Main Photo + Right Thumbnails */}
-        <div className={`relative w-full ${displayImages.length > 1 ? 'lg:w-[220px] xl:w-[240px]' : 'lg:w-[180px] xl:w-[200px]'} h-[138px] shrink-0 bg-slate-100 p-0.5 flex gap-0.5 rounded-l-2xl overflow-hidden border-r border-slate-100`}>
+        <div className={`relative w-full ${displayImages.length > 1 ? 'lg:w-[200px] xl:w-[210px]' : 'lg:w-[165px] xl:w-[180px]'} h-[110px] shrink-0 bg-slate-100 p-0.5 flex gap-0.5 rounded-l-[12px] overflow-hidden border-r border-slate-100`}>
           {/* Main Photo (Left) */}
-          <div className="relative flex-1 h-full rounded-l-xl overflow-hidden group/img cursor-pointer" onClick={() => navigate(detailPath)}>
+          <div className="relative flex-1 h-full rounded-l-[10px] overflow-hidden group/img cursor-pointer" onClick={() => navigate(detailPath)}>
             <img
               src={getOptimizedImageUrl(displayImages[currentImageIndex], 600)}
               alt={property.name}
@@ -2189,8 +2288,8 @@ function PropertyCard({ property, onBookNow }) {
             />
             
             {/* Top Left VERIFIED Badge */}
-            <div className="absolute top-2.5 left-2.5 bg-emerald-600 text-white text-[10px] font-extrabold px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-md uppercase tracking-wider z-10">
-              <Check className="w-3 h-3 text-white stroke-[3]" />
+            <div className="absolute top-1.5 left-1.5 bg-emerald-600 text-white text-[8.5px] font-extrabold px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shadow-md uppercase tracking-wider z-10">
+              <Check className="w-2.5 h-2.5 text-white stroke-[3]" />
               <span>Verified</span>
             </div>
 
@@ -2203,17 +2302,17 @@ function PropertyCard({ property, onBookNow }) {
                   setIsLiked(!isLiked);
                   if (window.toast?.success) window.toast.success(isLiked ? 'Removed from Wishlist' : 'Saved to Wishlist!');
                 }}
-                className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-white/80 hover:bg-white backdrop-blur-xs flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all shadow-md z-10"
+                className="absolute top-1.5 right-1.5 w-6.5 h-6.5 rounded-full bg-white/80 hover:bg-white backdrop-blur-xs flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all shadow-md z-10"
                 title="Add to Wishlist"
               >
-                <Heart className={`w-4 h-4 transition-colors ${isLiked ? 'fill-rose-500 text-rose-500' : ''}`} />
+                <Heart className={`w-3.5 h-3.5 transition-colors ${isLiked ? 'fill-rose-500 text-rose-500' : ''}`} />
               </button>
             )}
           </div>
 
           {/* OYO-Style Right-Side Thumbnails Column */}
           {displayImages.length > 1 && (
-            <div className="w-[75px] sm:w-[85px] h-full flex flex-col gap-1 shrink-0 relative">
+            <div className="w-[65px] sm:w-[72px] h-full flex flex-col gap-0.5 shrink-0 relative">
               <button
                 onClick={(e) => {
                   e.preventDefault();
@@ -2221,10 +2320,10 @@ function PropertyCard({ property, onBookNow }) {
                   setIsLiked(!isLiked);
                   if (window.toast?.success) window.toast.success(isLiked ? 'Removed from Wishlist' : 'Saved to Wishlist!');
                 }}
-                className="absolute top-1 right-1 w-6 h-6 rounded-full bg-white/80 hover:bg-white backdrop-blur-xs flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all shadow-md z-20"
+                className="absolute top-1 right-1 w-5 h-5 rounded-full bg-white/80 hover:bg-white backdrop-blur-xs flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all shadow-md z-20"
                 title="Add to Wishlist"
               >
-                <Heart className={`w-3.5 h-3.5 transition-colors ${isLiked ? 'fill-rose-500 text-rose-500' : ''}`} />
+                <Heart className={`w-3 h-3 transition-colors ${isLiked ? 'fill-rose-500 text-rose-500' : ''}`} />
               </button>
 
               {displayImages.slice(1, 5).map((img, idx) => {
@@ -2242,12 +2341,12 @@ function PropertyCard({ property, onBookNow }) {
                       setCurrentImageIndex(actualIndex);
                     }}
                     className={`relative flex-1 w-full rounded-md overflow-hidden border transition-all cursor-pointer ${
-                      currentImageIndex === actualIndex ? 'border-teal-500 ring-2 ring-teal-500' : 'border-slate-200 opacity-85 hover:opacity-100'
+                      currentImageIndex === actualIndex ? 'border-teal-500 ring-1 ring-teal-500' : 'border-slate-200 opacity-85 hover:opacity-100'
                     }`}
                   >
                     <img src={getOptimizedImageUrl(img, 150)} alt="thumb" className="w-full h-full object-cover" />
                     {isLastItem && extraCount > 0 && (
-                      <div className="absolute inset-0 bg-slate-900/80 text-white font-black text-xs flex items-center justify-center backdrop-blur-[1px]">
+                      <div className="absolute inset-0 bg-slate-900/80 text-white font-black text-[9.5px] flex items-center justify-center backdrop-blur-[1px]">
                         +{extraCount + 1}
                       </div>
                     )}
@@ -2259,45 +2358,46 @@ function PropertyCard({ property, onBookNow }) {
         </div>
 
         {/* Middle Content Details Area */}
-        <div className="flex-1 p-2.5 md:p-3 flex flex-col justify-between min-w-0">
+        <div className="flex-1 p-2.5 flex flex-col justify-between min-w-0 h-full">
           <div>
-            {/* Title & Rating */}
-            <div className="flex items-center justify-between gap-2 mb-0.5">
+            {/* Title — Larger font size text-[15px] */}
+            <div className="flex items-center justify-between gap-2 mb-1">
               <Link
                 to={detailPath}
                 onClick={() => trackPropertyClick(property.id)}
-                className="text-sm md:text-base font-black text-slate-900 hover:text-teal-600 transition-colors line-clamp-1"
+                className="text-[15px] font-black text-slate-900 hover:text-[#0FA596] transition-colors line-clamp-1 tracking-tight"
               >
                 {property.name}
               </Link>
+            </div>
 
-              {displayRating && (
-                <div className="bg-emerald-500 text-white px-1.5 py-0.5 rounded flex items-center gap-0.5 text-[11px] font-black shrink-0">
-                  <span>{displayRating}</span>
-                  <Star className="w-2.5 h-2.5 fill-white stroke-none" />
-                </div>
+            {/* Location Subtitle & Nearby Landmark */}
+            <div className="flex items-center gap-1.5 mb-1.5 text-[10.5px] font-semibold text-slate-500 truncate">
+              <span className="flex items-center gap-0.5 truncate shrink-0">
+                <MapPin className="w-3 h-3 text-[#0FA596] shrink-0" />
+                <span>{property.area ? `${property.area}, ` : ''}{property.location || property.city}</span>
+              </span>
+              {(property.landmark || property.nearInstitute || property.nearby) && (
+                <span className="flex items-center gap-0.5 text-teal-700 font-bold bg-teal-50 px-1.5 py-0.5 rounded truncate shrink text-[9.5px]">
+                  <GraduationCap className="w-3 h-3 text-teal-600 shrink-0" />
+                  <span>{property.landmark || property.nearInstitute || property.nearby}</span>
+                </span>
               )}
             </div>
 
-            {/* Location Subtitle */}
-            <p className="text-[11px] font-bold text-slate-500 flex items-center gap-1 mb-1 truncate">
-              <MapPin className="w-3 h-3 text-teal-600 shrink-0" />
-              <span>{property.area ? `${property.area}, ` : ''}{property.location || property.city}</span>
-            </p>
-
             {/* Amenity Icons Row & Category Pills */}
-            <div className="flex flex-wrap items-center gap-1 text-[10px] font-bold text-slate-600 mb-1">
-              <span className="flex items-center gap-1 bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">
-                <Wifi className="w-3 h-3 text-slate-400" /> WiFi
+            <div className="flex flex-wrap items-center gap-1.5 text-[9.5px] font-bold text-slate-600 mb-1.5">
+              <span className="flex items-center gap-0.5 bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">
+                <Wifi className="w-2.5 h-2.5 text-slate-400" /> WiFi
               </span>
-              <span className="flex items-center gap-1 bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">
-                <Wind className="w-3 h-3 text-slate-400" /> AC
+              <span className="flex items-center gap-0.5 bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">
+                <Wind className="w-2.5 h-2.5 text-slate-400" /> AC
               </span>
-              <span className="flex items-center gap-1 bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">
-                <Utensils className="w-3 h-3 text-slate-400" /> Meals
+              <span className="flex items-center gap-0.5 bg-slate-100 px-1.5 py-0.2 rounded text-slate-600">
+                <Utensils className="w-2.5 h-2.5 text-slate-400" /> Meals
               </span>
-              <span className="flex items-center gap-1 bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">
-                <Tv className="w-3 h-3 text-slate-400" /> TV
+              <span className="flex items-center gap-0.5 bg-slate-100 px-1.5 py-0.2 rounded text-slate-600">
+                <Tv className="w-2.5 h-2.5 text-slate-400" /> TV
               </span>
 
               <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-extrabold border border-emerald-100/80">
@@ -2313,35 +2413,47 @@ function PropertyCard({ property, onBookNow }) {
           </div>
 
           {/* Trust Badges */}
-          <div className="pt-1 border-t border-slate-100 flex items-center gap-3 text-[10px] font-extrabold text-slate-500">
-            <div className="flex items-center gap-1 text-emerald-600">
-              <Check className="w-3 h-3 stroke-[3]" />
+          <div className="pt-0.5 border-t border-slate-100 flex items-center gap-3 text-[9px] font-extrabold text-slate-500">
+            <div className="flex items-center gap-1 text-[#0FA596]">
+              <Check className="w-2.5 h-2.5 stroke-[3]" />
               <span>Smart Bidding</span>
             </div>
-            <div className="flex items-center gap-1 text-emerald-600">
-              <Check className="w-3 h-3 stroke-[3]" />
+            <div className="flex items-center gap-1 text-[#0FA596]">
+              <Check className="w-2.5 h-2.5 stroke-[3]" />
               <span>Instant Booking</span>
             </div>
           </div>
         </div>
 
-        {/* Right Side Price & Buttons Section */}
-        <div className="w-full lg:w-[175px] p-2.5 md:p-3 bg-slate-50/50 border-t lg:border-t-0 lg:border-l border-slate-100 flex flex-row lg:flex-col justify-between items-center lg:items-end gap-1.5 shrink-0">
-          <div className="text-left lg:text-right">
-            <div className="flex items-baseline gap-1.5 justify-start lg:justify-end">
+        {/* Right Side Price & Buttons Section — Pure White 185px Width */}
+        <div className="w-full lg:w-[185px] p-2 bg-white border-t lg:border-t-0 lg:border-l border-slate-100 flex flex-row lg:flex-col justify-between items-center lg:items-end shrink-0 h-full">
+          {/* Top Right Rating Badge */}
+          <div className="w-full flex justify-end">
+            {displayRating && (
+              <div className="bg-emerald-500 text-white px-1.5 py-0.5 rounded flex items-center gap-0.5 text-[9.5px] font-black shrink-0">
+                <span>{displayRating}</span>
+                <Star className="w-2.5 h-2.5 fill-white stroke-none" />
+              </div>
+            )}
+          </div>
+
+          {/* Price Block */}
+          <div className="text-left lg:text-right my-auto">
+            <div className="flex items-baseline gap-1 justify-start lg:justify-end">
               {hasDiscount && (
-                <span className="text-[11px] text-slate-400 font-bold line-through">₹{originalPrice.toLocaleString()}</span>
+                <span className="text-[9px] text-slate-400 font-bold line-through">₹{originalPrice.toLocaleString()}</span>
               )}
-              <div className="text-lg md:text-xl font-black text-slate-900 tracking-tight">
+              <div className="text-base font-black text-slate-900 tracking-tight">
                 ₹{property.price?.toLocaleString()}
               </div>
             </div>
-            <div className="text-[10px] font-bold text-slate-500">
+            <div className="text-[9px] font-bold text-slate-500">
               /month <span className="text-slate-400 font-normal">+ taxes</span>
             </div>
           </div>
 
-          <div className="flex flex-col gap-1 w-auto lg:w-full shrink-0">
+          {/* Buttons Row (25px height, 6px radius, 10.5px font size - aligned with price block) */}
+          <div className="flex flex-row items-center justify-end gap-1.5 w-full shrink-0">
             <button
               onClick={(e) => {
                 e.preventDefault();
@@ -2349,7 +2461,20 @@ function PropertyCard({ property, onBookNow }) {
                 trackPropertyClick(property.id);
                 navigate(detailPath);
               }}
-              className="w-full py-1.5 px-2.5 rounded-lg border border-slate-300 hover:border-slate-800 text-slate-800 font-extrabold text-[11px] transition-all hover:bg-white text-center whitespace-nowrap shadow-2xs"
+              style={{
+                height: '25px',
+                borderRadius: '6px',
+                background: '#FFFFFF',
+                border: '1px solid #CBD8E3',
+                color: '#14213D',
+                fontSize: '10.5px',
+                fontWeight: 700,
+                padding: '0 7px',
+                transition: 'all 0.15s ease-in-out',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 2px 5px rgba(0,0,0,0.08)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
+              className="flex-1 flex items-center justify-center text-center whitespace-nowrap cursor-pointer"
             >
               View Details
             </button>
@@ -2360,7 +2485,20 @@ function PropertyCard({ property, onBookNow }) {
                 e.stopPropagation();
                 if (onBookNow) onBookNow();
               }}
-              className="w-full py-1.5 px-2.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-black text-[11px] transition-all shadow-xs text-center whitespace-nowrap"
+              style={{
+                height: '25px',
+                borderRadius: '6px',
+                background: '#0FA596',
+                border: '1px solid #0FA596',
+                color: '#FFFFFF',
+                fontSize: '10.5px',
+                fontWeight: 700,
+                padding: '0 7px',
+                transition: 'all 0.15s ease-in-out',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 2px 5px rgba(15,165,150,0.25)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
+              className="flex-1 flex items-center justify-center text-center whitespace-nowrap cursor-pointer"
             >
               Book Now
             </button>
