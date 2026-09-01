@@ -169,10 +169,10 @@ export default function AboutPage() {
               <div className="lg:col-span-8 space-y-4">
                 
                 {/* 01 OUR MISSION */}
-                <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/90 shadow-2xs hover:border-teal-300 transition-all space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-0.5 rounded-full bg-teal-50 text-[#0FA596] text-[10px] font-black tracking-widest border border-teal-100">01 / OUR MISSION</span>
-                    <ShieldCheck className="w-4 h-4 text-[#0FA596]" />
+                <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-md transition-all space-y-2 group">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black tracking-widest text-[#0FA596]">01 / OUR MISSION</span>
+                    <ShieldCheck className="w-4.5 h-4.5 text-[#0FA596] group-hover:scale-110 transition-transform" />
                   </div>
                   <h3 className="text-lg font-extrabold text-slate-900">Direct, Broker-Free Living</h3>
                   <p className="text-slate-600 text-xs md:text-sm font-medium leading-relaxed">
@@ -181,10 +181,10 @@ export default function AboutPage() {
                 </div>
 
                 {/* 02 OUR VISION */}
-                <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/90 shadow-2xs hover:border-purple-300 transition-all space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-600 text-[10px] font-black tracking-widest border border-purple-100">02 / OUR VISION</span>
-                    <Eye className="w-4 h-4 text-purple-600" />
+                <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-md transition-all space-y-2 group">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black tracking-widest text-purple-600">02 / OUR VISION</span>
+                    <Eye className="w-4.5 h-4.5 text-purple-600 group-hover:scale-110 transition-transform" />
                   </div>
                   <h3 className="text-lg font-extrabold text-slate-900">Empowerment Through Technology</h3>
                   <p className="text-slate-600 text-xs md:text-sm font-medium leading-relaxed">
@@ -193,10 +193,10 @@ export default function AboutPage() {
                 </div>
 
                 {/* 03 WHAT DRIVES US */}
-                <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/90 shadow-2xs hover:border-amber-300 transition-all space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-600 text-[10px] font-black tracking-widest border border-amber-100">03 / WHAT DRIVES US</span>
-                    <Users className="w-4 h-4 text-amber-600" />
+                <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-md transition-all space-y-2 group">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black tracking-widest text-amber-600">03 / WHAT DRIVES US</span>
+                    <Users className="w-4.5 h-4.5 text-amber-600 group-hover:scale-110 transition-transform" />
                   </div>
                   <h3 className="text-lg font-extrabold text-slate-900">Student-Centric Innovation</h3>
                   <p className="text-slate-600 text-xs md:text-sm font-medium leading-relaxed">

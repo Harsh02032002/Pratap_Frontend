@@ -190,31 +190,9 @@ export default function OurPropertyPage() {
     }
   };
 
-  // Sync URL changes dynamically into filter state
-  useEffect(() => {
-    const loc = parseLocationFromPath(pathname);
-    const c = searchParams.get('city') || loc?.city || (citySlug ? humanizeSlug(citySlug) : "");
-    const a = searchParams.get('area') || loc?.area || (areaSlug ? humanizeSlug(areaSlug) : "");
 
-    const cleanPath = pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
-    let t = searchParams.get('type') || (loc ? loc.type : getTypeFromPathname(pathname)) || '';
-
-    if (cleanPath === 'pg' || cleanPath.startsWith('pg-') || cleanPath.startsWith('pg/')) {
-      t = 'PG';
-    } else if (cleanPath === 'hostels' || cleanPath.startsWith('hostels-') || cleanPath.startsWith('hostels/')) {
-      t = 'Hostel';
-    } else if (cleanPath === 'co-living' || cleanPath.startsWith('co-living-') || cleanPath.startsWith('co-living/')) {
-      t = 'Co-living';
-    } else if (cleanPath === 'apartments' || cleanPath.startsWith('apartments-') || cleanPath.startsWith('apartments/')) {
-      t = 'Apartment';
-    } else if (cleanPath === 'properties' || cleanPath.startsWith('properties-') || cleanPath.startsWith('properties/')) {
-      t = searchParams.get('type') || '';
-    }
-
-    setSelectedCity(c);
-    setSelectedArea(a);
-    setSelectedType(t);
-  }, [pathname, searchParams, citySlug, areaSlug]);
+  // NOTE: Filter state is managed purely in React state.
+  // URL is NOT updated on filter change to prevent route re-renders and page navigations.
 
 
 
@@ -286,23 +264,8 @@ export default function OurPropertyPage() {
     return () => { isMounted = false; };
   }, [activeSlug]);
 
+  // Bidding mode active check
   const isBiddingMode = searchParams.get('bid') === 'true' || pathname.toLowerCase().includes('bidding');
-
-  // Sync clean SEO URL or clean /bidding URL to browser address bar
-  useEffect(() => {
-    if (isBiddingMode) {
-      if (window.location.pathname !== '/bidding') {
-        window.history.replaceState(null, '', '/bidding');
-      }
-      return;
-    }
-    if (activeSlug && activeSlug !== 'website/ourproperty' && activeSlug !== 'our-property') {
-      const currentPath = window.location.pathname.replace(/^\/+|\/+$/g, '');
-      if (currentPath !== activeSlug) {
-        window.history.replaceState(null, '', `/${activeSlug}`);
-      }
-    }
-  }, [activeSlug, isBiddingMode]);
 
   const [showFilters, setShowFilters] = useState(true);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
@@ -472,6 +435,7 @@ export default function OurPropertyPage() {
   const [selectedGender, setSelectedGender] = useState('');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
+  const [priceInputText, setPriceInputText] = useState('');
   const [selectedRatings, setSelectedRatings] = useState([]);
   const [sortBy, setSortBy] = useState('Featured');
   const [showSort, setShowSort] = useState(false);
@@ -630,7 +594,18 @@ export default function OurPropertyPage() {
           owner: p.owner || p.owner_name || 'Verified Owner',
           beds: p.beds || 1,
           phone: p.phone || p.owner_phone || '',
-          amenities: p.amenities || [],
+          amenities: p.propertyInfo?.amenities || p.amenities || [],
+          wifi: !!(p.wifi || p.propertyInfo?.wifi),
+          ac: !!(p.ac || p.propertyInfo?.ac),
+          meals: !!(p.food || p.meals || p.propertyInfo?.food || p.propertyInfo?.meals),
+          laundry: !!(p.laundry || p.propertyInfo?.laundry),
+          powerBackup: !!(p.powerBackup || p.propertyInfo?.powerBackup),
+          security: !!(p.security || p.cctv || p.propertyInfo?.security || p.propertyInfo?.cctv),
+          geyser: !!(p.geyser || p.propertyInfo?.geyser),
+          parking: !!(p.parking || p.propertyInfo?.parking),
+          gym: !!(p.gym || p.propertyInfo?.gym),
+          studyTable: !!(p.studyTable || p.propertyInfo?.studyTable),
+          cooler: !!(p.cooler || p.propertyInfo?.cooler),
           nearbyColleges: p.nearbyColleges || [],
           latitude: p.latitude,
           longitude: p.longitude,
@@ -752,17 +727,23 @@ export default function OurPropertyPage() {
     if (selectedAmenities.length > 0) {
       filtered = filtered.filter(p => {
         const ams = p.amenities || p.facilities || p.propertyInfo?.amenities || p.propertyInfo?.facilities || [];
-        const amStr = (Array.isArray(ams) ? ams.join(' ') : String(ams)).toLowerCase();
+        const amArr = Array.isArray(ams) ? ams : (typeof ams === 'string' ? ams.split(',') : []);
+        const amStr = amArr.map(a => String(a).trim().toLowerCase()).join(' ');
         return selectedAmenities.every(am => {
           const amLower = am.toLowerCase();
-          if (amLower.includes('wifi')) return amStr.includes('wifi') || p.wifi || p.propertyInfo?.wifi;
-          if (amLower.includes('ac')) return amStr.includes('ac') || amStr.includes('air') || p.ac || p.propertyInfo?.ac;
-          if (amLower.includes('food') || amLower.includes('meal')) return amStr.includes('food') || amStr.includes('meal') || amStr.includes('mess') || p.food || p.meals;
-          if (amLower.includes('laundry')) return amStr.includes('laundry') || amStr.includes('wash') || p.laundry;
-          if (amLower.includes('cooler')) return amStr.includes('cooler');
-          if (amLower.includes('power')) return amStr.includes('power') || amStr.includes('backup') || p.powerBackup;
-          if (amLower.includes('cctv') || amLower.includes('security')) return amStr.includes('cctv') || amStr.includes('security') || p.security;
-          return amStr.includes(amLower);
+          if (amLower.includes('wifi')) return amStr.includes('wifi') || !!(p.wifi) || !!(p.propertyInfo?.wifi);
+          if (amLower === 'ac') return amStr.includes('ac') || amStr.includes(' ac ') || amStr.includes('air') || !!(p.ac) || !!(p.propertyInfo?.ac);
+          if (amLower.includes('food') || amLower.includes('meal')) return amStr.includes('food') || amStr.includes('meal') || amStr.includes('mess') || !!(p.food) || !!(p.meals) || !!(p.propertyInfo?.food);
+          if (amLower.includes('laundry')) return amStr.includes('laundry') || amStr.includes('wash') || !!(p.laundry) || !!(p.propertyInfo?.laundry);
+          if (amLower.includes('cooler')) return amStr.includes('cooler') || !!(p.cooler) || !!(p.propertyInfo?.cooler);
+          if (amLower.includes('power')) return amStr.includes('power') || amStr.includes('backup') || !!(p.powerBackup) || !!(p.propertyInfo?.powerBackup);
+          if (amLower.includes('cctv') || amLower.includes('security')) return amStr.includes('cctv') || amStr.includes('security') || !!(p.security) || !!(p.cctv) || !!(p.propertyInfo?.security);
+          if (amLower.includes('geyser')) return amStr.includes('geyser') || !!(p.geyser) || !!(p.propertyInfo?.geyser);
+          if (amLower.includes('parking')) return amStr.includes('parking') || !!(p.parking) || !!(p.propertyInfo?.parking);
+          if (amLower.includes('gym')) return amStr.includes('gym') || !!(p.gym) || !!(p.propertyInfo?.gym);
+          if (amLower.includes('study')) return amStr.includes('study') || amStr.includes('table') || !!(p.studyTable) || !!(p.propertyInfo?.studyTable);
+          // Generic match: check each amenity in the array individually
+          return amArr.some(a => String(a).trim().toLowerCase().includes(amLower) || amLower.includes(String(a).trim().toLowerCase()));
         });
       });
     }
@@ -891,329 +872,53 @@ export default function OurPropertyPage() {
   <div className="max-w-7xl mx-auto flex items-center text-xs font-semibold text-slate-500 gap-2 flex-wrap">
     <Link to="/" className="hover:text-teal-600 transition-colors">Home</Link>
     <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-    <Link to={selectedType ? `/${getTypeSlug(selectedType)}` : '/properties'} className="hover:text-teal-600 transition-colors">
-      {selectedType || 'Properties'}
-    </Link>
-    {selectedCity && (
-      <>
-        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-        <Link to={`/${getTypeSlug(selectedType)}-in-${slugify(selectedCity)}`} className="text-slate-800 font-bold hover:text-teal-600 transition-colors">
-          {selectedCity}
-        </Link>
-      </>
-    )}
-    {selectedArea && (
-      <>
-        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-        <span className="text-teal-700 font-extrabold">{selectedType ? `${selectedType} in ` : 'Properties in '}{selectedArea}, {selectedCity}</span>
-      </>
-    )}
+    <span className="text-slate-800 font-bold">Properties</span>
   </div>
 </div>
 
-{/* --- DYNAMIC HERO HEADERS & DECORATIVE CAROUSELS --- */}
-<>
-  {(() => {
-  const displayTypeHeading = selectedType ? `${selectedType} in ` : 'Properties in ';
-  const propertyTypeName = selectedType || 'Properties';
-  const propertyTypePlural = selectedType
-    ? (selectedType === 'PG' ? 'PGs' : selectedType === 'Hostel' ? 'Hostels' : selectedType === 'Co-living' ? 'Co-living Spaces' : selectedType === 'Apartment' ? 'Apartments' : `${selectedType}s`)
-    : 'PGs, Hostels & Flats';
-
-  // 1. AREA LEVEL HERO HEADER (SCREENSHOT 4 & 5)
-  if (selectedCity && selectedArea) {
-    return (
-      <div className="relative w-full py-3 md:py-4 px-4 md:px-8 bg-gradient-to-br from-[#F4F7FA] via-white to-teal-50/30 border-b border-slate-200 overflow-hidden">
-        <div className="max-w-[1550px] mx-auto flex flex-col md:flex-row items-center justify-between gap-6 z-10 relative">
-          <div className="flex-1 text-left max-w-2xl">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-1.5">
-              {displayTypeHeading}<span className="text-teal-600 font-bold">{selectedArea}, {selectedCity}</span>
-            </h1>
-            <p className="text-xs md:text-sm text-slate-600 font-semibold leading-relaxed mb-3">
-              Find verified {propertyTypePlural} in {selectedArea}, {selectedCity}. Smart Bidding. 100% Verified.
-            </p>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-slate-200 text-teal-700 text-[11px] font-extrabold shadow-xs">
-                <Shield className="w-3.5 h-3.5 text-teal-600" />
-                <span>Smart Bidding</span>
-              </div>
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-slate-200 text-emerald-700 text-[11px] font-extrabold shadow-xs">
-                <Check className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Verified Properties</span>
-              </div>
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-slate-200 text-amber-700 text-[11px] font-extrabold shadow-xs">
-                <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                <span>Trusted by Students</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Right side floating card for Area - HIDDEN ON MOBILE */}
-          <div className="hidden md:block relative w-full md:w-[340px] rounded-2xl overflow-hidden shadow-lg border border-slate-200 group">
-            <img
-              src="https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=800&auto=format&fit=crop"
-              alt={`${selectedArea}, ${selectedCity}`}
-              className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-700"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent"></div>
-            <div className="absolute bottom-3 left-3 right-3 bg-white/95 backdrop-blur-md p-2.5 rounded-xl border border-white/40 shadow-sm">
-              <div className="flex items-center gap-2 text-teal-600 font-extrabold text-xs mb-0.5">
-                <MapPin className="w-3.5 h-3.5" />
-                <span>{selectedArea}, {selectedCity}</span>
-              </div>
-              <p className="text-[10px] font-semibold text-slate-600 leading-tight">
-                Preferred student area in {selectedCity}. Safe &amp; connected.
-              </p>
-            </div>
-          </div>
+{/* --- STATIC HERO HEADER (compact, never changes on filter) --- */}
+<div className="relative w-full py-2 md:py-2.5 px-4 md:px-8 bg-gradient-to-br from-[#F4F7FA] via-white to-teal-50/30 border-b border-slate-200 overflow-hidden">
+  <div className="max-w-[1550px] mx-auto flex flex-col md:flex-row items-center justify-between gap-4 z-10 relative">
+    <div className="flex-1 text-left max-w-2xl">
+      <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight leading-tight mb-1">
+        Browse Rental Properties
+      </h1>
+      <p className="text-[11px] text-slate-600 font-semibold leading-tight mb-2">
+        Explore verified PGs, hostels, co-living spaces and apartments across top cities. Smart Bidding. 100% Verified.
+      </p>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white border border-slate-200 text-teal-700 text-[10px] font-extrabold shadow-2xs">
+          <Shield className="w-3 h-3 text-teal-600" />
+          <span>Smart Bidding</span>
         </div>
-      </div>
-    );
-  }
-
-  // 2. CITY LEVEL HERO HEADER (SCREENSHOT 1)
-  if (selectedCity && !selectedArea) {
-    const cityTitlePrefix = selectedType ? (selectedType === 'PG' ? 'PGs' : selectedType === 'Hostel' ? 'Hostels' : selectedType === 'Co-living' ? 'Co-living Spaces' : selectedType === 'Apartment' ? 'Apartments' : `${selectedType}s`) : 'Properties';
-    const citySubtext = selectedType
-      ? `Find verified ${selectedType}s in ${selectedCity}. Smart Bidding. 100% Verified.`
-      : `Find verified PGs, Hostels, Co-living spaces and Apartments in ${selectedCity}. Smart Bidding. 100% Verified.`;
-
-    return (
-      <div className="relative w-full py-3 md:py-5 px-4 md:px-8 bg-gradient-to-r from-slate-50 via-white to-teal-50/40 border-b border-slate-200 overflow-hidden">
-        <div className="max-w-[1550px] mx-auto flex flex-col md:flex-row items-center justify-between gap-6 z-10 relative">
-          <div className="flex-1 text-left max-w-2xl">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-2">
-              {cityTitlePrefix} in <span className="text-teal-600 font-bold">{selectedCity}</span>
-            </h1>
-            <p className="text-xs md:text-sm text-slate-600 font-semibold leading-relaxed mb-4">
-              {citySubtext}
-            </p>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-slate-200 text-teal-700 text-xs font-extrabold shadow-xs">
-                <Shield className="w-4 h-4 text-teal-600" />
-                <span>Smart Bidding</span>
-              </div>
-              <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-slate-200 text-emerald-700 text-xs font-extrabold shadow-xs">
-                <Check className="w-4 h-4 text-emerald-600" />
-                <span>Verified Properties</span>
-              </div>
-              <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-slate-200 text-amber-700 text-xs font-extrabold shadow-xs">
-                <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-                <span>Trusted by Students</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Right side floating graphic for City (Screenshot 1) - HIDDEN ON MOBILE */}
-          <div className="hidden md:block relative w-full md:w-[380px] h-48 rounded-2xl overflow-hidden shadow-xl border border-slate-200 group">
-            <img
-              src="https://images.unsplash.com/photo-1599661046827-dacff0c0f09a?w=800&auto=format&fit=crop"
-              alt={selectedCity}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent"></div>
-            <div className="absolute bottom-3 right-3 bg-white/95 backdrop-blur-md p-3 rounded-xl border border-white/50 shadow-md max-w-[220px]">
-              <div className="flex items-center gap-1.5 text-teal-600 font-extrabold text-xs mb-0.5">
-                <MapPin className="w-3.5 h-3.5" />
-                <span>{selectedCity}, Rajasthan</span>
-              </div>
-              <p className="text-[11px] font-black text-slate-800">25,000+ Students</p>
-              <p className="text-[9px] font-semibold text-slate-500">Trust Roomhy in {selectedCity}</p>
-              <div className="flex -space-x-1.5 mt-1.5">
-                {[12, 32, 47, 5].map(imgId => (
-                  <img key={imgId} src={`https://i.pravatar.cc/40?img=${imgId}`} className="w-5 h-5 rounded-full border-2 border-white object-cover" alt="" />
-                ))}
-              </div>
-            </div>
-          </div>
+        <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white border border-slate-200 text-emerald-700 text-[10px] font-extrabold shadow-2xs">
+          <Check className="w-3 h-3 text-emerald-600" />
+          <span>Verified Properties</span>
         </div>
-      </div>
-    );
-  }
-
-  // 3. MAIN CATEGORY HERO HEADER OR ORIGINAL PROPERTIES HERO HEADER
-  if (!selectedType && !selectedCity) {
-    return (
-      <div className="relative w-full py-2 md:py-2.5 px-4 md:px-8 bg-gradient-to-br from-[#F4F7FA] via-white to-teal-50/30 border-b border-slate-200 overflow-hidden">
-        <div className="max-w-[1550px] mx-auto flex flex-col md:flex-row items-center justify-between gap-4 z-10 relative">
-          <div className="flex-1 text-left max-w-2xl">
-            <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight leading-tight mb-1">
-              Browse Rental Properties
-            </h1>
-            <p className="text-[11px] text-slate-600 font-semibold leading-tight mb-2">
-              Explore verified PGs, hostels, co-living spaces and apartments across top cities. Smart Bidding. 100% Verified.
-            </p>
-            <div className="flex flex-wrap items-center gap-1.5">
-              <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white border border-slate-200 text-teal-700 text-[10px] font-extrabold shadow-2xs">
-                <Shield className="w-3 h-3 text-teal-600" />
-                <span>Smart Bidding</span>
-              </div>
-              <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white border border-slate-200 text-emerald-700 text-[10px] font-extrabold shadow-2xs">
-                <Check className="w-3 h-3 text-emerald-600" />
-                <span>Verified Properties</span>
-              </div>
-              <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white border border-slate-200 text-amber-700 text-[10px] font-extrabold shadow-2xs">
-                <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
-                <span>Trusted by Students</span>
-              </div>
-            </div>
-          </div>
-          {/* Right side photo banner card - HIDDEN ON MOBILE */}
-          <div className="hidden md:block relative w-[220px] lg:w-[240px] h-20 rounded-xl overflow-hidden shadow-xs border border-slate-200 shrink-0">
-            <img
-              src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&auto=format&fit=crop"
-              alt="Properties"
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent"></div>
-            <div className="absolute bottom-2 left-2.5 right-2.5 text-white">
-              <div className="text-xs font-black">All Top Cities</div>
-              <div className="text-[9px] text-white/90 font-medium">Find verified student stays near top coaching hubs.</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="relative w-full py-3 md:py-5 px-4 md:px-8 bg-gradient-to-br from-[#F4F7FA] via-white to-teal-50/40 border-b border-slate-200 overflow-hidden">
-      <div className="max-w-[1550px] mx-auto flex flex-col lg:flex-row items-center justify-between gap-6 z-10 relative">
-        <div className="flex-1 text-left max-w-2xl">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 tracking-tight leading-tight mb-2">
-            Find the <span className="text-teal-600 font-bold">Perfect {propertyTypeName}</span> That Feels Like Home
-          </h1>
-          <p className="text-xs md:text-sm text-slate-600 font-semibold leading-relaxed mb-4">
-            Discover verified {propertyTypeName}s in top cities. Choose your location, set your budget and find a stay that fits you best. Smart Bidding. 100% Verified.
-          </p>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-slate-200 text-teal-700 text-xs font-extrabold shadow-xs">
-              <Shield className="w-4 h-4 text-teal-600" />
-              <span>Smart Bidding</span>
-            </div>
-            <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-slate-200 text-emerald-700 text-xs font-extrabold shadow-xs">
-              <Check className="w-4 h-4 text-emerald-600" />
-              <span>Verified Properties</span>
-            </div>
-            <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-slate-200 text-amber-700 text-xs font-extrabold shadow-xs">
-              <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-              <span>Trusted by Students</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Right side Cozy Room Image - HIDDEN ON MOBILE */}
-        <div className="hidden md:block relative w-full lg:w-[400px] h-52 md:h-56 rounded-2xl overflow-hidden shadow-lg border border-slate-200 group">
-          <img
-            src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1000&auto=format&fit=crop"
-            alt="Verified Roomhy Stay"
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent"></div>
-          <div className="absolute top-3 right-3 bg-white/95 backdrop-blur-md px-2.5 py-1.5 rounded-xl border border-white/40 shadow-xs flex items-center gap-2">
-            <div className="w-5 h-5 rounded-full bg-teal-600 text-white flex items-center justify-center font-bold text-[9px]">
-              <Check className="w-3 h-3" />
-            </div>
-            <div>
-              <div className="text-[11px] font-black text-slate-900">Verified Stays</div>
-              <div className="text-[9px] font-bold text-slate-500">50,000+ Students Trust Roomhy</div>
-            </div>
-          </div>
+        <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white border border-slate-200 text-amber-700 text-[10px] font-extrabold shadow-2xs">
+          <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+          <span>Trusted by Students</span>
         </div>
       </div>
     </div>
-  );
-})()}
-
-
-
-
-
-
-
-{/* --- WHY STUDENTS LOVE AREA FEATURE CARDS (SCREENSHOT 4 & 5) --- */}
-{selectedCity && selectedArea && (
-  <section className="hidden md:block py-2.5 md:py-3 px-4 md:px-8 bg-white border-b border-slate-200">
-    <div className="max-w-[1550px] mx-auto">
-      <div className="mb-2 text-center">
-        <h2 className="text-lg md:text-xl font-black text-slate-900">Why Students Love {selectedArea}, {selectedCity}</h2>
-        <p className="text-[11px] text-slate-500 font-semibold mt-0.5">Key highlights making {selectedArea} the top choice for students.</p>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
-        <div className="p-2.5 bg-teal-50/50 rounded-xl border border-teal-100">
-          <div className="w-7 h-7 rounded-lg bg-teal-600 text-white flex items-center justify-center mb-1.5 font-bold">
-            <Building2 className="w-3.5 h-3.5" />
-          </div>
-          <h3 className="font-extrabold text-slate-900 text-[11px] mb-0.5">Close to Major Coaching Institutes</h3>
-          <p className="text-[10px] text-slate-500 font-medium leading-snug">Allen, Resonance, Career Point &amp; more within walking distance.</p>
-        </div>
-
-        <div className="p-2.5 bg-emerald-50/50 rounded-xl border border-emerald-100">
-          <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center mb-1.5 font-bold">
-            <Car className="w-3.5 h-3.5" />
-          </div>
-          <h3 className="font-extrabold text-slate-900 text-[11px] mb-0.5">Excellent Connectivity</h3>
-          <p className="text-[10px] text-slate-500 font-medium leading-snug">Well connected by main roads, auto-rickshaws &amp; public transport.</p>
-        </div>
-
-        <div className="p-2.5 bg-indigo-50/50 rounded-xl border border-indigo-100">
-          <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center mb-1.5 font-bold">
-            <Utensils className="w-3.5 h-3.5" />
-          </div>
-          <h3 className="font-extrabold text-slate-900 text-[11px] mb-0.5">Nearby Markets &amp; Essentials</h3>
-          <p className="text-[10px] text-slate-500 font-medium leading-snug">Shopping complexes, cafes, ATMs, tiffin services &amp; pharmacies.</p>
-        </div>
-
-        <div className="p-2.5 bg-amber-50/50 rounded-xl border border-amber-100">
-          <div className="w-7 h-7 rounded-lg bg-amber-600 text-white flex items-center justify-center mb-1.5 font-bold">
-            <Shield className="w-3.5 h-3.5" />
-          </div>
-          <h3 className="font-extrabold text-slate-900 text-[11px] mb-0.5">Safe &amp; Student-Friendly</h3>
-          <p className="text-[10px] text-slate-500 font-medium leading-snug">24/7 safe environment with student community culture.</p>
-        </div>
-
-        <div className="p-2.5 bg-blue-50/50 rounded-xl border border-blue-100">
-          <div className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center mb-1.5 font-bold">
-            <Waves className="w-3.5 h-3.5" />
-          </div>
-          <h3 className="font-extrabold text-slate-900 text-[11px] mb-0.5">Peaceful Environment</h3>
-          <p className="text-[10px] text-slate-500 font-medium leading-snug">Green spaces, quiet study surroundings &amp; fresh atmosphere.</p>
-        </div>
+    {/* Right side photo banner card - HIDDEN ON MOBILE */}
+    <div className="hidden md:block relative w-[220px] lg:w-[240px] h-20 rounded-xl overflow-hidden shadow-xs border border-slate-200 shrink-0">
+      <img
+        src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&auto=format&fit=crop"
+        alt="Properties"
+        className="w-full h-full object-cover"
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent"></div>
+      <div className="absolute bottom-2 left-2.5 right-2.5 text-white">
+        <div className="text-xs font-black">All Top Cities</div>
+        <div className="text-[9px] text-white/90 font-medium">Find verified student stays near top coaching hubs.</div>
       </div>
     </div>
-  </section>
-)}
+  </div>
+</div>
 
 
-{/* --- POPULAR LOCALITIES IN CITY (FOR CITY PAGE SCREENSHOT 3) --- */}
-{selectedCity && !selectedArea && (
-  <section className="hidden md:block py-8 px-4 md:px-8 bg-white border-b border-slate-200">
-    <div className="max-w-[1550px] mx-auto">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl md:text-2xl font-black text-slate-900">Popular Localities in {selectedCity}</h2>
-        <span className="text-xs font-bold text-slate-400">Choose your area</span>
-      </div>
 
-      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-        {getCityPopularAreas().map(area => (
-          <Link
-            key={area}
-            to={`/${getTypeSlug(selectedType)}-in-${slugify(area)}-${slugify(selectedCity)}`}
-            className="flex-shrink-0 px-4 py-2.5 bg-slate-50 hover:bg-teal-50 border border-slate-200 hover:border-teal-300 rounded-2xl text-xs font-extrabold text-slate-800 hover:text-teal-700 transition-all flex items-center gap-2"
-          >
-            <MapPin className="w-3.5 h-3.5 text-teal-600" />
-            <span>{area}, {selectedCity}</span>
-          </Link>
-        ))}
-      </div>
-    </div>
-  </section>
-)}
-</>
 
         <section
           className="pt-0 pb-3 pl-0 pr-2 sm:pr-3 md:pr-4 border-b border-slate-200 bg-white"
@@ -1350,7 +1055,8 @@ export default function OurPropertyPage() {
                         <select
                           value={selectedCity}
                           onChange={(e) => {
-                            setSelectedCity(e.target.value);
+                            const newCity = e.target.value;
+                            setSelectedCity(newCity);
                             setSelectedArea('');
                           }}
                           style={{
@@ -1466,60 +1172,50 @@ export default function OurPropertyPage() {
                       </div>
                     </div>
 
-                    {/* 5. PRICE FILTER */}
+                    {/* 5. PRICE FILTER - single smart input */}
                     <div>
                       <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
                         <Tag style={{ width: '13.5px', height: '13.5px', color: '#0F9F91', flexShrink: 0 }} />
                         <span style={{ fontSize: '11px', fontWeight: 800, color: '#0F172A', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Price Filter</span>
                       </label>
-                      <div className="relative">
-                        <select
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (!val) {
-                              setMinPrice(''); setMaxPrice('');
-                            } else if (val.startsWith('lte_')) {
-                              setMinPrice(''); setMaxPrice(val.replace('lte_', ''));
-                            } else if (val.startsWith('gte_')) {
-                              setMinPrice(val.replace('gte_', '')); setMaxPrice('');
-                            } else if (val.startsWith('eq_')) {
-                              const num = val.replace('eq_', '');
-                              setMinPrice(String(Math.max(0, parseInt(num) - 500)));
-                              setMaxPrice(String(parseInt(num) + 500));
-                            } else if (val.includes('-')) {
-                              const [minVal, maxVal] = val.split('-');
-                              setMinPrice(minVal); setMaxPrice(maxVal);
-                            }
-                          }}
-                          style={{
-                            width: '100%', height: '35px', borderRadius: '6px',
-                            border: `1px solid ${(minPrice || maxPrice) ? '#62CFC0' : '#DCE7EF'}`,
-                            background: (minPrice || maxPrice) ? '#F0FBF8' : '#FFFFFF',
-                            color: (minPrice || maxPrice) ? '#087F73' : '#334155',
-                            fontSize: '12px', fontWeight: 600,
-                            padding: '0 28px 0 10px', appearance: 'none',
-                            cursor: 'pointer', outline: 'none',
-                            transition: 'border-color 0.15s, background 0.15s',
-                          }}
-                        >
-                          <option value="">All Budgets (No Limit)</option>
-                          <option value="lte_5000">Less than ₹5,000 / mo</option>
-                          <option value="lte_8000">Less than ₹8,000 / mo</option>
-                          <option value="lte_12000">Less than ₹12,000 / mo</option>
-                          <option value="lte_15000">Less than ₹15,000 / mo</option>
-                          <option value="lte_20000">Less than ₹20,000 / mo</option>
-                          <option value="gte_10000">Greater than ₹10,000 / mo</option>
-                          <option value="gte_15000">Greater than ₹15,000 / mo</option>
-                          <option value="gte_20000">Greater than ₹20,000 / mo</option>
-                          <option value="eq_5000">Equal to ~₹5,000 / mo</option>
-                          <option value="eq_10000">Equal to ~₹10,000 / mo</option>
-                          <option value="eq_15000">Equal to ~₹15,000 / mo</option>
-                          <option value="3000-7000">Range: ₹3,000 – ₹7,000</option>
-                          <option value="7000-12000">Range: ₹7,000 – ₹12,000</option>
-                          <option value="12000-20000">Range: ₹12,000 – ₹20,000</option>
-                        </select>
-                        <ChevronDown style={{ width: '14px', height: '14px', color: '#64748B', position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-                      </div>
+                      <input
+                        type="text"
+                        value={priceInputText}
+                        placeholder="e.g. <8000  >5000  3000-10000"
+                        onChange={(e) => {
+                          const raw = e.target.value;
+                          setPriceInputText(raw);
+                          const trimmed = raw.trim();
+                          if (!trimmed) { setMinPrice(''); setMaxPrice(''); return; }
+                          if (trimmed.startsWith('<')) {
+                            setMinPrice(''); setMaxPrice(trimmed.slice(1).trim());
+                          } else if (trimmed.startsWith('>')) {
+                            setMinPrice(trimmed.slice(1).trim()); setMaxPrice('');
+                          } else if (trimmed.includes('-')) {
+                            const [a, b] = trimmed.split('-');
+                            setMinPrice(a.trim()); setMaxPrice(b.trim());
+                          } else if (!isNaN(trimmed) && trimmed !== '') {
+                            const n = parseInt(trimmed);
+                            setMinPrice(String(Math.max(0, n - 500)));
+                            setMaxPrice(String(n + 500));
+                          }
+                        }}
+                        style={{
+                          width: '100%', height: '35px', borderRadius: '6px',
+                          border: `1px solid ${(minPrice || maxPrice) ? '#62CFC0' : '#DCE7EF'}`,
+                          background: (minPrice || maxPrice) ? '#F0FBF8' : '#FFFFFF',
+                          color: '#334155',
+                          fontSize: '11px', fontWeight: 600,
+                          padding: '0 10px', outline: 'none',
+                          transition: 'border-color 0.15s, background 0.15s',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                      {(minPrice || maxPrice) && (
+                        <p style={{ fontSize: '9px', color: '#0F9F91', marginTop: '2px', fontWeight: 700 }}>
+                          {minPrice && maxPrice ? `₹${minPrice} – ₹${maxPrice}` : minPrice ? `≥ ₹${minPrice}` : `≤ ₹${maxPrice}`}
+                        </p>
+                      )}
                     </div>
 
                     {/* 6. AMENITIES */}
@@ -1635,6 +1331,7 @@ export default function OurPropertyPage() {
                             setSelectedGender('');
                             setMinPrice('');
                             setMaxPrice('');
+                            setPriceInputText('');
                             setSelectedColleges([]);
                             setSelectedRoomTypes([]);
                             setSelectedAmenities([]);
@@ -1705,6 +1402,9 @@ export default function OurPropertyPage() {
 
               {/* Right Content - Properties */}
               <div className="flex-1 min-w-0 lg:sticky lg:top-[85px] lg:max-h-[calc(100vh-100px)] lg:overflow-y-auto lg:pr-2 no-scrollbar">
+                
+
+
                 <div className="flex items-center justify-between mb-1.5 py-0.5 px-0">
                   <div className="hidden md:block text-xs font-extrabold text-slate-700">
                     Showing {((currentPage - 1) * propertiesPerPage) + 1} to {Math.min(currentPage * propertiesPerPage, totalCount)} of {totalCount} properties {selectedCity ? `in ${selectedCity}` : ''}
