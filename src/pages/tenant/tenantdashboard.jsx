@@ -10,7 +10,7 @@ import { clearAllAuthKeys } from "../../contexts/AuthContext";
 import { verifyCashOtp as verifyCashOtpRequest } from "../../utils/rentCollectionApi";
 import {
   CheckCircle, Download, Eye, Upload, Star, Clock, XCircle,
-  Clock3, AlertTriangle, FileWarning, X, CreditCard, HandCoins,
+  Clock3, AlertTriangle, FileWarning, X, CreditCard, HandCoins, Undo2,
 } from "lucide-react";
 import {
   Sidebar, MobileBottomNav, MobileTopBar, DashboardHeader, HeroRentCard, UpcomingDuesCard, PaymentTrendChart,
@@ -1710,7 +1710,9 @@ export default function Tenantdashboard() {
   const leaseStart = leaseDetails.licenseStartDate || tenant?.moveInDate;
   const leaseEnd = leaseDetails.licenseEndDate;
   const leaseStatus = tenant
-    ? (tenant.moveoutRequest?.status === "approved" ? "Inactive" : "Active")
+    ? (tenant.moveoutRequest?.completedAt
+        ? "Inactive"
+        : tenant.moveoutRequest?.status === "approved" ? "On Notice" : "Active")
     : "—";
 
   // ─── KYC read-only display data ──────────────────────────────────────────────
@@ -2425,12 +2427,15 @@ export default function Tenantdashboard() {
                       <div>
                         <h4 className="font-bold text-lg text-emerald-900">Exit Cleared & Approved</h4>
                         <p className="text-sm mt-1 opacity-90">
-                          Your move-out check has been completed and approved by the owner. Your checkout details are:
+                          Your move-out has been approved by the owner. You are now serving a
+                          1-month notice period — you remain a tenant, and your rent and ledger
+                          continue as normal, until it ends.
                         </p>
                       </div>
                     </div>
                     <div className="bg-white/80 rounded-xl p-4 border border-emerald-100 space-y-2.5 text-sm text-slate-800">
-                      <p><strong>Final Checkout Date:</strong> {formatDate(tenant.moveoutRequest.requestedDate)}</p>
+                      <p><strong>Notice Period Ends:</strong> {formatDate(tenant.moveoutRequest.noticeEndDate)}</p>
+                      <p><strong>Requested Checkout Date:</strong> {formatDate(tenant.moveoutRequest.requestedDate)}</p>
                       <p><strong>Outstanding Dues:</strong> {formatCurrency(tenant.moveoutRequest.duesAtMoveout)}</p>
                       <p><strong>Deposit Refund:</strong> {formatCurrency(tenant.moveoutRequest.refundAmount)}</p>
                       <p className="flex items-center gap-1.5">
@@ -2454,6 +2459,31 @@ export default function Tenantdashboard() {
                       <p className="text-sm mt-1 opacity-90">
                         Your checkout notice was rejected by the owner. Please contact your property manager to resolve.
                       </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Owner cancelled the move-out mid-notice. The request itself is
+                    reset to "none", so without this the tenant would just see an
+                    empty form with no explanation of where their exit went. */}
+                {tenant?.moveoutRequest?.cancelledAt && tenant?.moveoutRequest?.status === "none" && (
+                  <div className="bg-amber-50 border border-amber-200 p-6 rounded-2xl text-amber-950 space-y-4 shadow-sm">
+                    <div className="flex gap-3 items-start">
+                      <Undo2 className="w-6 h-6 text-amber-600 mt-0.5 shrink-0" />
+                      <div>
+                        <h4 className="font-bold text-lg text-amber-900">Move-out Cancelled by Owner</h4>
+                        <p className="text-sm mt-1 opacity-90">
+                          Your property owner cancelled your move-out and called off the notice
+                          period. Your tenancy continues as normal — rent and ledger are unchanged.
+                          You can raise a new move-out notice below if you still wish to leave.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="bg-white/80 rounded-xl p-4 border border-amber-100 space-y-2.5 text-sm text-slate-800">
+                      {tenant.moveoutRequest.cancelReason && (
+                        <p><strong>Reason given by owner:</strong> {tenant.moveoutRequest.cancelReason}</p>
+                      )}
+                      <p><strong>Cancelled On:</strong> {formatDate(tenant.moveoutRequest.cancelledAt)}</p>
                     </div>
                   </div>
                 )}

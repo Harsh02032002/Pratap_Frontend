@@ -131,6 +131,23 @@ export default function Ownerlogin() {
         setStep("setPassword");
         return;
       }
+
+      // /api/auth/login authenticates EVERY role — tenants included. Without
+      // this gate a tenant's own valid credentials produce a token here, get
+      // written to owner_session by storeAuth, and drop them into the Owner
+      // Panel. The role must come from the backend login response, never from
+      // storage (see authScope.js). Staff sign in through handleStaffLogin
+      // above, so this form is owner-only.
+      const role = String(data?.user?.role || "").trim().toLowerCase();
+      if (role !== "owner") {
+        setErrorMsg(
+          role === "tenant"
+            ? "This is a tenant account. Please sign in through the tenant portal."
+            : "This login is not authorised for the Owner Panel."
+        );
+        return;
+      }
+
       storeAuth(data);
       window.location.href = resolvePanelPath("propertyowner", "admin");
     } catch (err) {
