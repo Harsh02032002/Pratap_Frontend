@@ -317,9 +317,16 @@ export default function Visit() {
 
   // Photos & Camera with Timestamps
   const [formPhotoUrl, setFormPhotoUrl] = useState("");
-  const [formPhotos, setFormPhotos] = useState([]);
-  const [formPhotoDetails, setFormPhotoDetails] = useState([]); // [{ url, capturedAt }]
+  const [formPhotos, setFormPhotos] = useState([]);         // all flat URLs (used for submit)
+  const [formPhotoDetails, setFormPhotoDetails] = useState([]); // [{ url, capturedAt, source, category }]
   const [formRoomTypes, setFormRoomTypes] = useState([]);
+
+  // Category-based website photos (Main, Room, Interior, Common Area, Kitchen, Bathroom, Other)
+  const PHOTO_CATEGORIES = ["Main", "Room", "Interior", "Common Area", "Kitchen", "Bathroom", "Other"];
+  const [categoryPhotos, setCategoryPhotos] = useState(
+    Object.fromEntries(PHOTO_CATEGORIES.map(c => [c, []])) // { Main: [], Room: [], ... }
+  );
+  const [selectedCategory, setSelectedCategory] = useState("Main");
 
   // Owner Bank Details
   const [formBankHolderName, setFormBankHolderName] = useState("");
@@ -390,6 +397,16 @@ export default function Visit() {
     }
   };
 
+  // Try to get device GPS location
+  const getGeoLocation = () => new Promise((resolve) => {
+    if (!navigator.geolocation) return resolve(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve({ lat: pos.coords.latitude.toFixed(5), lon: pos.coords.longitude.toFixed(5) }),
+      () => resolve(null),
+      { timeout: 4000, maximumAge: 30000 }
+    );
+  });
+
   const stopCamera = () => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
@@ -399,16 +416,11 @@ export default function Visit() {
   };
 
   /**
-   * Snap the frame and burn the timestamp into the pixels.
-   *
-   * Drawn onto the image itself rather than kept beside it in the database,
-   * because the photo gets forwarded, screenshotted and attached to disputes
-   * long after it leaves this form, and metadata does not survive any of that.
-   *
-   * Only live captures are stamped. An uploaded file is stored untouched — see
-   * handleFileUpload for why stamping one would be misleading.
+   * Snap the frame and burn the timestamp + location into the pixels.
+   * Live captures = INTERNAL PROOF ONLY — they go to superadmin, not the website.
+   * Only category-upload photos (Step 2 below) are published to the website.
    */
-  const capturePhotoFromCamera = () => {
+  const capturePhotoFromCamera = async () => {
     if (!videoRef.current) return;
     const video = videoRef.current;
     const canvas = document.createElement("canvas");
@@ -417,16 +429,21 @@ export default function Visit() {
     const ctx = canvas.getContext("2d");
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
+    // Get location in parallel with drawing
+    const geo = await getGeoLocation();
+
     const timeStr = new Date().toLocaleString("en-IN", {
       day: "2-digit", month: "short", year: "numeric",
       hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true
     });
 
+    const geoStr = geo ? `📍 ${geo.lat}, ${geo.lon}` : "📍 Location N/A";
+
     // Scale every dimension off the image height so the banner is equally
     // legible on a 720p webcam frame and a 12MP phone capture.
     const unit = Math.max(11, Math.round(canvas.height * 0.022));
     const pad = Math.round(unit * 0.8);
-    const bannerHeight = unit + pad * 2;
+    const bannerHeight = (unit + pad * 2) * 2; // 2 lines now: time + geo
 
     ctx.fillStyle = "rgba(15, 23, 42, 0.86)";
     ctx.fillRect(0, canvas.height - bannerHeight, canvas.width, bannerHeight);
@@ -436,10 +453,19 @@ export default function Visit() {
     ctx.textBaseline = "middle";
     ctx.fillStyle = "#e2e8f0";
     ctx.font = `bold ${unit}px sans-serif`;
+    // Line 1: timestamp
     ctx.fillText(
       `ROOMHY LIVE VISIT  •  ${timeStr}`,
       pad + Math.round(unit * 0.9),
-      canvas.height - bannerHeight / 2
+      canvas.height - bannerHeight + (bannerHeight / 2) - unit * 0.6
+    );
+    // Line 2: geo
+    ctx.fillStyle = "#94a3b8";
+    ctx.font = `${Math.round(unit * 0.85)}px sans-serif`;
+    ctx.fillText(
+      geoStr,
+      pad + Math.round(unit * 0.9),
+      canvas.height - bannerHeight + (bannerHeight / 2) + unit * 0.6
     );
 
     stopCamera();
@@ -449,8 +475,15 @@ export default function Visit() {
       try {
         if (!blob) throw new Error("Could not read the captured frame");
         const url = await uploadPhotoToCloud(blob, `live-capture-${Date.now()}.jpg`);
+        // Live captures are INTERNAL PROOF — not sent to website
         setFormPhotos(prev => [...prev, url]);
-        setFormPhotoDetails(prev => [...prev, { url, capturedAt: timeStr, source: "camera" }]);
+        setFormPhotoDetails(prev => [...prev, {
+          url,
+          capturedAt: timeStr,
+          geoLocation: geo ? `${geo.lat}, ${geo.lon}` : null,
+          source: "camera",
+          websiteVisible: false  // internal proof only
+        }]);
       } catch (err) {
         notify("error", "Could not save the photo", `${err.message}. The capture was not added — please take it again.`);
       } finally {
@@ -459,17 +492,25 @@ export default function Visit() {
     }, "image/jpeg", 0.85);
   };
 
-  const handleFileUpload = async (e) => {
+  const handleFileUpload = async (e, category = null) => {
     const files = Array.from(e.target.files || []);
     e.target.value = "";
     for (const file of files) {
       setPhotoUploading(n => n + 1);
       try {
-        // These are the public listing photos, so shrink them before they go up.
         const small = await compressImage(file, PRESETS.PHOTO);
         const url = await uploadPhotoToCloud(small, small.name || file.name || "photo.jpg");
-        setFormPhotos(prev => [...prev, url]);
-        setFormPhotoDetails(prev => [...prev, { url, source: "upload" }]);
+        if (category) {
+          // Category upload → goes to website
+          setCategoryPhotos(prev => ({
+            ...prev,
+            [category]: [...(prev[category] || []), url]
+          }));
+        } else {
+          // Generic upload
+          setFormPhotos(prev => [...prev, url]);
+          setFormPhotoDetails(prev => [...prev, { url, source: "upload", websiteVisible: true }]);
+        }
       } catch (err) {
         notify("error", "Photo upload failed", `${file.name}: ${err.message}. It was not added — please try again.`);
       } finally {
@@ -558,6 +599,8 @@ export default function Visit() {
     setFormVisitorsAllowed(true); setFormCookingAllowed(false); setFormSmokingAllowed(false); setFormPetsAllowed(false);
     setFormCleanlinessRating(0); setFormOwnerBehaviour(""); setFormStudentReviews(""); setFormInternalRemarks("");
     setFormPhotoUrl(""); setFormPhotos([]); setFormPhotoDetails([]); setFormRoomTypes([]);
+    setCategoryPhotos(Object.fromEntries(PHOTO_CATEGORIES.map(c => [c, []])));
+    setSelectedCategory("Main");
     setOpenSections({ owner: true, property: true, location: true, occupancy: false, features: false, roomTypes: false, policies: false, ratings: false, photos: false });
     draftVisitIdRef.current = null;
   };
@@ -835,16 +878,14 @@ export default function Visit() {
             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">View and manage property visit reports</p>
          </div>
          <div className="flex items-center gap-3">
-            <button onClick={() => { if (currentView === "addOwner") resetForm(); setCurrentView(currentView === "addOwner" ? "list" : "addOwner"); }} className={cn(
-              "px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-lg transition-all flex items-center gap-2",
-              currentView === "addOwner" ? "bg-white text-slate-600 border border-slate-100 shadow-slate-200" : "bg-slate-800 text-white shadow-slate-800/10 hover:bg-slate-900"
-            )}>
-               {currentView === "addOwner" ? <RefreshCw className="w-3.5 h-3.5" /> : <UserPlus className="w-3.5 h-3.5" />}
-               {currentView === "addOwner" ? "Back to Visits" : "Add Property Owner"}
-            </button>
             {currentView === "list" && (
               <button onClick={() => setCurrentView("addOwner")} className="bg-slate-800 text-white px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-lg shadow-slate-800/10 hover:bg-slate-900 transition-all flex items-center gap-2">
                  <Plus className="w-3.5 h-3.5" /> Add New Visit
+              </button>
+            )}
+            {currentView === "addOwner" && (
+              <button onClick={() => { resetForm(); setCurrentView("list"); }} className="bg-white text-slate-600 border border-slate-100 shadow-slate-200 px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-lg transition-all flex items-center gap-2">
+                 <RefreshCw className="w-3.5 h-3.5" /> Back to Visits
               </button>
             )}
          </div>
@@ -1130,7 +1171,7 @@ export default function Visit() {
 
               {/* ─── Section 7: Ratings & Notes ───────────────────────────────── */}
               <div>
-                <SectionHeader icon={Star} title="Ratings & Notes" subtitle="Cleanliness, reviews, internal remarks" open={openSections.ratings} onToggle={() => toggleSection("ratings")} color="orange" />
+                <SectionHeader icon={Star} title="Ratings &amp; Notes" subtitle="Cleanliness, reviews, internal remarks" open={openSections.ratings} onToggle={() => toggleSection("ratings")} color="orange" />
                 {openSections.ratings && (
                   <div className="px-8 pb-8 space-y-6">
                     {/* Star Rating */}
@@ -1163,19 +1204,20 @@ export default function Visit() {
 
               {/* ─── Section 8: Photos & Camera ───────────────────────────────── */}
               <div>
-                <SectionHeader icon={Camera} title="Photos" subtitle="Live camera captures and uploaded photos" open={openSections.photos} onToggle={() => toggleSection("photos")} color="rose" />
+                <SectionHeader icon={Camera} title="Photos" subtitle="Live visit proof + website listing photos by category" open={openSections.photos} onToggle={() => toggleSection("photos")} color="rose" />
+
                 {openSections.photos && (
                   <div className="px-8 pb-8 space-y-6">
 
-                    {/* ── 1. Live camera ── */}
+                    {/* ── 1. Live camera (INTERNAL PROOF ONLY) ── */}
                     <div className="rounded-2xl border border-rose-100 bg-rose-50/40 p-5">
                       <div className="flex items-start justify-between gap-4 flex-wrap">
                         <div>
                           <p className="text-[11px] font-black text-rose-600 uppercase tracking-widest">
-                            Step 1 — Live camera capture
+                            Step 1 — Live camera (Internal proof only)
                           </p>
                           <p className="text-[11px] text-slate-500 mt-1 max-w-md leading-relaxed">
-                            Taken on the spot and stamped with the date and time.
+                            Stamped with date, time &amp; GPS location. These photos go to superadmin as visit proof — <strong>NOT shown on website</strong>.
                           </p>
                         </div>
                         <button type="button" onClick={startCamera}
@@ -1190,6 +1232,7 @@ export default function Visit() {
                             <PhotoThumb key={idx} url={url} onRemove={() => removePhoto(idx)}
                               badge={<span className="truncate flex items-center gap-1 text-sky-400">
                                 <Clock size={10} className="shrink-0" /> {detail.capturedAt}
+                                {detail.geoLocation && <span className="text-[8px] text-slate-400 ml-1">📍 {detail.geoLocation}</span>}
                               </span>} />
                           ))}
                         </div>
@@ -1198,20 +1241,76 @@ export default function Visit() {
                       )}
                     </div>
 
-                    {/* ── 2. Uploads ── */}
+                    {/* ── 2. Category Photos (WEBSITE LISTING) ── */}
+                    <div className="rounded-2xl border border-emerald-100 bg-emerald-50/30 p-5 space-y-4">
+                      <div>
+                        <p className="text-[11px] font-black text-emerald-700 uppercase tracking-widest">
+                          Step 2 — Property Category Photos (Shown on Website)
+                        </p>
+                        <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                          Upload photos by category — these will appear on the public listing.
+                        </p>
+                      </div>
+
+                      {/* Category Selector */}
+                      <div className="flex flex-wrap gap-2">
+                        {PHOTO_CATEGORIES.map(cat => (
+                          <button key={cat} type="button" onClick={() => setSelectedCategory(cat)}
+                            className={cn(
+                              "px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wide border transition-all",
+                              selectedCategory === cat
+                                ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
+                                : "bg-white text-slate-500 border-slate-200 hover:border-emerald-300 hover:text-emerald-600"
+                            )}>
+                            {cat}
+                            {categoryPhotos[cat]?.length > 0 && (
+                              <span className="ml-1.5 bg-white/30 text-white rounded-full px-1 text-[9px]">
+                                {categoryPhotos[cat].length}
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Upload for selected category */}
+                      <div className="flex items-center gap-3">
+                        <label className="px-5 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-slate-900/10">
+                          <ImageIcon className="w-4 h-4" /> Upload {selectedCategory} Photos
+                          <input type="file" accept="image/*" multiple onChange={(e) => handleFileUpload(e, selectedCategory)} className="hidden" />
+                        </label>
+                        <p className="text-[10px] text-slate-400">Selected: <strong className="text-emerald-600">{selectedCategory}</strong></p>
+                      </div>
+
+                      {/* Preview for selected category */}
+                      {categoryPhotos[selectedCategory]?.length > 0 ? (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          {categoryPhotos[selectedCategory].map((url, i) => (
+                            <PhotoThumb key={i} url={url}
+                              onRemove={() => setCategoryPhotos(prev => ({ ...prev, [selectedCategory]: prev[selectedCategory].filter((_, j) => j !== i) }))}
+                              badge={<span className="truncate flex items-center gap-1 text-emerald-400">
+                                <ImageIcon size={10} className="shrink-0" /> {selectedCategory}
+                              </span>} />
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-[11px] text-slate-400 italic">No {selectedCategory} photos uploaded yet.</p>
+                      )}
+                    </div>
+
+                    {/* ── 3. Extra Uploads (generic) ── */}
                     <div className="rounded-2xl border border-blue-100 bg-blue-50/40 p-5">
                       <div className="flex items-start justify-between gap-4 flex-wrap">
                         <div>
                           <p className="text-[11px] font-black text-blue-600 uppercase tracking-widest">
-                            Step 2 — Uploaded photos
+                            Step 3 — Extra / Miscellaneous Photos
                           </p>
                           <p className="text-[11px] text-slate-500 mt-1 max-w-md leading-relaxed">
-                            Clean, unstamped photos of the property.
+                            Any additional photos not covered above.
                           </p>
                         </div>
                         <label className="px-5 py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-slate-900/10 shrink-0">
-                          <ImageIcon className="w-4 h-4" /> Upload Photo File
-                          <input type="file" accept="image/*" multiple onChange={handleFileUpload} className="hidden" />
+                          <ImageIcon className="w-4 h-4" /> Upload Extra Photos
+                          <input type="file" accept="image/*" multiple onChange={(e) => handleFileUpload(e, null)} className="hidden" />
                         </label>
                       </div>
 
@@ -1230,7 +1329,7 @@ export default function Visit() {
                       {photoUploading > 0 && (
                         <p className="text-[11px] font-bold text-blue-600 mt-3 flex items-center gap-2">
                           <Loader2 size={13} className="animate-spin" />
-                          Uploading {photoUploading} photo{photoUploading > 1 ? "s" : ""}…
+                          Uploading {photoUploading} photo{photoUploading > 1 ? "s" : "}…"}
                         </p>
                       )}
 
@@ -1239,18 +1338,20 @@ export default function Visit() {
                           {uploadedPhotos.map(({ url, idx }) => (
                             <PhotoThumb key={idx} url={url} onRemove={() => removePhoto(idx)}
                               badge={<span className="truncate flex items-center gap-1 text-slate-300">
-                                <ImageIcon size={10} className="shrink-0" /> Uploaded file
+                                <ImageIcon size={10} className="shrink-0" /> Extra
                               </span>} />
                           ))}
                         </div>
                       ) : (
-                        <p className="text-[11px] text-slate-400 mt-4 italic">No photos uploaded yet.</p>
+                        <p className="text-[11px] text-slate-400 mt-4 italic">No extra photos added yet.</p>
                       )}
                     </div>
                   </div>
                 )}
               </div>
             </div>
+
+
 
             {/* ─── Credentials Card + Actions ───────────────────────────────── */}
             <div className="bg-white rounded-b-[2rem] border border-t-0 border-slate-100 shadow-2xl p-8 space-y-6">
