@@ -317,16 +317,19 @@ export default function Visit() {
 
   // Photos & Camera with Timestamps
   const [formPhotoUrl, setFormPhotoUrl] = useState("");
-  const [formPhotos, setFormPhotos] = useState([]);         // all flat URLs (used for submit)
-  const [formPhotoDetails, setFormPhotoDetails] = useState([]); // [{ url, capturedAt, source, category }]
+  const [formPhotos, setFormPhotos] = useState([]);         // flat list of all uploaded proof photos
+  const [formPhotoDetails, setFormPhotoDetails] = useState([]); // [{ url, capturedAt, source }]
   const [formRoomTypes, setFormRoomTypes] = useState([]);
 
-  // Category-based website photos (Main, Room, Interior, Common Area, Kitchen, Bathroom, Other)
-  const PHOTO_CATEGORIES = ["Main", "Room", "Interior", "Common Area", "Kitchen", "Bathroom", "Other"];
-  const [categoryPhotos, setCategoryPhotos] = useState(
-    Object.fromEntries(PHOTO_CATEGORIES.map(c => [c, []])) // { Main: [], Room: [], ... }
-  );
-  const [selectedCategory, setSelectedCategory] = useState("Main");
+  // PropertyViews — same structure as AddPropertyWizard
+  // [{ label: "Main", images: [url, url] }, { label: "Room", images: [...] }]
+  const [propertyViews, setPropertyViews] = useState([
+    { label: "Main", images: [] },
+    { label: "Room", images: [] },
+  ]);
+  const [activeCatIdx, setActiveCatIdx] = useState(0);  // which category tab is open
+  const [newCatLabel, setNewCatLabel] = useState("");    // for adding new category
+  const [addingCat, setAddingCat] = useState(false);    // show input field
 
   // Owner Bank Details
   const [formBankHolderName, setFormBankHolderName] = useState("");
@@ -599,8 +602,8 @@ export default function Visit() {
     setFormVisitorsAllowed(true); setFormCookingAllowed(false); setFormSmokingAllowed(false); setFormPetsAllowed(false);
     setFormCleanlinessRating(0); setFormOwnerBehaviour(""); setFormStudentReviews(""); setFormInternalRemarks("");
     setFormPhotoUrl(""); setFormPhotos([]); setFormPhotoDetails([]); setFormRoomTypes([]);
-    setCategoryPhotos(Object.fromEntries(PHOTO_CATEGORIES.map(c => [c, []])));
-    setSelectedCategory("Main");
+    setPropertyViews([{ label: "Main", images: [] }, { label: "Room", images: [] }]);
+    setActiveCatIdx(0); setNewCatLabel(""); setAddingCat(false);
     setOpenSections({ owner: true, property: true, location: true, occupancy: false, features: false, roomTypes: false, policies: false, ratings: false, photos: false });
     draftVisitIdRef.current = null;
   };
@@ -1241,109 +1244,152 @@ export default function Visit() {
                       )}
                     </div>
 
-                    {/* ── 2. Category Photos (WEBSITE LISTING) ── */}
+                    {/* ── 2. Property Gallery (AddPropertyWizard style) ── */}
                     <div className="rounded-2xl border border-emerald-100 bg-emerald-50/30 p-5 space-y-4">
-                      <div>
-                        <p className="text-[11px] font-black text-emerald-700 uppercase tracking-widest">
-                          Step 2 — Property Category Photos (Shown on Website)
-                        </p>
-                        <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
-                          Upload photos by category — these will appear on the public listing.
-                        </p>
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-[11px] font-black text-emerald-700 uppercase tracking-widest">
+                            Step 2 — Property Gallery Photos (Shown on Website)
+                          </p>
+                          <p className="text-[11px] text-slate-500 mt-1">
+                            Add categories &amp; upload photos — same as Add Property wizard. These appear on the public listing.
+                          </p>
+                        </div>
+                        <button type="button" onClick={() => setAddingCat(true)}
+                          className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all shadow-sm shrink-0">
+                          <Plus className="w-3.5 h-3.5" /> Add Category
+                        </button>
                       </div>
 
-                      {/* Category Selector */}
-                      <div className="flex flex-wrap gap-2">
-                        {PHOTO_CATEGORIES.map(cat => (
-                          <button key={cat} type="button" onClick={() => setSelectedCategory(cat)}
-                            className={cn(
-                              "px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wide border transition-all",
-                              selectedCategory === cat
-                                ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
-                                : "bg-white text-slate-500 border-slate-200 hover:border-emerald-300 hover:text-emerald-600"
-                            )}>
-                            {cat}
-                            {categoryPhotos[cat]?.length > 0 && (
-                              <span className="ml-1.5 bg-white/30 text-white rounded-full px-1 text-[9px]">
-                                {categoryPhotos[cat].length}
+                      {/* Add category inline input */}
+                      {addingCat && (
+                        <div className="flex items-center gap-2">
+                          <input
+                            autoFocus
+                            type="text"
+                            value={newCatLabel}
+                            onChange={e => setNewCatLabel(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                if (newCatLabel.trim()) {
+                                  setPropertyViews(prev => [...prev, { label: newCatLabel.trim(), images: [] }]);
+                                  setActiveCatIdx(propertyViews.length);
+                                  setNewCatLabel(""); setAddingCat(false);
+                                }
+                              }
+                              if (e.key === "Escape") { setAddingCat(false); setNewCatLabel(""); }
+                            }}
+                            placeholder="Category name (e.g. Kitchen, Bathroom)…"
+                            className="flex-1 bg-white border border-emerald-200 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-200"
+                          />
+                          <button type="button"
+                            onClick={() => {
+                              if (newCatLabel.trim()) {
+                                setPropertyViews(prev => [...prev, { label: newCatLabel.trim(), images: [] }]);
+                                setActiveCatIdx(propertyViews.length);
+                                setNewCatLabel(""); setAddingCat(false);
+                              }
+                            }}
+                            className="px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 transition-all">
+                            Add
+                          </button>
+                          <button type="button" onClick={() => { setAddingCat(false); setNewCatLabel(""); }}
+                            className="px-4 py-2.5 bg-slate-100 text-slate-500 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all">
+                            Cancel
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Category tabs */}
+                      {propertyViews.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {propertyViews.map((view, idx) => (
+                            <div key={idx} className="relative group">
+                              <button type="button" onClick={() => setActiveCatIdx(idx)}
+                                className={cn(
+                                  "px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wide border transition-all pr-7",
+                                  activeCatIdx === idx
+                                    ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
+                                    : "bg-white text-slate-500 border-slate-200 hover:border-emerald-300 hover:text-emerald-600"
+                                )}>
+                                {view.label}
+                                {view.images.length > 0 && (
+                                  <span className={cn("ml-1.5 rounded-full px-1 text-[9px]", activeCatIdx === idx ? "bg-white/30 text-white" : "bg-slate-100 text-slate-500")}>
+                                    {view.images.length}
+                                  </span>
+                                )}
+                              </button>
+                              {/* Delete category */}
+                              {propertyViews.length > 1 && (
+                                <button type="button"
+                                  onClick={() => {
+                                    setPropertyViews(prev => prev.filter((_, i) => i !== idx));
+                                    setActiveCatIdx(Math.max(0, activeCatIdx - 1));
+                                  }}
+                                  className="absolute top-1 right-1 w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-[9px]">
+                                  <X className="w-2.5 h-2.5" />
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Active category upload + grid */}
+                      {propertyViews[activeCatIdx] && (
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-3">
+                            <label className="px-5 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-slate-900/10">
+                              <ImageIcon className="w-4 h-4" /> Upload {propertyViews[activeCatIdx].label} Photos
+                              <input type="file" accept="image/*" multiple className="hidden"
+                                onChange={async (e) => {
+                                  const files = Array.from(e.target.files || []);
+                                  e.target.value = "";
+                                  for (const file of files) {
+                                    setPhotoUploading(n => n + 1);
+                                    try {
+                                      const { compressImage: ci, PRESETS: PR } = await import("../../utils/imageCompression");
+                                      const small = await ci(file, PR.PHOTO);
+                                      const url = await uploadPhotoToCloud(small, small.name || file.name || "photo.jpg");
+                                      setPropertyViews(prev => {
+                                        const next = prev.map((v, i) => i === activeCatIdx ? { ...v, images: [...v.images, url] } : v);
+                                        return next;
+                                      });
+                                    } catch (err) {
+                                      notify("error", "Upload failed", err.message);
+                                    } finally {
+                                      setPhotoUploading(n => n - 1);
+                                    }
+                                  }
+                                }} />
+                            </label>
+                            {photoUploading > 0 && (
+                              <span className="text-[11px] font-bold text-emerald-600 flex items-center gap-1">
+                                <Loader2 size={12} className="animate-spin" />
+                                Uploading {photoUploading} photo{photoUploading > 1 ? "s" : ""}…
                               </span>
                             )}
-                          </button>
-                        ))}
-                      </div>
+                          </div>
 
-                      {/* Upload for selected category */}
-                      <div className="flex items-center gap-3">
-                        <label className="px-5 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-slate-900/10">
-                          <ImageIcon className="w-4 h-4" /> Upload {selectedCategory} Photos
-                          <input type="file" accept="image/*" multiple onChange={(e) => handleFileUpload(e, selectedCategory)} className="hidden" />
-                        </label>
-                        <p className="text-[10px] text-slate-400">Selected: <strong className="text-emerald-600">{selectedCategory}</strong></p>
-                      </div>
-
-                      {/* Preview for selected category */}
-                      {categoryPhotos[selectedCategory]?.length > 0 ? (
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                          {categoryPhotos[selectedCategory].map((url, i) => (
-                            <PhotoThumb key={i} url={url}
-                              onRemove={() => setCategoryPhotos(prev => ({ ...prev, [selectedCategory]: prev[selectedCategory].filter((_, j) => j !== i) }))}
-                              badge={<span className="truncate flex items-center gap-1 text-emerald-400">
-                                <ImageIcon size={10} className="shrink-0" /> {selectedCategory}
-                              </span>} />
-                          ))}
+                          {propertyViews[activeCatIdx].images.length > 0 ? (
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                              {propertyViews[activeCatIdx].images.map((url, i) => (
+                                <PhotoThumb key={i} url={url}
+                                  onRemove={() => setPropertyViews(prev =>
+                                    prev.map((v, vi) => vi === activeCatIdx
+                                      ? { ...v, images: v.images.filter((_, ii) => ii !== i) }
+                                      : v)
+                                  )}
+                                  badge={<span className="truncate flex items-center gap-1 text-emerald-400">
+                                    <ImageIcon size={10} className="shrink-0" /> {propertyViews[activeCatIdx].label}
+                                  </span>} />
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-[11px] text-slate-400 italic">No {propertyViews[activeCatIdx].label} photos yet. Upload some above.</p>
+                          )}
                         </div>
-                      ) : (
-                        <p className="text-[11px] text-slate-400 italic">No {selectedCategory} photos uploaded yet.</p>
-                      )}
-                    </div>
-
-                    {/* ── 3. Extra Uploads (generic) ── */}
-                    <div className="rounded-2xl border border-blue-100 bg-blue-50/40 p-5">
-                      <div className="flex items-start justify-between gap-4 flex-wrap">
-                        <div>
-                          <p className="text-[11px] font-black text-blue-600 uppercase tracking-widest">
-                            Step 3 — Extra / Miscellaneous Photos
-                          </p>
-                          <p className="text-[11px] text-slate-500 mt-1 max-w-md leading-relaxed">
-                            Any additional photos not covered above.
-                          </p>
-                        </div>
-                        <label className="px-5 py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-slate-900/10 shrink-0">
-                          <ImageIcon className="w-4 h-4" /> Upload Extra Photos
-                          <input type="file" accept="image/*" multiple onChange={(e) => handleFileUpload(e, null)} className="hidden" />
-                        </label>
-                      </div>
-
-                      <div className="flex gap-3 mt-4">
-                        <div className="flex-1">
-                          <FormField label="Or Paste Photo URL" value={formPhotoUrl} onChange={e => setFormPhotoUrl(e.target.value)} placeholder="https://example.com/photo.jpg" />
-                        </div>
-                        <div className="flex items-end">
-                          <button type="button" onClick={() => addPhotoWithUrl(formPhotoUrl)}
-                            className="px-5 py-4 bg-blue-600 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg shadow-blue-200">
-                            <Plus className="w-4 h-4" /> Add URL
-                          </button>
-                        </div>
-                      </div>
-
-                      {photoUploading > 0 && (
-                        <p className="text-[11px] font-bold text-blue-600 mt-3 flex items-center gap-2">
-                          <Loader2 size={13} className="animate-spin" />
-                          Uploading {photoUploading} photo{photoUploading > 1 ? "s" : "}…"}
-                        </p>
-                      )}
-
-                      {uploadedPhotos.length > 0 ? (
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                          {uploadedPhotos.map(({ url, idx }) => (
-                            <PhotoThumb key={idx} url={url} onRemove={() => removePhoto(idx)}
-                              badge={<span className="truncate flex items-center gap-1 text-slate-300">
-                                <ImageIcon size={10} className="shrink-0" /> Extra
-                              </span>} />
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-[11px] text-slate-400 mt-4 italic">No extra photos added yet.</p>
                       )}
                     </div>
                   </div>
