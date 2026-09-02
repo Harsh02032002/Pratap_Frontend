@@ -1,390 +1,323 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { 
-  Building2, Bed, Home, Users, Star, ShieldCheck, Search, ArrowRight, 
-  Phone, Mail, Heart, MapPin, CheckCircle2, Building, Sparkles, Lock, FileText,
-  Facebook, Instagram, Linkedin, Twitter, Youtube, MessageCircle
+import {
+  Heart, MapPin, FileText, Facebook, Instagram, Linkedin, Search,
+  CheckCircle2, ShieldCheck, Users, Star, Building2, ArrowRight,
+  Bed, Layers, Phone, Mail
 } from "lucide-react";
 
 function Logo() {
   return (
-    <Link to="/" className="inline-flex items-center -mt-2.5">
-      <img 
-        src="/website/roomhy_logo.jpeg" 
-        alt="Roomhy Logo" 
-        className="h-7 md:h-8 w-auto object-contain mix-blend-multiply"
-        onError={(e) => {
-          e.target.onerror = null;
-          e.target.src = '/website/roomhy_logo.jpeg';
-        }}
+    <Link to="/" className="inline-flex items-center">
+      <img
+        src="/website/roomhy_logo.jpeg"
+        alt="Roomhy Logo"
+        className="h-8 md:h-9 w-auto object-contain mix-blend-multiply"
+        onError={(e) => { e.target.onerror = null; e.target.src = "/website/roomhy_logo.jpeg"; }}
       />
     </Link>
   );
 }
 
+const POPULAR_SEARCHES = [
+  { label: "PG in Kota", link: "/website/ourproperty?city=kota" },
+  { label: "PG in Jaipur", link: "/website/ourproperty?city=jaipur" },
+  { label: "PG in Delhi", link: "/website/ourproperty?city=delhi" },
+  { label: "Hostels in Kota", link: "/website/ourproperty?city=kota" },
+  { label: "Hostels in Jaipur", link: "/website/ourproperty?city=jaipur" },
+  { label: "Hostels in Delhi", link: "/website/ourproperty?city=delhi" },
+  { label: "Co-living in Bangalore", link: "/website/ourproperty?city=bangalore" },
+  { label: "Co-living in Pune", link: "/website/ourproperty?city=pune" },
+  { label: "Student Apartments", link: "/apartments" },
+  { label: "Girls Hostel", link: "/hostels?gender=girls" },
+  { label: "Boys Hostel", link: "/hostels?gender=boys" },
+  { label: "Luxury PG", link: "/pg" },
+  { label: "Budget PG", link: "/pg" },
+];
+
+const LinkItem = ({ to, children }) => (
+  <li className="flex items-center gap-1">
+    <span className="text-slate-400 font-bold text-xs">›</span>
+    <Link to={to} className="hover:text-teal-600 transition-colors">{children}</Link>
+  </li>
+);
+
 export default function WebsiteFooter() {
   return (
-    <footer className="border-t border-slate-200/80 bg-[#f9fbfb] text-slate-700 font-sans relative pb-16 md:pb-0">
-      <div className="mx-auto max-w-[1440px] px-4 md:px-8 lg:px-12 py-10 space-y-8">
-        
-        {/* ========================================================================= */}
-        {/* MAIN MULTI-COLUMN FOOTER GRID                                             */}
-        {/* ========================================================================= */}
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-8 lg:gap-5 items-start">
-          
-          {/* COLUMN 1: BRAND INFO & TRUST BADGES */}
-          <div className="space-y-4">
-            <Logo />
-            <p className="text-xs text-slate-500 font-semibold leading-relaxed">
+    <footer className="border-t border-slate-200 bg-[#f8fafc] text-slate-700 font-sans relative pb-16 md:pb-0">
+
+      {/* ── MAIN FOOTER GRID ──────────────────────────────────────────── */}
+      <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex flex-col lg:flex-row gap-8 lg:gap-10 items-start">
+
+          {/* LEFT COLUMN: Logo + Features + Social */}
+          <div className="w-full lg:w-[220px] shrink-0 flex flex-col gap-4 border-b lg:border-b-0 lg:border-r border-slate-200 pb-6 lg:pb-0 lg:pr-6">
+            <div className="h-10 flex items-center border-b border-slate-200">
+              <Logo />
+            </div>
+
+            <p className="text-xs text-slate-500 font-medium leading-relaxed">
               India's smart bidding platform for PGs, Hostels, Co-living Spaces &amp; Student Apartments.
             </p>
 
-            {/* Green Check Trust Badges List */}
-            <div className="space-y-1.5 pt-1 text-xs font-extrabold text-slate-700">
-              <div className="flex items-center gap-1.5 text-emerald-600">
-                <CheckCircle2 className="w-3.5 h-3.5 shrink-0 stroke-[2.5]" />
-                <span className="text-slate-800 text-[11px]">Smart Bidding</span>
+            {/* Feature Badges */}
+            <div className="space-y-2 text-xs font-semibold text-slate-700">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-teal-600 shrink-0" />
+                <span>Smart Bidding</span>
               </div>
-              <div className="flex items-center gap-1.5 text-emerald-600">
-                <CheckCircle2 className="w-3.5 h-3.5 shrink-0 stroke-[2.5]" />
-                <span className="text-slate-800 text-[11px]">Verified Properties</span>
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-teal-600 shrink-0" />
+                <span>Verified Properties</span>
               </div>
-              <div className="flex items-center gap-1.5 text-teal-600">
-                <Bed className="w-3.5 h-3.5 shrink-0 stroke-[2.5]" />
-                <span className="text-slate-800 text-[11px]">50,000+ Beds</span>
+              <div className="flex items-center gap-2">
+                <Bed className="w-4 h-4 text-teal-600 shrink-0" />
+                <span>50,000+ Beds</span>
               </div>
-              <div className="flex items-center gap-1.5 text-amber-500">
-                <Star className="w-3.5 h-3.5 shrink-0 fill-amber-400 stroke-none" />
-                <span className="text-slate-800 text-[11px]">Trusted by Students</span>
+              <div className="flex items-center gap-2">
+                <Star className="w-4 h-4 text-amber-500 fill-amber-400 shrink-0" />
+                <span>Trusted by Students</span>
               </div>
             </div>
 
-            {/* Social Icons Row — ONLY Facebook, Instagram, LinkedIn */}
+            {/* Social */}
             <div className="pt-1">
-              <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Follow us on</p>
-              <div className="flex items-center gap-2">
-                <a href="https://www.facebook.com/profile.php?id=61587850180193" target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="w-7 h-7 rounded-full bg-[#1877F2] text-white flex items-center justify-center shadow-xs hover:scale-110 transition-transform">
+              <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-2">Follow Us On</p>
+              <div className="flex items-center gap-2.5">
+                <a href="https://www.facebook.com/profile.php?id=61587850180193" target="_blank" rel="noopener noreferrer" aria-label="Facebook"
+                  className="w-8 h-8 rounded-full bg-[#1877F2] text-white flex items-center justify-center hover:opacity-90 transition-opacity shadow-xs">
                   <Facebook className="w-3.5 h-3.5 fill-white" />
                 </a>
-                <a href="https://www.instagram.com/roomhy.com_/" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="w-7 h-7 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 text-white flex items-center justify-center shadow-xs hover:scale-110 transition-transform">
+                <a href="https://www.instagram.com/roomhy.com_/" target="_blank" rel="noopener noreferrer" aria-label="Instagram"
+                  className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 text-white flex items-center justify-center hover:opacity-90 transition-opacity shadow-xs">
                   <Instagram className="w-3.5 h-3.5" />
                 </a>
-                <a href="https://www.linkedin.com/company/roomhy-com/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="w-7 h-7 rounded-full bg-[#0A66C2] text-white flex items-center justify-center shadow-xs hover:scale-110 transition-transform">
+                <a href="https://www.linkedin.com/company/roomhy-com/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn"
+                  className="w-8 h-8 rounded-full bg-[#0A66C2] text-white flex items-center justify-center hover:opacity-90 transition-opacity shadow-xs">
                   <Linkedin className="w-3.5 h-3.5 fill-white" />
                 </a>
               </div>
             </div>
           </div>
 
-          {/* COLUMN 2: POPULAR CITIES */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-1.5 text-xs font-black text-emerald-700 uppercase tracking-wider">
-              <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-              <span>Popular Cities</span>
-            </div>
-            <ul className="space-y-2 text-xs font-bold text-slate-600">
-              <li>
-                <Link to="/website/ourproperty?city=kota" className="hover:text-emerald-600 transition-colors flex items-center gap-1">
-                  <span className="text-slate-400 font-bold">&gt;</span> PG in Kota
-                </Link>
-              </li>
-              <li>
-                <Link to="/website/ourproperty?city=jaipur" className="hover:text-emerald-600 transition-colors flex items-center gap-1">
-                  <span className="text-slate-400 font-bold">&gt;</span> PG in Jaipur
-                </Link>
-              </li>
-              <li>
-                <Link to="/website/ourproperty?city=delhi" className="hover:text-emerald-600 transition-colors flex items-center gap-1">
-                  <span className="text-slate-400 font-bold">&gt;</span> PG in Delhi
-                </Link>
-              </li>
-              <li>
-                <Link to="/website/ourproperty?city=indore" className="hover:text-emerald-600 transition-colors flex items-center gap-1">
-                  <span className="text-slate-400 font-bold">&gt;</span> PG in Indore
-                </Link>
-              </li>
-              <li>
-                <Link to="/website/ourproperty?city=bangalore" className="hover:text-emerald-600 transition-colors flex items-center gap-1">
-                  <span className="text-slate-400 font-bold">&gt;</span> PG in Bangalore
-                </Link>
-              </li>
-              <li>
-                <Link to="/website/ourproperty?city=pune" className="hover:text-emerald-600 transition-colors flex items-center gap-1">
-                  <span className="text-slate-400 font-bold">&gt;</span> PG in Pune
-                </Link>
-              </li>
-            </ul>
-            <div className="pt-1">
-              <Link to="/website/ourproperty" className="text-xs font-black text-emerald-600 hover:text-emerald-700 inline-flex items-center gap-1 group">
-                View all cities <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-              </Link>
-            </div>
-          </div>
+          {/* RIGHT: 5 LINK COLUMNS */}
+          <div className="flex-1 w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6">
 
-          {/* COLUMN 3: PROPERTY TYPES */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-1.5 text-xs font-black text-purple-700 uppercase tracking-wider">
-              <Building2 className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-              <span>Property Types</span>
-            </div>
-            <ul className="space-y-2 text-xs font-bold text-slate-600">
-              <li>
-                <Link to="/pg?gender=boys" className="hover:text-purple-600 transition-colors flex items-center gap-1">
-                  <span className="text-slate-400 font-bold">&gt;</span> PG for Boys
-                </Link>
-              </li>
-              <li>
-                <Link to="/pg?gender=girls" className="hover:text-purple-600 transition-colors flex items-center gap-1">
-                  <span className="text-slate-400 font-bold">&gt;</span> PG for Girls
-                </Link>
-              </li>
-              <li>
-                <Link to="/pg?gender=coed" className="hover:text-purple-600 transition-colors flex items-center gap-1">
-                  <span className="text-slate-400 font-bold">&gt;</span> Co-ed PG
-                </Link>
-              </li>
-              <li>
-                <Link to="/hostels" className="hover:text-purple-600 transition-colors flex items-center gap-1">
-                  <span className="text-slate-400 font-bold">&gt;</span> Hostels
-                </Link>
-              </li>
-              <li>
-                <Link to="/hostels?gender=boys" className="hover:text-purple-600 transition-colors flex items-center gap-1">
-                  <span className="text-slate-400 font-bold">&gt;</span> Boys Hostels
-                </Link>
-              </li>
-              <li>
-                <Link to="/hostels?gender=girls" className="hover:text-purple-600 transition-colors flex items-center gap-1">
-                  <span className="text-slate-400 font-bold">&gt;</span> Girls Hostels
-                </Link>
-              </li>
-              <li>
-                <Link to="/co-living" className="hover:text-purple-600 transition-colors flex items-center gap-1">
-                  <span className="text-slate-400 font-bold">&gt;</span> Co-living
-                </Link>
-              </li>
-              <li>
-                <Link to="/apartments" className="hover:text-purple-600 transition-colors flex items-center gap-1">
-                  <span className="text-slate-400 font-bold">&gt;</span> Apartments
-                </Link>
-              </li>
-            </ul>
-            <div className="pt-1">
-              <Link to="/website/ourproperty" className="text-xs font-black text-purple-600 hover:text-purple-700 inline-flex items-center gap-1 group">
-                View all properties <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-              </Link>
-            </div>
-          </div>
-
-          {/* COLUMN 4: HOSTELS & CO-LIVING */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-1.5 text-xs font-black text-amber-700 uppercase tracking-wider">
-              <Building className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-              <span>Hostels</span>
-            </div>
-            <ul className="space-y-2 text-xs font-bold text-slate-600">
-              <li>
-                <Link to="/hostels?gender=boys" className="hover:text-amber-600 transition-colors flex items-center gap-1">
-                  <span className="text-slate-400 font-bold">&gt;</span> Hostels for Boys
-                </Link>
-              </li>
-              <li>
-                <Link to="/hostels?gender=girls" className="hover:text-amber-600 transition-colors flex items-center gap-1">
-                  <span className="text-slate-400 font-bold">&gt;</span> Hostels for Girls
-                </Link>
-              </li>
-              <li>
-                <Link to="/hostels?gender=coed" className="hover:text-amber-600 transition-colors flex items-center gap-1">
-                  <span className="text-slate-400 font-bold">&gt;</span> Co-ed Hostels
-                </Link>
-              </li>
-            </ul>
-
-            {/* Sub-block: CO-LIVING */}
-            <div className="pt-3 space-y-3 border-t border-slate-200/60">
-              <div className="flex items-center gap-1.5 text-xs font-black text-sky-700 uppercase tracking-wider">
-                <Users className="w-3.5 h-3.5 text-sky-600 shrink-0" />
-                <span>Co-living</span>
-              </div>
-              <ul className="space-y-2 text-xs font-bold text-slate-600">
-                <li>
-                  <Link to="/co-living?gender=boys" className="hover:text-sky-600 transition-colors flex items-center gap-1">
-                    <span className="text-slate-400 font-bold">&gt;</span> Co-living for Boys
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/co-living?gender=girls" className="hover:text-sky-600 transition-colors flex items-center gap-1">
-                    <span className="text-slate-400 font-bold">&gt;</span> Co-living for Girls
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/co-living?gender=coed" className="hover:text-sky-600 transition-colors flex items-center gap-1">
-                    <span className="text-slate-400 font-bold">&gt;</span> Co-ed Co-living
+            {/* 1. POPULAR CITIES */}
+            <div className="space-y-3">
+              <h3 className="h-10 flex items-center gap-1.5 text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-200">
+                <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span>Popular Cities</span>
+              </h3>
+              <ul className="space-y-2 text-xs font-semibold text-slate-600">
+                <LinkItem to="/website/ourproperty?city=kota">PG in Kota</LinkItem>
+                <LinkItem to="/website/ourproperty?city=jaipur">PG in Jaipur</LinkItem>
+                <LinkItem to="/website/ourproperty?city=delhi">PG in Delhi</LinkItem>
+                <LinkItem to="/website/ourproperty?city=indore">PG in Indore</LinkItem>
+                <LinkItem to="/website/ourproperty?city=bangalore">PG in Bangalore</LinkItem>
+                <LinkItem to="/website/ourproperty?city=pune">PG in Pune</LinkItem>
+                <li className="pt-1">
+                  <Link to="/website/ourproperty" className="inline-flex items-center gap-1 text-teal-600 font-bold hover:text-teal-700 transition-colors text-xs">
+                    View all cities &rarr;
                   </Link>
                 </li>
               </ul>
             </div>
-          </div>
 
-          {/* COLUMN 5: QUICK LINKS */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-1.5 text-xs font-black text-teal-700 uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5 text-teal-600 shrink-0" />
-              <span>Quick Links</span>
+            {/* 2. PROPERTY TYPES */}
+            <div className="space-y-3">
+              <h3 className="h-10 flex items-center gap-1.5 text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-200">
+                <Building2 className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                <span>Property Types</span>
+              </h3>
+              <ul className="space-y-2 text-xs font-semibold text-slate-600">
+                <LinkItem to="/pg?gender=boys">PG for Boys</LinkItem>
+                <LinkItem to="/pg?gender=girls">PG for Girls</LinkItem>
+                <LinkItem to="/pg">Co-ed PG</LinkItem>
+                <LinkItem to="/hostels">Hostels</LinkItem>
+                <LinkItem to="/hostels?gender=boys">Boys Hostels</LinkItem>
+                <LinkItem to="/hostels?gender=girls">Girls Hostels</LinkItem>
+                <LinkItem to="/co-living">Co-living</LinkItem>
+                <LinkItem to="/apartments">Apartments</LinkItem>
+                <li className="pt-1">
+                  <Link to="/website/ourproperty" className="inline-flex items-center gap-1 text-purple-600 font-bold hover:text-purple-700 transition-colors text-xs">
+                    View all properties &rarr;
+                  </Link>
+                </li>
+              </ul>
             </div>
-            <ul className="space-y-2 text-xs font-bold text-slate-600">
-              <li><Link to="/list-property" className="hover:text-teal-600 transition-colors">List Your Property</Link></li>
-              <li><Link to="/propertyowner/dashboard" className="hover:text-teal-600 transition-colors">Owner Dashboard</Link></li>
-              <li><Link to="/website/mystays" className="hover:text-teal-600 transition-colors">Tenant Dashboard / My Stays</Link></li>
-              <li><Link to="/about-us" className="hover:text-teal-600 transition-colors">About Us</Link></li>
-              <li><Link to="/contact-us" className="hover:text-teal-600 transition-colors">Contact Us</Link></li>
-              <li><Link to="/faq" className="hover:text-teal-600 transition-colors">FAQ</Link></li>
-              <li><Link to="/auth/login" className="hover:text-teal-600 transition-colors">Login / Register</Link></li>
-            </ul>
-          </div>
 
-          {/* COLUMN 6: POLICIES & LEGAL (Dedicated Top-Level Column) */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-1.5 text-xs font-black text-rose-700 uppercase tracking-wider">
-              <FileText className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-              <span>Policies &amp; Legal</span>
+            {/* 3. HOSTELS & CO-LIVING */}
+            <div className="space-y-3">
+              <h3 className="h-10 flex items-center gap-1.5 text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-200">
+                <Bed className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                <span>Hostels</span>
+              </h3>
+              <ul className="space-y-2 text-xs font-semibold text-slate-600">
+                <LinkItem to="/hostels?gender=boys">Hostels for Boys</LinkItem>
+                <LinkItem to="/hostels?gender=girls">Hostels for Girls</LinkItem>
+                <LinkItem to="/hostels">Co-ed Hostels</LinkItem>
+              </ul>
+
+              <div className="pt-2">
+                <h4 className="flex items-center gap-1.5 text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-1.5 mb-2">
+                  <Layers className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+                  <span>Co-Living</span>
+                </h4>
+                <ul className="space-y-2 text-xs font-semibold text-slate-600">
+                  <LinkItem to="/co-living?gender=boys">Co-living for Boys</LinkItem>
+                  <LinkItem to="/co-living?gender=girls">Co-living for Girls</LinkItem>
+                  <LinkItem to="/co-living">Co-ed Co-living</LinkItem>
+                </ul>
+              </div>
             </div>
-            <ul className="space-y-2 text-xs font-bold text-slate-600">
-              <li><Link to="/privacy-policy" className="hover:text-rose-600 transition-colors">Privacy Policy</Link></li>
-              <li><Link to="/terms-and-conditions" className="hover:text-rose-600 transition-colors">Terms &amp; Conditions</Link></li>
-              <li><Link to="/refund-policy" className="hover:text-rose-600 transition-colors">Refund Policy</Link></li>
-              <li><Link to="/cancellation-policy" className="hover:text-rose-600 transition-colors">Cancellation Policy</Link></li>
-              <li><Link to="/website/refund-request" className="hover:text-rose-600 transition-colors">Refund Request</Link></li>
-            </ul>
-          </div>
 
+            {/* 4. QUICK LINKS */}
+            <div className="space-y-3">
+              <h3 className="h-10 flex items-center gap-1.5 text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-200">
+                <ArrowRight className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+                <span>Quick Links</span>
+              </h3>
+              <ul className="space-y-2 text-xs font-semibold text-slate-600">
+                <li><Link to="/list-property" className="hover:text-teal-600 transition-colors">List Your Property</Link></li>
+                <li><Link to="/propertyowner/dashboard" className="hover:text-teal-600 transition-colors">Owner Dashboard</Link></li>
+                <li><Link to="/website/mystays" className="hover:text-teal-600 transition-colors font-bold text-teal-700">Tenant Dashboard / My Stays</Link></li>
+                <li><Link to="/about-us" className="hover:text-teal-600 transition-colors">About Us</Link></li>
+                <li><Link to="/contact-us" className="hover:text-teal-600 transition-colors">Contact Us</Link></li>
+                <li><Link to="/faq" className="hover:text-teal-600 transition-colors">FAQ</Link></li>
+                <li><Link to="/website/login" className="hover:text-teal-600 transition-colors">Login / Register</Link></li>
+              </ul>
+            </div>
+
+            {/* 5. POLICIES & LEGAL */}
+            <div className="space-y-3">
+              <h3 className="h-10 flex items-center gap-1.5 text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-200">
+                <FileText className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                <span>Policies &amp; Legal</span>
+              </h3>
+              <ul className="space-y-2 text-xs font-semibold text-slate-600">
+                <li><Link to="/privacy-policy" className="hover:text-teal-600 transition-colors">Privacy Policy</Link></li>
+                <li><Link to="/terms-and-conditions" className="hover:text-teal-600 transition-colors">Terms &amp; Conditions</Link></li>
+                <li><Link to="/refund-policy" className="hover:text-teal-600 transition-colors">Refund Policy</Link></li>
+                <li><Link to="/cancellation-policy" className="hover:text-teal-600 transition-colors">Cancellation Policy</Link></li>
+                <li><Link to="/website/refund-request" className="hover:text-teal-600 transition-colors">Refund Request</Link></li>
+              </ul>
+            </div>
+
+          </div>
         </div>
+      </div>
 
-        {/* ========================================================================= */}
-        {/* POPULAR SEARCHES PILLS BANNER CARD                                         */}
-        {/* ========================================================================= */}
-        <div className="rounded-2xl bg-[#E8F7F2]/80 border border-teal-200/70 p-4 md:p-5 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-emerald-800 font-extrabold text-xs shrink-0">
-            <div className="w-7 h-7 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-              <Search className="w-3.5 h-3.5 stroke-[3]" />
+      {/* ── POPULAR SEARCHES STRIP ──────────────────────────────────────── */}
+      <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 mb-6">
+        <div className="rounded-2xl bg-[#e6f4f1] p-4 lg:p-5 flex flex-col md:flex-row items-start md:items-center gap-3 justify-between">
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="w-7 h-7 rounded-lg bg-teal-600 text-white flex items-center justify-center">
+              <Search className="w-4 h-4" />
             </div>
-            <span>POPULAR SEARCHES</span>
+            <span className="text-xs font-black text-teal-950 uppercase tracking-wider">POPULAR SEARCHES</span>
           </div>
 
           <div className="flex flex-wrap gap-2 flex-1">
-            {[
-              { label: 'PG in Kota', link: '/pg-in-kota' },
-              { label: 'PG in Jaipur', link: '/pg-in-jaipur' },
-              { label: 'PG in Delhi', link: '/pg-in-delhi' },
-              { label: 'Hostels in Kota', link: '/hostels-in-kota' },
-              { label: 'Hostels in Jaipur', link: '/hostels-in-jaipur' },
-              { label: 'Hostels in Delhi', link: '/hostels-in-delhi' },
-              { label: 'Co-living in Bangalore', link: '/co-living-in-bangalore' },
-              { label: 'Co-living in Pune', link: '/co-living-in-pune' },
-              { label: 'Student Apartments', link: '/apartments' },
-              { label: 'Girls Hostel', link: '/hostels?gender=girls' },
-              { label: 'Boys Hostel', link: '/hostels?gender=boys' },
-              { label: 'Luxury PG', link: '/pg' },
-              { label: 'Budget PG', link: '/pg' },
-            ].map(item => (
+            {POPULAR_SEARCHES.map(item => (
               <Link
                 key={item.label}
                 to={item.link}
-                className="px-3 py-1.5 rounded-full bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 text-xs font-bold border border-slate-200/80 shadow-2xs transition-colors"
+                className="px-3 py-1.5 rounded-full bg-white text-slate-700 hover:text-teal-700 text-xs font-semibold shadow-2xs hover:shadow-xs transition-all"
               >
                 {item.label}
               </Link>
             ))}
           </div>
 
-          <Link to="/website/ourproperty" className="text-xs font-black text-emerald-700 hover:text-emerald-800 shrink-0 inline-flex items-center gap-1">
+          <Link to="/website/ourproperty" className="shrink-0 text-xs font-bold text-teal-700 hover:text-teal-900 transition-colors flex items-center gap-1">
             View all searches &rarr;
           </Link>
         </div>
+      </div>
 
-        {/* ========================================================================= */}
-        {/* TRUST BADGES SUMMARY ROW CARD                                             */}
-        {/* ========================================================================= */}
-        <div className="rounded-2xl bg-white border border-slate-200/90 p-4 md:p-5 shadow-2xs grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* ── TRUST BADGES SUMMARY CARD ──────────────────────────────────── */}
+      <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 mb-6">
+        <div className="rounded-2xl bg-white border border-slate-200/90 p-4 lg:p-5 shadow-2xs grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center shrink-0">
-              <CheckCircle2 className="w-5 h-5 stroke-[2.5]" />
+            <div className="w-9 h-9 rounded-xl bg-teal-50 text-teal-600 border border-teal-100 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs font-black text-slate-900">Smart Bidding</p>
-              <p className="text-[11px] font-semibold text-slate-500">Best price deals</p>
+              <p className="text-xs font-bold text-slate-900">Smart Bidding</p>
+              <p className="text-[11px] font-medium text-slate-500">Best price deals</p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center shrink-0">
-              <ShieldCheck className="w-5 h-5 stroke-[2.5]" />
+            <div className="w-9 h-9 rounded-xl bg-teal-50 text-teal-600 border border-teal-100 flex items-center justify-center shrink-0">
+              <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs font-black text-slate-900">Verified Listings</p>
-              <p className="text-[11px] font-semibold text-slate-500">100% verified properties</p>
+              <p className="text-xs font-bold text-slate-900">Verified Listings</p>
+              <p className="text-[11px] font-medium text-slate-500">100% verified properties</p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 border border-purple-100 flex items-center justify-center shrink-0">
-              <Users className="w-5 h-5 stroke-[2.5]" />
+            <div className="w-9 h-9 rounded-xl bg-teal-50 text-teal-600 border border-teal-100 flex items-center justify-center shrink-0">
+              <Users className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs font-black text-slate-900">50,000+ Students</p>
-              <p className="text-[11px] font-semibold text-slate-500">Trust us to find a home</p>
+              <p className="text-xs font-bold text-slate-900">50,000+ Students</p>
+              <p className="text-[11px] font-medium text-slate-500">Trust us to find a home</p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center shrink-0">
-              <Building2 className="w-5 h-5 stroke-[2.5]" />
+            <div className="w-9 h-9 rounded-xl bg-teal-50 text-teal-600 border border-teal-100 flex items-center justify-center shrink-0">
+              <Building2 className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs font-black text-slate-900">10+ Cities</p>
-              <p className="text-[11px] font-semibold text-slate-500">Across India</p>
+              <p className="text-xs font-bold text-slate-900">10+ Cities</p>
+              <p className="text-[11px] font-medium text-slate-500">Across India</p>
             </div>
           </div>
         </div>
-
       </div>
 
-      {/* ========================================================================= */}
-      {/* BOTTOM COPYRIGHT & CONTACT BAR                                            */}
-      {/* ========================================================================= */}
-      <div className="border-t border-slate-200/80 bg-white py-4 px-4 md:px-8">
-        <div className="mx-auto max-w-[1440px] flex flex-col md:flex-row items-center justify-between gap-3 text-xs font-bold text-slate-600">
+      {/* ── BOTTOM COPYRIGHT & COMPANY REGISTRATION BAR ──────────────────── */}
+      <div className="border-t border-slate-200 bg-white py-4 px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-[1400px] flex flex-col md:flex-row items-center justify-between gap-3 text-xs font-semibold text-slate-600">
           <p>© {new Date().getFullYear()} Roomhy Technology Pvt. Ltd. All rights reserved.</p>
-          
-          <div className="flex items-center gap-1 text-slate-500">
+
+          <div className="flex items-center gap-1.5 text-slate-500">
             <span>Made with</span>
             <Heart className="w-3.5 h-3.5 fill-rose-500 text-rose-500 inline" />
-            <span>in India</span>
+            <span>In India</span>
           </div>
 
-          <div className="flex items-center gap-4 text-slate-700">
-            <a href="mailto:team@roomhy.com" className="hover:text-emerald-600 transition-colors inline-flex items-center gap-1.5">
-              <Mail className="w-3.5 h-3.5 text-slate-400" /> team@roomhy.com
+          <div className="flex items-center gap-3 text-slate-600">
+            <a href="mailto:team@roomhy.com" className="flex items-center gap-1 hover:text-teal-600 transition-colors">
+              <Mail className="w-3.5 h-3.5" />
+              <span>team@roomhy.com</span>
             </a>
-            <span className="text-slate-300">|</span>
-            <a href="tel:+918764425030" className="hover:text-emerald-600 transition-colors inline-flex items-center gap-1.5 text-emerald-700 font-black">
-              <Phone className="w-3.5 h-3.5 text-emerald-600" /> +91 87644 25030
+            <span>|</span>
+            <a href="tel:+918764425030" className="flex items-center gap-1 hover:text-teal-600 transition-colors">
+              <Phone className="w-3.5 h-3.5" />
+              <span>+918764425030</span>
             </a>
           </div>
         </div>
 
         {/* Company Address & GSTIN */}
-        <div className="mx-auto max-w-[1440px] mt-2.5 pt-2.5 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-1.5 text-[10px] text-slate-400 font-medium">
-          <div className="flex items-start gap-1.5">
-            <MapPin className="w-3 h-3 text-slate-300 shrink-0 mt-0.5" />
-            <span>847, Balaji Nagar, Rangbari, Near Pani Ki Tanki, Kota, Rajasthan 324005, India</span>
+        <div className="mx-auto max-w-[1400px] mt-2.5 pt-2.5 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-slate-400 font-medium">
+          <div className="flex items-center gap-1.5">
+            <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <span>ROOMHY TECHNOLOGY — 847, Balaji Nagar, Rangbari, Near Pani Ki Tanki, Kota, Rajasthan 324005, India</span>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            <FileText className="w-3 h-3 text-slate-300 shrink-0" />
-            <span>GSTIN: <span className="font-black text-slate-500 tracking-wide">08SLWPS2629G1ZZ</span></span>
+            <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <span>GSTIN: <span className="font-bold text-slate-600">08SLWPS2629G1ZZ</span></span>
           </div>
         </div>
       </div>
+
     </footer>
   );
 }
