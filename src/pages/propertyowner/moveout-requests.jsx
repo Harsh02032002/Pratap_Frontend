@@ -4,7 +4,7 @@ import { getOwnerRuntimeSession, clearOwnerRuntimeSession } from "../../utils/pr
 import { apiFetch } from "../../utils/api";
 import {
   LogOut, Search, Phone, CheckCircle2, AlertTriangle,
-  Clock, XCircle, Loader2, CalendarDays, IndianRupee
+  Clock, XCircle, Loader2, CalendarDays, IndianRupee, CalendarClock, Undo2
 } from "lucide-react";
 
 const fmt = (n) => "₹" + (Number(n) || 0).toLocaleString("en-IN");
@@ -16,9 +16,44 @@ const fmtDate = (val) => {
 };
 
 const STATUS_CONFIG = {
-  pending:  { label: "Pending",  tone: "warning", Icon: Clock },
-  approved: { label: "Approved", tone: "success", Icon: CheckCircle2 },
-  rejected: { label: "Rejected", tone: "danger",  Icon: XCircle },
+  pending:   { label: "Pending",   tone: "warning", Icon: Clock },
+  approved:  { label: "On Notice", tone: "info",    Icon: CalendarClock },
+  completed: { label: "Moved Out", tone: "success", Icon: CheckCircle2 },
+  rejected:  { label: "Rejected",  tone: "danger",  Icon: XCircle },
+};
+
+// An approved request is not a completed exit. The tenant serves a fixed
+// one-month notice period starting the day the owner approved, and only becomes
+// an ex-tenant once the backend's daily job marks moveoutRequest.completedAt.
+const isOnNotice = (r) => r?.moveoutRequest?.status === "approved" && !r?.moveoutRequest?.completedAt;
+
+const viewStatus = (r) => {
+  const mr = r?.moveoutRequest || {};
+  if (mr.status === "approved") return mr.completedAt ? "completed" : "approved";
+  return mr.status || "pending";
+};
+
+// Whole days left before the tenant moves out. Negative/zero means the notice
+// has elapsed and the nightly job will close the tenancy on its next run.
+const daysLeft = (noticeEndDate) => {
+  if (!noticeEndDate) return null;
+  const end = new Date(noticeEndDate);
+  if (isNaN(end)) return null;
+  const today = new Date();
+  end.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+  return Math.round((end - today) / 86400000);
+};
+
+// Mirrors services/moveoutService.calcNoticeEndDate on the backend so the modal
+// can preview the exit date before the owner commits. The backend value is
+// authoritative — this is display only.
+const calcNoticeEnd = (from = new Date()) => {
+  const start = new Date(from);
+  const end = new Date(start);
+  end.setMonth(end.getMonth() + 1);
+  if (end.getDate() !== start.getDate()) end.setDate(0);
+  return end;
 };
 
 const Pill = ({ tone = "muted", children }) => {
@@ -26,6 +61,7 @@ const Pill = ({ tone = "muted", children }) => {
     success: "bg-green-100 text-green-700 border border-green-200",
     warning: "bg-amber-100 text-amber-700 border border-amber-200",
     danger:  "bg-red-100 text-red-700 border border-red-200",
+    info:    "bg-blue-100 text-blue-700 border border-blue-200",
     muted:   "bg-slate-100 text-slate-600 border border-slate-200",
   };
   return (
@@ -55,6 +91,11 @@ export default function MoveoutRequestsPage() {
   const [refundStatus, setRefundStatus]     = useState("cleared");
   const [submitting, setSubmitting]         = useState(false);
 
+  // Cancel-notice modal — calls off an approved move-out mid-notice.
+  const [cancelModal, setCancelModal]   = useState(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelling, setCancelling]     = useState(false);
+
   const fetchRequests = async () => {
     try {
       setLoading(true);
@@ -71,14 +112,15 @@ export default function MoveoutRequestsPage() {
   useEffect(() => { fetchRequests(); }, [owner.loginId]);
 
   const counts = useMemo(() => ({
-    all:      requests.length,
-    pending:  requests.filter(r => r.moveoutRequest?.status === "pending").length,
-    approved: requests.filter(r => r.moveoutRequest?.status === "approved").length,
-    rejected: requests.filter(r => r.moveoutRequest?.status === "rejected").length,
+    all:       requests.length,
+    pending:   requests.filter(r => viewStatus(r) === "pending").length,
+    approved:  requests.filter(r => viewStatus(r) === "approved").length,
+    completed: requests.filter(r => viewStatus(r) === "completed").length,
+    rejected:  requests.filter(r => viewStatus(r) === "rejected").length,
   }), [requests]);
 
   const filtered = useMemo(() => {
-    let list = tab === "all" ? requests : requests.filter(r => r.moveoutRequest?.status === tab);
+    let list = tab === "all" ? requests : requests.filter(r => viewStatus(r) === tab);
     const q = search.trim().toLowerCase();
     if (q) {
       list = list.filter(r =>
@@ -128,6 +170,25 @@ export default function MoveoutRequestsPage() {
     }
   };
 
+  const submitCancelNotice = async () => {
+    const reason = cancelReason.trim();
+    if (!cancelModal || cancelling) return;
+    try {
+      setCancelling(true);
+      await apiFetch("/api/tenants/moveout/cancel", {
+        method: "POST",
+        body: JSON.stringify({ tenantId: cancelModal._id, reason })
+      });
+      setCancelModal(null);
+      setCancelReason("");
+      fetchRequests();
+    } catch (err) {
+      alert(err.message || "Failed to cancel the notice period");
+    } finally {
+      setCancelling(false);
+    }
+  };
+
   const handleReject = async (item) => {
     if (!window.confirm(`Reject move-out request for ${item.name}?`)) return;
     try {
@@ -142,10 +203,11 @@ export default function MoveoutRequestsPage() {
   };
 
   const TABS = [
-    { k: "pending",  l: "Pending" },
-    { k: "approved", l: "Approved" },
-    { k: "rejected", l: "Rejected" },
-    { k: "all",      l: "All" },
+    { k: "pending",   l: "Pending" },
+    { k: "approved",  l: "On Notice" },
+    { k: "completed", l: "Moved Out" },
+    { k: "rejected",  l: "Rejected" },
+    { k: "all",       l: "All" },
   ];
 
   return (
@@ -159,7 +221,7 @@ export default function MoveoutRequestsPage() {
         <div>
           <h1 className="font-serif text-[38px] md:text-[44px] leading-[1.05] text-foreground">Move-out Requests</h1>
           <p className="mt-1.5 text-[13.5px] text-muted-foreground">
-            Review exit notices raised by your tenants. Approve checkout and settle deposits.
+            Review exit notices raised by your tenants. Approving starts a fixed 1-month notice period.
           </p>
         </div>
         {!loading && (
@@ -222,8 +284,11 @@ export default function MoveoutRequestsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {filtered.map((item) => {
             const mr = item.moveoutRequest || {};
-            const cfg = STATUS_CONFIG[mr.status] || STATUS_CONFIG.pending;
-            const isPending = mr.status === "pending";
+            const vs = viewStatus(item);
+            const cfg = STATUS_CONFIG[vs] || STATUS_CONFIG.pending;
+            const isPending = vs === "pending";
+            const onNotice = isOnNotice(item);
+            const remaining = onNotice ? daysLeft(mr.noticeEndDate) : null;
 
             return (
               <div
@@ -284,6 +349,29 @@ export default function MoveoutRequestsPage() {
                   </p>
                 )}
 
+                {/* Notice period — approved but not yet moved out */}
+                {onNotice && (
+                  <div className="text-[12px] bg-blue-50 border border-blue-100 rounded-xl px-3 py-2.5">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <span className="text-muted-foreground block">Notice period ends</span>
+                        <span className="font-bold text-blue-800">{fmtDate(mr.noticeEndDate)}</span>
+                      </div>
+                      <span className="text-[11px] font-bold text-blue-700 bg-blue-100 border border-blue-200 rounded-full px-2.5 py-1 shrink-0">
+                        {remaining === null
+                          ? "1 month notice"
+                          : remaining > 0
+                            ? `${remaining} day${remaining === 1 ? "" : "s"} left`
+                            : "Completing tonight"}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-[11px] text-blue-700/80 leading-snug">
+                      Still a tenant until then — rent and ledger continue as normal. They move to
+                      Ex-Tenants automatically on this date, and their panel access closes.
+                    </p>
+                  </div>
+                )}
+
                 {/* Approved summary */}
                 {mr.status === "approved" && (
                   <div className="grid grid-cols-2 gap-3 text-[12px] bg-green-50 border border-green-100 rounded-xl px-3 py-2.5">
@@ -295,6 +383,20 @@ export default function MoveoutRequestsPage() {
                       <span className="text-muted-foreground block">Deposit refunded</span>
                       <span className="font-bold text-green-700">{fmt(mr.refundAmount)}</span>
                     </div>
+                  </div>
+                )}
+
+                {/* Actions — cancelling is only possible while the notice runs;
+                    once it completes the bed is released and may be re-let. */}
+                {onNotice && (
+                  <div className="pt-1 border-t border-border/60">
+                    <button
+                      onClick={() => { setCancelModal(item); setCancelReason(""); }}
+                      className="w-full h-10 border border-border rounded-xl text-[12px] font-bold text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors inline-flex items-center justify-center gap-1.5"
+                    >
+                      <Undo2 className="size-3.5" />
+                      Cancel Notice — Keep Tenant
+                    </button>
                   </div>
                 )}
 
@@ -321,6 +423,60 @@ export default function MoveoutRequestsPage() {
         </div>
       )}
 
+      {/* Cancel Notice Modal */}
+      {cancelModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+            <div className="size-12 rounded-full bg-amber-50 flex items-center justify-center mb-4">
+              <Undo2 className="size-6 text-amber-600" />
+            </div>
+            <h3 className="font-serif text-[22px] text-foreground mb-1">Cancel move-out notice?</h3>
+            <p className="text-xs text-muted-foreground mb-5 leading-relaxed">
+              <strong>{cancelModal.name}</strong> stays on as a normal tenant and their notice period
+              {cancelModal.moveoutRequest?.noticeEndDate
+                ? ` (ending ${fmtDate(cancelModal.moveoutRequest.noticeEndDate)})`
+                : ""}{" "}
+              is called off. The settlement figures recorded at approval are cleared, and they would
+              have to raise a fresh move-out notice to leave.
+            </p>
+
+            <label className="text-[12px] font-bold text-slate-700 block mb-1">
+              Reason for cancelling <span className="font-medium text-muted-foreground">(optional)</span>
+            </label>
+            <textarea
+              autoFocus
+              rows={3}
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              placeholder="e.g. Tenant changed their mind and wants to continue staying"
+              className="w-full px-3 py-2 border border-border rounded-xl text-[13px] resize-none focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 placeholder:text-muted-foreground"
+            />
+            <p className="mt-1.5 text-[11px] text-muted-foreground">
+              If given, this is shown to the tenant on their Move-out Notice page.
+            </p>
+
+            <div className="flex gap-2 pt-5">
+              <button
+                type="button"
+                onClick={() => setCancelModal(null)}
+                disabled={cancelling}
+                className="flex-1 h-10 rounded-xl border border-border text-[12px] font-bold hover:bg-muted transition-colors disabled:opacity-50"
+              >
+                Keep Notice
+              </button>
+              <button
+                type="button"
+                onClick={submitCancelNotice}
+                disabled={cancelling}
+                className="flex-1 h-10 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-[12px] font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {cancelling ? "Cancelling..." : "Cancel Move-out"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Settlement Modal */}
       {showModal && selected && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -329,6 +485,13 @@ export default function MoveoutRequestsPage() {
             <p className="text-xs text-muted-foreground mb-5">
               Settling dues and approving checkout for <strong>{selected.name}</strong>.
             </p>
+
+            <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 mb-4 text-[11.5px] text-blue-800 leading-relaxed">
+              <strong className="block mb-0.5">This starts a 1-month notice period.</strong>
+              {selected.name} stays an active tenant until{" "}
+              <strong>{fmtDate(calcNoticeEnd())}</strong>, then moves to Ex-Tenants automatically and
+              loses panel access. You can cancel the notice any time before that date.
+            </div>
 
             <form onSubmit={handleApprove} className="space-y-4">
               <div className="bg-slate-50 px-4 py-3 rounded-xl border border-slate-100 text-[12px] space-y-1.5">
@@ -404,7 +567,7 @@ export default function MoveoutRequestsPage() {
                   disabled={submitting}
                   className="flex-1 h-10 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-[12px] font-bold disabled:opacity-50 transition-colors"
                 >
-                  {submitting ? "Processing..." : "Approve Checkout"}
+                  {submitting ? "Processing..." : "Approve & Start Notice"}
                 </button>
               </div>
             </form>

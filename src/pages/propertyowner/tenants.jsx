@@ -6,7 +6,7 @@ import {
   Plus, Search, ArrowUpDown, Download, Users, ExternalLink,
   User, CalendarClock, CheckCircle, AlertTriangle, Phone, Clock,
   Shield, Building2, FileText, BadgeCheck, X, MapPin, Mail,
-  CreditCard, Home, Edit, Eye, Activity, MessageSquare, IndianRupee, Send, Trash2
+  CreditCard, Home, Edit, Eye, Activity, MessageSquare, IndianRupee, Send, Trash2, Undo2
 } from "lucide-react";
 import {
   clearOwnerRuntimeSession,
@@ -68,7 +68,17 @@ export default function Tenants() {
   const [errorMsg, setErrorMsg] = useState("");
   const [tab, setTab] = useState("all");
 
+  // "On notice" is derived, not stored. The backend deliberately leaves
+  // status === "active" for a tenant serving their one-month notice period so
+  // rent, ledger and room occupancy keep treating them as a resident; the exit
+  // is only finalised when the notice elapses (moveoutRequest.completedAt).
+  const isOnNotice = (t) =>
+    t?.moveoutRequest?.status === "approved" &&
+    !t?.moveoutRequest?.completedAt &&
+    t?.status !== "inactive";
+
   const getDisplayStatus = (t) => {
+    if (isOnNotice(t)) return "notice";
     if ((t.status === "active" || t.active) && (t.kycStatus !== "verified" && t.kyc !== "verified")) {
       return "pending";
     }
@@ -82,6 +92,11 @@ export default function Tenants() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalTab, setModalTab] = useState("overview");
   const [resendModal, setResendModal] = useState(null); // { tenantId, tenantName } | null
+  // Cancel-notice flow: { tenant } | null. Cancelling calls off an approved
+  // move-out while the tenant is still serving notice.
+  const [cancelNoticeModal, setCancelNoticeModal] = useState(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancellingNotice, setCancellingNotice] = useState(false);
   const [resendSubmitting, setResendSubmitting] = useState(false);
   // Tenants with a Pending alternate-ID-proof request — they're waiting on
   // Superadmin, so an Aadhaar-OTP completion reminder doesn't apply to them.
@@ -257,6 +272,29 @@ export default function Tenants() {
     setResendModal({ tenantId, tenantName });
   };
 
+  const submitCancelNotice = async () => {
+    const t = cancelNoticeModal?.tenant;
+    const reason = cancelReason.trim();
+    if (!t || cancellingNotice) return;
+    setCancellingNotice(true);
+    try {
+      await fetchJson("/api/tenants/moveout/cancel", {
+        method: "POST",
+        body: JSON.stringify({ tenantId: t._id || t.id, reason })
+      });
+      if (owner?.loginId) clearOwnerFetchCache(owner.loginId);
+      const data = await fetchOwnerTenants(owner.loginId, true);
+      setTenants((data || []).filter(x => x.status !== "inactive"));
+      toast.success(`Move-out cancelled — ${t.name || "tenant"} stays on as a tenant.`);
+      setCancelNoticeModal(null);
+      setCancelReason("");
+    } catch (err) {
+      toast.error("Could not cancel the notice: " + (err.message || err));
+    } finally {
+      setCancellingNotice(false);
+    }
+  };
+
   const confirmResendKycLink = async () => {
     if (!resendModal) return;
     setResendSubmitting(true);
@@ -339,12 +377,12 @@ export default function Tenants() {
   const counts = useMemo(() => ({
     all: tenants.length,
     active: tenants.filter(t => getDisplayStatus(t) === "active").length,
-    notice: tenants.filter(t => t.status === "notice" || t.status === "move-out").length,
+    notice: tenants.filter(t => getDisplayStatus(t) === "notice").length,
     dues: tenants.filter(t => (t.dueAmount || t.dues || t.balance) > 0).length,
   }), [tenants]);
 
   const filtered = useMemo(() => tenants.filter(t => {
-    const matchTab = tab === "all" || (tab === "active" && getDisplayStatus(t) === "active") || (tab === "notice" && (t.status === "notice" || t.status === "move-out")) || (tab === "dues" && (t.dueAmount || t.dues || t.balance) > 0);
+    const matchTab = tab === "all" || (tab === "active" && getDisplayStatus(t) === "active") || (tab === "notice" && getDisplayStatus(t) === "notice") || (tab === "dues" && (t.dueAmount || t.dues || t.balance) > 0);
     const q = debouncedSearch.toLowerCase();
     const matchSearch = !debouncedSearch || (t.name || "").toLowerCase().includes(q) || (t.phone || "").includes(q) || (t.roomNo || "").toLowerCase().includes(q);
     return matchTab && matchSearch;
@@ -742,6 +780,15 @@ export default function Tenants() {
                                 )}
                               </>
                             )}
+                            {isOnNotice(t) && (
+                              <button
+                                onClick={() => { setCancelNoticeModal({ tenant: t }); setCancelReason(""); }}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 text-[11.5px] font-bold text-amber-700 bg-amber-50 border border-amber-200/60 hover:bg-amber-100 rounded-lg transition-colors shrink-0"
+                                title="Cancel the notice period and keep this tenant"
+                              >
+                                <Undo2 size={13} /> Cancel Notice
+                              </button>
+                            )}
                             <button 
                               onClick={() => { setSelectedTenant(t); setModalTab("overview"); setModalOpen(true); }}
                               className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
@@ -887,6 +934,11 @@ export default function Tenants() {
                        <a href={`https://wa.me/${String(t.phone).replace(/\D/g, '')}?text=Hi%20${t.name}`} target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-emerald-50 border border-emerald-100/50 flex items-center justify-center text-emerald-600 hover:bg-emerald-100 transition-colors">
                           <MessageSquare size={13} className="fill-emerald-600/20" />
                        </a>
+                       {isOnNotice(t) && (
+                         <button onClick={() => { setCancelNoticeModal({ tenant: t }); setCancelReason(""); }} className="h-8 px-3 rounded-full bg-amber-50 border border-amber-200/50 text-amber-700 flex items-center gap-1 hover:bg-amber-100 transition-colors text-[11px] font-bold" title="Cancel the notice period and keep this tenant">
+                            <Undo2 size={12} /> Cancel Notice
+                         </button>
+                       )}
                        <button onClick={() => { setSelectedTenant(t); setModalTab("overview"); setModalOpen(true); }} className="w-8 h-8 rounded-full bg-purple-50 border border-purple-200/50 flex items-center justify-center text-purple-600 hover:bg-purple-100 transition-colors" title="View Details">
                           <Eye size={13} />
                        </button>
@@ -1926,6 +1978,64 @@ export default function Tenants() {
           </div>
         </div>
       )}
+
+      {cancelNoticeModal && (() => {
+        const t = cancelNoticeModal.tenant || {};
+        const endDate = t.moveoutRequest?.noticeEndDate;
+        return (
+          <div
+            className="fixed inset-0 z-[200] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={(e) => e.target === e.currentTarget && !cancellingNotice && setCancelNoticeModal(null)}
+          >
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+              <div className="p-6">
+                <div className="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center mb-4">
+                  <Undo2 className="w-6 h-6 text-amber-600" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900">Cancel move-out notice?</h3>
+                <p className="text-sm text-slate-500 mt-1">
+                  <span className="font-semibold text-slate-700">{t.name || "This tenant"}</span>{" "}
+                  stays on as a normal tenant and their notice period
+                  {endDate ? <> (ending {new Date(endDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })})</> : null}{" "}
+                  is called off. The settlement figures recorded at approval are cleared, and they
+                  would have to raise a fresh move-out notice to leave.
+                </p>
+
+                <label className="block mt-5 mb-1.5 text-[12px] font-bold text-slate-700">
+                  Reason for cancelling <span className="font-medium text-slate-400">(optional)</span>
+                </label>
+                <textarea
+                  autoFocus
+                  rows={3}
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  placeholder="e.g. Tenant changed their mind and wants to continue staying"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-[13px] resize-none focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 placeholder:text-slate-400"
+                />
+                <p className="mt-1.5 text-[11px] text-slate-400">
+                  If given, this is shown to the tenant on their Move-out Notice page.
+                </p>
+              </div>
+              <div className="flex gap-3 px-6 py-4 bg-slate-50 border-t border-slate-100">
+                <button
+                  onClick={() => setCancelNoticeModal(null)}
+                  disabled={cancellingNotice}
+                  className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 transition-colors disabled:opacity-50"
+                >
+                  Keep Notice
+                </button>
+                <button
+                  onClick={submitCancelNotice}
+                  disabled={cancellingNotice}
+                  className="flex-1 py-2.5 rounded-lg text-sm font-bold text-white bg-amber-600 hover:bg-amber-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {cancellingNotice ? "Cancelling..." : "Cancel Move-out"}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {resendModal && (
         <div
