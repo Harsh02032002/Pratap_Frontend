@@ -498,7 +498,8 @@ export default function WebsiteIndex() {
         </div>
       </div>
 
-      <main className="min-h-screen"        {/* Hero Section — GOLDEN SWEET SPOT VIEW */}
+      <main className="min-h-screen">
+        {/* Hero Section — GOLDEN SWEET SPOT VIEW */}
         <div className="relative min-h-[400px] md:min-h-[430px] bg-slate-900 z-30 flex flex-col justify-between overflow-hidden pt-5 pb-3.5 md:pt-6 md:pb-4">
           {/* Full width room background image */}
           <div className="absolute inset-0 overflow-hidden">
