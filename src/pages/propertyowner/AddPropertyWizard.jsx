@@ -8,6 +8,8 @@ import { compressImage } from "../../utils/imageCompression";
 
 export default function AddPropertyWizard() {
   const owner = getOwnerRuntimeSession();
+  const editPropertyId = new URLSearchParams(window.location.search).get('edit');
+  const isEditMode = Boolean(editPropertyId);
 
   const [formData, setFormData] = useState({
     ownerName: owner?.name || owner?.fullName || '',
@@ -31,6 +33,31 @@ export default function AddPropertyWizard() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    if (!editPropertyId) return;
+    fetchJson(`/api/properties/${encodeURIComponent(editPropertyId)}`)
+      .then((response) => {
+        const property = response?.property || response?.data || response;
+        if (!property) return;
+        setFormData((prev) => ({
+          ...prev,
+          propertyName: property.title || property.name || '',
+          propertyType: property.propertyType || property.type || '',
+          city: property.city || '',
+          area: property.locality || property.area || '',
+          address: property.address || '',
+          landmark: property.landmark || '',
+          latitude: property.latitude || '',
+          longitude: property.longitude || '',
+          rent: property.monthlyRent || property.rent || '',
+          description: property.description || '',
+          images: property.images || property.propertyImages || [],
+          propertyViews: property.propertyViews?.length ? property.propertyViews : [{ label: 'Main', images: property.images || [] }]
+        }));
+      })
+      .catch((error) => alert(`Failed to load property for editing: ${error.message}`));
+  }, [editPropertyId]);
 
   useEffect(() => {
     const fetchOwnerDetails = async () => {
@@ -186,6 +213,22 @@ export default function AddPropertyWizard() {
         }
       };
 
+      if (isEditMode) {
+        const response = await fetchJson(`/api/properties/${encodeURIComponent(editPropertyId)}/owner-edit-request`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            updatedData: propertyData,
+            ownerLoginId: owner?.loginId || '',
+            reason: 'Property details updated by owner'
+          })
+        });
+        if (!response?.success) throw new Error(response?.message || 'Failed to update property');
+        clearOwnerFetchCache(owner?.loginId);
+        alert('Property update submitted for Super Admin approval.');
+        window.location.href = '/propertyowner/properties';
+        return;
+      }
+
       await fetchJson('/api/properties/add', {
         method: 'POST',
         body: JSON.stringify(propertyData)
@@ -231,7 +274,7 @@ export default function AddPropertyWizard() {
   return (
     <PropertyOwnerLayout
       owner={owner}
-      title="Add Property"
+      title={isEditMode ? "Edit Property" : "Add Property"}
       onLogout={() => {
         clearOwnerRuntimeSession();
         window.location.href = "/propertyowner/ownerlogin";
@@ -244,8 +287,8 @@ export default function AddPropertyWizard() {
               <ListPlus className="w-6 h-6 text-primary" />
             </div>
             <div>
-              <h2 className="text-[22px] font-bold text-foreground">List Your Property</h2>
-              <p className="text-[13px] text-muted-foreground mt-1">Submit your property details and start receiving tenant leads.</p>
+              <h2 className="text-[22px] font-bold text-foreground">{isEditMode ? "Edit Property" : "List Your Property"}</h2>
+              <p className="text-[13px] text-muted-foreground mt-1">{isEditMode ? "Update your property details and submit the changes for approval." : "Submit your property details and start receiving tenant leads."}</p>
             </div>
           </div>
 
@@ -595,7 +638,7 @@ export default function AddPropertyWizard() {
                 ) : uploading ? (
                   <><Loader className="w-4 h-4 animate-spin" /> Uploading...</>
                 ) : (
-                  <><Send className="w-4 h-4" /> Submit Listing</>
+                  <><Send className="w-4 h-4" /> {isEditMode ? "Update Property" : "Submit Listing"}</>
                 )}
               </button>
             </div>

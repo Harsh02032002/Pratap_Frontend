@@ -1,7 +1,7 @@
 export const isLocalHost = () =>
   window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
 
-export const getApiBases = () => (import.meta.env?.VITE_API_URL ? [import.meta.env.VITE_API_URL, ""] : (isLocalHost() ? ["http://localhost:5001"] : ["https://roohmy-backend-xwa9.vercel.app", ""]));
+export const getApiBases = () => (import.meta.env?.VITE_API_URL ? [import.meta.env.VITE_API_URL, ""] : (isLocalHost() ? ["http://localhost:5000", ""] : ["https://roohmy-backend-xwa9.vercel.app", ""]));
 
 export const getParamValue = (names) => {
   const params = new URLSearchParams(window.location.search);

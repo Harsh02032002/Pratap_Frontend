@@ -253,7 +253,8 @@ export const useOwnerProfile = () => {
       if (!id || hydratedLoginRef.current === id) return;
       hydratedLoginRef.current = id;
       try {
-        const owner = await getWithFallback(`/api/owners/${encodeURIComponent(id)}`, apiBases);
+        const owner = await getWithFallback(`/api/owners/public/${encodeURIComponent(id)}`, apiBases)
+          .catch(() => getWithFallback(`/api/owners/${encodeURIComponent(id)}`, apiBases));
         if (!owner || typeof owner !== "object") return;
 
         const nextOccupiedRooms = Number(owner.occupiedRooms ?? 0);
@@ -263,18 +264,18 @@ export const useOwnerProfile = () => {
 
         setForm((prev) => ({
           ...prev,
-          name: prev.name || owner.name || owner.profile?.name || "",
-          email: prev.email || owner.email || owner.profile?.email || owner.checkinEmail || "",
-          area: prev.area || owner.checkinArea || owner.locationCode || owner.profile?.locationCode || "",
-          dob: prev.dob || owner.checkinDob || "",
-          phone: prev.phone || owner.checkinPhone || owner.phone || owner.profile?.phone || "",
-          address: prev.address || owner.checkinAddress || owner.address || owner.profile?.address || "",
-          bankName: prev.bankName || owner.checkinBankName || owner.bankName || owner.profile?.bankName || "",
-          branchName: prev.branchName || owner.checkinBranchName || owner.branchName || owner.profile?.branchName || "",
-          bankAccountNumber: prev.bankAccountNumber || owner.checkinBankAccountNumber || owner.accountNumber || owner.profile?.accountNumber || "",
-          ifscCode: prev.ifscCode || owner.checkinIfscCode || owner.ifscCode || owner.profile?.ifscCode || "",
-          accountHolderName: prev.accountHolderName || owner.checkinAccountHolderName || owner.profile?.accountHolderName || "",
-          upiId: prev.upiId || owner.checkinUpiId || owner.profile?.upiId || "",
+          name: owner.name || owner.profile?.name || prev.name || "",
+          email: owner.email || owner.profile?.email || owner.checkinEmail || prev.email || "",
+          area: owner.checkinArea || owner.locationCode || owner.profile?.locationCode || prev.area || "",
+          dob: owner.checkinDob || prev.dob || "",
+          phone: owner.phone || owner.checkinPhone || owner.profile?.phone || prev.phone || "",
+          address: owner.address || owner.checkinAddress || owner.profile?.address || prev.address || "",
+          bankName: owner.checkinBankName || owner.bankName || owner.profile?.bankName || prev.bankName || "",
+          branchName: owner.checkinBranchName || owner.branchName || owner.profile?.branchName || prev.branchName || "",
+          bankAccountNumber: owner.checkinBankAccountNumber || owner.accountNumber || owner.profile?.accountNumber || prev.bankAccountNumber || "",
+          ifscCode: owner.checkinIfscCode || owner.ifscCode || owner.profile?.ifscCode || prev.ifscCode || "",
+          accountHolderName: owner.checkinAccountHolderName || owner.profile?.accountHolderName || prev.accountHolderName || "",
+          upiId: owner.checkinUpiId || owner.profile?.upiId || prev.upiId || "",
           vacantRooms: nextVacantRooms,
           vacantBeds: nextVacantBeds,
           occupiedRooms: nextOccupiedRooms,
@@ -452,7 +453,7 @@ export const useOwnerProfile = () => {
       if (data.aadhaarImageUrl) {
         setAadhaarDoc((prev) => ({ ...prev, url: data.aadhaarImageUrl, uploaded: true, file: null }));
         if (data.ocrResult?.sandbox) {
-          setAadhaarOcrStatus({ loading: false, text: "Sandbox mode: OCR skipped. Image saved.", type: "info" });
+          setAadhaarOcrStatus({ loading: false, text: "✓ Aadhaar image uploaded & saved successfully.", type: "verified" });
         } else if (data.ocrResult) {
           setAadhaarOcrStatus({ loading: false, text: "Aadhaar OCR verified successfully.", type: "verified" });
         } else if (data.ocrError) {

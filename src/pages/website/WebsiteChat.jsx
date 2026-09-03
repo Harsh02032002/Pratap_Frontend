@@ -37,6 +37,38 @@ const generateWebsiteUserIdFromEmail = (email) => {
   return `roomhyweb${String(hash).padStart(6, "0")}`;
 };
 
+/**
+ * Mirror of the backend's canonicalChatId (utils/chatIdentity.js).
+ *
+ * The same person reaches chat under more than one string: their email when
+ * their User.loginId is an email, and the email hash on everything the
+ * lead-accept / chat-create paths write. The two are the same conversation, so
+ * anywhere ids are COMPARED they have to be compared in one form.
+ *
+ * This deliberately does not change which id the session uses for API calls —
+ * doing that would make the user's own older messages, stored under their
+ * email, compare as somebody else's and render on the wrong side of the thread.
+ */
+const canonicalChatId = (rawId) => {
+  const value = String(rawId || "").trim();
+  if (!value) return "";
+  if (/^roomhyweb\d{6}$/i.test(value)) return value.toLowerCase();
+  if (value.includes("@")) return generateWebsiteUserIdFromEmail(value) || value;
+  // Returned unchanged, matching the backend exactly. Owner ids double as
+  // Socket.IO room names, where the case must survive — lowercasing here would
+  // make this mirror disagree with the server about which room a message went
+  // to. Case-insensitivity for comparison is sameChatParty's job, below.
+  return value;
+};
+
+/** True when two chat ids refer to the same person, in any of their forms. */
+const sameChatParty = (a, b) => {
+  if (!a || !b) return false;
+  const left = String(a).trim().toLowerCase();
+  const right = String(b).trim().toLowerCase();
+  return left === right || canonicalChatId(a).toLowerCase() === canonicalChatId(b).toLowerCase();
+};
+
 const resolveWebsiteUserId = (user) => {
   if (!user) return "";
   if (user.loginId && String(user.loginId).trim()) {
@@ -60,6 +92,19 @@ const cleanDisplayName = (name) => {
     return "Hostel Owner";
   }
   return clean;
+};
+
+/**
+ * Whether two rendered threads are the same, so a background refetch that
+ * returned identical data can be dropped instead of re-rendering the list.
+ *
+ * Compares id and text rather than object identity: the poll builds fresh
+ * objects every time, so any identity-based check would always report a change.
+ */
+const sameThread = (a, b) => {
+  if (a === b) return true;
+  if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+  return a.every((msg, i) => msg._id === b[i]._id && msg.message === b[i].message);
 };
 
 const normalizeMessage = (message) => ({
@@ -90,6 +135,12 @@ export default function WebsiteChat() {
   const messagesEndRef = useRef(null);
   const activeChatRef = useRef(null);
   const fileInputRef = useRef(null);
+  // Lets the socket effect read the current display name without depending on
+  // the `user` object identity — see the note on that effect's dependencies.
+  const userRef = useRef(user);
+  useEffect(() => { userRef.current = user; }, [user]);
+  // Guards the one-shot ?target= handling in loadChats — see the note there.
+  const targetAppliedRef = useRef(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -107,9 +158,10 @@ export default function WebsiteChat() {
 
   const websiteUserId = useMemo(() => resolveWebsiteUserId(user), [user]);
 
-  const loadChats = async (isInitial = false) => {
+  const loadChats = async (options = {}) => {
     if (!websiteUserId) return;
-    if (isInitial && chats.length === 0) setLoadingChats(true);
+    const silent = typeof options === 'boolean' ? !options : (options?.silent === true);
+    if (!silent && chats.length === 0) setLoadingChats(true);
     try {
       const data = await fetchJson(`/api/chat/inbox/${encodeURIComponent(websiteUserId)}`);
       const conversationRows = Array.isArray(data?.conversations) ? data.conversations : [];
@@ -140,7 +192,12 @@ export default function WebsiteChat() {
       const queryTarget = searchParams.get('target') || searchParams.get('ownerId') || searchParams.get('to') || location.state?.targetId;
       const queryName = searchParams.get('name') || searchParams.get('ownerName') || location.state?.targetName || "Hostel Owner";
 
-      if (queryTarget && String(queryTarget).trim()) {
+      // Honour ?target= once, on arrival. loadChats is now also called by the
+      // background refresh, and re-applying the target on every one of those
+      // would drag the user back to that thread each time it ran — even after
+      // they had deliberately opened a different conversation.
+      if (queryTarget && String(queryTarget).trim() && !targetAppliedRef.current) {
+        targetAppliedRef.current = true;
         const cleanTarget = String(queryTarget).trim();
         let targetChat = normalized.find(c => String(c.participant_login_id).toUpperCase() === cleanTarget.toUpperCase());
         if (!targetChat) {
@@ -166,7 +223,7 @@ export default function WebsiteChat() {
     } catch (error) {
       console.error("Error loading chats:", error);
     } finally {
-      if (isInitial) setLoadingChats(false);
+      if (!silent) setLoadingChats(false);
     }
   };
 
@@ -211,7 +268,7 @@ export default function WebsiteChat() {
   }, [activeChat, websiteUserId]);
 
   useEffect(() => {
-    if (!websiteUserId || !user) return undefined;
+    if (!websiteUserId) return undefined;
 
     const socket = io(getApiBase(), {
       transports: ["websocket", "polling"],
@@ -220,10 +277,15 @@ export default function WebsiteChat() {
     socketRef.current = socket;
 
     const joinSelfRoom = () => {
+      const current = userRef.current;
       socket.emit("join_room", {
         login_id: websiteUserId,
         role: "website_user",
-        name: user?.name || user?.email || "Website User"
+        name: current?.name || current?.email || "Website User",
+        // The server joins the canonical form of login_id on its own, but
+        // sending every form this session knows about costs nothing and covers
+        // an id shape the server's rule does not recognise.
+        aliases: [canonicalChatId(websiteUserId), current?.email].filter(Boolean)
       });
     };
 
@@ -234,19 +296,63 @@ export default function WebsiteChat() {
         const list = await fetchJson(
           `/api/chat/conversation?user1=${encodeURIComponent(websiteUserId)}&user2=${encodeURIComponent(current.participant_login_id)}`
         );
-        setMessages((Array.isArray(list) ? list : []).map(normalizeMessage));
+        const next = (Array.isArray(list) ? list : []).map(normalizeMessage);
+
+        // Only touch state when the thread actually changed. Replacing the
+        // array unconditionally handed React a brand-new list every 10s, which
+        // re-ran the scroll-to-bottom effect and made the conversation jump on
+        // a timer even when no new message had arrived.
+        setMessages((prev) => (sameThread(prev, next) ? prev : next));
       } catch (_) {}
     };
 
     socket.on("connect", joinSelfRoom);
     socket.on("reconnect", joinSelfRoom);
     socket.on("receive_message", async (incoming) => {
-      const roomId = String(incoming?.room_id || "").trim().toLowerCase();
-      if (roomId === websiteUserId.toLowerCase()) {
+      // Accept the push if it is addressed to any form of this user's id, or if
+      // it comes from the person whose thread is currently open.
+      //
+      // The old check was a plain string compare against websiteUserId, so a
+      // message delivered to the equivalent room — the email hash when this
+      // session is keyed on the email, which is exactly what the owner panel
+      // and every lead-accept path address — was dropped on the floor. The
+      // socket was connected and the event arrived; it was simply discarded,
+      // which is why new messages only appeared after a manual refresh.
+      const addressedToMe = sameChatParty(incoming?.room_id, websiteUserId);
+      const fromOpenThread = sameChatParty(
+        incoming?.sender_login_id,
+        activeChatRef.current?.participant_login_id
+      );
+
+      if (addressedToMe || fromOpenThread) {
         await refreshCurrentConversation();
-        loadChats();
+        loadChats({ silent: true });
       }
     });
+
+    // The socket can be dropped by a proxy, a sleeping tab or a flaky mobile
+    // connection, and nothing here would notice. The owner panel has always
+    // had a poll behind its socket for exactly that reason; the website had
+    // none, so a missed event meant the user sat looking at a stale thread
+    // until they pressed Refresh. This is the fallback, not the primary path —
+    // when the socket is healthy it simply re-fetches what is already shown.
+    const poll = setInterval(() => {
+      if (document.visibilityState === "hidden") return;
+      refreshCurrentConversation();
+    }, 10000);
+
+    const inboxPoll = setInterval(() => {
+      if (document.visibilityState === "hidden") return;
+      loadChats({ silent: true });
+    }, 30000);
+
+    // Coming back to a backgrounded tab should not wait for the next tick.
+    const onVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      refreshCurrentConversation();
+      loadChats({ silent: true });
+    };
+    document.addEventListener("visibilitychange", onVisible);
 
     socket.on("message_blocked", (data) => {
       toast.error(data.message || "Sharing personal contact details outside the platform is not allowed.", {
@@ -264,11 +370,37 @@ export default function WebsiteChat() {
       refreshCurrentConversation();
     });
 
+    // The server answers a rejected send with `error` — an account restricted
+    // by the moderation rules, a message the socket refused. Nothing listened
+    // for it, so the optimistic bubble stayed on screen as though the message
+    // had been delivered while the server had saved nothing at all, and the
+    // user only discovered it was never sent when the thread reloaded.
+    socket.on("error", (data) => {
+      const text = data?.message || "Message could not be sent. Please try again.";
+      toast.error(text, { duration: 6000 });
+      setMessages((prev) => prev.filter((m) => !m.pending));
+    });
+
+    // Delivery confirmed — clear the pending marker so the poll and the socket
+    // refresh can replace the bubble with the stored message.
+    socket.on("message_sent", () => {
+      setMessages((prev) => prev.map((m) => (m.pending ? { ...m, pending: false } : m)));
+    });
+
     return () => {
+      clearInterval(poll);
+      clearInterval(inboxPoll);
+      document.removeEventListener("visibilitychange", onVisible);
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [websiteUserId, user]);
+    // `user` is a fresh object on every AuthContext render, so depending on it
+    // tore the socket down and rebuilt it repeatedly — dropping the room join,
+    // and with it any message that arrived during the gap. websiteUserId is a
+    // string derived from the same user and is the only part this effect
+    // actually keys on; the display name is read through a ref instead.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [websiteUserId]);
 
   const sendMessage = () => {
     if (!messageText.trim() || !activeChat || !websiteUserId || !socketRef.current) return;
@@ -284,7 +416,10 @@ export default function WebsiteChat() {
       sender_login_id: websiteUserId,
       sender_name: user?.name || "You",
       message: trimmed,
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      // Marks the bubble as not-yet-acknowledged so the socket's `error`
+      // handler can take it back off screen if the server rejected the send.
+      pending: true
     });
 
     setMessages((prev) => [...prev, optimisticMessage]);
@@ -388,8 +523,8 @@ export default function WebsiteChat() {
                   </span>
                 )}
               </div>
-              <button 
-                onClick={loadChats} 
+              <button
+                onClick={() => loadChats()}
                 className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors"
                 title="Refresh messages"
               >
@@ -544,7 +679,11 @@ export default function WebsiteChat() {
                   {/* Message Bubbles */}
                   {messages.map((msg) => {
                     const isSystem = String(msg.sender_login_id || "").toLowerCase() === 'system';
-                    const isMine = String(msg.sender_login_id || "").trim().toLowerCase() === String(websiteUserId).toLowerCase();
+                    // Compared canonically: this user's own history can be
+                    // stored under their email on some messages and their email
+                    // hash on others, and an exact string compare put half of
+                    // their own thread on the other side of the screen.
+                    const isMine = sameChatParty(msg.sender_login_id, websiteUserId);
                     const isImage = msg.message_type === 'image';
                     const isFile = msg.message_type === 'file';
 

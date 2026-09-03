@@ -3,10 +3,10 @@ import {
   Building2, Users, Shield, Clock, Search, 
   ArrowUpRight, ArrowDownRight, MoreVertical, 
   Filter, Globe, MapPin, Zap, Sheet, Trash2, 
-  ChevronRight, Phone, Mail, User, Image as ImageIcon,
+  ChevronRight, Phone, Mail, User, UserCheck, Image as ImageIcon,
   Activity, Home, CheckCircle2, XCircle, Hourglass,
   Check, X, Eye, ClipboardCheck, AlertTriangle,
-  Camera, Map, Star, Edit3, Trash, RefreshCw,
+  Camera, Map, Star, Edit3, Edit, Pencil, Trash, RefreshCw,
   Sparkles, Layers, Box, Globe2, IndianRupee,
   Plus, Loader2, Save, Smartphone, Monitor, Info,
   UserPlus, Send, Lock, ChevronDown, Wifi, ShieldCheck,
@@ -16,8 +16,45 @@ import toast from "react-hot-toast";
 import { fetchJson, getAuthHeader, getApiBase } from "../../utils/api";
 import { compressImage, PRESETS } from "../../utils/imageCompression";
 import { PROPERTY_TIERS, normalizeTierKey } from "../../utils/propertyTiers";
+import {
+  getCurrentDeviceLocation,
+  reverseGeocodeLocation,
+  formatCoordinates,
+  formatAccuracy,
+  classifyAccuracy,
+} from "../../utils/deviceLocation";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
+
+const INDIAN_STATES_CITIES = [
+  { state: "Rajasthan", cities: ["Kota", "Sikar", "Jaipur", "Udaipur", "Jodhpur", "Ajmer", "Bikaner", "Alwar"] },
+  { state: "Madhya Pradesh", cities: ["Indore", "Bhopal", "Gwalior", "Jabalpur", "Ujjain"] },
+  { state: "Chandigarh (UT)", cities: ["Chandigarh", "Mohali", "Panchkula"] },
+  { state: "Delhi NCR", cities: ["Delhi", "Noida", "Greater Noida", "Gurgaon", "Ghaziabad", "Faridabad"] },
+  { state: "Maharashtra", cities: ["Pune", "Mumbai", "Navi Mumbai", "Nagpur", "Nashik"] },
+  { state: "Karnataka", cities: ["Bengaluru", "Mysuru", "Mangaluru"] },
+  { state: "Telangana", cities: ["Hyderabad", "Warangal"] },
+  { state: "Uttar Pradesh", cities: ["Lucknow", "Kanpur", "Varanasi", "Agra", "Prayagraj", "Noida"] },
+  { state: "Bihar", cities: ["Patna", "Gaya", "Muzaffarpur", "Bhagalpur"] },
+  { state: "Gujarat", cities: ["Ahmedabad", "Surat", "Vadodara", "Rajkot"] },
+  { state: "West Bengal", cities: ["Kolkata", "Howrah", "Siliguri"] },
+  { state: "Punjab", cities: ["Ludhiana", "Amritsar", "Jalandhar", "Patiala", "Mohali"] },
+  { state: "Haryana", cities: ["Gurgaon", "Faridabad", "Ambala", "Hisar", "Rohtak", "Panchkula"] },
+  { state: "Uttarakhand", cities: ["Dehradun", "Roorkee", "Haldwani", "Haridwar"] }
+];
+
+const POPULAR_CITY_AREAS = {
+  "Kota": ["Kunhari", "Landmark City", "Rajeev Gandhi Nagar", "Talwandi", "Vigyan Nagar", "Dadabari", "Jawahar Nagar", "Mahaveer Nagar", "Coral Park", "Indira Vihar", "Chawani", "Rangbari"],
+  "Sikar": ["Piprali Road", "Nawalgarh Road", "Station Road", "Palwas Road", "Bajrang Kanta", "Fatehpur Road"],
+  "Indore": ["Vijay Nagar", "Bhawarkua", "Palasia", "Geeta Bhawan", "Scheme 54", "LIG Colony", "Rau", "Old Palasia", "Sapna Sangeeta"],
+  "Jaipur": ["Malviya Nagar", "Mansarovar", "Raja Park", "Tonk Road", "Jagatpura", "Gopalpura Bypass", "Vaishali Nagar", "C Scheme", "Sodala"],
+  "Chandigarh": ["Sector 37", "Sector 34", "Sector 15", "Sector 22", "Sector 35", "Sector 20", "Sector 36", "Sector 21", "Sector 38", "Sector 40", "Buterla", "Attawa", "Sector 17"],
+  "Mohali": ["Phase 7", "Phase 3B2", "Phase 5", "Phase 10", "Sector 70", "Sector 68", "Phase 11"],
+  "Delhi": ["Laxmi Nagar", "Mukherjee Nagar", "GTB Nagar", "Satya Niketan", "Karol Bagh", "Hauz Khas", "Uttam Nagar", "Rohini", "Dwarka"],
+  "Noida": ["Sector 62", "Sector 18", "Sector 63", "Sector 15", "Sector 126", "Knowledge Park Greater Noida"],
+  "Gurgaon": ["DLF Phase 3", "Cyber City", "Sector 14", "Sector 21", "Sector 43", "Sector 56", "Sohna Road"],
+  "Bengaluru": ["Koramangala", "HSR Layout", "Indiranagar", "BTM Layout", "Marathahalli", "Whitefield", "Electronic City", "Jayanagar"]
+};
 
 const bankNameMatches = (enteredName, apiBankName) => {
   const ignored = new Set(["BANK", "OF", "THE", "LIMITED", "LTD", "INDIA"]);
@@ -30,6 +67,23 @@ const bankNameMatches = (enteredName, apiBankName) => {
   const expected = tokens(apiBankName);
   return !enteredName || entered.some((token) => expected.includes(token));
 };
+
+/** Starting point for the live-capture location state (see `captureLocation`). */
+const IDLE_CAPTURE_LOCATION = { status: "idle", coords: null, place: null, error: null };
+
+/**
+ * Whether a verified device fix is REQUIRED before a live capture can be taken.
+ *
+ * Currently false so the flow can be exercised from a laptop, which has no GPS
+ * chip and can only ever produce a Wi-Fi estimate hundreds of kilometres wide.
+ * Captures taken without a verified fix are still taken — they are just stamped
+ * "LOCATION NOT VERIFIED" in the photo itself and saved with
+ * `locationTrusted: false`, so nothing that lands in a report claims more than
+ * it can support.
+ *
+ * Set to true to enforce the gate once employees are capturing on phones.
+ */
+const REQUIRE_VERIFIED_LOCATION = false;
 
 /** One photo tile. `badge` says which of the two groups it belongs to. */
 function PhotoThumb({ url, badge, onRemove }) {
@@ -264,6 +318,7 @@ export default function Visit() {
   const [actingId, setActingId] = useState(null);
   const [ownerKyc, setOwnerKyc] = useState(null);
   const [ownerKycLoading, setOwnerKycLoading] = useState(false);
+  const [editingVisit, setEditingVisit] = useState(null); // visit being edited
   // Tier a superadmin assigns during review, gating Approve alongside KYC.
   // Keyed by visitId/_id, same idiom as `openSections` below.
   const [selectedTiers, setSelectedTiers] = useState({});
@@ -380,26 +435,33 @@ export default function Visit() {
         if (!razorpayResponse.ok) {
           throw new Error('IFSC code not found in Razorpay bank database.');
         }
+        const city = razorpayData.CITY || '';
+        const rawBranch = razorpayData.BRANCH || '';
+        let fullBranch = rawBranch;
+        if (city && !fullBranch.toLowerCase().includes(city.toLowerCase())) {
+          fullBranch = fullBranch ? `${fullBranch}, ${city}` : city;
+        }
         res = {
           success: Boolean(razorpayData.BANK),
           ifscStatus: razorpayData.BANK ? 'valid' : 'invalid',
           bankName: razorpayData.BANK || '',
-          branchName: razorpayData.BRANCH || ''
+          branchName: fullBranch
         };
       }
       if (res && res.success && res.ifscStatus === 'valid') {
+        const branchDisplay = res.branchName || 'Main Branch';
         if (res.bankName && formBankName && !bankNameMatches(formBankName, res.bankName)) {
           setIfscLookupStatus({
             valid: false,
             message: `This IFSC belongs to ${res.bankName}, not ${formBankName}.`,
             bankName: res.bankName,
-            branchName: res.branchName
+            branchName: branchDisplay
           });
           return;
         }
         if (res.bankName && !formBankName) setFormBankName(res.bankName);
-        if (res.branchName && !formBankBranchName) setFormBankBranchName(res.branchName);
-        setIfscLookupStatus({ valid: true, message: `Verified IFSC: ${res.bankName} (${res.branchName})`, bankName: res.bankName, branchName: res.branchName });
+        if (branchDisplay) setFormBankBranchName(branchDisplay);
+        setIfscLookupStatus({ valid: true, message: `Verified IFSC: ${res.bankName} (${branchDisplay})`, bankName: res.bankName, branchName: branchDisplay });
       } else {
         setIfscLookupStatus({ valid: false, message: res?.message || 'Invalid IFSC code' });
       }
@@ -416,6 +478,110 @@ export default function Visit() {
   const streamRef = React.useRef(null);
   const geoLocationRef = React.useRef(null);
   const [geoStatus, setGeoStatus] = useState("idle");
+
+  /**
+   * Where the employee is standing, resolved fresh every time the modal opens.
+   *
+   *   status: "locating"  → waiting on the device; `coords` may already hold a
+   *                         first, coarse fix that is still being tightened
+   *           "geocoding" → accepted a fix, resolving the place name
+   *           "ready"     → coordinates + address
+   *           "partial"   → coordinates but the geocoder failed; the capture is
+   *                         still allowed and the photo is stamped with the raw
+   *                         coordinates, because a real fix with no label is
+   *                         better evidence than no fix at all
+   *           "unverified"→ a fix arrived but is too wide to be a device
+   *                         reading (a laptop's Wi-Fi estimate); shown and
+   *                         stamped only as unverified
+   *           "error"     → no fix at all
+   *
+   * The last two allow a capture only while `REQUIRE_VERIFIED_LOCATION` is off.
+   */
+  const [captureLocation, setCaptureLocation] = useState(IDLE_CAPTURE_LOCATION);
+  // Bumped on every attempt so a slow fix that resolves after the employee
+  // cancelled (or hit Retry) cannot overwrite the state of the current one.
+  const locationRunRef = React.useRef(0);
+
+  const resolveCaptureLocation = async () => {
+    const runId = ++locationRunRef.current;
+    const isStale = () => runId !== locationRunRef.current;
+
+    setCaptureLocation({ status: "locating", coords: null, place: null, error: null });
+
+    let coords;
+    try {
+      coords = await getCurrentDeviceLocation({
+        // Show the radius shrinking while the GPS settles, so a 10-second wait
+        // reads as progress rather than a hang.
+        onProgress: (fix) => {
+          if (isStale()) return;
+          setCaptureLocation(prev =>
+            prev.status === "locating" ? { ...prev, coords: fix } : prev);
+        },
+      });
+    } catch (err) {
+      if (isStale()) return;
+      // A fix too coarse to verify is still worth showing and stamping when the
+      // gate is off — as an unverified area, never as the employee's address.
+      if (err.fix) {
+        setCaptureLocation({
+          status: "unverified",
+          coords: err.fix,
+          place: null,
+          error: err.message,
+          errorCode: err.code,
+        });
+        try {
+          const place = await reverseGeocodeLocation(err.fix.latitude, err.fix.longitude);
+          if (isStale()) return;
+          setCaptureLocation(prev => prev.status === "unverified" ? { ...prev, place } : prev);
+        } catch {
+          /* Coordinates alone are enough for an unverified stamp. */
+        }
+        return;
+      }
+      setCaptureLocation({
+        status: "error",
+        coords: null,
+        place: null,
+        error: err.message,
+        errorCode: err.code,
+      });
+      return;
+    }
+    if (isStale()) return;
+
+    setCaptureLocation({ status: "geocoding", coords, place: null, error: null });
+    try {
+      const place = await reverseGeocodeLocation(coords.latitude, coords.longitude);
+      if (isStale()) return;
+      setCaptureLocation({ status: "ready", coords, place, error: null });
+    } catch {
+      if (isStale()) return;
+      setCaptureLocation({
+        status: "partial",
+        coords,
+        place: null,
+        error: "Location address unavailable — the photo will be stamped with coordinates.",
+      });
+    }
+  };
+
+  // Coordinates are the bar for capturing; the address is a label on top of them.
+  const locationVerified =
+    captureLocation.status === "ready" || captureLocation.status === "partial";
+  // A fix inside the acceptable band but wider than a real GPS reading: usable,
+  // but the photo and the record both have to say so rather than presenting a
+  // neighbourhood-sized guess as the address the employee stood at.
+  const locationApproximate =
+    locationVerified && classifyAccuracy(captureLocation.coords?.accuracy) !== "precise";
+  // Detection has finished and produced nothing trustworthy.
+  const locationUnresolved =
+    captureLocation.status === "unverified" || captureLocation.status === "error";
+  // Mid-detection stays disabled either way: the fix is seconds away and a
+  // photo taken now would be needlessly unverified.
+  const canCapture =
+    locationVerified || (!REQUIRE_VERIFIED_LOCATION && locationUnresolved);
 
   const [photoUploading, setPhotoUploading] = useState(0);
 
@@ -458,11 +624,9 @@ export default function Visit() {
   const startCamera = async () => {
     try {
       setCameraModalOpen(true);
-      setGeoStatus("loading");
-      getGeoLocation().then((location) => {
-        geoLocationRef.current = location;
-        setGeoStatus(location?.placeName ? "ready" : location ? "coordinates-only" : "unavailable");
-      });
+      // The location runs alongside the camera rather than after it: both
+      // prompts appear together, and a slow GPS fix does not delay the preview.
+      resolveCaptureLocation();
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: { ideal: "environment" } }
       });
@@ -474,57 +638,20 @@ export default function Visit() {
       }, 100);
     } catch (err) {
       notify("warning", "Camera unavailable", `${err.message}. You can upload a photo file instead.`);
+      locationRunRef.current++;
+      setCaptureLocation(IDLE_CAPTURE_LOCATION);
       setCameraModalOpen(false);
     }
   };
-
-  // Try to get device GPS location
-  const getGeoLocation = () => new Promise((resolve) => {
-    if (!navigator.geolocation) return resolve(null);
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const location = {
-          lat: pos.coords.latitude.toFixed(5),
-          lon: pos.coords.longitude.toFixed(5),
-          accuracy: Math.round(pos.coords.accuracy || 0),
-          placeName: "",
-          placeAddress: ""
-        };
-        try {
-          const params = new URLSearchParams({
-            lat: location.lat,
-            lon: location.lon,
-            accuracy: String(location.accuracy),
-            ...(formCity ? { expectedCity: formCity } : {})
-          });
-          const reverse = await fetchJson(`/api/locations/reverse-geocode?${params.toString()}`);
-          location.placeName = reverse?.shortName || reverse?.placeName || reverse?.displayName || "";
-          location.placeAddress = reverse?.displayName || "";
-          location.locationTrusted = reverse?.verification?.trusted !== false;
-        } catch (_) {}
-        if (!location.placeName) {
-          try {
-            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${location.lat}&lon=${location.lon}&zoom=18&addressdetails=1`);
-            const data = await response.json();
-            const address = data?.address || {};
-            const locality = address.suburb || address.neighbourhood || address.village || address.town || "";
-            const city = address.city || address.town || address.village || address.state_district || "";
-            location.placeName = [locality, city].filter(Boolean).filter((value, index, values) => values.indexOf(value) === index).join(", ") || String(data?.display_name || "").split(",").slice(0, 3).join(", ").trim();
-            location.placeAddress = data?.display_name || "";
-          } catch (_) {}
-        }
-        resolve(location);
-      },
-      () => resolve(null),
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-    );
-  });
 
   const stopCamera = () => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
+    // Discard any in-flight fix — the next capture must resolve its own.
+    locationRunRef.current++;
+    setCaptureLocation(IDLE_CAPTURE_LOCATION);
     setCameraModalOpen(false);
     setGeoStatus("idle");
   };
@@ -535,10 +662,17 @@ export default function Visit() {
    * Only category-upload photos (Step 2 below) are published to the website.
    */
   const capturePhotoFromCamera = async () => {
-    if (!videoRef.current || !streamRef.current) {
-      notify("warning", "Camera is not ready", "Please wait for the camera preview and try again.");
-      return;
-    }
+    if (!videoRef.current) return;
+    // Mirrors the button's own disabled rule, for a stray programmatic call.
+    if (!canCapture) return;
+
+    // Read the fix BEFORE stopCamera() clears it.
+    const { coords, place } = captureLocation;
+    const approximate = locationApproximate;
+    // No fix, or one too wide to be a device reading. The photo still gets
+    // taken (see REQUIRE_VERIFIED_LOCATION) but must not read as verified.
+    const unverified = !locationVerified;
+
     const video = videoRef.current;
     if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA || !video.videoWidth || !video.videoHeight) {
       notify("warning", "Camera is still loading", "Please wait a moment for the preview, then take the photo again.");
@@ -550,75 +684,93 @@ export default function Visit() {
     const ctx = canvas.getContext("2d");
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    // Get location in parallel with drawing
-    const geo = geoLocationRef.current || await getGeoLocation();
-    geoLocationRef.current = geo;
-
+    const capturedAtIso = new Date().toISOString();
     const timeStr = new Date().toLocaleString("en-IN", {
       day: "2-digit", month: "short", year: "numeric",
       hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true
     });
 
-    const geoStr = geo
-      ? `📍 ${geo.placeName || `${geo.lat}, ${geo.lon}`}`
-      : "📍 Location unavailable";
+    const coordStr = coords ? formatCoordinates(coords.latitude, coords.longitude) : null;
+    // No address → the coordinates stand in. Never a guessed place name, and
+    // never a bare address when the fix behind it was not verified — the
+    // caveat is burnt into the pixels, not just shown in the UI, so a reviewer
+    // months later sees exactly what the employee saw.
+    const geoStr = unverified
+      ? `📍 LOCATION NOT VERIFIED${place?.formattedAddress ? ` — near ${place.formattedAddress}` : coordStr ? ` — ${coordStr}` : ""}`
+      : `📍 ${approximate ? "Approx. " : ""}${place?.formattedAddress || coordStr}`;
+    const accuracyStr = [
+      coords?.accuracy != null
+        ? `🎯 ${unverified ? "Approximate area" : "GPS accuracy"}: ±${formatAccuracy(coords.accuracy)}`
+        : unverified ? "🎯 No device location available" : null,
+      // Coordinates are redundant beside a line that is already raw coordinates.
+      place?.formattedAddress ? coordStr : null,
+    ].filter(Boolean).join("   •   ");
 
     // Scale every dimension off the image height so the banner is equally
     // legible on a 720p webcam frame and a 12MP phone capture.
     const unit = Math.max(11, Math.round(canvas.height * 0.022));
     const pad = Math.round(unit * 0.8);
-    const bannerHeight = (unit + pad * 2) * 2; // 2 lines now: time + geo
+    const lineGap = Math.round(unit * 1.35);
+
+    const lines = [
+      { text: `ROOMHY LIVE VISIT  •  ${timeStr}`, color: "#e2e8f0", size: unit, bold: true },
+      { text: geoStr, color: "#94a3b8", size: Math.round(unit * 0.85) },
+    ];
+    if (accuracyStr) lines.push({ text: accuracyStr, color: "#64748b", size: Math.round(unit * 0.75) });
+
+    const bannerHeight = pad * 2 + lineGap * lines.length;
+    const bannerTop = canvas.height - bannerHeight;
+    const textLeft = pad + Math.round(unit * 0.9);
+    const maxTextWidth = canvas.width - textLeft - pad;
 
     ctx.fillStyle = "rgba(15, 23, 42, 0.86)";
-    ctx.fillRect(0, canvas.height - bannerHeight, canvas.width, bannerHeight);
+    ctx.fillRect(0, bannerTop, canvas.width, bannerHeight);
     ctx.fillStyle = "#f43f5e";
-    ctx.fillRect(0, canvas.height - bannerHeight, Math.max(3, Math.round(unit * 0.28)), bannerHeight);
+    ctx.fillRect(0, bannerTop, Math.max(3, Math.round(unit * 0.28)), bannerHeight);
 
     ctx.textBaseline = "middle";
-    ctx.fillStyle = "#e2e8f0";
-    ctx.font = `bold ${unit}px sans-serif`;
-    // Line 1: timestamp
-    ctx.fillText(
-      `ROOMHY LIVE VISIT  •  ${timeStr}`,
-      pad + Math.round(unit * 0.9),
-      canvas.height - bannerHeight + (bannerHeight / 2) - unit * 0.6
-    );
-    // Line 2: geo
-    ctx.fillStyle = "#94a3b8";
-    ctx.font = `${Math.round(unit * 0.85)}px sans-serif`;
-    ctx.fillText(
-      geoStr,
-      pad + Math.round(unit * 0.9),
-      canvas.height - bannerHeight + (bannerHeight / 2) + unit * 0.6
-    );
+    lines.forEach((line, i) => {
+      ctx.fillStyle = line.color;
+      ctx.font = `${line.bold ? "bold " : ""}${line.size}px sans-serif`;
+      // A long Indian address easily overruns a portrait phone frame; clip it
+      // rather than letting it run off the edge mid-word.
+      let text = line.text;
+      if (ctx.measureText(text).width > maxTextWidth) {
+        while (text.length > 1 && ctx.measureText(`${text}…`).width > maxTextWidth) {
+          text = text.slice(0, -1);
+        }
+        text = `${text}…`;
+      }
+      ctx.fillText(text, textLeft, bannerTop + pad + lineGap * i + lineGap / 2);
+    });
 
     stopCamera();
 
     setPhotoUploading(n => n + 1);
-    try {
-      const blob = await new Promise((resolve, reject) => {
-        canvas.toBlob((result) => result ? resolve(result) : reject(new Error("Could not read the captured frame")), "image/jpeg", 0.85);
-      });
-      const url = await uploadPhotoToCloud(blob, `live-capture-${Date.now()}.jpg`);
-      setFormPhotos(prev => [...prev, url]);
-      setFormPhotoDetails(prev => [...prev, {
-        url,
-        capturedAt: timeStr,
-        geoLocation: geo ? `${geo.lat}, ${geo.lon}` : null,
-        placeName: geo?.placeName || "",
-        placeAddress: geo?.placeAddress || "",
-        latitude: geo ? Number(geo.lat) : null,
-        longitude: geo ? Number(geo.lon) : null,
-        accuracy: geo?.accuracy || null,
-        locationTrusted: geo?.locationTrusted !== false,
-        source: "camera",
-        websiteVisible: false
-      }]);
-    } catch (err) {
-      notify("error", "Could not save the photo", `${err.message}. The capture was not added — please take it again.`);
-    } finally {
-      setPhotoUploading(n => n - 1);
-    }
+    canvas.toBlob(async (blob) => {
+      try {
+        if (!blob) throw new Error("Could not read the captured frame");
+        const url = await uploadPhotoToCloud(blob, `live-capture-${Date.now()}.jpg`);
+        setFormPhotos(prev => [...prev, url]);
+        setFormPhotoDetails(prev => [...prev, {
+          url,
+          capturedAt: timeStr,
+          capturedAtIso,
+          latitude: coords?.latitude,
+          longitude: coords?.longitude,
+          accuracy: coords?.accuracy ?? undefined,
+          placeName: place?.placeName || "",
+          placeAddress: place?.formattedAddress || "",
+          locationTrusted: locationVerified && !approximate,
+          source: "camera",
+          websiteVisible: false
+        }]);
+      } catch (err) {
+        notify("error", "Could not save the photo", `${err.message}. The capture was not added — please take it again.`);
+      } finally {
+        setPhotoUploading(n => n - 1);
+      }
+    }, "image/jpeg", 0.85);
   };
 
   const handleFileUpload = async (e, category = null) => {
@@ -655,6 +807,43 @@ export default function Visit() {
   // proper modal rather than a window.prompt.
   const [rejectModal, setRejectModal] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [selectedStaffModal, setSelectedStaffModal] = useState(null);
+  const [staffDetailsLoading, setStaffDetailsLoading] = useState(false);
+  const [fetchedStaffInfo, setFetchedStaffInfo] = useState(null);
+
+  const openStaffModal = async (v) => {
+    const staffName = v.staffName || v.submittedBy || v.visitorName || "Staff Member";
+    const staffId = v.staffLoginId || v.submittedByLoginId || v.staffId || v.submittedById || v.visitorEmail || v.visitorPhone || "";
+
+    setSelectedStaffModal({
+      visit: v,
+      staffName,
+      staffId: staffId || "N/A",
+      email: v.visitorEmail || v.staffEmail || "",
+      phone: v.visitorPhone || v.staffPhone || "",
+      submittedAt: v.submittedAt
+    });
+
+    setFetchedStaffInfo(null);
+    if (staffId || staffName) {
+      setStaffDetailsLoading(true);
+      try {
+        const res = await fetchJson(`/api/employees`);
+        const list = res?.data || res || [];
+        const match = Array.isArray(list) ? list.find(e => 
+          (e.loginId && String(e.loginId).toUpperCase() === String(staffId).toUpperCase()) ||
+          (e.name && String(e.name).toLowerCase() === String(staffName).toLowerCase()) ||
+          (e._id && String(e._id) === String(staffId))
+        ) : null;
+        if (match) {
+          setFetchedStaffInfo(match);
+        }
+      } catch (_) {}
+      finally {
+        setStaffDetailsLoading(false);
+      }
+    }
+  };
   // Id for the report currently being filled in. Held in a ref so a retry after
   // a failed submit reuses it instead of minting a new one — a fresh id per
   // click made every retry a NEW visit report and a SECOND KYC email to the
@@ -664,6 +853,77 @@ export default function Visit() {
     owner: true, property: true, location: true, occupancy: false,
     features: false, roomTypes: false, policies: false, ratings: false, photos: false
   });
+
+  const [isCustomLocationInput, setIsCustomLocationInput] = useState(false);
+
+  // Available States (Strict DB First)
+  const availableStates = useMemo(() => {
+    const dbStates = locationCities.map(c => typeof c === 'object' ? c?.state : '').filter(Boolean);
+    const uniqueDbStates = [...new Set(dbStates)].sort();
+    if (uniqueDbStates.length > 0) return uniqueDbStates;
+
+    return INDIAN_STATES_CITIES.map(s => s.state).sort();
+  }, [locationCities]);
+
+  // Available Cities (Strict DB First)
+  const availableCities = useMemo(() => {
+    let dbCitiesList = [];
+    locationCities.forEach(c => {
+      const name = typeof c === 'string' ? c : (c?.name || c?.cityName);
+      const state = typeof c === 'object' ? c?.state : '';
+      if (!formState || !state || state.toLowerCase() === formState.toLowerCase()) {
+        if (name) dbCitiesList.push(name);
+      }
+    });
+
+    const uniqueDbCities = [...new Set(dbCitiesList)].filter(Boolean).sort();
+    if (uniqueDbCities.length > 0) return uniqueDbCities;
+
+    let presetCities = [];
+    if (formState) {
+      const matchedPreset = INDIAN_STATES_CITIES.find(s => s.state.toLowerCase() === formState.toLowerCase());
+      if (matchedPreset) presetCities.push(...matchedPreset.cities);
+    } else {
+      INDIAN_STATES_CITIES.forEach(s => presetCities.push(...s.cities));
+    }
+    return [...new Set(presetCities)].filter(Boolean).sort();
+  }, [locationCities, formState]);
+
+  // Available Areas (Strict DB First)
+  const availableAreas = useMemo(() => {
+    let dbAreasList = [];
+    locationAreas.forEach(a => {
+      const name = typeof a === 'string' ? a : (a?.name || a?.areaName);
+      if (name) dbAreasList.push(name);
+    });
+
+    const uniqueDbAreas = [...new Set(dbAreasList)].filter(Boolean).sort();
+    if (uniqueDbAreas.length > 0) return uniqueDbAreas;
+
+    let presetAreas = [];
+    if (formCity) {
+      const cityKey = Object.keys(POPULAR_CITY_AREAS).find(k => k.toLowerCase() === formCity.toLowerCase());
+      if (cityKey && POPULAR_CITY_AREAS[cityKey]) {
+        presetAreas.push(...POPULAR_CITY_AREAS[cityKey]);
+      }
+    }
+    return [...new Set(presetAreas)].filter(Boolean).sort();
+  }, [locationAreas, formCity]);
+
+  const getLocationLabel = (v) => {
+    if (!v) return { area: "—", sub: "—", city: "", state: "" };
+    const area = v.area || v.areaLocality || v.propertyInfo?.area || v.city || "—";
+    let city = v.city || v.ownerCity || v.propertyInfo?.city || "";
+    let state = v.state || v.propertyInfo?.state || "";
+
+    if (!state && city) {
+      const matchedPreset = INDIAN_STATES_CITIES.find(s => s.cities.some(c => c.toLowerCase() === city.toLowerCase()));
+      if (matchedPreset) state = matchedPreset.state;
+    }
+
+    const sub = [city, state].filter(Boolean).join(", ");
+    return { area, sub: sub || city || "—", city, state };
+  };
 
   const toggleSection = (key) => setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
   // Photos grouped by HOW they were added — a live capture is timestamped on
@@ -679,6 +939,13 @@ export default function Visit() {
   const uploadedPhotos = indexedPhotos.filter(p => p.detail.source !== "camera");
 
   const toggleAmenity = (a) => setFormAmenities(prev => { const n = new Set(prev); n.has(a) ? n.delete(a) : n.add(a); return n; });
+  const [customAmenityInput, setCustomAmenityInput] = useState("");
+  const addCustomAmenity = () => {
+    const val = customAmenityInput.trim();
+    if (!val) return;
+    setFormAmenities(prev => new Set([...prev, val]));
+    setCustomAmenityInput("");
+  };
 
   // ─── Data Loading ───────────────────────────────────────────────────────────
 
@@ -703,14 +970,20 @@ export default function Visit() {
 
   useEffect(() => {
     fetchJson("/api/locations/cities")
-      .then((response) => setLocationCities(Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : [])))
+      .then((response) => {
+        const raw = response?.data || response?.cities || response || [];
+        setLocationCities(Array.isArray(raw) ? raw : []);
+      })
       .catch(() => setLocationCities([]));
   }, []);
 
   useEffect(() => {
     if (!formCity) { setLocationAreas([]); return; }
     fetchJson(`/api/locations/areas/city/${encodeURIComponent(formCity)}`)
-      .then((response) => setLocationAreas(Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : [])))
+      .then((response) => {
+        const raw = response?.data || response?.areas || response || [];
+        setLocationAreas(Array.isArray(raw) ? raw : []);
+      })
       .catch(() => setLocationAreas([]));
   }, [formCity]);
 
@@ -736,7 +1009,7 @@ export default function Visit() {
     setFormRent(""); setFormDeposit(""); setFormDescription("");
     setFormState(""); setFormArea(""); setFormCity(""); setFormAddress(""); setFormPincode(""); setFormLandmark("");
     setFormVacantRooms(""); setFormOccupiedRooms(""); setFormOccupiedBeds("");
-    setFormAmenities(new Set(["WiFi", "Power Backup"])); setFormFurnishing("Fully Furnished");
+    setFormAmenities(new Set(["WiFi", "Power Backup"])); setFormFurnishing("Fully Furnished"); setCustomAmenityInput("");
     setFormVentilation(""); setFormMinStay(""); setFormEntryExit("");
     setFormVisitorsAllowed(true); setFormCookingAllowed(false); setFormSmokingAllowed(false); setFormPetsAllowed(false);
     setFormCleanlinessRating(0); setFormOwnerBehaviour(""); setFormStudentReviews(""); setFormInternalRemarks("");
@@ -745,6 +1018,66 @@ export default function Visit() {
     setActiveCatIdx(0); setNewCatLabel(""); setAddingCat(false);
     setOpenSections({ owner: true, property: true, location: true, occupancy: false, features: false, roomTypes: false, policies: false, ratings: false, photos: false });
     draftVisitIdRef.current = null;
+    setEditingVisit(null);
+  };
+
+  const loadFormFromVisit = (v) => {
+    setFormName(v.ownerName || v.visitorName || "");
+    setFormEmail(v.ownerEmail || v.visitorEmail || "");
+    setFormPhone(v.ownerPhone || v.visitorPhone || "");
+    setFormOwnerCity(v.ownerCity || "");
+    setFormBankHolderName(v.bankAccountHolderName || "");
+    setFormBankAccountNumber(v.bankAccountNumber || "");
+    setFormReBankAccountNumber(v.bankAccountNumber || "");
+    setFormBankIfscCode(v.bankIfscCode || "");
+    setFormBankName(v.bankName || "");
+    setFormBankBranchName(v.bankBranchName || "");
+    setFormBankUpiId(v.bankUpiId || "");
+    setFormPropertyName(v.propertyName || "");
+    setFormPropertyType(v.propertyType || "hostel");
+    setFormGender(v.genderSuitability || v.gender || "Co-ed");
+    setFormRent(v.monthlyRent ? String(v.monthlyRent) : "");
+    setFormDeposit(v.deposit ? String(v.deposit) : "");
+    setFormDescription(v.description || "");
+    setFormState(v.state || "");
+    setFormCity(v.city || "");
+    setFormArea(v.area || "");
+    setFormAddress(v.address || "");
+    setFormPincode(v.pincode || "");
+    setFormLandmark(v.landmark || "");
+    setFormVacantRooms(v.vacantRooms != null ? String(v.vacantRooms) : "");
+    setFormOccupiedRooms(v.occupiedRooms != null ? String(v.occupiedRooms) : "");
+    setFormOccupiedBeds(v.occupiedBeds != null ? String(v.occupiedBeds) : "");
+    setFormAmenities(new Set(Array.isArray(v.amenities) ? v.amenities : []));
+    setFormFurnishing(v.furnishing || "Fully Furnished");
+    setFormVentilation(v.ventilation || "");
+    setFormMinStay(v.minStay || "");
+    setFormEntryExit(v.entryExit || "");
+    setFormVisitorsAllowed(v.visitorsAllowed !== false);
+    setFormCookingAllowed(!!v.cookingAllowed);
+    setFormSmokingAllowed(!!v.smokingAllowed);
+    setFormPetsAllowed(!!v.petsAllowed);
+    setFormCleanlinessRating(v.cleanlinessRating || 0);
+    setFormOwnerBehaviour(v.ownerBehaviour || "");
+    setFormStudentReviews(v.studentReviews || "");
+    setFormInternalRemarks(v.internalRemarks || "");
+    setFormPhotos(Array.isArray(v.photos) ? v.photos : []);
+    setFormPhotoDetails(Array.isArray(v.photoDetails) ? v.photoDetails : []);
+    setFormRoomTypes(Array.isArray(v.roomTypes) ? v.roomTypes : []);
+    setPropertyViews(Array.isArray(v.propertyViews) && v.propertyViews.length > 0
+      ? v.propertyViews
+      : [{ label: "Main", images: [] }, { label: "Room", images: [] }]);
+    setOpenSections({ owner: true, property: true, location: true, occupancy: true, features: true, roomTypes: false, policies: true, ratings: false, photos: false });
+    draftVisitIdRef.current = v.visitId || v._id;
+    setEditingVisit(v);
+    setViewingVisit(null);
+    setCurrentView("addOwner");
+    try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch (e) {}
+  };
+
+  const handleStartEdit = (v) => {
+    if (!v) return;
+    loadFormFromVisit(v);
   };
 
   // ─── Onboarding Handler ─────────────────────────────────────────────────────
@@ -776,6 +1109,40 @@ export default function Visit() {
       // finishes KYC and a superadmin approves.
       if (!draftVisitIdRef.current) draftVisitIdRef.current = `v_${Date.now()}`;
       const visitId = draftVisitIdRef.current;
+
+      // Extract all uploaded gallery photos from propertyViews (Step 2)
+      const uploadedGalleryPhotos = [];
+      const uploadedGalleryDetails = [];
+
+      (propertyViews || []).forEach(v => {
+        (v.images || []).forEach(url => {
+          if (url && typeof url === 'string') {
+            uploadedGalleryPhotos.push(url);
+            uploadedGalleryDetails.push({
+              url,
+              category: v.label || 'Gallery',
+              source: 'upload'
+            });
+          }
+        });
+      });
+
+      const allPhotos = [...new Set([...(formPhotos || []), ...uploadedGalleryPhotos])];
+      const existingUrls = new Set((formPhotoDetails || []).map(p => p.url));
+      const allPhotoDetails = [
+        ...(formPhotoDetails || []).map(p => ({
+          ...p,
+          source: p.source || (p.capturedAt ? 'camera' : 'upload')
+        }))
+      ];
+
+      uploadedGalleryDetails.forEach(d => {
+        if (!existingUrls.has(d.url)) {
+          allPhotoDetails.push(d);
+          existingUrls.add(d.url);
+        }
+      });
+
       const submitRes = await fetchJson("/api/visits/submit", {
         method: "POST",
         headers: { ...getAuthHeader(), "Content-Type": "application/json" },
@@ -815,12 +1182,10 @@ export default function Visit() {
           ownerBehaviour: formOwnerBehaviour,
           studentReviews: formStudentReviews,
           internalRemarks: formInternalRemarks,
-          photos: formPhotos,
-          photoDetails: formPhotoDetails,
-          // Only live captures have a verified time, so only they appear here.
-          // Uploads used to get an entry too, which made a file chosen from disk
-          // look like it had been timestamped at the property.
-          photoTimestamps: formPhotoDetails.reduce(
+          photos: allPhotos,
+          photoDetails: allPhotoDetails,
+          propertyViews: propertyViews,
+          photoTimestamps: allPhotoDetails.reduce(
             (acc, p) => (p.capturedAt ? { ...acc, [p.url]: p.capturedAt } : acc), {}
           ),
           roomTypes: formRoomTypes,
@@ -833,6 +1198,7 @@ export default function Visit() {
           staffName: JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user") || "{}").name || "Staff Member",
           staffId: JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user") || "{}").loginId || "STAFF",
           _id: visitId,
+          ...(editingVisit ? { _isEdit: true } : {}),
         }),
       });
 
@@ -849,6 +1215,8 @@ export default function Visit() {
           "This report was filed a moment ago, so it was not filed again. The owner has only been contacted once.",
           "No duplicate created"
         );
+      } else if (submitRes?.isUpdate) {
+        notify("success", "Visit report updated", `Changes saved for ${formPropertyName}.`);
       } else if (submitRes?.kycLinkSent === false) {
         notify(
           "warning",
@@ -1030,7 +1398,7 @@ export default function Visit() {
             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">View and manage property visit reports</p>
          </div>
          <div className="flex items-center gap-3">
-            {currentView === "list" && (
+            {currentView === "list" && !(window.location.pathname.toLowerCase().includes('/superadmin')) && (
               <button onClick={() => setCurrentView("addOwner")} className="bg-slate-800 text-white px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-lg shadow-slate-800/10 hover:bg-slate-900 transition-all flex items-center gap-2">
                  <Plus className="w-3.5 h-3.5" /> Add New Visit
               </button>
@@ -1053,8 +1421,8 @@ export default function Visit() {
                 <UserPlus size={28} />
               </div>
               <div>
-                <h3 className="text-2xl font-bold text-slate-800 tracking-tight">Onboard Property Owner</h3>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Fill in property visit details and onboard owner with auto KYC</p>
+                <h3 className="text-2xl font-bold text-slate-800 tracking-tight">{editingVisit ? "Edit Visit Report" : "Onboard Property Owner"}</h3>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{editingVisit ? `Editing: ${editingVisit.propertyName || "Visit Report"}` : "Fill in property visit details and onboard owner with auto KYC"}</p>
               </div>
             </div>
           </div>
@@ -1209,31 +1577,88 @@ export default function Visit() {
               <div>
                 <SectionHeader icon={MapPin} title="Location" subtitle="Area, city, address & pincode" open={openSections.location} onToggle={() => toggleSection("location")} color="emerald" />
                 {openSections.location && (
-                  <div className="px-8 pb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                      State
-                      <select value={formState} onChange={e => { setFormState(e.target.value); setFormCity(""); setFormArea(""); }} className="mt-2 w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none">
-                        <option value="">Select state</option>
-                        {[...new Set(locationCities.map(city => city.state).filter(Boolean))].sort().map(state => <option key={state} value={state}>{state}</option>)}
-                      </select>
-                    </label>
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                      City <span className="text-red-400">*</span>
-                      <select value={formCity} onChange={e => { setFormCity(e.target.value); setFormArea(""); }} className="mt-2 w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none">
-                        <option value="">Select city</option>
-                        {locationCities.filter(city => !formState || !city.state || city.state === formState).map(city => <option key={city._id || city.name} value={city.name}>{city.name}</option>)}
-                      </select>
-                    </label>
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                      Area / Locality <span className="text-red-400">*</span>
-                      <select value={formArea} onChange={e => setFormArea(e.target.value)} className="mt-2 w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none">
-                        <option value="">Select area</option>
-                        {locationAreas.map(area => <option key={area._id || area.name} value={area.name}>{area.name}</option>)}
-                      </select>
-                    </label>
-                    <FormField label="Full Address" value={formAddress} onChange={e => setFormAddress(e.target.value)} placeholder="House/building, street..." className="md:col-span-2" />
-                    <FormField label="Pincode" value={formPincode} onChange={e => setFormPincode(e.target.value)} placeholder="560034" />
-                    <FormField label="Nearby Landmark" value={formLandmark} onChange={e => setFormLandmark(e.target.value)} placeholder="Near Christ University" />
+                  <div className="px-8 pb-8 space-y-6">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Select Location Details</p>
+                      <button
+                        type="button"
+                        onClick={() => setIsCustomLocationInput(!isCustomLocationInput)}
+                        className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        {isCustomLocationInput ? "← Select from dropdown list" : "+ Type custom location instead"}
+                      </button>
+                    </div>
+
+                    {!isCustomLocationInput ? (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                          State
+                          <select
+                            value={formState}
+                            onChange={e => {
+                              const selectedState = e.target.value;
+                              setFormState(selectedState);
+                              setFormCity("");
+                              setFormArea("");
+                            }}
+                            className="mt-2 w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-blue-200 focus:ring-4 focus:ring-blue-100 transition-all cursor-pointer"
+                          >
+                            <option value="">Select state</option>
+                            {availableStates.map(state => (
+                              <option key={state} value={state}>{state}</option>
+                            ))}
+                          </select>
+                        </label>
+
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                          City <span className="text-red-400">*</span>
+                          <select
+                            value={formCity}
+                            onChange={e => {
+                              const selectedCity = e.target.value;
+                              setFormCity(selectedCity);
+                              setFormArea("");
+                              const matchedPreset = INDIAN_STATES_CITIES.find(s => s.cities.some(c => c.toLowerCase() === selectedCity.toLowerCase()));
+                              if (matchedPreset && !formState) {
+                                setFormState(matchedPreset.state);
+                              }
+                            }}
+                            className="mt-2 w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-blue-200 focus:ring-4 focus:ring-blue-100 transition-all cursor-pointer"
+                          >
+                            <option value="">Select city</option>
+                            {availableCities.map(cityName => (
+                              <option key={cityName} value={cityName}>{cityName}</option>
+                            ))}
+                          </select>
+                        </label>
+
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                          Area / Locality <span className="text-red-400">*</span>
+                          <select
+                            value={formArea}
+                            onChange={e => setFormArea(e.target.value)}
+                            className="mt-2 w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-blue-200 focus:ring-4 focus:ring-blue-100 transition-all cursor-pointer"
+                          >
+                            <option value="">Select area</option>
+                            {availableAreas.map(areaName => (
+                              <option key={areaName} value={areaName}>{areaName}</option>
+                            ))}
+                          </select>
+                        </label>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <FormField label="State" value={formState} onChange={e => setFormState(e.target.value)} placeholder="e.g. Rajasthan" />
+                        <FormField label="City" value={formCity} onChange={e => setFormCity(e.target.value)} placeholder="e.g. Kota" required />
+                        <FormField label="Area / Locality" value={formArea} onChange={e => setFormArea(e.target.value)} placeholder="e.g. Landmark City" required />
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                      <FormField label="Full Address" value={formAddress} onChange={e => setFormAddress(e.target.value)} placeholder="House/building, street..." className="md:col-span-2" />
+                      <FormField label="Pincode" value={formPincode} onChange={e => setFormPincode(e.target.value)} placeholder="324005" />
+                      <FormField label="Nearby Landmark" value={formLandmark} onChange={e => setFormLandmark(e.target.value)} placeholder="Near Landmark Tower" />
+                    </div>
                   </div>
                 )}
               </div>
@@ -1270,6 +1695,28 @@ export default function Visit() {
                             {a}
                           </button>
                         ))}
+                        {/* Custom amenities added by user */}
+                        {[...formAmenities].filter(a => !AMENITY_LIST.includes(a)).map(a => (
+                          <span key={a} className="flex items-center gap-1 px-4 py-2 rounded-xl text-[10px] font-bold border bg-violet-600 text-white border-violet-600 shadow-md shadow-violet-200">
+                            {a}
+                            <button type="button" onClick={() => toggleAmenity(a)} className="ml-1 hover:text-violet-200"><X className="w-3 h-3" /></button>
+                          </span>
+                        ))}
+                      </div>
+                      {/* Add custom amenity */}
+                      <div className="flex items-center gap-2 mt-3">
+                        <input
+                          type="text"
+                          value={customAmenityInput}
+                          onChange={e => setCustomAmenityInput(e.target.value)}
+                          onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addCustomAmenity(); } }}
+                          placeholder="Add custom amenity (e.g. Rooftop, Solar Water)…"
+                          className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-violet-300 focus:ring-2 focus:ring-violet-100 transition-all placeholder:text-slate-300"
+                        />
+                        <button type="button" onClick={addCustomAmenity} disabled={!customAmenityInput.trim()}
+                          className="px-4 py-2.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5">
+                          <Plus className="w-3.5 h-3.5" /> Add
+                        </button>
                       </div>
                     </div>
 
@@ -1459,7 +1906,12 @@ export default function Visit() {
                             <PhotoThumb key={idx} url={url} onRemove={() => removePhoto(idx)}
                               badge={<span className="truncate flex items-center gap-1 text-sky-400">
                                 <Clock size={10} className="shrink-0" /> {detail.capturedAt}
-                                {(detail.placeName || detail.geoLocation) && <span className="text-[8px] text-slate-400 ml-1">📍 {detail.placeName || detail.geoLocation}</span>}
+                                {(detail.placeAddress || detail.latitude != null || detail.placeName || detail.geoLocation) && (
+                                  <span className="text-[8px] text-slate-400 ml-1 truncate">
+                                    📍 {detail.locationTrusted === false ? "Approx. " : ""}
+                                    {detail.placeAddress || detail.placeName || detail.geoLocation || formatCoordinates(detail.latitude, detail.longitude)}
+                                  </span>
+                                )}
                               </span>} />
                           ))}
                         </div>
@@ -1627,30 +2079,48 @@ export default function Visit() {
             <div className="bg-white rounded-b-[2rem] border border-t-0 border-slate-100 shadow-2xl p-8 space-y-6">
               {/* Credentials are issued by the backend on submit (ROOMHY####) and emailed
                   to the owner with the digital-KYC link, so nothing is generated here. */}
-              <div className="bg-slate-900 text-white p-6 rounded-2xl flex items-center gap-4 shadow-xl shadow-slate-900/10">
-                <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-600/30 shrink-0">
-                  <Send size={20} />
+              {editingVisit ? (
+                <div className="bg-amber-950 text-white p-6 rounded-2xl flex items-center gap-4 shadow-xl border border-amber-500/30">
+                  <div className="w-12 h-12 rounded-xl bg-amber-600 flex items-center justify-center shadow-lg shadow-amber-600/30 shrink-0 text-white">
+                    <Pencil size={20} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-amber-400 uppercase tracking-widest">Editing Existing Visit Report</p>
+                    <p className="text-sm font-bold mt-1 leading-relaxed">
+                      Updating visit report for <span className="text-amber-300 font-extrabold">{editingVisit.propertyName || formPropertyName || "this property"}</span>.
+                      <br />
+                      <span className="text-amber-200/80 font-medium text-xs">
+                        Saving changes updates the existing report directly without creating a new owner or sending duplicate KYC links.
+                      </span>
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">What happens next</p>
-                  <p className="text-sm font-bold mt-1 leading-relaxed">
-                    On submit, owner credentials are generated and a <span className="text-blue-400">digital KYC link</span> is emailed to{" "}
-                    <span className="font-mono text-emerald-400">{formEmail || "the owner"}</span>.
-                    <br />
-                    <span className="text-slate-400 font-medium">
-                      The property goes live only after the owner completes KYC and a superadmin approves this report.
-                    </span>
-                  </p>
+              ) : (
+                <div className="bg-slate-900 text-white p-6 rounded-2xl flex items-center gap-4 shadow-xl shadow-slate-900/10">
+                  <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-600/30 shrink-0">
+                    <Send size={20} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">What happens next</p>
+                    <p className="text-sm font-bold mt-1 leading-relaxed">
+                      On submit, owner credentials are generated and a <span className="text-blue-400">digital KYC link</span> is emailed to{" "}
+                      <span className="font-mono text-emerald-400">{formEmail || "the owner"}</span>.
+                      <br />
+                      <span className="text-slate-400 font-medium">
+                        The property goes live only after the owner completes KYC and a superadmin approves this report.
+                      </span>
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="flex items-center justify-between pt-4 border-t border-slate-100">
                 <button type="button" onClick={() => { resetForm(); setCurrentView("list"); }} className="px-6 py-4 rounded-2xl text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all">
                   Cancel
                 </button>
-                <button type="submit" disabled={saving} className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest shadow-xl shadow-blue-600/20 transition-all flex items-center gap-2">
+                <button type="submit" disabled={saving} className={cn("px-8 py-4 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest shadow-xl transition-all flex items-center gap-2", editingVisit ? "bg-amber-600 hover:bg-amber-700 shadow-amber-600/20" : "bg-blue-600 hover:bg-blue-700 shadow-blue-600/20")}>
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                  {saving ? "Onboarding Owner..." : "Onboard Property Owner"}
+                  {saving ? "Saving..." : editingVisit ? "Update Visit Report" : "Onboard Property Owner"}
                 </button>
               </div>
             </div>
@@ -1730,8 +2200,8 @@ export default function Visit() {
                         <p className="text-[10px] text-slate-400 font-normal mt-0.5">{v.ownerName || v.visitorName} • {v.ownerPhone || v.visitorPhone}</p>
                       </td>
                       <td className="p-4">
-                        <p className="text-slate-700">{v.area || v.city || "-"}</p>
-                        <p className="text-[10px] text-slate-400 font-normal">{v.city}</p>
+                        <p className="font-bold text-slate-800">{getLocationLabel(v).area}</p>
+                        <p className="text-[10px] text-slate-500 font-medium mt-0.5">{getLocationLabel(v).sub}</p>
                       </td>
                       <td className="p-4">
                         <p className="text-slate-700 uppercase">{v.propertyType || "Hostel"}</p>
@@ -1740,8 +2210,20 @@ export default function Visit() {
                           : <p className="text-[10px] text-amber-600 font-bold">Rent not set</p>}
                       </td>
                       <td className="p-4">
-                        <p className="text-slate-700">{v.staffName || v.submittedBy || "Staff"}</p>
-                        <p className="text-[10px] text-slate-400 font-normal">{new Date(v.submittedAt || Date.now()).toLocaleDateString()}</p>
+                        <button
+                          type="button"
+                          onClick={() => openStaffModal(v)}
+                          className="group flex flex-col items-start text-left hover:opacity-90 transition-all cursor-pointer"
+                          title="Click to view staff member login ID & profile details"
+                        >
+                          <p className="font-bold text-slate-800 group-hover:text-blue-600 flex items-center gap-1.5 transition-colors">
+                            <UserCheck size={13} className="text-blue-500 shrink-0" />
+                            <span className="underline decoration-blue-200 underline-offset-2 group-hover:decoration-blue-500">{v.staffName || v.submittedBy || "Staff"}</span>
+                          </p>
+                          <p className="text-[10px] text-slate-400 font-normal mt-0.5">
+                            {new Date(v.submittedAt || Date.now()).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                          </p>
+                        </button>
                       </td>
                       <td className="p-4">
                         <span className={cn("px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider border", kycState(v).cls)}>
@@ -1788,6 +2270,14 @@ export default function Visit() {
                           <button onClick={() => setViewingVisit(v)}
                             className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold uppercase transition-all">
                             View
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleStartEdit(v)}
+                            title="Edit visit report details"
+                            className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-lg text-[10px] font-bold uppercase transition-all flex items-center gap-1 cursor-pointer shadow-xs"
+                          >
+                            <Pencil size={11} /> Edit
                           </button>
                           {v.status !== "approved" && v.status !== "rejected" && (
                             <>
@@ -1844,8 +2334,18 @@ export default function Visit() {
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-slate-800 tracking-tight">{viewingVisit.propertyName || viewingVisit.propertyInfo?.name || "Unnamed Property"}</h3>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-                    Submitted by {viewingVisit.staffName || viewingVisit.submittedBy || "Staff"} • {new Date(viewingVisit.submittedAt || Date.now()).toLocaleString()}
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 flex items-center gap-1">
+                    Submitted by{" "}
+                    <button
+                      type="button"
+                      onClick={() => openStaffModal(viewingVisit)}
+                      className="text-blue-600 font-black hover:underline cursor-pointer inline-flex items-center gap-1 normal-case tracking-normal"
+                      title="Click to view full staff member profile & login ID"
+                    >
+                      {viewingVisit.staffName || viewingVisit.submittedBy || "Staff"}
+                      <UserCheck size={12} />
+                    </button>
+                    {" "}• {new Date(viewingVisit.submittedAt || Date.now()).toLocaleString("en-IN")}
                   </p>
                 </div>
               </div>
@@ -1859,6 +2359,13 @@ export default function Visit() {
                 )}>
                   {viewingVisit.status || "pending"}
                 </span>
+                <button
+                  type="button"
+                  onClick={() => handleStartEdit(viewingVisit)}
+                  className="px-3.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer"
+                >
+                  <Edit3 size={12} /> Edit Report
+                </button>
                 <button onClick={() => setViewingVisit(null)} className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-500 transition-all">
                   <X className="w-4 h-4" />
                 </button>
@@ -2014,8 +2521,9 @@ export default function Visit() {
 
               <DetailSection icon={MapPin} title="Location" color="emerald">
                 <DetailGrid>
-                  <DetailItem label="Area" value={viewingVisit.area} />
-                  <DetailItem label="City" value={viewingVisit.city} />
+                  <DetailItem label="Area / Locality" value={getLocationLabel(viewingVisit).area} />
+                  <DetailItem label="City" value={getLocationLabel(viewingVisit).city || "—"} />
+                  <DetailItem label="State" value={getLocationLabel(viewingVisit).state || "—"} />
                   <DetailItem label="Pincode" value={viewingVisit.pincode} />
                   <DetailItem label="Landmark" value={viewingVisit.landmark} />
                 </DetailGrid>
@@ -2091,18 +2599,35 @@ export default function Visit() {
                 </DetailSection>
               )}
 
-              {viewingVisit.photos?.length > 0 && (
+              {((viewingVisit.photos?.length > 0) || (viewingVisit.propertyViews?.some(v => v.images?.length > 0))) && (
                 <DetailSection icon={Camera} title="Photos" color="rose">
                   {(() => {
-                    // Same grouping as the form: by how the photo was taken.
-                    // Both kinds are published; this only makes the report
-                    // readable at a glance.
-                    const rows = (viewingVisit.photos || []).map((url, idx) => {
-                      const detail = viewingVisit.photoDetails?.[idx] || {};
-                      const capturedAt = detail.capturedAt ||
-                        (viewingVisit.photoTimestamps && viewingVisit.photoTimestamps[url]) || null;
-                      return { url, idx, capturedAt, isLive: detail.source === "camera" };
+                    const allVisitPhotos = [...(viewingVisit.photos || [])];
+                    if (Array.isArray(viewingVisit.propertyViews)) {
+                      viewingVisit.propertyViews.forEach(v => {
+                        (v.images || []).forEach(imgUrl => {
+                          if (imgUrl && !allVisitPhotos.includes(imgUrl)) {
+                            allVisitPhotos.push(imgUrl);
+                          }
+                        });
+                      });
+                    }
+
+                    const rows = allVisitPhotos.map((url, idx) => {
+                      const detail = (viewingVisit.photoDetails || []).find(d => d.url === url) || viewingVisit.photoDetails?.[idx] || {};
+                      const capturedAt = detail.capturedAt || (viewingVisit.photoTimestamps && viewingVisit.photoTimestamps[url]) || null;
+                      const rawPlace = detail.placeAddress || detail.placeName ||
+                        (detail.latitude != null && detail.longitude != null
+                          ? formatCoordinates(detail.latitude, detail.longitude)
+                          : null);
+                      const placeLabel = rawPlace && detail.locationTrusted === false
+                        ? `Approx. ${rawPlace}`
+                        : rawPlace;
+                      const isLive = detail.source === "camera" || (!!capturedAt && detail.source !== "upload");
+                      const category = detail.category || "Uploaded Photo";
+                      return { url, idx, capturedAt, placeLabel, isLive, category };
                     });
+
                     const live = rows.filter(r => r.isLive);
                     const uploaded = rows.filter(r => !r.isLive);
 
@@ -2127,8 +2652,15 @@ export default function Visit() {
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                               {live.map(r => (
                                 <Tile key={r.idx} r={r} badge={
-                                  <span className="truncate flex items-center gap-1.5 text-sky-400">
-                                    <Clock size={11} className="shrink-0" />{r.capturedAt || "Live capture"}
+                                  <span className="flex flex-col gap-0.5 min-w-0">
+                                    <span className="truncate flex items-center gap-1.5 text-sky-400">
+                                      <Clock size={11} className="shrink-0" />{r.capturedAt || "Live capture"}
+                                    </span>
+                                    {r.placeLabel && (
+                                      <span className="truncate flex items-center gap-1.5 text-slate-300 font-medium">
+                                        <MapPin size={11} className="shrink-0" />{r.placeLabel}
+                                      </span>
+                                    )}
                                   </span>
                                 } />
                               ))}
@@ -2147,7 +2679,7 @@ export default function Visit() {
                               {uploaded.map(r => (
                                 <Tile key={r.idx} r={r} badge={
                                   <span className="truncate flex items-center gap-1.5 text-slate-300">
-                                    <ImageIcon size={11} className="shrink-0" /> Uploaded file
+                                    <ImageIcon size={11} className="shrink-0" /> {r.category}
                                   </span>
                                 } />
                               ))}
@@ -2273,20 +2805,249 @@ export default function Visit() {
             <div className="relative bg-black aspect-video flex items-center justify-center overflow-hidden">
               <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
               {/* Mirrors the stamp that will be burnt into the photo. */}
-              <div className="absolute bottom-2 left-2 bg-slate-950/80 px-3 py-1 rounded-full text-[10px] font-mono text-sky-400 font-bold">
-                {new Date().toLocaleString("en-IN")}
+              <div className="absolute bottom-2 left-2 right-2 flex flex-col items-start gap-1">
+                <span className="bg-slate-950/80 px-3 py-1 rounded-full text-[10px] font-mono text-sky-400 font-bold">
+                  {new Date().toLocaleString("en-IN")}
+                </span>
+                <span className="max-w-full bg-slate-950/80 px-3 py-1 rounded-full text-[10px] text-slate-300 flex items-center gap-1.5 min-w-0">
+                  {locationVerified ? (
+                    <MapPin size={11} className="shrink-0 text-emerald-400" />
+                  ) : locationUnresolved ? (
+                    <AlertTriangle size={11} className="shrink-0 text-amber-400" />
+                  ) : (
+                    <Loader2 size={11} className="shrink-0 text-sky-400 animate-spin" />
+                  )}
+                  <span className="truncate">
+                    {captureLocation.status === "ready"
+                      ? `${locationApproximate ? "Approx. " : ""}${captureLocation.place.formattedAddress}`
+                      : captureLocation.status === "partial"
+                        ? formatCoordinates(captureLocation.coords.latitude, captureLocation.coords.longitude)
+                        : captureLocation.status === "geocoding"
+                          ? "Resolving address…"
+                          : locationUnresolved
+                            ? "Location not verified"
+                            : captureLocation.coords
+                              // A first fix is in, still tightening.
+                              ? `Improving accuracy… ±${formatAccuracy(captureLocation.coords.accuracy)}`
+                              : "Detecting current location…"}
+                  </span>
+                </span>
               </div>
               <div className={`absolute top-2 left-2 px-3 py-1 rounded-full text-[10px] font-bold ${geoStatus === "ready" ? "bg-emerald-500/90 text-white" : geoStatus === "unavailable" ? "bg-amber-500/90 text-white" : "bg-slate-950/80 text-sky-300"}`}>
                 {geoStatus === "ready" ? "GPS location ready" : geoStatus === "coordinates-only" ? "GPS ready - place name unavailable" : geoStatus === "unavailable" ? "GPS unavailable - allow browser location" : "Detecting GPS location..."}
               </div>
             </div>
+
+            {/* ── Verified location ─────────────────────────────────────────
+                Coordinates come from the device GPS at capture time, never an
+                IP lookup or a stored address. A capture without a verified fix
+                is allowed (see REQUIRE_VERIFIED_LOCATION) but never presented
+                as one. */}
+            <div className="px-5 pt-4">
+              {locationUnresolved ? (
+                <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3.5">
+                  <p className="text-[11px] text-amber-200 leading-relaxed flex items-start gap-2">
+                    <AlertTriangle size={13} className="shrink-0 mt-0.5" />
+                    <span>{captureLocation.error}</span>
+                  </p>
+                  {captureLocation.errorCode === "too_coarse" && (
+                    <p className="mt-2 pl-[21px] text-[10px] text-amber-300/70 leading-relaxed">
+                      Laptops and desktops have no GPS chip — the browser can only guess from
+                      nearby Wi-Fi networks, which is why the area is so wide. Open this page on
+                      the phone you are visiting with.
+                      {captureLocation.place && (
+                        <> Centre of that area: <span className="text-amber-200/80">{captureLocation.place.formattedAddress}</span> — this is not where you are.</>
+                      )}
+                    </p>
+                  )}
+                  {!REQUIRE_VERIFIED_LOCATION && (
+                    <p className="mt-2 pl-[21px] text-[10px] text-amber-300/70 leading-relaxed">
+                      You can still capture — the photo will be stamped “Location not verified”.
+                    </p>
+                  )}
+                  <button type="button" onClick={resolveCaptureLocation}
+                    className="mt-3 px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-100 text-[11px] font-bold flex items-center gap-1.5 transition-colors">
+                    <RefreshCw size={12} /> Retry location
+                  </button>
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-3.5">
+                  <p className="text-[11px] font-bold text-slate-200 flex items-start gap-2 min-w-0">
+                    {locationVerified
+                      ? <MapPin size={13} className="shrink-0 mt-0.5 text-emerald-400" />
+                      : <Loader2 size={13} className="shrink-0 mt-0.5 text-sky-400 animate-spin" />}
+                    <span className="break-words">
+                      {captureLocation.status === "ready"
+                        ? captureLocation.place.formattedAddress
+                        : captureLocation.status === "partial"
+                          ? formatCoordinates(captureLocation.coords.latitude, captureLocation.coords.longitude)
+                          : captureLocation.status === "geocoding"
+                            ? "Resolving address…"
+                            : "Detecting current location…"}
+                    </span>
+                  </p>
+                  <div className="mt-1.5 pl-[21px] space-y-0.5">
+                    {captureLocation.coords?.accuracy != null && (
+                      <p className={cn("text-[10px]", locationApproximate ? "text-amber-400/90" : "text-slate-500")}>
+                        GPS accuracy: ±{formatAccuracy(captureLocation.coords.accuracy)}
+                      </p>
+                    )}
+                    {captureLocation.status === "partial" && (
+                      <p className="text-[10px] text-amber-400/90">{captureLocation.error}</p>
+                    )}
+                    {locationApproximate && (
+                      <p className="text-[10px] text-amber-400/90 leading-relaxed">
+                        This is a wide, approximate area — likely a Wi-Fi estimate rather than GPS.
+                        The photo will be stamped “Approx.”. For an exact fix, capture on a phone with GPS on.
+                      </p>
+                    )}
+                    {!locationVerified && (
+                      <p className="text-[10px] text-slate-500">
+                        Allow location access when your browser asks — the photo is stamped with it.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="p-5 flex items-center justify-between bg-slate-900 gap-4">
               <button type="button" onClick={stopCamera} className="px-5 py-3 rounded-2xl text-xs font-bold text-slate-400 hover:text-white transition-colors">
                 Cancel
               </button>
-              <button type="button" onClick={capturePhotoFromCamera} className="px-6 py-3.5 bg-rose-600 hover:bg-rose-500 text-white rounded-2xl text-xs font-bold uppercase tracking-wider shadow-lg shadow-rose-600/30 flex items-center gap-2 transition-all">
-                <Camera size={16} /> Snap Photo & Watermark Timestamp
+              <button type="button" onClick={capturePhotoFromCamera} disabled={!canCapture}
+                title={canCapture ? undefined : "Waiting for your device location"}
+                className={cn(
+                  "px-6 py-3.5 text-white rounded-2xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all",
+                  "disabled:bg-slate-800 disabled:text-slate-500 disabled:shadow-none disabled:cursor-not-allowed",
+                  // An unverified capture is deliberately not the confident red
+                  // button — it should not feel like the normal, good outcome.
+                  locationVerified
+                    ? "bg-rose-600 hover:bg-rose-500 shadow-lg shadow-rose-600/30"
+                    : "bg-slate-700 hover:bg-slate-600"
+                )}>
+                {locationVerified ? (
+                  <><Camera size={16} /> Snap Photo &amp; Watermark Timestamp</>
+                ) : locationUnresolved ? (
+                  <><AlertTriangle size={16} /> Snap without verified location</>
+                ) : (
+                  <><Loader2 size={16} className="animate-spin" /> Waiting for location…</>
+                )}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ STAFF MEMBER PROFILE MODAL ═══ */}
+      {selectedStaffModal && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setSelectedStaffModal(null)}>
+          <div className="bg-white rounded-3xl overflow-hidden max-w-md w-full shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 duration-150" onClick={e => e.stopPropagation()}>
+            <div className="p-6 bg-gradient-to-br from-blue-900 via-slate-900 to-blue-950 text-white flex items-start justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/30 text-xl font-black shrink-0 border border-blue-400/30">
+                  {(selectedStaffModal.staffName || 'S').charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                    {selectedStaffModal.staffName}
+                  </h3>
+                  <p className="text-[11px] font-mono text-blue-300 font-bold mt-0.5 flex items-center gap-1">
+                    <UserCheck size={12} className="text-blue-400" />
+                    ID: {fetchedStaffInfo?.loginId || selectedStaffModal.staffId || "STAFF-EMP"}
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => setSelectedStaffModal(null)} className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white transition-all">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 bg-white">
+              {staffDetailsLoading && (
+                <div className="flex items-center gap-2 text-xs text-blue-600 font-bold bg-blue-50 p-3 rounded-xl border border-blue-100">
+                  <Loader2 className="w-4 h-4 animate-spin shrink-0" /> Fetching full staff profile from directory...
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Login ID</p>
+                  <p className="text-xs font-mono font-bold text-slate-900 mt-1">
+                    {fetchedStaffInfo?.loginId || selectedStaffModal.staffId || "N/A"}
+                  </p>
+                </div>
+                <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Designation</p>
+                  <p className="text-xs font-bold text-slate-900 mt-1">
+                    {fetchedStaffInfo?.role || fetchedStaffInfo?.employeeType || "Field Executive"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2.5 pt-1">
+                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                  <Phone className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <div>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Phone Number</p>
+                    {fetchedStaffInfo?.phone || selectedStaffModal.phone ? (
+                      <a href={`tel:${fetchedStaffInfo?.phone || selectedStaffModal.phone}`} className="text-xs font-bold text-blue-600 hover:underline">
+                        {fetchedStaffInfo?.phone || selectedStaffModal.phone}
+                      </a>
+                    ) : (
+                      <p className="text-xs font-semibold text-slate-400">Not specified</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                  <Mail className="w-4 h-4 text-blue-600 shrink-0" />
+                  <div>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Email Address</p>
+                    {fetchedStaffInfo?.email || selectedStaffModal.email ? (
+                      <a href={`mailto:${fetchedStaffInfo?.email || selectedStaffModal.email}`} className="text-xs font-bold text-blue-600 hover:underline break-all">
+                        {fetchedStaffInfo?.email || selectedStaffModal.email}
+                      </a>
+                    ) : (
+                      <p className="text-xs font-semibold text-slate-400">Not specified</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                  <Building2 className="w-4 h-4 text-violet-600 shrink-0" />
+                  <div>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Operating City / Area</p>
+                    <p className="text-xs font-bold text-slate-800">
+                      {[fetchedStaffInfo?.area, fetchedStaffInfo?.city].filter(Boolean).join(", ") || selectedStaffModal.visit?.city || "Kota / Jaipur"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Total reports submitted count */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-4 flex items-center justify-between shadow-xs">
+                <div>
+                  <p className="text-[10px] font-black text-blue-700 uppercase tracking-widest">Total Reports Submitted</p>
+                  <p className="text-xs font-medium text-slate-600 mt-0.5">Field property onboarding visits</p>
+                </div>
+                <span className="text-xl font-black text-blue-600 bg-white px-3 py-1 rounded-xl shadow-xs border border-blue-200">
+                  {visits.filter(v => (v.staffName || v.submittedBy || '').toLowerCase() === selectedStaffModal.staffName.toLowerCase()).length}
+                </span>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearch(selectedStaffModal.staffName);
+                    setSelectedStaffModal(null);
+                  }}
+                  className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-slate-900/10 cursor-pointer"
+                >
+                  <Search size={14} /> Filter All Reports by {selectedStaffModal.staffName}
+                </button>
+              </div>
             </div>
           </div>
         </div>

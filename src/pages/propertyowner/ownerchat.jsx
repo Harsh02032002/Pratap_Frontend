@@ -3,7 +3,53 @@ import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLay
 import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerTenants } from "../../utils/propertyowner";
 import { apiFetch, getApiBase } from "../../utils/api";
 import { io } from "socket.io-client";
-import { Search, Send, User, MoreVertical, Loader2, MessageSquare, Wallet, Paperclip, FileText, AlertTriangle } from "lucide-react";
+import { toast } from "react-hot-toast";
+import { Search, Send, User, MoreVertical, Loader2, MessageSquare, Wallet, Paperclip, FileText, AlertTriangle, X } from "lucide-react";
+
+/**
+ * Report a send that did not reach the server, and take the optimistic bubble
+ * back out of the thread.
+ *
+ * Both were previously missing: a failed send was written to console.error
+ * only — which terser strips from production builds — while its optimistic
+ * bubble stayed on screen until the next 10s poll replaced `messages` with the
+ * server's list and it silently vanished. To the owner that read as "my
+ * message disappears a second after I send it", with nothing explaining why.
+ *
+ * The case that actually produced it: POST /api/chat/send answering 403
+ * because the account was chat-blocked.
+ */
+/**
+ * Whether two rendered threads are the same, so a background refetch that
+ * returned identical data can be dropped instead of re-rendering.
+ *
+ * The 10s poll rebuilt the message array every tick regardless of whether
+ * anything had changed, and the scroll-to-bottom effect keyed on `messages`
+ * fired with it — so the conversation animated a jump to the bottom on a timer
+ * while the owner was reading or typing.
+ */
+const sameThread = (a, b) => {
+  if (a === b) return true;
+  if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+  return a.every((msg, i) => msg.id === b[i].id && msg.text === b[i].text && msg.isBlocked === b[i].isBlocked);
+};
+
+const reportSendFailure = (err, optimisticId, setMessages) => {
+  setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
+
+  const status = err?.status;
+  let text = err?.message || "Message could not be sent. Please try again.";
+
+  if (status === 403) {
+    text = err?.message || "Your account is currently restricted from chatting.";
+  } else if (status === 429) {
+    text = "You're sending messages too quickly. Please wait a moment.";
+  } else if (status === 408 || err?.name === "TimeoutError") {
+    text = "The message timed out. Check your connection and try again.";
+  }
+
+  toast.error(text, { duration: 6000 });
+};
 
 export default function OwnerChat() {
   const owner = getOwnerRuntimeSession();
@@ -47,6 +93,31 @@ export default function OwnerChat() {
       hash = (hash * 31 + safeEmail.charCodeAt(i)) % 1000000;
     }
     return `roomhyweb${String(hash).padStart(6, '0')}`;
+  };
+
+  /**
+   * Mirror of the backend's canonicalChatId (utils/chatIdentity.js).
+   *
+   * The inbox now returns one row per person, keyed on the canonical id, but
+   * that person's messages still arrive carrying whichever id they were stored
+   * under. Comparisons have to be made in one form or they miss.
+   */
+  const canonicalChatId = (rawId) => {
+    const value = String(rawId || "").trim();
+    if (!value) return "";
+    if (/^roomhyweb\d{6}$/i.test(value)) return value.toLowerCase();
+    if (value.includes("@")) return generateWebsiteUserIdFromEmail(value) || value;
+    // Returned unchanged, matching the backend exactly — owner ids double as
+    // Socket.IO room names and their case has to survive. Case-insensitive
+    // matching is sameChatParty's job.
+    return value;
+  };
+
+  const sameChatParty = (a, b) => {
+    if (!a || !b) return false;
+    const left = String(a).trim().toLowerCase();
+    const right = String(b).trim().toLowerCase();
+    return left === right || canonicalChatId(a).toLowerCase() === canonicalChatId(b).toLowerCase();
   };
 
   const fetchAssociatedBooking = async (targetUserId) => {
@@ -142,7 +213,9 @@ export default function OwnerChat() {
       });
       fetchMessages(activeChat.participant_login_id);
     } catch (err) {
-      console.error("Failed to send payment link", err);
+      // Same silent-vanish problem as handleSend: the payment link bubble was
+      // left on screen after a failed send and then quietly removed by the poll.
+      reportSendFailure(err, optimisticMsg.id, setMessages);
     } finally {
       setIsSending(false);
     }
@@ -239,26 +312,29 @@ export default function OwnerChat() {
   const fetchMessages = async (targetUserId) => {
     try {
       if (!targetUserId) return;
-      const res = await apiFetch(`/api/chat/conversation?user1=${owner.loginId}&user2=${targetUserId}`);
+      // Encoded: a participant id can be an email, and an unencoded one broke
+      // the query string for any address containing a '+'.
+      const res = await apiFetch(`/api/chat/conversation?user1=${encodeURIComponent(owner.loginId)}&user2=${encodeURIComponent(targetUserId)}`);
       if (res && Array.isArray(res)) {
-        setMessages(res.map(msg => {
-          const isMeMsg = String(msg.sender_login_id || '').toUpperCase() === String(owner.loginId || '').toUpperCase();
+        const next = res.map(msg => {
+          const isMine = sameChatParty(msg.sender_login_id, owner.loginId) || String(msg.sender_login_id || '').toUpperCase() === String(owner.loginId || '').toUpperCase();
           return {
             id: msg._id,
-            sender: isMeMsg ? "Me" : (msg.sender_name || "Tenant"),
+            sender: isMine ? "Me" : (msg.sender_name || "Tenant"),
             text: msg.message,
             message_type: msg.message_type || 'text',
             file_url: msg.file_url || null,
             time: new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-            isMe: isMeMsg,
+            isMe: isMine,
             isSystem: msg.sender_login_id === 'system' || msg.sender_role === 'superadmin' || msg.message_type === 'system',
             isBlocked: msg.is_blocked || false,
             violationType: msg.violation_type || null
           };
-        }));
-        scrollToBottom();
+        });
+
+        setMessages(prev => (sameThread(prev, next) ? prev : next));
         // Mark these messages as read
-        await apiFetch(`/api/chat/mark-read/${owner.loginId}?sender=${targetUserId}`, { method: "POST" });
+        await apiFetch(`/api/chat/mark-read/${encodeURIComponent(owner.loginId)}?sender=${encodeURIComponent(targetUserId)}`, { method: "POST" });
       }
     } catch (err) {
       console.error(err);
@@ -313,13 +389,17 @@ export default function OwnerChat() {
     socket.on("reconnect", joinOwnRoom);
 
     socket.on("receive_message", (incoming) => {
-      const sender = String(incoming?.sender_login_id || "").trim().toLowerCase();
       const open = activeChatRef.current;
 
       // Refresh the open thread so the new message renders with the same
       // shape/moderation flags the REST fetch produces.
+      //
+      // Compared canonically: the inbox row carries the canonical id while the
+      // message carries whatever id the sender was stored under, so an exact
+      // compare here silently failed and the open thread stayed stale until
+      // the next 10s poll.
       if (open?.participant_login_id &&
-          sender === String(open.participant_login_id).trim().toLowerCase()) {
+          sameChatParty(incoming?.sender_login_id, open.participant_login_id)) {
         fetchMessages(open.participant_login_id);
       }
 
@@ -329,7 +409,12 @@ export default function OwnerChat() {
 
     socket.on("message_blocked", (data) => {
       if (data?.warning || data?.message || data?.blocked) {
-        setBlockedMsgSnippet(data?.message || 'Contact details / offline deal prohibited');
+        // `data.message` is the platform's warning copy, not anything the user
+        // typed. Passing it to setBlockedMsgSnippet rendered it under a "Your
+        // message" heading, so the dialog quoted its own warning back at the
+        // owner as though they had written it. The offending text arrives as
+        // `snippet`; when it is absent the quote block is simply not shown.
+        setBlockedMsgSnippet(data?.snippet || "");
         setShowBypassWarning(true);
       }
       if (activeChatRef.current?.participant_login_id) {
@@ -446,7 +531,7 @@ export default function OwnerChat() {
       });
       fetchMessages(activeChat.participant_login_id);
     } catch (err) {
-      console.error("Failed to send message", err);
+      reportSendFailure(err, optimisticMsg.id, setMessages);
     } finally {
       setIsSending(false);
     }
@@ -466,49 +551,64 @@ export default function OwnerChat() {
         <p className="mt-1.5 text-[13.5px] text-muted-foreground">Chat with tenants and staff.</p>
       </div>
 
-      {/* Commission Bypass Violation Danger Modal */}
+      {/* Policy check — message held before sending.
+          Styled to the owner panel's own modal pattern (see follow-ups.jsx):
+          bg-card / border-border / rounded-2xl shell, serif heading, muted
+          body copy, slate primary button. Amber rather than red, matching the
+          policy-warning system messages already rendered in the thread. */}
       {showBypassWarning && (
-        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-6 border-2 border-rose-500 shadow-2xl space-y-4">
-            <div className="flex items-center gap-3 text-rose-600">
-              <div className="size-12 rounded-2xl bg-rose-100 flex items-center justify-center shrink-0">
-                <AlertTriangle size={28} className="stroke-[2.5]" />
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-card border border-border rounded-2xl w-full max-w-md p-6 relative shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <button
+              onClick={() => setShowBypassWarning(false)}
+              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition p-1 hover:bg-muted rounded-full"
+              aria-label="Close"
+            >
+              <X className="size-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="size-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
+                <AlertTriangle size={20} />
               </div>
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-rose-700 bg-rose-50 px-2.5 py-0.5 rounded-full border border-rose-200">
-                  CRITICAL VIOLATION DETECTED
+              <span className="text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full border bg-amber-50 text-amber-700 border-amber-100">
+                Policy check
+              </span>
+            </div>
+
+            <h3 className="font-serif text-[22px] font-bold text-foreground mb-1">Message not sent</h3>
+            <p className="text-[13px] text-muted-foreground mb-4">
+              It looks like this message shares contact details or arranges payment outside Roomhy, which isn&apos;t allowed on the platform.
+            </p>
+
+            {/* Only shown when we actually have the text that was withheld.
+                A warning arriving over the socket may not carry it. */}
+            {blockedMsgSnippet ? (
+              <div className="rounded-xl border border-border bg-muted/40 p-3 mb-4">
+                <span className="block text-[11px] font-bold text-muted-foreground uppercase tracking-wide mb-1.5">
+                  Your message
                 </span>
-                <h3 className="text-lg font-black text-slate-900 dark:text-white mt-1">Commission Bypass Attempt Logged!</h3>
+                <p className="text-xs font-mono text-foreground break-words line-clamp-4">
+                  {blockedMsgSnippet}
+                </p>
               </div>
-            </div>
+            ) : null}
 
-            <div className="bg-rose-50 dark:bg-rose-950/40 p-4 rounded-2xl border border-rose-200 dark:border-rose-900/50 space-y-2">
-              <p className="text-xs text-rose-900 dark:text-rose-200 font-semibold leading-relaxed">
-                You attempted to send a message containing direct contact info or offline deal instructions:
+            <div className="border-t border-border/60 pt-4 mb-5 space-y-1.5">
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Keeping conversations and payments on Roomhy is what lets us protect both sides of a booking. Repeated attempts to move a deal off the platform lead to the account being suspended.
               </p>
-              <p className="text-xs font-mono bg-white dark:bg-slate-950 p-2.5 rounded-xl border border-rose-200 text-rose-700 dark:text-rose-300 italic">
-                "{blockedMsgSnippet}"
-              </p>
-            </div>
-
-            <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-slate-200 text-xs text-slate-700 dark:text-slate-300 font-medium space-y-1.5">
-              <p className="font-bold text-rose-600">⚠️ WARNING: IMMEDIATE PERMANENT BLOCK RISK</p>
-              <p>
-                Attempting to bypass Roomhy platform commission or dealing offline with tenants will result in <strong className="text-rose-600 underline">IMMEDIATE PERMANENT ACCOUNT BLOCK & SYSTEM-WIDE BLACKLISTING</strong>.
-              </p>
-              <p className="text-[11px] text-muted-foreground font-semibold">
-                Once your account is blocked, <span className="underline font-bold text-foreground">it CANNOT be reactivated by anyone (including Roomhy Admins) under any circumstances</span>.
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Rewrite the message without phone numbers, email addresses or offline payment terms and it will send normally.
               </p>
             </div>
 
-            <div className="pt-2 flex justify-end">
-              <button
-                onClick={() => setShowBypassWarning(false)}
-                className="w-full h-11 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all shadow-md"
-              >
-                I Understand & Agree to Comply with Platform Terms
-              </button>
-            </div>
+            <button
+              onClick={() => setShowBypassWarning(false)}
+              className="w-full h-10 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-colors"
+            >
+              Got it
+            </button>
           </div>
         </div>
       )}

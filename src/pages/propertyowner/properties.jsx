@@ -1234,7 +1234,7 @@ export default function Properties() {
                       >
                         <Globe className="size-3.5" /> Preview
                       </button>
-                      <button onClick={() => setEditProperty(p)}
+                      <button onClick={() => window.location.href = `/propertyowner/add-property?edit=${encodeURIComponent(p._id)}`}
                         className="flex-1 flex items-center justify-center gap-1 py-2.5 bg-blue-600 text-white font-bold rounded-lg text-[11px] hover:bg-blue-700 transition-all shadow-sm">
                         <Edit className="size-3.5" /> Edit
                       </button>
@@ -1342,7 +1342,7 @@ export default function Properties() {
                       >
                         <Globe className="w-4 h-4" /> Preview
                       </button>
-                      <button onClick={() => setEditProperty(p)}
+                      <button onClick={() => window.location.href = `/propertyowner/add-property?edit=${encodeURIComponent(p._id)}`}
                         className="flex-1 bg-blue-600 text-white py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider hover:bg-blue-700 transition-colors flex items-center justify-center gap-1.5">
                         <Edit className="w-4 h-4" /> Edit Info
                       </button>

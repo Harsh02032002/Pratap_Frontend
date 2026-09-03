@@ -2,10 +2,13 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { MessageCircle, Zap } from 'lucide-react';
 import { fetchJson } from '../../utils/api';
+import { getScopedStoredUser } from '../../utils/authScope';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function FloatingBidNowButton({ onOpenModal }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [isScrolledDown, setIsScrolledDown] = useState(false);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -31,9 +34,7 @@ export default function FloatingBidNowButton({ onOpenModal }) {
   useEffect(() => {
     const fetchUnread = async () => {
       try {
-        let userStr = localStorage.getItem('roomhy_user') || localStorage.getItem('user');
-        if (!userStr) return;
-        const userObj = JSON.parse(userStr);
+        const userObj = user || getScopedStoredUser() || {};
         let userId = userObj?.loginId || userObj?.email;
         if (!userId && userObj?.email) {
           let hash = 0;
@@ -56,7 +57,7 @@ export default function FloatingBidNowButton({ onOpenModal }) {
     fetchUnread();
     const interval = setInterval(fetchUnread, 3000);
     return () => clearInterval(interval);
-  }, []);
+  }, [user]);
 
   if (location.pathname === '/website/chat' || location.pathname === '/properties' || location.pathname.startsWith('/properties') || location.pathname === '/bidding' || location.pathname.startsWith('/bidding')) {
     return null;

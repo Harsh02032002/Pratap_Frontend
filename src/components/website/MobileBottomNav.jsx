@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, Building2, HelpCircle, Info, MessageCircle, ListPlus } from 'lucide-react';
+import { getScopedStoredUser } from '../../utils/authScope';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function MobileBottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [isVisible, setIsVisible] = useState(false);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
 
@@ -51,9 +54,7 @@ export default function MobileBottomNav() {
   useEffect(() => {
     const fetchUnread = async () => {
       try {
-        let userStr = localStorage.getItem('roomhy_user') || localStorage.getItem('user');
-        if (!userStr) return;
-        const userObj = JSON.parse(userStr);
+        const userObj = user || getScopedStoredUser() || {};
         let userId = userObj?.loginId || userObj?.email;
         if (!userId && userObj?.email) {
           let hash = 0;
@@ -77,7 +78,7 @@ export default function MobileBottomNav() {
     fetchUnread();
     const interval = setInterval(fetchUnread, 3000);
     return () => clearInterval(interval);
-  }, []);
+  }, [user]);
 
   const navItems = [
     { icon: Home, path: '/', label: 'Home' },

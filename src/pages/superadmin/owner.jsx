@@ -203,19 +203,22 @@ export default function Owner() {
       let base = owners;
 
       if (currentView === "pending") {
-         base = owners.filter(o => !o.isActive || o.status === "pending_approval" || o.isEmployeeSubmitted);
+         base = owners.filter(o => o.isActive === false || String(o.status || '').toLowerCase().includes('pending') || o.isEmployeeSubmitted);
       } else if (currentView === "kyc" || currentView === "agreements") {
-         base = owners; // Show all owners in KYC / Agreements view
+         base = owners;
       } else {
-         // Default / "list" (View All Property Owners) -> ONLY show admin-approved active owners!
-         base = owners.filter(o => o.isActive === true && (o.status === "approved" || o.status === "active"));
+         // Default / "list": Show all registered property owners (exclude explicitly blocked accounts)
+         base = owners.filter(o => o.isActive !== false && String(o.status || '').toLowerCase() !== 'blocked');
       }
 
       return base.filter(o => {
          const id = (o.loginId || o._id || "").toString().toLowerCase();
-         const name = (o.name || o.profile?.name || "").toLowerCase();
-         const area = (o.locationCode || o.checkinArea || "").toLowerCase();
-         const matchesSearch = id.includes(query) || name.includes(query);
+         const name = (o.name || o.owner_name || o.profile?.name || "").toLowerCase();
+         const area = (o.locationCode || o.checkinArea || o.city || "").toLowerCase();
+         const email = (o.email || o.profile?.email || "").toLowerCase();
+         const phone = (o.phone || o.profile?.phone || "").toLowerCase();
+
+         const matchesSearch = !query || id.includes(query) || name.includes(query) || email.includes(query) || phone.includes(query) || area.includes(query);
          const matchesArea = areaFilter === "all" || area.includes(areaFilter.toLowerCase());
          return matchesSearch && matchesArea;
       });
