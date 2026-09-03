@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Zap, ArrowLeft, Send, Loader, CheckCircle, Shield, Info } from 'lucide-react';
+import { Zap, ArrowLeft, Send, Loader, CheckCircle, Shield, Info, Sparkles, ShieldCheck, CheckCircle2, PhoneCall } from 'lucide-react';
 import WebsiteNavbar from "../../components/website/WebsiteNavbar";
 import WebsiteFooter from "../../components/website/WebsiteFooter";
 import MobileBottomNav from "../../components/website/MobileBottomNav";

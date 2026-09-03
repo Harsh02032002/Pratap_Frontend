@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import WebsiteNavbar from "../../components/website/WebsiteNavbar";
 import WebsiteFooter from "../../components/website/WebsiteFooter";
 import MobileBottomNav from "../../components/website/MobileBottomNav";
-import { ChevronDown, HelpCircle, Search, MessageSquare } from 'lucide-react';
+import { ChevronDown, HelpCircle, Search, MessageSquare, ShieldCheck, CheckCircle2, PhoneCall, Sparkles } from 'lucide-react';
 import { Link } from "react-router-dom";
 import useSEO from "../../hooks/useSEO";
 
@@ -96,78 +96,107 @@ export default function FAQPage() {
 
   return (
     <div
-      className="min-h-screen flex flex-col font-sans selection:bg-teal-500 selection:text-white"
-      style={{ background: 'linear-gradient(135deg, #F5FAFF 0%, #F2FBF9 50%, #F8FFFD 100%)' }}
+      className="min-h-screen flex flex-col font-sans bg-[#F4F7F6] text-slate-900 selection:bg-teal-500 selection:text-white"
     >
       <WebsiteNavbar />
 
       <main className="flex-grow">
-        {/* --- HERO BANNER (MATCHING CONTACT/ABOUT PAGE STANDARD DESIGN) --- */}
-        <section className="relative border-b border-[#DCE7EF]/80 text-slate-900 py-5 md:py-6 px-4 md:px-8 overflow-hidden bg-gradient-to-r from-slate-50 via-white to-teal-50/40">
-          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
-            {/* Left Column: Heading & Search Bar */}
-            <div className="flex-1 text-left max-w-2xl">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50/90 border border-teal-200/90 text-[#0FA596] text-xs font-extrabold mb-2 shadow-2xs">
-                <HelpCircle className="w-3.5 h-3.5 text-[#0FA596]" />
-                <span>Help Center &amp; FAQs</span>
+
+        {/* ================================================================
+         * 1. HERO — FULL SECTION BACKGROUND PHOTO (EDGE-TO-EDGE WITH SOFT LEFT OVERLAY)
+         * ================================================================ */}
+        <section className="relative border-b border-slate-200/80 text-slate-900 py-8 sm:py-10 px-4 sm:px-8 lg:px-14 overflow-hidden bg-slate-900 flex items-center min-h-[380px]">
+          
+          {/* Full Width Background Photo Layer (Edge-to-Edge Across 100% Section) */}
+          <div 
+            className="absolute inset-0 bg-cover bg-center md:bg-[center_right] opacity-100 z-0 brightness-105"
+            style={{ backgroundImage: `url('https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=1980&auto=format&fit=crop')` }}
+          />
+
+          {/* Rich White Opacity Overlay for 100% text readability & background visibility */}
+          <div 
+            className="absolute inset-0 z-0"
+            style={{ background: 'linear-gradient(90deg, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.90) 50%, rgba(255,255,255,0.35) 100%)' }}
+          ></div>
+
+          <div className="w-full max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+            
+            {/* Left Column: Direct Dark Typography */}
+            <div className="w-full md:max-w-[500px] lg:max-w-[540px] text-left space-y-3.5 text-slate-900">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 backdrop-blur-md border border-teal-200 text-[#0FA596] text-[10px] sm:text-xs font-black tracking-wide shadow-2xs">
+                <Sparkles className="w-3.5 h-3.5 text-[#0FA596] animate-pulse" />
+                <span className="uppercase tracking-wider">Help Center &amp; Student FAQs</span>
               </div>
               
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-slate-900 mb-1.5 leading-tight">
-                Frequently Asked <span className="text-[#0FA596]">Questions</span>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-slate-950 leading-tight">
+                Frequently Asked <br className="hidden sm:inline" />
+                <span className="bg-gradient-to-r from-[#0FA596] via-teal-600 to-emerald-500 bg-clip-text text-transparent">
+                  Questions &amp; Guide.
+                </span>
               </h1>
 
-              <p className="text-xs md:text-sm text-slate-600 font-medium leading-relaxed mb-3">
-                Have questions about zero brokerage, room verification, fast bidding, or refunds? Find instant answers below.
+              <p className="text-xs sm:text-sm text-slate-800 font-bold leading-relaxed">
+                Have questions about zero brokerage, room verification, fast bidding, token amounts, or refunds? Find instant answers below.
               </p>
 
-              {/* Search Input Bar */}
-              <div className="relative max-w-xl">
+              {/* Search Bar */}
+              <div className="relative max-w-xl pt-1">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                  <Search className="w-4 h-4" />
+                  <Search className="w-4 h-4 text-[#0FA596]" />
                 </div>
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search any question (e.g. bidding, refund, brokerage)..."
-                  className="w-full pl-9 pr-4 py-2.5 bg-white border border-[#DCE7EF] rounded-xl text-xs sm:text-sm font-semibold text-slate-900 placeholder-slate-400 shadow-2xs focus:outline-none focus:border-[#0FA596] focus:ring-2 focus:ring-[#0FA596]/15 transition-all"
+                  placeholder="Search any question (e.g. bidding, refunds, Kota hostels)..."
+                  className="w-full pl-10 pr-4 py-2.5 bg-white/90 backdrop-blur-md rounded-xl border border-teal-200 text-xs font-semibold focus:border-[#0FA596] focus:ring-2 focus:ring-[#0FA596]/20 outline-none transition-all shadow-xs"
                 />
+              </div>
+
+              {/* Trust Indicators Bar */}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-3 border-t border-slate-300/80 text-[11px] font-black text-slate-800 tracking-wide uppercase">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-4 h-4 rounded-full bg-teal-100 flex items-center justify-center">
+                    <ShieldCheck className="w-3 h-3 text-[#0FA596]" />
+                  </div>
+                  <span>Instant Answers</span>
+                </div>
+                <span className="text-slate-300 hidden sm:inline">|</span>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-4 h-4 rounded-full bg-emerald-100 flex items-center justify-center">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                  </div>
+                  <span>Zero Brokerage</span>
+                </div>
+                <span className="text-slate-300 hidden sm:inline">|</span>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-4 h-4 rounded-full bg-sky-100 flex items-center justify-center">
+                    <PhoneCall className="w-3.5 h-3.5 text-sky-600" />
+                  </div>
+                  <span>24/7 Support</span>
+                </div>
               </div>
             </div>
 
-            {/* Right Column: Aesthetic Photo Card */}
-            <div className="relative w-full md:w-[340px] h-32 md:h-36 rounded-2xl overflow-hidden shadow-lg border border-slate-200/90 shrink-0 group">
-              <img
-                src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop"
-                alt="Roomhy FAQ Help Guide"
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent" />
-              <div className="absolute bottom-2 left-3 right-3 bg-white/95 backdrop-blur-md p-2 rounded-xl border border-white/50 shadow-xs flex items-center justify-between">
-                <div>
-                  <div className="text-[11px] font-black text-slate-900">Student Help Desk</div>
-                  <div className="text-[9px] font-bold text-slate-500">Zero Brokerage Stays</div>
-                </div>
-                <span className="px-2 py-0.5 rounded-full bg-teal-100 text-teal-800 text-[9px] font-extrabold border border-teal-200">
-                  Instant Answers
-                </span>
-              </div>
-            </div>
+            {/* Right Column: Open space */}
+            <div className="hidden md:block w-full md:w-1/2"></div>
+
           </div>
         </section>
 
-        {/* --- FAQ CONTENT & CATEGORIES --- */}
-        <section className="py-12 md:py-16 px-4 md:px-8 max-w-4xl mx-auto">
-          {/* Category Tabs */}
+        {/* --- MAIN FAQ CONTENT --- */}
+        <section className="py-10 px-4 md:px-8 max-w-5xl mx-auto">
+
+          {/* Category Filter Pills */}
           <div className="flex flex-wrap items-center justify-center gap-2 mb-8">
-            {faqCategories.map(cat => (
+            {faqCategories.map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`px-4 py-2 rounded-full text-xs font-extrabold transition-all cursor-pointer ${
+                className={`px-4 py-2 rounded-full text-xs font-bold transition-all shadow-2xs cursor-pointer ${
                   selectedCategory === cat.id
-                    ? 'bg-[#0FA596] text-white shadow-sm'
-                    : 'bg-white border border-[#DCE7EF] text-slate-700 hover:border-[#62CFC0] hover:text-[#0FA596]'
+                    ? 'bg-[#0FA596] text-white shadow-md scale-105'
+                    : 'bg-white text-slate-700 hover:bg-teal-50 border border-slate-200'
                 }`}
               >
                 {cat.label}
@@ -177,47 +206,40 @@ export default function FAQPage() {
 
           {/* FAQ Accordion List */}
           {filteredFaqs.length === 0 ? (
-            <div className="bg-white rounded-2xl p-8 text-center border border-[#DCE7EF] shadow-[0_4px_18px_rgba(15,23,42,0.04)]">
-              <HelpCircle className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-              <h3 className="text-base font-bold text-slate-900">No matching questions found</h3>
-              <p className="text-xs text-slate-500 mt-1">Try searching with a different keyword or view all questions.</p>
-              <button 
-                onClick={() => { setSearchTerm(''); setSelectedCategory('all'); }}
-                className="mt-4 px-4 py-2 bg-teal-50 text-[#0FA596] border border-teal-200/80 rounded-xl text-xs font-extrabold hover:bg-teal-100 transition-colors cursor-pointer"
-              >
-                Reset Filters
-              </button>
+            <div className="text-center py-12 bg-white rounded-2xl border border-slate-200 p-8">
+              <HelpCircle className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+              <h3 className="text-base font-extrabold text-slate-900">No questions found matching "{searchTerm}"</h3>
+              <p className="text-xs text-slate-500 font-medium mt-1">Try searching for a different keyword or browse all categories above.</p>
             </div>
           ) : (
             <div className="space-y-3.5">
               {filteredFaqs.map((faq) => {
                 const isOpen = openIndex === faq.id;
                 return (
-                  <div 
+                  <div
                     key={faq.id}
-                    className={`bg-white rounded-2xl border transition-all duration-300 overflow-hidden ${
-                      isOpen ? 'border-[#0FA596] shadow-[0_8px_24px_rgba(15,23,42,0.08)] ring-2 ring-[#0FA596]/15' : 'border-[#DCE7EF] shadow-[0_4px_18px_rgba(15,23,42,0.04)] hover:border-[#62CFC0]'
+                    className={`bg-white rounded-2xl border transition-all duration-200 overflow-hidden ${
+                      isOpen
+                        ? 'border-[#0FA596] shadow-md ring-2 ring-[#0FA596]/10'
+                        : 'border-slate-200/90 shadow-2xs hover:border-teal-300'
                     }`}
                   >
                     <button
                       onClick={() => toggleAccordion(faq.id)}
-                      className="w-full flex items-center justify-between p-5 text-left font-extrabold text-slate-900 text-sm md:text-base gap-4 cursor-pointer"
+                      className="w-full p-5 text-left flex items-center justify-between gap-4 cursor-pointer"
                     >
-                      <span className="flex items-center gap-3">
-                        <span className="w-6 h-6 rounded-lg bg-teal-50 text-[#0FA596] border border-teal-100 flex items-center justify-center text-xs font-black shrink-0">
-                          ?
-                        </span>
+                      <span className="text-sm sm:text-base font-extrabold text-slate-900 leading-snug">
                         {faq.question}
                       </span>
-                      <span className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition-transform duration-300 ${
-                        isOpen ? 'bg-[#0FA596] text-white rotate-180' : 'bg-slate-100 text-slate-500'
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 ${
+                        isOpen ? 'bg-teal-50 text-[#0FA596] rotate-180' : 'bg-slate-100 text-slate-500'
                       }`}>
                         <ChevronDown className="w-4 h-4" />
-                      </span>
+                      </div>
                     </button>
 
                     {isOpen && (
-                      <div className="px-5 pb-5 pt-1 border-t border-slate-100 text-xs md:text-sm font-medium text-slate-600 leading-relaxed bg-slate-50/40">
+                      <div className="px-5 pb-5 pt-1 text-xs sm:text-sm text-slate-600 font-medium leading-relaxed border-t border-slate-100 bg-slate-50/50">
                         {faq.answer}
                       </div>
                     )}
@@ -227,29 +249,30 @@ export default function FAQPage() {
             </div>
           )}
 
-          {/* --- STILL HAVE QUESTIONS CTA --- */}
-          <div className="mt-12 bg-white rounded-3xl p-8 border border-[#DCE7EF] shadow-[0_4px_18px_rgba(15,23,42,0.04)] text-center">
-            <div className="w-12 h-12 rounded-2xl bg-teal-50 text-[#0FA596] border border-teal-100 flex items-center justify-center mx-auto mb-3">
-              <MessageSquare className="w-6 h-6" />
+          {/* Need More Help Box */}
+          <div className="mt-12 p-6 md:p-8 rounded-3xl bg-gradient-to-r from-teal-900 via-slate-900 to-emerald-950 text-white text-center shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="text-left space-y-1">
+              <h3 className="text-lg md:text-xl font-black text-white">Still have questions?</h3>
+              <p className="text-xs md:text-sm text-slate-300 font-medium">Can't find the answer you're looking for? Please chat with our friendly team.</p>
             </div>
-            <h3 className="text-xl font-black text-slate-900 mb-1">Still have questions?</h3>
-            <p className="text-xs md:text-sm text-slate-500 font-medium max-w-md mx-auto mb-5">
-              Can't find the answer you're looking for? Contact our 24/7 support team directly.
-            </p>
             <Link
               to="/contact-us"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-[#0FA596] hover:bg-teal-700 text-white font-extrabold text-xs md:text-sm rounded-xl shadow-md hover:shadow-teal-600/25 hover:-translate-y-0.5 transition-all cursor-pointer"
+              className="px-6 py-3 rounded-xl bg-[#0FA596] hover:bg-teal-500 text-white font-extrabold text-xs shadow-lg transition-all hover:scale-105 shrink-0 flex items-center gap-2"
             >
-              <span>Contact Support Team</span>
+              <MessageSquare className="w-4 h-4" />
+              <span>Contact Support</span>
             </Link>
           </div>
 
         </section>
+
       </main>
 
       <WebsiteFooter />
-      <MobileBottomNav />
+
+      <div className="md:hidden">
+        <MobileBottomNav />
+      </div>
     </div>
   );
 }
-

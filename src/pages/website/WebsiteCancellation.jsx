@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import WebsiteNavbar from "../../components/website/WebsiteNavbar";
 import WebsiteFooter from "../../components/website/WebsiteFooter";
 import MobileBottomNav from "../../components/website/MobileBottomNav";
-import { Ban, ShieldCheck, AlertTriangle, Users, Building2, Mail, Phone, MapPin, CheckCircle2, ChevronRight, Sparkles } from 'lucide-react';
+import { Ban, ShieldCheck, AlertTriangle, Users, Building2, Mail, Phone, MapPin, CheckCircle2, ChevronRight, Sparkles, PhoneCall } from 'lucide-react';
 import useSEO from "../../hooks/useSEO";
 
 export default function WebsiteCancellation() {
@@ -61,58 +61,87 @@ export default function WebsiteCancellation() {
       ]
     },
     {
-      id: "fair-use",
-      icon: ShieldCheck,
-      title: "5. Fair Use & Anti-Spam Policy",
+      id: "contact-support",
+      icon: Mail,
+      title: "5. Cancellation Support & Disputes",
       content: [
-        "Posting false, duplicate, or unverified property listings is strictly forbidden.",
-        "Submitting non-serious or fake bids with no intent to rent is prohibited.",
-        "Abusing or spamming other platform users results in permanent account suspension.",
-        "Circumventing platform features to bypass security audits is disallowed."
+        "For immediate cancellation support, please email team@roomhy.com or call +91 8764425030.",
+        "Registered Office: 847, Balaji Nagar, Rangbari, Near Pani Ki Tanki, Kota, Rajasthan 324005, India."
       ]
     }
   ];
 
   return (
-    <div className="min-h-screen flex flex-col font-sans bg-[#F8FBFA] text-slate-900 selection:bg-teal-500 selection:text-white">
+    <div className="min-h-screen flex flex-col font-sans bg-[#F4F7F6] text-slate-900 selection:bg-teal-500 selection:text-white">
       <WebsiteNavbar />
 
       <main className="flex-grow">
-        {/* --- HERO BANNER --- */}
-        <section className="relative border-b border-[#DCE7EF]/80 text-slate-900 py-8 md:py-10 px-4 md:px-8 overflow-hidden bg-gradient-to-r from-slate-50 via-white to-teal-50/40">
-          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
-            <div className="flex-1 text-left max-w-2xl">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50/90 border border-teal-200/90 text-[#0FA596] text-xs font-extrabold mb-2 shadow-2xs">
-                <Ban className="w-3.5 h-3.5 text-[#0FA596]" />
-                <span>Transparent Cancellation Policy</span>
+        
+        {/* ================================================================
+         * 1. HERO — FULL SECTION BACKGROUND PHOTO (EDGE-TO-EDGE WITH SOFT LEFT OVERLAY)
+         * ================================================================ */}
+        <section className="relative border-b border-slate-200/80 text-slate-900 py-8 sm:py-10 px-4 sm:px-8 lg:px-14 overflow-hidden bg-slate-900 flex items-center min-h-[380px]">
+          
+          {/* Full Width Background Photo Layer (Edge-to-Edge Across 100% Section) */}
+          <div 
+            className="absolute inset-0 bg-cover bg-center md:bg-[center_right] opacity-100 z-0 brightness-105"
+            style={{ backgroundImage: `url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1980&auto=format&fit=crop')` }}
+          />
+
+          {/* Rich White Opacity Overlay for 100% text readability & background visibility */}
+          <div 
+            className="absolute inset-0 z-0"
+            style={{ background: 'linear-gradient(90deg, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.90) 50%, rgba(255,255,255,0.35) 100%)' }}
+          ></div>
+
+          <div className="w-full max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+            
+            {/* Left Column: Direct Dark Typography */}
+            <div className="w-full md:max-w-[500px] lg:max-w-[540px] text-left space-y-3.5 text-slate-900">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 backdrop-blur-md border border-teal-200 text-[#0FA596] text-[10px] sm:text-xs font-black tracking-wide shadow-2xs">
+                <Sparkles className="w-3.5 h-3.5 text-[#0FA596] animate-pulse" />
+                <span className="uppercase tracking-wider">Transparent Cancellation Policy</span>
               </div>
               
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-slate-950 mb-1.5 leading-tight">
-                Cancellation <span className="bg-gradient-to-r from-[#0FA596] to-emerald-500 bg-clip-text text-transparent">Policy</span>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-slate-950 leading-tight">
+                Cancellation Policy &amp; <br className="hidden sm:inline" />
+                <span className="bg-gradient-to-r from-[#0FA596] via-teal-600 to-emerald-500 bg-clip-text text-transparent">
+                  Booking Guidelines.
+                </span>
               </h1>
 
-              <p className="text-xs md:text-sm text-slate-600 font-medium leading-relaxed">
-                Clear rules regarding booking cancellations, bid reversals, and fair platform usage for student tenants and property hosts.
+              <p className="text-xs sm:text-sm text-slate-800 font-bold leading-relaxed">
+                Clear rules regarding booking cancellations, bid reversals, landlord commitments, and fair platform usage for students and hosts.
               </p>
-            </div>
 
-            <div className="relative w-full md:w-[340px] h-32 md:h-36 rounded-2xl overflow-hidden shadow-md border border-slate-200/90 shrink-0 my-auto group">
-              <img
-                src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800&auto=format&fit=crop"
-                alt="Roomhy Cancellation Policy"
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent" />
-              <div className="absolute bottom-2 left-3 right-3 bg-white/95 backdrop-blur-md p-2 rounded-xl border border-white/50 shadow-xs flex items-center justify-between">
-                <div>
-                  <div className="text-[11px] font-black text-slate-900">Easy Cancellation</div>
-                  <div className="text-[9px] font-bold text-slate-500">Fair Use Guidelines</div>
+              {/* Trust Indicators Bar */}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-3 border-t border-slate-300/80 text-[11px] font-black text-slate-800 tracking-wide uppercase">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-4 h-4 rounded-full bg-teal-100 flex items-center justify-center">
+                    <ShieldCheck className="w-3 h-3 text-[#0FA596]" />
+                  </div>
+                  <span>Fair Bidding Terms</span>
                 </div>
-                <span className="px-2 py-0.5 rounded-full bg-teal-100 text-teal-800 text-[9px] font-extrabold border border-teal-200">
-                  Transparent
-                </span>
+                <span className="text-slate-300 hidden sm:inline">|</span>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-4 h-4 rounded-full bg-emerald-100 flex items-center justify-center">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                  </div>
+                  <span>Instant Reversals</span>
+                </div>
+                <span className="text-slate-300 hidden sm:inline">|</span>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-4 h-4 rounded-full bg-sky-100 flex items-center justify-center">
+                    <PhoneCall className="w-3.5 h-3.5 text-sky-600" />
+                  </div>
+                  <span>24/7 Support</span>
+                </div>
               </div>
             </div>
+
+            {/* Right Column: Open space */}
+            <div className="hidden md:block w-full md:w-1/2"></div>
+
           </div>
         </section>
 
@@ -156,10 +185,10 @@ export default function WebsiteCancellation() {
               <div className="bg-gradient-to-br from-[#EEF8F6] via-white to-emerald-50/60 rounded-3xl p-5 border border-teal-200/80 shadow-2xs space-y-3">
                 <div className="flex items-center gap-2 text-[#0FA596] font-extrabold text-xs">
                   <Sparkles className="w-4 h-4 text-[#0FA596]" />
-                  <span>Cancellation Queries?</span>
+                  <span>Need Cancellation Help?</span>
                 </div>
                 <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                  Our support desk helps resolve booking cancellations and bid reversals within 2-4 hours.
+                  Have questions about cancelling a bid or room reservation? Contact our support team.
                 </p>
                 <a
                   href="mailto:team@roomhy.com"
@@ -171,66 +200,38 @@ export default function WebsiteCancellation() {
               </div>
             </div>
 
-            {/* Right Detailed Cards (Fixed Portion Scrollable) */}
-            <div ref={rightContainerRef} className="lg:col-span-8 space-y-6 lg:max-h-[calc(100vh-140px)] lg:overflow-y-auto lg:pr-3 no-scrollbar scroll-smooth">">
-              
-              <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 border-l-4 border-l-[#0FA596] shadow-2xs space-y-2">
-                <h2 className="text-lg font-extrabold text-slate-950">Policy Overview</h2>
-                <p className="text-slate-600 text-xs sm:text-sm font-medium leading-relaxed">
-                  This Cancellation Policy outlines terms for cancelling property reservations, retracting bids, and fair use guidelines for ROOMHY TECHNOLOGY users.
-                </p>
-              </div>
-
-              {sections.map((section) => {
-                const IconComp = section.icon;
+            {/* Right Detailed Section Cards */}
+            <div ref={rightContainerRef} className="lg:col-span-8 space-y-6">
+              {sections.map((sec) => {
+                const IconComp = sec.icon;
                 return (
                   <div
-                    key={section.id}
-                    id={section.id}
-                    className="scroll-mt-24 bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 border-l-4 border-l-[#0FA596] shadow-2xs hover:shadow-md transition-all space-y-4"
+                    key={sec.id}
+                    id={sec.id}
+                    className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs space-y-4 hover:border-teal-300 transition-all"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-2xl bg-teal-50 text-[#0FA596] flex items-center justify-center font-bold shrink-0">
-                        <IconComp className="w-5 h-5 text-[#0FA596]" />
+                    <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-teal-50 text-[#0FA596] border border-teal-100 flex items-center justify-center shrink-0">
+                          <IconComp className="w-5 h-5" />
+                        </div>
+                        <h2 className="text-lg sm:text-xl font-black text-slate-950 tracking-tight">
+                          {sec.title}
+                        </h2>
                       </div>
-                      <h2 className="text-base sm:text-lg font-extrabold text-slate-950">{section.title}</h2>
                     </div>
 
-                    <div className="space-y-3 pt-1">
-                      {section.content.map((item, i) => (
-                        <div key={i} className="flex items-start gap-3">
+                    <ul className="space-y-3">
+                      {sec.content.map((item, idx) => (
+                        <li key={idx} className="flex items-start gap-2.5 text-xs sm:text-sm text-slate-700 font-medium leading-relaxed">
                           <CheckCircle2 className="w-4 h-4 text-[#0FA596] shrink-0 mt-0.5" />
-                          <p className="text-slate-600 text-xs sm:text-sm font-medium leading-relaxed">{item}</p>
-                        </div>
+                          <span>{item}</span>
+                        </li>
                       ))}
-                    </div>
+                    </ul>
                   </div>
                 );
               })}
-
-              {/* Corporate Contact Info */}
-              <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-2xs space-y-4">
-                <h3 className="text-base font-extrabold text-slate-950">Corporate Entity Details</h3>
-                
-                <div className="space-y-3 text-xs sm:text-sm text-slate-700 font-medium">
-                  <div className="font-black text-slate-900 text-sm">ROOMHY TECHNOLOGY</div>
-                  
-                  <div className="flex items-start gap-2.5 text-slate-600">
-                    <MapPin className="w-4 h-4 text-[#0FA596] shrink-0 mt-0.5" />
-                    <span>847, Balaji Nagar, Rangbari, Near Pani Ki Tanki, Kota, Rajasthan 324005, India</span>
-                  </div>
-
-                  <div className="flex flex-wrap gap-4 pt-2">
-                    <a href="mailto:team@roomhy.com" className="inline-flex items-center gap-2 text-xs font-bold text-[#0FA596] hover:text-teal-700">
-                      <Mail className="w-4 h-4" /> team@roomhy.com
-                    </a>
-                    <a href="tel:+918764425030" className="inline-flex items-center gap-2 text-xs font-bold text-[#0FA596] hover:text-teal-700">
-                      <Phone className="w-4 h-4" /> +91 8764425030
-                    </a>
-                  </div>
-                </div>
-              </div>
-
             </div>
 
           </div>
@@ -238,7 +239,10 @@ export default function WebsiteCancellation() {
       </main>
 
       <WebsiteFooter />
-      <MobileBottomNav />
+
+      <div className="md:hidden">
+        <MobileBottomNav />
+      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Search, MapPin, Star, Building2, Users, Bed, Home as HomeIcon, ChevronRight, ChevronLeft,
@@ -90,8 +90,11 @@ function DesktopSection({ title, sub, children, right }) {
 /* DESKTOP-ONLY COMPONENTS (home-page-magic Design)                          */
 /* ========================================================================= */
 
-function DesktopHero({ searchQuery, setSearchQuery, selectedGender, setSelectedGender, selectedBudget, setSelectedBudget, handleSearchSubmit }) {
+function DesktopHero({ searchQuery, setSearchQuery, selectedGender, setSelectedGender, selectedBudget, setSelectedBudget, handleSearchSubmit, properties = [] }) {
   const [tab, setTab] = useState("PG");
+  const [showDropdown, setShowDropdown] = useState(false);
+  const navigate = useNavigate();
+
   const tabs = [
     { k: "PG", icon: Bed, val: "pg" },
     { k: "Hostels", icon: Building2, val: "hostel" },
@@ -99,171 +102,234 @@ function DesktopHero({ searchQuery, setSearchQuery, selectedGender, setSelectedG
     { k: "Apartments", icon: HomeIcon, val: "apartment" },
   ];
 
-  return (
-    <>
-      {/* Hero Section */}
-      <div className="relative min-h-[380px] md:min-h-[410px] bg-slate-900 z-30 flex flex-col justify-center overflow-hidden py-6 md:py-8">
-        {/* Full width room background image */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div
-            className="absolute inset-0 bg-cover bg-center transition-all duration-1000 transform scale-105"
-            style={{ backgroundImage: `url('/hero-luxury.jpg')` }}
-          >
-            <div className="absolute inset-0 bg-slate-950/20 backdrop-blur-[1px]"></div>
-          </div>
-        </div>
+  // Filter properties and cities for live search autocomplete dropdown
+  const filteredSuggestions = useMemo(() => {
+    if (!searchQuery || !searchQuery.trim()) return [];
+    const q = searchQuery.trim().toLowerCase();
 
-        {/* Centered Translucent Glass Panel */}
-        <div className="relative max-w-4xl lg:max-w-[960px] w-full mx-auto px-4 z-20">
-          <div className="bg-white/35 backdrop-blur-xl border border-white/60 rounded-[28px] p-4 sm:p-5 md:p-6 shadow-2xl text-center">
-            {/* Top Badge */}
-            <div className="inline-flex items-center gap-1.5 bg-white/90 backdrop-blur-md px-3.5 py-1 rounded-full shadow-xs text-[10px] sm:text-[11px] font-black text-slate-800 mb-2 border border-white/80">
-              <ShieldCheck className="w-3.5 h-3.5 text-[#0FA596] shrink-0" />
-              <span>India's #1 Broker-Free Student Housing &amp; Smart Bidding</span>
+    const matches = [];
+    const knownCities = ['Kota', 'Sikar', 'Indore', 'Jaipur', 'Delhi', 'Mumbai', 'Pune', 'Bangalore', 'Hyderabad', 'Bhopal'];
+    
+    // Check city matches
+    knownCities.forEach(city => {
+      if (city.toLowerCase().includes(q)) {
+        matches.push({ type: 'city', title: city, subtitle: 'Explore all stays in ' + city, link: `/website/ourproperty?city=${encodeURIComponent(city)}` });
+      }
+    });
+
+    // Check property matches
+    (properties || []).forEach(p => {
+      const name = p.name || p.propertyName || '';
+      const loc = p.location || p.city || p.area || '';
+      if (name.toLowerCase().includes(q) || loc.toLowerCase().includes(q)) {
+        if (matches.length < 6) {
+          matches.push({ type: 'prop', title: name, subtitle: loc, link: `/website/ourproperty?search=${encodeURIComponent(name)}` });
+        }
+      }
+    });
+
+    return matches;
+  }, [searchQuery, properties]);
+
+  return (
+    <div className="relative min-h-[400px] md:min-h-[430px] bg-slate-900 z-30 flex flex-col justify-between overflow-hidden pt-5 pb-3.5 md:pt-6 md:pb-4">
+      {/* Full width room background image */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div
+          className="absolute inset-0 bg-cover bg-center transition-all duration-1000 transform scale-105"
+          style={{ backgroundImage: `url('/hero-luxury.jpg')` }}
+        >
+          <div className="absolute inset-0 bg-black/10 backdrop-blur-[0.5px]"></div>
+        </div>
+      </div>
+
+      {/* Centered Translucent Glass Panel — VERY FAINT & SUBTLE WHITE GLASS HAZE */}
+      <div className="relative max-w-[1020px] w-full mx-auto px-4 z-20 my-auto">
+        <div className="bg-white/25 backdrop-blur-[2px] border border-white/50 rounded-[28px] p-4 sm:p-5 md:p-6 text-center shadow-[0_8px_32px_rgba(0,0,0,0.1)]">
+          {/* Top Badge */}
+          <div className="inline-flex items-center gap-1.5 bg-white/90 backdrop-blur-md px-3.5 py-1 rounded-full shadow-2xs text-[11px] font-black text-slate-800 mb-2 border border-white/80">
+            <ShieldCheck className="w-3.5 h-3.5 text-[#0FA596] shrink-0" />
+            <span>India's #1 Broker-Free Student Housing &amp; Smart Bidding</span>
+          </div>
+
+          {/* Main Heading — DARK NAVY TEXT with TEAL "Living" */}
+          <h1 className="text-2xl sm:text-3xl md:text-[36px] font-black text-[#0F172A] mb-1 tracking-tight leading-[1.15]">
+            Premium Student &amp; <br className="hidden sm:inline" />
+            Professional <span className="text-[#0FA596]">Living</span>
+          </h1>
+          <p className="text-xs sm:text-sm font-semibold text-[#334155] mb-3 max-w-xl mx-auto leading-relaxed">
+            Find and book verified PGs, Hostels, Co-living spaces and Apartments in top cities.
+          </p>
+
+          {/* Search Container inside Glass Panel */}
+          <div className="bg-white/90 backdrop-blur-md rounded-[20px] shadow-lg p-2 sm:p-2.5 border border-white/80 text-left relative z-50">
+            {/* Category Tabs Bar */}
+            <div className="flex items-center justify-center gap-2 sm:gap-5 border-b border-slate-100/80 pb-1.5 mb-1.5 overflow-x-auto no-scrollbar">
+              {tabs.map(({ k, icon: Icon, val }) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => setTab(k)}
+                  className={`flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-extrabold transition-all cursor-pointer ${
+                    tab === k
+                      ? "bg-teal-50 text-[#0FA596] border border-teal-200/80 shadow-2xs"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                  }`}
+                >
+                  <Icon className={`w-3.5 h-3.5 ${tab === k ? 'text-[#0FA596]' : 'text-slate-400'}`} />
+                  <span>{k}</span>
+                </button>
+              ))}
             </div>
 
-            {/* Main Heading — DARK NAVY TEXT with TEAL "Living" */}
-            <h1 className="text-2xl sm:text-4xl md:text-[40px] font-black text-[#0F172A] mb-1 tracking-tight leading-[1.15]">
-              Premium Student &amp; <br className="hidden sm:inline" />
-              Professional <span className="text-[#0FA596]">Living</span>
-            </h1>
-            <p className="text-[11px] sm:text-xs md:text-sm font-semibold text-[#334155] mb-3 max-w-xl mx-auto leading-relaxed">
-              Find and book verified PGs, Hostels, Co-living spaces and Apartments in top cities.
-            </p>
-
-            {/* Search Container inside Glass Panel */}
-            <div className="bg-white/90 backdrop-blur-md rounded-[20px] shadow-lg p-2.5 sm:p-3 border border-white/80 text-left relative z-50">
-              {/* Category Tabs Bar */}
-              <div className="flex items-center justify-center gap-2 sm:gap-5 border-b border-slate-100/80 pb-2 mb-2 overflow-x-auto no-scrollbar">
-                {tabs.map(({ k, icon: Icon, val }) => (
-                  <button
-                    key={k}
-                    type="button"
-                    onClick={() => setTab(k)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-extrabold transition-all cursor-pointer ${
-                      tab === k
-                        ? "bg-teal-50 text-[#0FA596] border border-teal-200/80 shadow-2xs"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                    }`}
-                  >
-                    <Icon className={`w-3.5 h-3.5 ${tab === k ? 'text-[#0FA596]' : 'text-slate-400'}`} />
-                    <span>{k}</span>
-                  </button>
-                ))}
+            {/* Search Inputs Row */}
+            <form 
+              onSubmit={(e) => {
+                setShowDropdown(false);
+                handleSearchSubmit(e, tabs.find(t => t.k === tab)?.val);
+              }} 
+              className="flex flex-col md:flex-row items-center gap-2 relative"
+            >
+              {/* Location Search Input */}
+              <div className="relative flex-1 w-full flex items-center bg-white border border-slate-200/90 rounded-full px-4 py-2 shadow-2xs focus-within:border-[#0FA596] focus-within:ring-2 focus-within:ring-teal-100 transition-all">
+                <Search className="w-4 h-4 text-[#0FA596] mr-2 shrink-0" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onFocus={() => setShowDropdown(true)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setShowDropdown(true);
+                  }}
+                  placeholder="Search city, locality or landmark (e.g. Koramangala, Mumbai)"
+                  className="w-full bg-transparent outline-none text-xs font-bold text-slate-800 placeholder:text-slate-400"
+                />
               </div>
 
-              {/* Search Inputs Row */}
-              <form onSubmit={(e) => handleSearchSubmit(e, tabs.find(t => t.k === tab)?.val)} className="flex flex-col md:flex-row items-center gap-2">
-                {/* Location Search Input */}
-                <div className="relative flex-1 w-full flex items-center bg-white border border-slate-200/90 rounded-full px-3.5 py-2 shadow-2xs focus-within:border-[#0FA596] focus-within:ring-2 focus-within:ring-teal-100 transition-all">
-                  <Search className="w-3.5 h-3.5 text-[#0FA596] mr-2 shrink-0" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search city, locality or landmark (e.g. Koramangala, Mumbai)"
-                    className="w-full bg-transparent outline-none text-xs font-bold text-slate-800 placeholder:text-slate-400"
-                  />
-                </div>
-
-                {/* Gender Filter Dropdown */}
-                <div className="w-full md:w-32 flex items-center bg-white border border-slate-200/90 rounded-full px-3 py-2 shadow-2xs text-xs font-bold text-slate-700">
-                  <select
-                    value={selectedGender}
-                    onChange={(e) => setSelectedGender(e.target.value)}
-                    className="w-full bg-transparent outline-none cursor-pointer"
-                  >
-                    <option value="">Any Gender</option>
-                    <option value="boys">Boys</option>
-                    <option value="girls">Girls</option>
-                    <option value="co-ed">Co-Ed</option>
-                  </select>
-                </div>
-
-                {/* Budget Filter Dropdown */}
-                <div className="w-full md:w-36 flex items-center bg-white border border-slate-200/90 rounded-full px-3 py-2 shadow-2xs text-xs font-bold text-slate-700">
-                  <select
-                    value={selectedBudget}
-                    onChange={(e) => setSelectedBudget(e.target.value)}
-                    className="w-full bg-transparent outline-none cursor-pointer"
-                  >
-                    <option value="">Any Budget</option>
-                    <option value="5000">Under ₹5,000</option>
-                    <option value="8000">Under ₹8,000</option>
-                    <option value="12000">Under ₹12,000</option>
-                    <option value="15000">₹15,000+</option>
-                  </select>
-                </div>
-
-                {/* Submit Search Button */}
-                <button
-                  type="submit"
-                  className="w-full md:w-auto bg-[#0FA596] hover:bg-[#0d9284] text-white px-6 py-2 rounded-full font-black text-xs flex items-center justify-center gap-1.5 transition-all shadow-md shrink-0 cursor-pointer"
+              {/* Gender Filter Dropdown */}
+              <div className="w-full md:w-36 flex items-center bg-white border border-slate-200/90 rounded-full px-3.5 py-2 shadow-2xs text-xs font-bold text-slate-700">
+                <select
+                  value={selectedGender}
+                  onChange={(e) => setSelectedGender(e.target.value)}
+                  className="w-full bg-transparent outline-none cursor-pointer"
                 >
-                  <Search className="w-3.5 h-3.5" />
-                  <span>Search</span>
-                </button>
-              </form>
-            </div>
+                  <option value="">Any Gender</option>
+                  <option value="boys">Boys</option>
+                  <option value="girls">Girls</option>
+                  <option value="co-ed">Co-Ed</option>
+                </select>
+              </div>
+
+              {/* Budget Filter Dropdown */}
+              <div className="w-full md:w-40 flex items-center bg-white border border-slate-200/90 rounded-full px-3.5 py-2 shadow-2xs text-xs font-bold text-slate-700">
+                <select
+                  value={selectedBudget}
+                  onChange={(e) => setSelectedBudget(e.target.value)}
+                  className="w-full bg-transparent outline-none cursor-pointer"
+                >
+                  <option value="">Any Budget</option>
+                  <option value="5000">Under ₹5,000</option>
+                  <option value="8000">Under ₹8,000</option>
+                  <option value="12000">Under ₹12,000</option>
+                  <option value="15000">₹15,000+</option>
+                </select>
+              </div>
+
+              {/* Submit Search Button */}
+              <button
+                type="submit"
+                className="w-full md:w-auto bg-[#0FA596] hover:bg-[#0d9284] text-white px-6 py-2 rounded-full font-black text-xs flex items-center justify-center gap-1.5 transition-all shadow-md shrink-0 cursor-pointer"
+              >
+                <Search className="w-4 h-4" />
+                <span>Search</span>
+              </button>
+            </form>
+
+            {/* LIVE AUTOCOMPLETE SEARCH DROPDOWN */}
+            {showDropdown && filteredSuggestions.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-[99999] text-left">
+                <div className="max-h-72 overflow-y-auto">
+                  {filteredSuggestions.map((item, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => {
+                        setShowDropdown(false);
+                        navigate(item.link);
+                      }}
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-teal-50/60 border-b border-slate-100 last:border-0 cursor-pointer transition-colors"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-teal-50 text-[#0FA596] flex items-center justify-center shrink-0 border border-teal-100">
+                        {item.type === 'city' ? <MapPin className="w-4 h-4" /> : <Building2 className="w-4 h-4" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-extrabold text-xs text-slate-900 truncate">{item.title}</p>
+                        <p className="text-[10px] text-slate-500 font-semibold truncate">{item.subtitle}</p>
+                      </div>
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* WHITE BENEFITS STRIP — OVERLAPPING HERO BOTTOM */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 -mt-5 relative z-40">
-        <div className="bg-white rounded-[20px] shadow-xl border border-slate-100 p-3 md:p-3.5 grid grid-cols-2 md:grid-cols-5 gap-3 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+      {/* WHITE BENEFITS STRIP — FLOATING INSIDE HERO BOTTOM */}
+      <div className="relative max-w-[1020px] w-full mx-auto px-4 z-20 mt-3 sm:mt-3.5">
+        <div className="bg-white rounded-[22px] shadow-xl border border-slate-100/90 p-3 md:p-3.5 grid grid-cols-2 md:grid-cols-5 gap-2.5 divide-y md:divide-y-0 md:divide-x divide-slate-100">
           <div className="flex items-center gap-2.5 pt-1 md:pt-0">
-            <div className="w-8 h-8 rounded-xl bg-teal-50 flex items-center justify-center shrink-0 text-[#0FA596] border border-teal-100/60">
+            <div className="w-7.5 h-7.5 rounded-xl bg-teal-50 flex items-center justify-center shrink-0 text-[#0FA596] border border-teal-100/60">
               <ShieldCheck className="w-4 h-4" />
             </div>
             <div>
               <h4 className="text-[11px] font-black text-[#0F172A] leading-tight">Smart Bidding</h4>
-              <p className="text-[9px] font-semibold text-slate-500 leading-tight">Best price deals</p>
+              <p className="text-[8.5px] font-semibold text-slate-500 leading-tight">Best price deals</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 pt-1 md:pt-0 md:pl-3">
-            <div className="w-8 h-8 rounded-xl bg-teal-50 flex items-center justify-center shrink-0 text-[#0FA596] border border-teal-100/60">
+          <div className="flex items-center gap-2.5 pt-1 md:pt-0 md:pl-2.5">
+            <div className="w-7.5 h-7.5 rounded-xl bg-teal-50 flex items-center justify-center shrink-0 text-[#0FA596] border border-teal-100/60">
               <BadgeCheck className="w-4 h-4" />
             </div>
             <div>
               <h4 className="text-[11px] font-black text-[#0F172A] leading-tight">Verified Properties</h4>
-              <p className="text-[9px] font-semibold text-slate-500 leading-tight">100% verified listings</p>
+              <p className="text-[8.5px] font-semibold text-slate-500 leading-tight">100% verified listings</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 pt-1 md:pt-0 md:pl-3">
-            <div className="w-8 h-8 rounded-xl bg-teal-50 flex items-center justify-center shrink-0 text-[#0FA596] border border-teal-100/60">
+          <div className="flex items-center gap-2.5 pt-1 md:pt-0 md:pl-2.5">
+            <div className="w-7.5 h-7.5 rounded-xl bg-teal-50 flex items-center justify-center shrink-0 text-[#0FA596] border border-teal-100/60">
               <Tag className="w-4 h-4" />
             </div>
             <div>
               <h4 className="text-[11px] font-black text-[#0F172A] leading-tight">Lowest Price Guarantee</h4>
-              <p className="text-[9px] font-semibold text-slate-500 leading-tight">Best price, always</p>
+              <p className="text-[8.5px] font-semibold text-slate-500 leading-tight">Best price, always</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 pt-1 md:pt-0 md:pl-3">
-            <div className="w-8 h-8 rounded-xl bg-teal-50 flex items-center justify-center shrink-0 text-[#0FA596] border border-teal-100/60">
+          <div className="flex items-center gap-2.5 pt-1 md:pt-0 md:pl-2.5">
+            <div className="w-7.5 h-7.5 rounded-xl bg-teal-50 flex items-center justify-center shrink-0 text-[#0FA596] border border-teal-100/60">
               <Headphones className="w-4 h-4" />
             </div>
             <div>
               <h4 className="text-[11px] font-black text-[#0F172A] leading-tight">24/7 Support</h4>
-              <p className="text-[9px] font-semibold text-slate-500 leading-tight">Always here to help</p>
+              <p className="text-[8.5px] font-semibold text-slate-500 leading-tight">Always here to help</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 pt-1 md:pt-0 md:pl-3">
-            <div className="w-8 h-8 rounded-xl bg-teal-50 flex items-center justify-center shrink-0 text-[#0FA596] border border-teal-100/60">
+          <div className="flex items-center gap-2.5 pt-1 md:pt-0 md:pl-2.5">
+            <div className="w-7.5 h-7.5 rounded-xl bg-teal-50 flex items-center justify-center shrink-0 text-[#0FA596] border border-teal-100/60">
               <Lock className="w-4 h-4" />
             </div>
             <div>
               <h4 className="text-[11px] font-black text-[#0F172A] leading-tight">Safe &amp; Secure</h4>
-              <p className="text-[9px] font-semibold text-slate-500 leading-tight">Your safety, our priority</p>
+              <p className="text-[8.5px] font-semibold text-slate-500 leading-tight">Your safety, our priority</p>
             </div>
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -296,9 +362,9 @@ function DesktopWhatWeOffer() {
   ];
 
   return (
-    <section className="py-5 md:py-6 bg-white relative z-0">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        <div className="text-center mb-3 md:mb-4">
+    <section className="py-4 md:py-5 bg-white relative z-0">
+      <div className="max-w-[1320px] mx-auto px-4 md:px-6">
+        <div className="text-center mb-3 md:mb-3.5">
           <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-[#0F172A] mb-0.5 tracking-tight">
             What We Offer
           </h2>
@@ -307,13 +373,13 @@ function DesktopWhatWeOffer() {
           </p>
         </div>
 
-        {/* 4 Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {/* 4 Cards Grid — Extended Width to Cover Left & Right Margins */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
           {items.map(({ icon: Icon, t, href, image }) => (
             <Link
               key={t}
               to={href}
-              className="group relative h-40 md:h-44 rounded-[18px] overflow-hidden shadow-md border border-slate-100 hover:shadow-2xl transition-all duration-300 block"
+              className="group relative h-32 sm:h-34 md:h-36 rounded-[18px] overflow-hidden shadow-md border border-slate-100 hover:shadow-xl transition-all duration-300 block"
             >
               <img
                 src={image}
@@ -1385,7 +1451,9 @@ export default function HomePage() {
           selectedGender={selectedGender}
           setSelectedGender={setSelectedGender}
           selectedBudget={selectedBudget}
-          setSelectedBudget={handleSearchSubmit}
+          setSelectedBudget={setSelectedBudget}
+          handleSearchSubmit={handleSearchSubmit}
+          properties={properties}
         />
         <DesktopWhatWeOffer />
         <DesktopHowItWorks onOpenVideoModal={() => setVideoModalOpen(true)} />

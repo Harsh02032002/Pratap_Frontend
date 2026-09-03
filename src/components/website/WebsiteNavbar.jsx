@@ -57,9 +57,9 @@ export default function WebsiteNavbar() {
 
   return (
     <>
-      <div className="sticky top-0 z-50 flex flex-col">
+      <div className="sticky top-0 z-50 flex flex-col border-t-0 outline-none">
         {/* Top Row: Main Navbar */}
-        <nav className="bg-white">
+        <nav className="bg-white border-t-0 border-none outline-none">
           <div className="w-full px-3 sm:px-4 md:px-6">
             <div className="flex items-center justify-between h-16 w-full">
               {/* Left: Logo */}

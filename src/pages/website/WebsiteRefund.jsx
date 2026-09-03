@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import WebsiteNavbar from "../../components/website/WebsiteNavbar";
 import WebsiteFooter from "../../components/website/WebsiteFooter";
 import MobileBottomNav from "../../components/website/MobileBottomNav";
-import { RefreshCcw, CreditCard, Calendar, GraduationCap, AlertCircle, Clock, Mail, Phone, MapPin, CheckCircle2, ChevronRight, ArrowRight, Sparkles } from 'lucide-react';
+import { RefreshCcw, CreditCard, Calendar, GraduationCap, AlertCircle, Clock, Mail, Phone, MapPin, CheckCircle2, ChevronRight, ArrowRight, Sparkles, ShieldCheck, PhoneCall } from 'lucide-react';
 import { Link } from "react-router-dom";
 import useSEO from "../../hooks/useSEO";
 
@@ -58,72 +58,103 @@ export default function WebsiteRefund() {
       icon: AlertCircle,
       title: "4. Exceptional Circumstances",
       content: [
-        "Force Majeure & Medical Emergencies: Full 100% refund eligibility applies in cases of verified medical emergencies, natural disasters, or government restrictions.",
-        "Documentation required within 5 days of incident."
+        "Force Majeure & Medical Emergencies: Full or partial refunds are granted upon documentation of medical emergencies or institutional closures.",
+        "Review Window: Exceptional requests are reviewed individually by Roomhy Management within 24 hours."
       ]
     },
     {
       id: "timeline",
       icon: Clock,
-      title: "5. Processing & Payout Timelines",
+      title: "5. Refund Timeline & Process",
       content: [
-        "UPI & Net Banking: Processed within 24 to 48 business hours upon approval.",
-        "Debit / Credit Cards: Processed within 2 to 4 business days depending on issuing bank policies.",
-        "Zero Hidden Fees: Roomhy does not charge any hidden deduction charges on approved student refund claims."
+        "Online Submission: Request refund via website form or My Stays dashboard.",
+        "Verification: Document audit completed within 24 hours.",
+        "Bank Credit: 2-4 business days to original payment method or UPI."
       ]
     }
   ];
 
   return (
-    <div className="min-h-screen flex flex-col font-sans bg-[#F8FBFA] text-slate-900 selection:bg-teal-500 selection:text-white">
+    <div className="min-h-screen flex flex-col font-sans bg-[#F4F7F6] text-slate-900 selection:bg-teal-500 selection:text-white">
       <WebsiteNavbar />
 
       <main className="flex-grow">
-        {/* --- HERO BANNER --- */}
-        <section className="relative border-b border-[#DCE7EF]/80 text-slate-900 py-8 md:py-10 px-4 md:px-8 overflow-hidden bg-gradient-to-r from-slate-50 via-white to-teal-50/40">
-          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
-            <div className="flex-1 text-left max-w-2xl">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50/90 border border-teal-200/90 text-[#0FA596] text-xs font-extrabold mb-2 shadow-2xs">
-                <RefreshCcw className="w-3.5 h-3.5 text-[#0FA596]" />
-                <span>Hassle-Free Security &amp; Token Refunds</span>
+        
+        {/* ================================================================
+         * 1. HERO — FULL SECTION BACKGROUND PHOTO (EDGE-TO-EDGE WITH SOFT LEFT OVERLAY)
+         * ================================================================ */}
+        <section className="relative border-b border-slate-200/80 text-slate-900 py-8 sm:py-10 px-4 sm:px-8 lg:px-14 overflow-hidden bg-slate-900 flex items-center min-h-[380px]">
+          
+          {/* Full Width Background Photo Layer (Edge-to-Edge Across 100% Section) */}
+          <div 
+            className="absolute inset-0 bg-cover bg-center md:bg-[center_right] opacity-100 z-0 brightness-105"
+            style={{ backgroundImage: `url('https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?q=80&w=1980&auto=format&fit=crop')` }}
+          />
+
+          {/* Rich White Opacity Overlay for 100% text readability & background visibility */}
+          <div 
+            className="absolute inset-0 z-0"
+            style={{ background: 'linear-gradient(90deg, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.90) 50%, rgba(255,255,255,0.35) 100%)' }}
+          ></div>
+
+          <div className="w-full max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+            
+            {/* Left Column: Direct Dark Typography */}
+            <div className="w-full md:max-w-[500px] lg:max-w-[540px] text-left space-y-3.5 text-slate-900">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 backdrop-blur-md border border-teal-200 text-[#0FA596] text-[10px] sm:text-xs font-black tracking-wide shadow-2xs">
+                <Sparkles className="w-3.5 h-3.5 text-[#0FA596] animate-pulse" />
+                <span className="uppercase tracking-wider">100% Token Refund Guarantee</span>
               </div>
               
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-slate-950 mb-1.5 leading-tight">
-                Refund <span className="bg-gradient-to-r from-[#0FA596] to-emerald-500 bg-clip-text text-transparent">Policy</span>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-slate-950 leading-tight">
+                Refund Policy &amp; <br className="hidden sm:inline" />
+                <span className="bg-gradient-to-r from-[#0FA596] via-teal-600 to-emerald-500 bg-clip-text text-transparent">
+                  Transparent Terms.
+                </span>
               </h1>
 
-              <p className="text-xs md:text-sm text-slate-600 font-medium leading-relaxed">
-                Transparent terms regarding booking deposits, token refunds, and 2-4 business day processing timelines.
+              <p className="text-xs sm:text-sm text-slate-800 font-bold leading-relaxed">
+                Transparent terms regarding token booking deposits, cancellation percentages, student protections, and fast 2-4 business day processing.
               </p>
 
-              <div className="pt-3">
+              <div className="pt-1">
                 <Link
-                  to="/refund-request"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-[#0FA596] hover:bg-teal-600 text-white font-extrabold text-xs rounded-xl shadow-md transition-all hover:scale-105"
+                  to="/website/refund-request"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#0FA596] to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white font-extrabold text-xs rounded-xl shadow-md transition-all hover:scale-105"
                 >
                   <span>Submit Online Refund Request</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
-            </div>
 
-            <div className="relative w-full md:w-[340px] h-32 md:h-36 rounded-2xl overflow-hidden shadow-md border border-slate-200/90 shrink-0 my-auto group">
-              <img
-                src="https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=800&auto=format&fit=crop"
-                alt="Roomhy Refund Policy"
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent" />
-              <div className="absolute bottom-2 left-3 right-3 bg-white/95 backdrop-blur-md p-2 rounded-xl border border-white/50 shadow-xs flex items-center justify-between">
-                <div>
-                  <div className="text-[11px] font-black text-slate-900">Token &amp; Deposit Refunds</div>
-                  <div className="text-[9px] font-bold text-slate-500">2-4 Business Days</div>
+              {/* Trust Indicators Bar */}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-3 border-t border-slate-300/80 text-[11px] font-black text-slate-800 tracking-wide uppercase">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-4 h-4 rounded-full bg-teal-100 flex items-center justify-center">
+                    <ShieldCheck className="w-3 h-3 text-[#0FA596]" />
+                  </div>
+                  <span>100% Token Refund</span>
                 </div>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-extrabold border border-emerald-200">
-                  Guaranteed
-                </span>
+                <span className="text-slate-300 hidden sm:inline">|</span>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-4 h-4 rounded-full bg-emerald-100 flex items-center justify-center">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                  </div>
+                  <span>2-4 Day Processing</span>
+                </div>
+                <span className="text-slate-300 hidden sm:inline">|</span>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-4 h-4 rounded-full bg-sky-100 flex items-center justify-center">
+                    <PhoneCall className="w-3.5 h-3.5 text-sky-600" />
+                  </div>
+                  <span>Direct UPI Payout</span>
+                </div>
               </div>
             </div>
+
+            {/* Right Column: Open space */}
+            <div className="hidden md:block w-full md:w-1/2"></div>
+
           </div>
         </section>
 
@@ -163,85 +194,57 @@ export default function WebsiteRefund() {
                 </div>
               </div>
 
-              {/* Online Form Quick Access Box */}
+              {/* Need Quick Refund Card */}
               <div className="bg-gradient-to-br from-[#EEF8F6] via-white to-emerald-50/60 rounded-3xl p-5 border border-teal-200/80 shadow-2xs space-y-3">
                 <div className="flex items-center gap-2 text-[#0FA596] font-extrabold text-xs">
                   <Sparkles className="w-4 h-4 text-[#0FA596]" />
-                  <span>Need a Refund Claim?</span>
+                  <span>Request Refund Now</span>
                 </div>
                 <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                  Fill out our official refund request form with your Booking ID for fast processing.
+                  Visited a room and want your ₹500 token back? Fill our 1-minute online refund request form.
                 </p>
                 <Link
-                  to="/refund-request"
-                  className="inline-flex items-center gap-2 text-xs font-extrabold text-white bg-[#0FA596] hover:bg-teal-600 px-4 py-2 rounded-xl transition-all shadow-md"
+                  to="/website/refund-request"
+                  className="inline-flex items-center justify-center gap-2 w-full text-xs font-extrabold text-white bg-[#0FA596] hover:bg-teal-600 px-3.5 py-2.5 rounded-xl transition-all shadow-xs"
                 >
-                  <span>Go to Refund Form</span>
+                  <span>Submit Request</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
             </div>
 
-            {/* Right Detailed Cards (Fixed Portion Scrollable) */}
-            <div ref={rightContainerRef} className="lg:col-span-8 space-y-6 lg:max-h-[calc(100vh-140px)] lg:overflow-y-auto lg:pr-3 no-scrollbar scroll-smooth">
-              
-              <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 border-l-4 border-l-[#0FA596] shadow-2xs space-y-2">
-                <h2 className="text-lg font-extrabold text-slate-950">Overview of Roomhy Refund Policy</h2>
-                <p className="text-slate-600 text-xs sm:text-sm font-medium leading-relaxed">
-                  This policy details the refund terms for booking deposits, token money, and cancellations for student accommodations managed through the Roomhy platform of <strong>ROOMHY TECHNOLOGY</strong>.
-                </p>
-              </div>
-
-              {sections.map((section) => {
-                const IconComp = section.icon;
+            {/* Right Detailed Section Cards */}
+            <div ref={rightContainerRef} className="lg:col-span-8 space-y-6">
+              {sections.map((sec) => {
+                const IconComp = sec.icon;
                 return (
                   <div
-                    key={section.id}
-                    id={section.id}
-                    className="scroll-mt-24 bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 border-l-4 border-l-[#0FA596] shadow-2xs hover:shadow-md transition-all space-y-4"
+                    key={sec.id}
+                    id={sec.id}
+                    className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs space-y-4 hover:border-teal-300 transition-all"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-2xl bg-teal-50 text-[#0FA596] flex items-center justify-center font-bold shrink-0">
-                        <IconComp className="w-5 h-5 text-[#0FA596]" />
+                    <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-teal-50 text-[#0FA596] border border-teal-100 flex items-center justify-center shrink-0">
+                          <IconComp className="w-5 h-5" />
+                        </div>
+                        <h2 className="text-lg sm:text-xl font-black text-slate-950 tracking-tight">
+                          {sec.title}
+                        </h2>
                       </div>
-                      <h2 className="text-base sm:text-lg font-extrabold text-slate-950">{section.title}</h2>
                     </div>
 
-                    <div className="space-y-3 pt-1">
-                      {section.content.map((item, i) => (
-                        <div key={i} className="flex items-start gap-3">
+                    <ul className="space-y-3">
+                      {sec.content.map((item, idx) => (
+                        <li key={idx} className="flex items-start gap-2.5 text-xs sm:text-sm text-slate-700 font-medium leading-relaxed">
                           <CheckCircle2 className="w-4 h-4 text-[#0FA596] shrink-0 mt-0.5" />
-                          <p className="text-slate-600 text-xs sm:text-sm font-medium leading-relaxed">{item}</p>
-                        </div>
+                          <span>{item}</span>
+                        </li>
                       ))}
-                    </div>
+                    </ul>
                   </div>
                 );
               })}
-
-              {/* Corporate Contact Info */}
-              <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-2xs space-y-4">
-                <h3 className="text-base font-extrabold text-slate-950">Refund Assistance Desk</h3>
-                
-                <div className="space-y-3 text-xs sm:text-sm text-slate-700 font-medium">
-                  <div className="font-black text-slate-900 text-sm">ROOMHY TECHNOLOGY</div>
-                  
-                  <div className="flex items-start gap-2.5 text-slate-600">
-                    <MapPin className="w-4 h-4 text-[#0FA596] shrink-0 mt-0.5" />
-                    <span>847, Balaji Nagar, Rangbari, Near Pani Ki Tanki, Kota, Rajasthan 324005, India</span>
-                  </div>
-
-                  <div className="flex flex-wrap gap-4 pt-2">
-                    <a href="mailto:team@roomhy.com" className="inline-flex items-center gap-2 text-xs font-bold text-[#0FA596] hover:text-teal-700">
-                      <Mail className="w-4 h-4" /> team@roomhy.com
-                    </a>
-                    <a href="tel:+918764425030" className="inline-flex items-center gap-2 text-xs font-bold text-[#0FA596] hover:text-teal-700">
-                      <Phone className="w-4 h-4" /> +91 8764425030
-                    </a>
-                  </div>
-                </div>
-              </div>
-
             </div>
 
           </div>
@@ -249,7 +252,10 @@ export default function WebsiteRefund() {
       </main>
 
       <WebsiteFooter />
-      <MobileBottomNav />
+
+      <div className="md:hidden">
+        <MobileBottomNav />
+      </div>
     </div>
   );
 }

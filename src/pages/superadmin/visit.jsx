@@ -19,6 +19,18 @@ import { PROPERTY_TIERS, normalizeTierKey } from "../../utils/propertyTiers";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
+const bankNameMatches = (enteredName, apiBankName) => {
+  const ignored = new Set(["BANK", "OF", "THE", "LIMITED", "LTD", "INDIA"]);
+  const tokens = (value) => String(value || "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9 ]/g, " ")
+    .split(/\s+/)
+    .filter((token) => token && !ignored.has(token));
+  const entered = tokens(enteredName);
+  const expected = tokens(apiBankName);
+  return !enteredName || entered.some((token) => expected.includes(token));
+};
+
 /** One photo tile. `badge` says which of the two groups it belongs to. */
 function PhotoThumb({ url, badge, onRemove }) {
   return (
@@ -286,7 +298,10 @@ export default function Visit() {
 
   // Location
   const [formArea, setFormArea] = useState("");
+  const [formState, setFormState] = useState("");
   const [formCity, setFormCity] = useState("");
+  const [locationCities, setLocationCities] = useState([]);
+  const [locationAreas, setLocationAreas] = useState([]);
   const [formAddress, setFormAddress] = useState("");
   const [formPincode, setFormPincode] = useState("");
   const [formLandmark, setFormLandmark] = useState("");
@@ -343,15 +358,45 @@ export default function Visit() {
   const [ifscLookupStatus, setIfscLookupStatus] = useState(null);
 
   const handleIfscBlur = async (code) => {
-    const cleanCode = (code || '').trim().toUpperCase();
-    if (!cleanCode || cleanCode.length !== 11) {
+    const cleanCode = (code || '').replace(/[^a-z0-9]/gi, '').trim().toUpperCase();
+    setFormBankIfscCode(cleanCode);
+    if (!cleanCode) {
       setIfscLookupStatus(null);
+      return;
+    }
+    if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(cleanCode)) {
+      setIfscLookupStatus({ valid: false, message: 'Invalid format: Must start with 4 letters + 0 (e.g. SBIN0001234 or HDFC0000060)' });
       return;
     }
     try {
       setIfscLookupLoading(true);
-      const res = await fetchJson(`/api/bank/ifsc/${cleanCode}`);
+      let res;
+      try {
+        res = await fetchJson(`/api/bank/ifsc/${cleanCode}`);
+      } catch (localError) {
+        if (localError?.status !== 404) throw localError;
+        const razorpayResponse = await fetch(`https://ifsc.razorpay.com/${encodeURIComponent(cleanCode)}`);
+        const razorpayData = await razorpayResponse.json().catch(() => ({}));
+        if (!razorpayResponse.ok) {
+          throw new Error('IFSC code not found in Razorpay bank database.');
+        }
+        res = {
+          success: Boolean(razorpayData.BANK),
+          ifscStatus: razorpayData.BANK ? 'valid' : 'invalid',
+          bankName: razorpayData.BANK || '',
+          branchName: razorpayData.BRANCH || ''
+        };
+      }
       if (res && res.success && res.ifscStatus === 'valid') {
+        if (res.bankName && formBankName && !bankNameMatches(formBankName, res.bankName)) {
+          setIfscLookupStatus({
+            valid: false,
+            message: `This IFSC belongs to ${res.bankName}, not ${formBankName}.`,
+            bankName: res.bankName,
+            branchName: res.branchName
+          });
+          return;
+        }
         if (res.bankName && !formBankName) setFormBankName(res.bankName);
         if (res.branchName && !formBankBranchName) setFormBankBranchName(res.branchName);
         setIfscLookupStatus({ valid: true, message: `Verified IFSC: ${res.bankName} (${res.branchName})`, bankName: res.bankName, branchName: res.branchName });
@@ -359,7 +404,7 @@ export default function Visit() {
         setIfscLookupStatus({ valid: false, message: res?.message || 'Invalid IFSC code' });
       }
     } catch (err) {
-      setIfscLookupStatus({ valid: false, message: 'IFSC format invalid or code not found' });
+      setIfscLookupStatus({ valid: false, message: err?.message || 'IFSC service unavailable. Please try again.' });
     } finally {
       setIfscLookupLoading(false);
     }
@@ -369,6 +414,8 @@ export default function Visit() {
   const [cameraModalOpen, setCameraModalOpen] = useState(false);
   const videoRef = React.useRef(null);
   const streamRef = React.useRef(null);
+  const geoLocationRef = React.useRef(null);
+  const [geoStatus, setGeoStatus] = useState("idle");
 
   const [photoUploading, setPhotoUploading] = useState(0);
 
@@ -411,6 +458,11 @@ export default function Visit() {
   const startCamera = async () => {
     try {
       setCameraModalOpen(true);
+      setGeoStatus("loading");
+      getGeoLocation().then((location) => {
+        geoLocationRef.current = location;
+        setGeoStatus(location?.placeName ? "ready" : location ? "coordinates-only" : "unavailable");
+      });
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: { ideal: "environment" } }
       });
@@ -430,9 +482,41 @@ export default function Visit() {
   const getGeoLocation = () => new Promise((resolve) => {
     if (!navigator.geolocation) return resolve(null);
     navigator.geolocation.getCurrentPosition(
-      (pos) => resolve({ lat: pos.coords.latitude.toFixed(5), lon: pos.coords.longitude.toFixed(5) }),
+      async (pos) => {
+        const location = {
+          lat: pos.coords.latitude.toFixed(5),
+          lon: pos.coords.longitude.toFixed(5),
+          accuracy: Math.round(pos.coords.accuracy || 0),
+          placeName: "",
+          placeAddress: ""
+        };
+        try {
+          const params = new URLSearchParams({
+            lat: location.lat,
+            lon: location.lon,
+            accuracy: String(location.accuracy),
+            ...(formCity ? { expectedCity: formCity } : {})
+          });
+          const reverse = await fetchJson(`/api/locations/reverse-geocode?${params.toString()}`);
+          location.placeName = reverse?.shortName || reverse?.placeName || reverse?.displayName || "";
+          location.placeAddress = reverse?.displayName || "";
+          location.locationTrusted = reverse?.verification?.trusted !== false;
+        } catch (_) {}
+        if (!location.placeName) {
+          try {
+            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${location.lat}&lon=${location.lon}&zoom=18&addressdetails=1`);
+            const data = await response.json();
+            const address = data?.address || {};
+            const locality = address.suburb || address.neighbourhood || address.village || address.town || "";
+            const city = address.city || address.town || address.village || address.state_district || "";
+            location.placeName = [locality, city].filter(Boolean).filter((value, index, values) => values.indexOf(value) === index).join(", ") || String(data?.display_name || "").split(",").slice(0, 3).join(", ").trim();
+            location.placeAddress = data?.display_name || "";
+          } catch (_) {}
+        }
+        resolve(location);
+      },
       () => resolve(null),
-      { timeout: 4000, maximumAge: 30000 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   });
 
@@ -442,6 +526,7 @@ export default function Visit() {
       streamRef.current = null;
     }
     setCameraModalOpen(false);
+    setGeoStatus("idle");
   };
 
   /**
@@ -450,8 +535,15 @@ export default function Visit() {
    * Only category-upload photos (Step 2 below) are published to the website.
    */
   const capturePhotoFromCamera = async () => {
-    if (!videoRef.current) return;
+    if (!videoRef.current || !streamRef.current) {
+      notify("warning", "Camera is not ready", "Please wait for the camera preview and try again.");
+      return;
+    }
     const video = videoRef.current;
+    if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA || !video.videoWidth || !video.videoHeight) {
+      notify("warning", "Camera is still loading", "Please wait a moment for the preview, then take the photo again.");
+      return;
+    }
     const canvas = document.createElement("canvas");
     canvas.width = video.videoWidth || 1280;
     canvas.height = video.videoHeight || 720;
@@ -459,14 +551,17 @@ export default function Visit() {
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     // Get location in parallel with drawing
-    const geo = await getGeoLocation();
+    const geo = geoLocationRef.current || await getGeoLocation();
+    geoLocationRef.current = geo;
 
     const timeStr = new Date().toLocaleString("en-IN", {
       day: "2-digit", month: "short", year: "numeric",
       hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true
     });
 
-    const geoStr = geo ? `📍 ${geo.lat}, ${geo.lon}` : "📍 Location N/A";
+    const geoStr = geo
+      ? `📍 ${geo.placeName || `${geo.lat}, ${geo.lon}`}`
+      : "📍 Location unavailable";
 
     // Scale every dimension off the image height so the banner is equally
     // legible on a 720p webcam frame and a 12MP phone capture.
@@ -500,25 +595,30 @@ export default function Visit() {
     stopCamera();
 
     setPhotoUploading(n => n + 1);
-    canvas.toBlob(async (blob) => {
-      try {
-        if (!blob) throw new Error("Could not read the captured frame");
-        const url = await uploadPhotoToCloud(blob, `live-capture-${Date.now()}.jpg`);
-        // Live captures are INTERNAL PROOF — not sent to website
-        setFormPhotos(prev => [...prev, url]);
-        setFormPhotoDetails(prev => [...prev, {
-          url,
-          capturedAt: timeStr,
-          geoLocation: geo ? `${geo.lat}, ${geo.lon}` : null,
-          source: "camera",
-          websiteVisible: false  // internal proof only
-        }]);
-      } catch (err) {
-        notify("error", "Could not save the photo", `${err.message}. The capture was not added — please take it again.`);
-      } finally {
-        setPhotoUploading(n => n - 1);
-      }
-    }, "image/jpeg", 0.85);
+    try {
+      const blob = await new Promise((resolve, reject) => {
+        canvas.toBlob((result) => result ? resolve(result) : reject(new Error("Could not read the captured frame")), "image/jpeg", 0.85);
+      });
+      const url = await uploadPhotoToCloud(blob, `live-capture-${Date.now()}.jpg`);
+      setFormPhotos(prev => [...prev, url]);
+      setFormPhotoDetails(prev => [...prev, {
+        url,
+        capturedAt: timeStr,
+        geoLocation: geo ? `${geo.lat}, ${geo.lon}` : null,
+        placeName: geo?.placeName || "",
+        placeAddress: geo?.placeAddress || "",
+        latitude: geo ? Number(geo.lat) : null,
+        longitude: geo ? Number(geo.lon) : null,
+        accuracy: geo?.accuracy || null,
+        locationTrusted: geo?.locationTrusted !== false,
+        source: "camera",
+        websiteVisible: false
+      }]);
+    } catch (err) {
+      notify("error", "Could not save the photo", `${err.message}. The capture was not added — please take it again.`);
+    } finally {
+      setPhotoUploading(n => n - 1);
+    }
   };
 
   const handleFileUpload = async (e, category = null) => {
@@ -601,6 +701,19 @@ export default function Visit() {
 
   useEffect(() => { loadVisits(); }, []);
 
+  useEffect(() => {
+    fetchJson("/api/locations/cities")
+      .then((response) => setLocationCities(Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : [])))
+      .catch(() => setLocationCities([]));
+  }, []);
+
+  useEffect(() => {
+    if (!formCity) { setLocationAreas([]); return; }
+    fetchJson(`/api/locations/areas/city/${encodeURIComponent(formCity)}`)
+      .then((response) => setLocationAreas(Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : [])))
+      .catch(() => setLocationAreas([]));
+  }, [formCity]);
+
   // Pull the owner's submitted digital-KYC record for the details modal.
   // GET /api/owners/:loginId already merges Owner + CheckinRecord + VisitData,
   // so it is the one place holding everything the owner filled in.
@@ -621,7 +734,7 @@ export default function Visit() {
     setFormBankHolderName(""); setFormBankAccountNumber(""); setFormReBankAccountNumber(""); setFormBankIfscCode(""); setFormBankName(""); setFormBankBranchName(""); setFormBankUpiId("");
     setFormPropertyName(""); setFormPropertyType("hostel"); setFormGender("Co-ed");
     setFormRent(""); setFormDeposit(""); setFormDescription("");
-    setFormArea(""); setFormCity(""); setFormAddress(""); setFormPincode(""); setFormLandmark("");
+    setFormState(""); setFormArea(""); setFormCity(""); setFormAddress(""); setFormPincode(""); setFormLandmark("");
     setFormVacantRooms(""); setFormOccupiedRooms(""); setFormOccupiedBeds("");
     setFormAmenities(new Set(["WiFi", "Power Backup"])); setFormFurnishing("Fully Furnished");
     setFormVentilation(""); setFormMinStay(""); setFormEntryExit("");
@@ -651,6 +764,9 @@ export default function Visit() {
         return notify("warning", "Account Numbers Do Not Match", "Bank Account Number and Re-entered Account Number must match exactly.");
       }
     }
+    if (ifscLookupStatus?.valid === false) {
+      return notify("warning", "Bank details do not match", ifscLookupStatus.message);
+    }
     setSaving(true);
     try {
       // Submit the visit report. The backend files it and replies immediately,
@@ -674,6 +790,7 @@ export default function Visit() {
           deposit: formDeposit,
           description: formDescription,
           city: formCity || formOwnerCity,
+          state: formState,
           area: formArea,
           address: formAddress,
           pincode: formPincode,
@@ -970,7 +1087,22 @@ export default function Visit() {
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <FormField label="Account Holder Name" value={formBankHolderName} onChange={e => setFormBankHolderName(e.target.value)} placeholder="Name as per bank account" />
-                        <FormField label="Bank Name" value={formBankName} onChange={e => setFormBankName(e.target.value)} placeholder="e.g. HDFC Bank, SBI..." />
+                        <FormField
+                          label="Bank Name"
+                          value={formBankName}
+                          onChange={e => {
+                            const value = e.target.value;
+                            setFormBankName(value);
+                            if (ifscLookupStatus?.valid && ifscLookupStatus.bankName && !bankNameMatches(value, ifscLookupStatus.bankName)) {
+                              setIfscLookupStatus({
+                                ...ifscLookupStatus,
+                                valid: false,
+                                message: `This IFSC belongs to ${ifscLookupStatus.bankName}, not ${value}.`
+                              });
+                            }
+                          }}
+                          placeholder="e.g. HDFC Bank, SBI..."
+                        />
                         <FormField label="Account Number" type="password" value={formBankAccountNumber} onChange={e => setFormBankAccountNumber(e.target.value)} placeholder="••••••••••••" />
                         <FormField label="Re-enter Account Number" type="password" value={formReBankAccountNumber} onChange={e => setFormReBankAccountNumber(e.target.value)} placeholder="••••••••••••" />
                         <div className="flex flex-col">
@@ -982,11 +1114,12 @@ export default function Visit() {
                               type="text" 
                               value={formBankIfscCode} 
                               onChange={e => { 
-                                const val = e.target.value.toUpperCase(); 
+                                const val = e.target.value.replace(/[^a-z0-9]/gi, '').toUpperCase().slice(0, 11); 
                                 setFormBankIfscCode(val); 
                                 if (ifscLookupStatus) setIfscLookupStatus(null); 
                               }} 
-                              onBlur={e => { if (e.target.value.length === 11) handleIfscBlur(e.target.value); }}
+                              maxLength={11}
+                              onBlur={e => handleIfscBlur(e.target.value)}
                               placeholder="e.g. HDFC0000060" 
                               className="w-full bg-transparent text-sm font-bold text-slate-700 outline-none placeholder:text-slate-300 uppercase"
                             />
@@ -1077,8 +1210,27 @@ export default function Visit() {
                 <SectionHeader icon={MapPin} title="Location" subtitle="Area, city, address & pincode" open={openSections.location} onToggle={() => toggleSection("location")} color="emerald" />
                 {openSections.location && (
                   <div className="px-8 pb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FormField label="Area / Locality" value={formArea} onChange={e => setFormArea(e.target.value)} placeholder="e.g. Koramangala" required />
-                    <FormField label="City" value={formCity} onChange={e => setFormCity(e.target.value)} placeholder="e.g. Bangalore" required />
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                      State
+                      <select value={formState} onChange={e => { setFormState(e.target.value); setFormCity(""); setFormArea(""); }} className="mt-2 w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none">
+                        <option value="">Select state</option>
+                        {[...new Set(locationCities.map(city => city.state).filter(Boolean))].sort().map(state => <option key={state} value={state}>{state}</option>)}
+                      </select>
+                    </label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                      City <span className="text-red-400">*</span>
+                      <select value={formCity} onChange={e => { setFormCity(e.target.value); setFormArea(""); }} className="mt-2 w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none">
+                        <option value="">Select city</option>
+                        {locationCities.filter(city => !formState || !city.state || city.state === formState).map(city => <option key={city._id || city.name} value={city.name}>{city.name}</option>)}
+                      </select>
+                    </label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                      Area / Locality <span className="text-red-400">*</span>
+                      <select value={formArea} onChange={e => setFormArea(e.target.value)} className="mt-2 w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none">
+                        <option value="">Select area</option>
+                        {locationAreas.map(area => <option key={area._id || area.name} value={area.name}>{area.name}</option>)}
+                      </select>
+                    </label>
                     <FormField label="Full Address" value={formAddress} onChange={e => setFormAddress(e.target.value)} placeholder="House/building, street..." className="md:col-span-2" />
                     <FormField label="Pincode" value={formPincode} onChange={e => setFormPincode(e.target.value)} placeholder="560034" />
                     <FormField label="Nearby Landmark" value={formLandmark} onChange={e => setFormLandmark(e.target.value)} placeholder="Near Christ University" />
@@ -1307,7 +1459,7 @@ export default function Visit() {
                             <PhotoThumb key={idx} url={url} onRemove={() => removePhoto(idx)}
                               badge={<span className="truncate flex items-center gap-1 text-sky-400">
                                 <Clock size={10} className="shrink-0" /> {detail.capturedAt}
-                                {detail.geoLocation && <span className="text-[8px] text-slate-400 ml-1">📍 {detail.geoLocation}</span>}
+                                {(detail.placeName || detail.geoLocation) && <span className="text-[8px] text-slate-400 ml-1">📍 {detail.placeName || detail.geoLocation}</span>}
                               </span>} />
                           ))}
                         </div>
@@ -2123,6 +2275,9 @@ export default function Visit() {
               {/* Mirrors the stamp that will be burnt into the photo. */}
               <div className="absolute bottom-2 left-2 bg-slate-950/80 px-3 py-1 rounded-full text-[10px] font-mono text-sky-400 font-bold">
                 {new Date().toLocaleString("en-IN")}
+              </div>
+              <div className={`absolute top-2 left-2 px-3 py-1 rounded-full text-[10px] font-bold ${geoStatus === "ready" ? "bg-emerald-500/90 text-white" : geoStatus === "unavailable" ? "bg-amber-500/90 text-white" : "bg-slate-950/80 text-sky-300"}`}>
+                {geoStatus === "ready" ? "GPS location ready" : geoStatus === "coordinates-only" ? "GPS ready - place name unavailable" : geoStatus === "unavailable" ? "GPS unavailable - allow browser location" : "Detecting GPS location..."}
               </div>
             </div>
             <div className="p-5 flex items-center justify-between bg-slate-900 gap-4">

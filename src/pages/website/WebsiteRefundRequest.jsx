@@ -103,41 +103,71 @@ export default function WebsiteRefundRequest() {
       <WebsiteNavbar />
 
       <main className="flex-grow">
-        {/* --- HERO BANNER --- */}
-        <section className="relative border-b border-[#DCE7EF]/80 text-slate-900 py-8 md:py-10 px-4 md:px-8 overflow-hidden bg-gradient-to-r from-slate-50 via-white to-teal-50/40">
-          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
-            <div className="flex-1 text-left max-w-2xl">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50/90 border border-teal-200/90 text-[#0FA596] text-xs font-extrabold mb-2 shadow-2xs">
-                <RefreshCcw className="w-3.5 h-3.5 text-[#0FA596]" />
-                <span>Direct Online Processing Desk</span>
+        {/* ================================================================
+         * 1. HERO — FULL SECTION BACKGROUND PHOTO (EDGE-TO-EDGE WITH SOFT LEFT OVERLAY)
+         * ================================================================ */}
+        <section className="relative border-b border-slate-200/80 text-slate-900 py-8 sm:py-10 px-4 sm:px-8 lg:px-14 overflow-hidden bg-slate-900 flex items-center min-h-[380px]">
+          
+          {/* Full Width Background Photo Layer (Edge-to-Edge Across 100% Section) */}
+          <div 
+            className="absolute inset-0 bg-cover bg-center md:bg-[center_right] opacity-100 z-0 brightness-105"
+            style={{ backgroundImage: `url('https://images.unsplash.com/photo-1554224154-26032ffc0d07?q=80&w=1980&auto=format&fit=crop')` }}
+          />
+
+          {/* Rich White Opacity Overlay for 100% text readability & background visibility */}
+          <div 
+            className="absolute inset-0 z-0"
+            style={{ background: 'linear-gradient(90deg, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.90) 50%, rgba(255,255,255,0.35) 100%)' }}
+          ></div>
+
+          <div className="w-full max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+            
+            {/* Left Column: Direct Dark Typography */}
+            <div className="w-full md:max-w-[500px] lg:max-w-[540px] text-left space-y-3.5 text-slate-900">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 backdrop-blur-md border border-teal-200 text-[#0FA596] text-[10px] sm:text-xs font-black tracking-wide shadow-2xs">
+                <Sparkles className="w-3.5 h-3.5 text-[#0FA596] animate-pulse" />
+                <span className="uppercase tracking-wider">Direct Online Processing Desk</span>
               </div>
               
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-slate-950 mb-1.5 leading-tight">
-                Refund &amp; <span className="bg-gradient-to-r from-[#0FA596] to-emerald-500 bg-clip-text text-transparent">Stay Request</span>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-slate-950 leading-tight">
+                Refund &amp; Alternative <br className="hidden sm:inline" />
+                <span className="bg-gradient-to-r from-[#0FA596] via-teal-600 to-emerald-500 bg-clip-text text-transparent">
+                  Stay Request Desk.
+                </span>
               </h1>
 
-              <p className="text-xs md:text-sm text-slate-600 font-medium leading-relaxed">
+              <p className="text-xs sm:text-sm text-slate-800 font-bold leading-relaxed">
                 Submit your booking reference below to claim a token deposit refund or request priority room re-allocation.
               </p>
-            </div>
 
-            <div className="relative w-full md:w-[340px] h-32 md:h-36 rounded-2xl overflow-hidden shadow-md border border-slate-200/90 shrink-0 my-auto group">
-              <img
-                src="https://images.unsplash.com/photo-1554224154-26032ffc0d07?w=800&auto=format&fit=crop"
-                alt="Roomhy Refund Request"
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent" />
-              <div className="absolute bottom-2 left-3 right-3 bg-white/95 backdrop-blur-md p-2 rounded-xl border border-white/50 shadow-xs flex items-center justify-between">
-                <div>
-                  <div className="text-[11px] font-black text-slate-900">Direct Online Portal</div>
-                  <div className="text-[9px] font-bold text-slate-500">Fast Verification</div>
+              {/* Trust Indicators Bar */}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-3 border-t border-slate-300/80 text-[11px] font-black text-slate-800 tracking-wide uppercase">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-4 h-4 rounded-full bg-teal-100 flex items-center justify-center">
+                    <ShieldCheck className="w-3 h-3 text-[#0FA596]" />
+                  </div>
+                  <span>Instant Verification</span>
                 </div>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-extrabold border border-emerald-200">
-                  Instant Form
-                </span>
+                <span className="text-slate-300 hidden sm:inline">|</span>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-4 h-4 rounded-full bg-emerald-100 flex items-center justify-center">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                  </div>
+                  <span>2-4 Day Payout</span>
+                </div>
+                <span className="text-slate-300 hidden sm:inline">|</span>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-4 h-4 rounded-full bg-sky-100 flex items-center justify-center">
+                    <RefreshCcw className="w-3.5 h-3.5 text-sky-600" />
+                  </div>
+                  <span>Priority Room Transfer</span>
+                </div>
               </div>
             </div>
+
+            {/* Right Column: Open space */}
+            <div className="hidden md:block w-full md:w-1/2"></div>
+
           </div>
         </section>
 

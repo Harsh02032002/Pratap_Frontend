@@ -107,9 +107,9 @@ export default function WebsiteChat() {
 
   const websiteUserId = useMemo(() => resolveWebsiteUserId(user), [user]);
 
-  const loadChats = async () => {
+  const loadChats = async (isInitial = false) => {
     if (!websiteUserId) return;
-    setLoadingChats(true);
+    if (isInitial && chats.length === 0) setLoadingChats(true);
     try {
       const data = await fetchJson(`/api/chat/inbox/${encodeURIComponent(websiteUserId)}`);
       const conversationRows = Array.isArray(data?.conversations) ? data.conversations : [];
@@ -166,18 +166,25 @@ export default function WebsiteChat() {
     } catch (error) {
       console.error("Error loading chats:", error);
     } finally {
-      setLoadingChats(false);
+      if (isInitial) setLoadingChats(false);
     }
   };
 
   useEffect(() => {
-    if (websiteUserId) loadChats();
+    let interval;
+    if (websiteUserId) {
+      loadChats(true);
+      interval = setInterval(() => loadChats(false), 3000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [websiteUserId]);
 
   useEffect(() => {
+    let interval;
     const loadMessages = async () => {
       if (!activeChat || !websiteUserId) return;
-      setLoadingMessages(true);
       try {
         const list = await fetchJson(
           `/api/chat/conversation?user1=${encodeURIComponent(websiteUserId)}&user2=${encodeURIComponent(activeChat.participant_login_id)}`
@@ -191,13 +198,16 @@ export default function WebsiteChat() {
         setChats(prev => prev.map(c => c.id === activeChat.id ? { ...c, unread: 0 } : c));
       } catch (error) {
         console.error("Error loading messages:", error);
-        setMessages([]);
-      } finally {
-        setLoadingMessages(false);
       }
     };
 
-    if (activeChat) loadMessages();
+    if (activeChat) {
+      loadMessages();
+      interval = setInterval(loadMessages, 3000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [activeChat, websiteUserId]);
 
   useEffect(() => {

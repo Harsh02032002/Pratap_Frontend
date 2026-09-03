@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import WebsiteNavbar from "../../components/website/WebsiteNavbar";
 import WebsiteFooter from "../../components/website/WebsiteFooter";
 import MobileBottomNav from "../../components/website/MobileBottomNav";
-import { FileText, Shield, Users, Building2, AlertCircle, CreditCard, RefreshCw, Scale, ShieldAlert, Mail, Phone, MapPin, CheckCircle2, ChevronRight, Sparkles } from 'lucide-react';
+import { FileText, Shield, Users, Building2, AlertCircle, CreditCard, RefreshCw, Scale, ShieldAlert, Mail, Phone, MapPin, CheckCircle2, ChevronRight, Sparkles, ShieldCheck, PhoneCall } from 'lucide-react';
 import { fetchJson } from "../../utils/api";
 import useSEO from "../../hooks/useSEO";
 
@@ -58,116 +58,132 @@ export default function WebsiteTerms() {
       icon: Building2,
       title: "2. Scope of Services",
       content: [
-        "Roomhy provides an online technology platform connecting students seeking accommodation with verified property owners via transparent, real-time budget bidding.",
-        "We do not own, manage, control, or operate the physical properties listed on our platform, nor do we act as a broker. Our service facilitates direct listing discovery, price negotiations, and verified initial token bookings."
+        'Roomhy provides an online marketplace that enables students and tenants to discover verified accommodations (PGs, Hostels, Co-living spaces, Apartments) and connect directly with property owners.',
+        'Roomhy operates on a 100% Zero Brokerage model. We do not act as real estate brokers or property managers; we are a technology platform connecting users directly.'
       ]
     },
     {
-      id: "eligibility",
-      icon: Shield,
-      title: "3. User Eligibility & Registration",
+      id: "bidding",
+      icon: Scale,
+      title: "3. Smart Bidding & Pricing Rules",
       content: [
-        "You must be at least 18 years old or have parental/guardian consent to enter legally binding contracts.",
-        "You agree to provide complete and accurate information during registration and keep your login credentials confidential."
+        'Users can submit custom monthly rent bids for listed properties based on their budget.',
+        'Property owners retain sole discretion to accept, reject, or counter-offer any bid placed by a user.',
+        'A bid acceptance creates a mutual commitment between the tenant and property owner to proceed with physical verification and booking.'
       ]
     },
     {
-      id: "listings",
-      icon: AlertCircle,
-      title: "4. Property Listings & Host Obligations",
-      content: [
-        "Property hosts must ensure all listing information, rental prices, room photos, and amenities are accurate and non-misleading.",
-        "Roomhy reserves the right to audit, reject, or remove any property listing that violates our physical verification standards or student safety codes."
-      ]
-    },
-    {
-      id: "payment",
+      id: "token",
       icon: CreditCard,
-      title: "5. Payment & Financial Terms",
+      title: "4. Token Amount & Booking Policy",
       content: [
-        "All token booking deposits or subscription fees are processed via encrypted third-party payment gateways (such as Razorpay).",
-        "Rent payments made directly to property owners at check-in are governed by the rental agreement between host and tenant.",
-        "Roomhy provides instant receipt confirmation for all token transactions executed through our official checkout."
+        'To reserve a property upon bid acceptance, users pay a small token booking amount (typically ₹500).',
+        'The token amount holds the property reservation for the agreed move-in window.',
+        'If the user visits the property and finds that it does not match the online verified listing, the token amount is 100% fully refundable under our Refund Policy.'
       ]
     },
     {
-      id: "cancellation",
-      icon: RefreshCw,
-      title: "6. Cancellation & Refunds",
+      id: "responsibilities",
+      icon: ShieldAlert,
+      title: "5. User Responsibilities",
       content: [
-        "Token refunds and booking cancellations are subject to Roomhy's official Cancellation & Refund Policy.",
-        "Eligible refund amounts are transferred back to the original source account within 2-4 business days."
+        'Users agree to provide accurate and truthful information during registration, bidding, and verification.',
+        'Property owners warrant that listed properties possess all necessary local municipal approvals, safety certifications, and basic amenities as advertised.',
+        'Any fraudulent activity, fake listings, or abusive communication will result in immediate permanent suspension.'
       ]
     },
     {
       id: "liability",
-      icon: ShieldAlert,
-      title: "7. Limitation of Liability",
+      icon: AlertCircle,
+      title: "6. Limitation of Liability",
       content: [
-        "To the extent permitted by Indian law, ROOMHY TECHNOLOGY and its directors shall not be liable for indirect, punitive, or consequential damages.",
-        "The rental contract is strictly between the tenant and property owner. Roomhy is not a party to private lease disputes."
+        'Roomhy conducts physical verification of listed properties; however, final tenancy contracts and rent payments are directly between tenant and owner.',
+        'Roomhy is not liable for personal disputes, theft, property damage, or contractual breaches arising between property owners and tenants during residency.'
       ]
     },
     {
-      id: "arbitration",
-      icon: Scale,
-      title: "8. Dispute Resolution & Arbitration",
+      id: "contact",
+      icon: Mail,
+      title: "7. Contact & Legal Notices",
       content: [
-        "Any dispute arising out of platform usage shall first be resolved through mutual discussion.",
-        "Unresolved disputes shall be referred to arbitration in Kota, Rajasthan, India, under the Indian Arbitration and Conciliation Act, 1996."
-      ]
-    },
-    {
-      id: "jurisdiction",
-      icon: Scale,
-      title: "9. Governing Law & Jurisdiction",
-      content: [
-        "These Terms and Conditions shall be governed by and construed in accordance with the laws of India.",
-        "Exclusive jurisdiction rests with the courts of Kota, Rajasthan, India."
+        'For legal notices, policy inquiries, or terms compliance, please contact:',
+        'Email: team@roomhy.com | Phone: +91 8764425030',
+        'Registered Address: 847, Balaji Nagar, Rangbari, Kota, Rajasthan 324005, India'
       ]
     }
   ];
 
   return (
-    <div className="min-h-screen flex flex-col font-sans bg-[#F8FBFA] text-slate-900 selection:bg-teal-500 selection:text-white">
+    <div className="min-h-screen flex flex-col font-sans bg-[#F4F7F6] text-slate-900 selection:bg-teal-500 selection:text-white">
       <WebsiteNavbar />
 
       <main className="flex-grow">
-        {/* --- HERO BANNER --- */}
-        <section className="relative border-b border-[#DCE7EF]/80 text-slate-900 py-8 md:py-10 px-4 md:px-8 overflow-hidden bg-gradient-to-r from-slate-50 via-white to-teal-50/40">
-          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
-            <div className="flex-1 text-left max-w-2xl">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50/90 border border-teal-200/90 text-[#0FA596] text-xs font-extrabold mb-2 shadow-2xs">
-                <FileText className="w-3.5 h-3.5 text-[#0FA596]" />
-                <span>Legal Framework &amp; Guidelines</span>
+        
+        {/* ================================================================
+         * 1. HERO — FULL SECTION BACKGROUND PHOTO (EDGE-TO-EDGE WITH SOFT LEFT OVERLAY)
+         * ================================================================ */}
+        <section className="relative border-b border-slate-200/80 text-slate-900 py-8 sm:py-10 px-4 sm:px-8 lg:px-14 overflow-hidden bg-slate-900 flex items-center min-h-[380px]">
+          
+          {/* Full Width Background Photo Layer (Edge-to-Edge Across 100% Section) */}
+          <div 
+            className="absolute inset-0 bg-cover bg-center md:bg-[center_right] opacity-100 z-0 brightness-105"
+            style={{ backgroundImage: `url('https://images.unsplash.com/photo-1450133064473-71024230f91b?q=80&w=1980&auto=format&fit=crop')` }}
+          />
+
+          {/* Rich White Opacity Overlay for 100% text readability & background visibility */}
+          <div 
+            className="absolute inset-0 z-0"
+            style={{ background: 'linear-gradient(90deg, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.90) 50%, rgba(255,255,255,0.35) 100%)' }}
+          ></div>
+
+          <div className="w-full max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+            
+            {/* Left Column: Direct Dark Typography */}
+            <div className="w-full md:max-w-[500px] lg:max-w-[540px] text-left space-y-3.5 text-slate-900">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 backdrop-blur-md border border-teal-200 text-[#0FA596] text-[10px] sm:text-xs font-black tracking-wide shadow-2xs">
+                <Sparkles className="w-3.5 h-3.5 text-[#0FA596] animate-pulse" />
+                <span className="uppercase tracking-wider">Legal Framework &amp; Guidelines</span>
               </div>
               
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-slate-950 mb-1.5 leading-tight">
-                Terms &amp; <span className="bg-gradient-to-r from-[#0FA596] to-emerald-500 bg-clip-text text-transparent">Conditions</span>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-slate-950 leading-tight">
+                Terms &amp; Conditions <br className="hidden sm:inline" />
+                <span className="bg-gradient-to-r from-[#0FA596] via-teal-600 to-emerald-500 bg-clip-text text-transparent">
+                  &amp; User Agreement.
+                </span>
               </h1>
 
-              <p className="text-xs md:text-sm text-slate-600 font-medium leading-relaxed">
-                Please review these terms and conditions carefully before using Roomhy platform and booking verified stays.
+              <p className="text-xs sm:text-sm text-slate-800 font-bold leading-relaxed">
+                Please review these terms and conditions carefully covering Roomhy platform usage, smart bidding rules, zero brokerage policy, and booking guidelines.
               </p>
-            </div>
 
-            <div className="relative w-full md:w-[340px] h-32 md:h-36 rounded-2xl overflow-hidden shadow-md border border-slate-200/90 shrink-0 my-auto group">
-              <img
-                src="https://images.unsplash.com/photo-1450133064473-71024230f91b?w=800&auto=format&fit=crop"
-                alt="Terms and Conditions"
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent" />
-              <div className="absolute bottom-2 left-3 right-3 bg-white/95 backdrop-blur-md p-2 rounded-xl border border-white/50 shadow-xs flex items-center justify-between">
-                <div>
-                  <div className="text-[11px] font-black text-slate-900">User Agreement</div>
-                  <div className="text-[9px] font-bold text-slate-500">Legal Standard</div>
+              {/* Trust Indicators Bar */}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-3 border-t border-slate-300/80 text-[11px] font-black text-slate-800 tracking-wide uppercase">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-4 h-4 rounded-full bg-teal-100 flex items-center justify-center">
+                    <ShieldCheck className="w-3 h-3 text-[#0FA596]" />
+                  </div>
+                  <span>100% Zero Brokerage</span>
                 </div>
-                <span className="px-2 py-0.5 rounded-full bg-teal-100 text-teal-800 text-[9px] font-extrabold border border-teal-200">
-                  Official
-                </span>
+                <span className="text-slate-300 hidden sm:inline">|</span>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-4 h-4 rounded-full bg-emerald-100 flex items-center justify-center">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                  </div>
+                  <span>Fair Bidding Rules</span>
+                </div>
+                <span className="text-slate-300 hidden sm:inline">|</span>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-4 h-4 rounded-full bg-sky-100 flex items-center justify-center">
+                    <PhoneCall className="w-3.5 h-3.5 text-sky-600" />
+                  </div>
+                  <span>Direct Connect</span>
+                </div>
               </div>
             </div>
+
+            {/* Right Column: Open space */}
+            <div className="hidden md:block w-full md:w-1/2"></div>
+
           </div>
         </section>
 
@@ -207,14 +223,14 @@ export default function WebsiteTerms() {
                 </div>
               </div>
 
-              {/* Legal Support Card */}
+              {/* Support Card */}
               <div className="bg-gradient-to-br from-[#EEF8F6] via-white to-emerald-50/60 rounded-3xl p-5 border border-teal-200/80 shadow-2xs space-y-3">
                 <div className="flex items-center gap-2 text-[#0FA596] font-extrabold text-xs">
                   <Sparkles className="w-4 h-4 text-[#0FA596]" />
-                  <span>Questions about Terms?</span>
+                  <span>Terms Inquiries?</span>
                 </div>
                 <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                  Our legal &amp; compliance team is available to address any contractual queries.
+                  Need clarification on user agreement, bidding rules, or owner listing policies? Contact our legal team.
                 </p>
                 <a
                   href="mailto:team@roomhy.com"
@@ -226,68 +242,37 @@ export default function WebsiteTerms() {
               </div>
             </div>
 
-            {/* Right Detailed Section Cards (Fixed Portion Scrollable) */}
-            <div ref={rightContainerRef} className="lg:col-span-8 space-y-6 lg:max-h-[calc(100vh-140px)] lg:overflow-y-auto lg:pr-3 no-scrollbar scroll-smooth">
-              
-              {/* Introduction Card */}
-              <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 border-l-4 border-l-[#0FA596] shadow-2xs space-y-2">
-                <h2 className="text-lg font-extrabold text-slate-950">User Agreement Overview</h2>
-                <p className="text-slate-600 text-xs sm:text-sm font-medium leading-relaxed">
-                  These Terms &amp; Conditions govern your access to and use of the Roomhy website, mobile services, and bidding engine provided by <strong>ROOMHY TECHNOLOGY</strong>. By accessing Roomhy, you agree to comply fully with these terms.
-                </p>
-              </div>
-
-              {/* Policy Category Sections */}
-              {staticSections.map((section) => {
-                const IconComp = section.icon;
+            {/* Right Detailed Section Cards */}
+            <div ref={rightContainerRef} className="lg:col-span-8 space-y-6">
+              {staticSections.map((sec, idx) => {
+                const IconComp = sec.icon;
                 return (
                   <div
-                    key={section.id}
-                    id={section.id}
-                    className="scroll-mt-24 bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 border-l-4 border-l-[#0FA596] shadow-2xs hover:shadow-md transition-all space-y-4"
+                    key={sec.id}
+                    id={sec.id}
+                    className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs space-y-4 hover:border-teal-300 transition-all"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-2xl bg-teal-50 text-[#0FA596] flex items-center justify-center font-bold shrink-0">
-                        <IconComp className="w-5 h-5 text-[#0FA596]" />
+                    <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-teal-50 text-[#0FA596] border border-teal-100 flex items-center justify-center shrink-0">
+                          <IconComp className="w-5 h-5" />
+                        </div>
+                        <h2 className="text-lg sm:text-xl font-black text-slate-950 tracking-tight">
+                          {sec.title}
+                        </h2>
                       </div>
-                      <h2 className="text-base sm:text-lg font-extrabold text-slate-950">{section.title}</h2>
                     </div>
 
-                    <div className="space-y-3 pt-1">
-                      {section.content.map((item, i) => (
-                        <div key={i} className="flex items-start gap-3">
-                          <CheckCircle2 className="w-4 h-4 text-[#0FA596] shrink-0 mt-0.5" />
-                          <p className="text-slate-600 text-xs sm:text-sm font-medium leading-relaxed">{item}</p>
-                        </div>
+                    <div className="space-y-3">
+                      {sec.content.map((p, pIdx) => (
+                        <p key={pIdx} className="text-xs sm:text-sm text-slate-700 font-medium leading-relaxed">
+                          {p}
+                        </p>
                       ))}
                     </div>
                   </div>
                 );
               })}
-
-              {/* Corporate Contact Card */}
-              <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-2xs space-y-4">
-                <h3 className="text-base font-extrabold text-slate-950">Registered Corporate Headquarters</h3>
-                
-                <div className="space-y-3 text-xs sm:text-sm text-slate-700 font-medium">
-                  <div className="font-black text-slate-900 text-sm">ROOMHY TECHNOLOGY</div>
-                  
-                  <div className="flex items-start gap-2.5 text-slate-600">
-                    <MapPin className="w-4 h-4 text-[#0FA596] shrink-0 mt-0.5" />
-                    <span>847, Balaji Nagar, Rangbari, Near Pani Ki Tanki, Kota, Rajasthan 324005, India</span>
-                  </div>
-
-                  <div className="flex flex-wrap gap-4 pt-2">
-                    <a href="mailto:team@roomhy.com" className="inline-flex items-center gap-2 text-xs font-bold text-[#0FA596] hover:text-teal-700">
-                      <Mail className="w-4 h-4" /> team@roomhy.com
-                    </a>
-                    <a href="tel:+918764425030" className="inline-flex items-center gap-2 text-xs font-bold text-[#0FA596] hover:text-teal-700">
-                      <Phone className="w-4 h-4" /> +91 8764425030
-                    </a>
-                  </div>
-                </div>
-              </div>
-
             </div>
 
           </div>
@@ -295,7 +280,10 @@ export default function WebsiteTerms() {
       </main>
 
       <WebsiteFooter />
-      <MobileBottomNav />
+
+      <div className="md:hidden">
+        <MobileBottomNav />
+      </div>
     </div>
   );
 }

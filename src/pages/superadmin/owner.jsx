@@ -207,8 +207,8 @@ export default function Owner() {
       } else if (currentView === "kyc" || currentView === "agreements") {
          base = owners; // Show all owners in KYC / Agreements view
       } else {
-         // Default / "list" (View All Property Owners) -> ONLY show active approved owners!
-         base = owners.filter(o => o.isActive !== false && o.status !== "pending_approval" && (o.status === "approved" || o.status === "active" || !o.isEmployeeSubmitted));
+         // Default / "list" (View All Property Owners) -> ONLY show admin-approved active owners!
+         base = owners.filter(o => o.isActive === true && (o.status === "approved" || o.status === "active"));
       }
 
       return base.filter(o => {

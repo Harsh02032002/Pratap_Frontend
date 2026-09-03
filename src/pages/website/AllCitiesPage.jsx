@@ -13,7 +13,11 @@ import {
   Headphones, 
   Building2, 
   MapPin, 
-  Send 
+  Send,
+  Sparkles,
+  ShieldCheck,
+  CheckCircle2,
+  PhoneCall
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -75,91 +79,81 @@ export default function AllCitiesPage() {
         </div>
       </div>
 
-      {/* --- HERO SECTION (MATCHING PDF SCREENSHOT 1) --- */}
-      <section className="relative w-full py-8 md:py-12 px-4 md:px-8 bg-gradient-to-br from-[#F4F7FA] via-white to-teal-50/50 border-b border-slate-200 overflow-hidden">
-        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center justify-between gap-8 z-10 relative">
-          <div className="flex-1 text-left max-w-2xl">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-3">
-              All <span className="text-teal-600">Cities</span>
+      {/* ================================================================
+       * 1. HERO SECTION — FULL BACKGROUND PHOTO (EXACT MATCHING ABOUT PAGE HERO)
+       * ================================================================ */}
+      <section 
+        className="relative border-b border-slate-200/80 text-slate-900 py-8 sm:py-10 px-4 sm:px-8 lg:px-14 overflow-hidden flex items-center min-h-[380px] bg-cover bg-center md:bg-[center_right]"
+        style={{ backgroundImage: `url('https://images.unsplash.com/photo-1570129477492-45c003edd2be?q=80&w=1980&auto=format&fit=crop')` }}
+      >
+        {/* Rich White Opacity Overlay for 100% text readability & background visibility */}
+        <div 
+          className="absolute inset-0 z-0"
+          style={{ background: 'linear-gradient(90deg, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.90) 50%, rgba(255,255,255,0.35) 100%)' }}
+        ></div>
+
+        <div className="w-full max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+          
+          {/* Left Column: Heading */}
+          <div className="w-full md:max-w-[500px] lg:max-w-[540px] text-left space-y-3.5 text-slate-900">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 backdrop-blur-md border border-teal-200 text-[#0FA596] text-[10px] sm:text-xs font-black tracking-wide shadow-2xs">
+              <Sparkles className="w-3.5 h-3.5 text-[#0FA596] animate-pulse" />
+              <span className="uppercase tracking-wider">Explore Student Hubs Across India</span>
+            </div>
+            
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-slate-950 leading-tight">
+              Explore Verified Stays <br className="hidden sm:inline" />
+              <span className="bg-gradient-to-r from-[#0FA596] via-teal-600 to-emerald-500 bg-clip-text text-transparent">
+                in Top Cities Across India.
+              </span>
             </h1>
-            <p className="text-sm md:text-base text-slate-600 font-semibold leading-relaxed mb-6">
-              Find verified PGs in top cities across India.
+
+            <p className="text-xs sm:text-sm text-slate-800 font-bold leading-relaxed">
+              Find 100% verified PGs, hostels, co-living spaces and student apartments with direct owner connect and smart bidding.
             </p>
 
-            {/* Feature Pills */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-6">
-              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-slate-200 shadow-2xs">
-                <div className="w-7 h-7 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center shrink-0">
-                  <Shield className="w-4 h-4" />
-                </div>
-                <div>
-                  <div className="text-[11px] font-extrabold text-slate-900 leading-none">Smart Bidding</div>
-                  <div className="text-[9px] text-slate-500 font-medium">No hidden charges</div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-slate-200 shadow-2xs">
-                <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                  <Check className="w-4 h-4" />
-                </div>
-                <div>
-                  <div className="text-[11px] font-extrabold text-slate-900 leading-none">Verified Properties</div>
-                  <div className="text-[9px] text-slate-500 font-medium">100% verified listings</div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-slate-200 shadow-2xs">
-                <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-                  <Star className="w-4 h-4 fill-amber-500" />
-                </div>
-                <div>
-                  <div className="text-[11px] font-extrabold text-slate-900 leading-none">Trusted by Students</div>
-                  <div className="text-[9px] text-slate-500 font-medium">50,000+ happy stays</div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-slate-200 shadow-2xs">
-                <div className="w-7 h-7 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center shrink-0">
-                  <Headphones className="w-4 h-4" />
-                </div>
-                <div>
-                  <div className="text-[11px] font-extrabold text-slate-900 leading-none">24/7 Support</div>
-                  <div className="text-[9px] text-slate-500 font-medium">Always here to help</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Floating Search Bar Input */}
-            <div className="relative max-w-xl">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
-                <Search className="w-5 h-5" />
+            {/* Search Bar Input */}
+            <div className="relative max-w-xl pt-1">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                <Search className="w-4 h-4 text-[#0FA596]" />
               </div>
               <input
                 type="text"
+                placeholder="Search city (e.g. Kota, Jaipur, Delhi, Indore, Bangalore)..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search city..."
-                className="w-full pl-11 pr-4 py-3 bg-white border border-slate-300 rounded-2xl text-sm font-semibold text-slate-800 placeholder-slate-400 shadow-sm focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100 transition-all"
+                className="w-full pl-10 pr-4 py-2.5 bg-white/90 backdrop-blur-md rounded-xl border border-teal-200 text-xs font-semibold focus:border-[#0FA596] focus:ring-2 focus:ring-[#0FA596]/20 outline-none transition-all shadow-xs"
               />
+            </div>
+
+            {/* Trust Indicators Bar */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-3 border-t border-slate-300/80 text-[11px] font-black text-slate-800 tracking-wide uppercase">
+              <div className="flex items-center gap-1.5">
+                <div className="w-4 h-4 rounded-full bg-teal-100 flex items-center justify-center">
+                  <ShieldCheck className="w-3 h-3 text-[#0FA596]" />
+                </div>
+                <span>50+ Top Cities</span>
+              </div>
+              <span className="text-slate-300 hidden sm:inline">|</span>
+              <div className="flex items-center gap-1.5">
+                <div className="w-4 h-4 rounded-full bg-emerald-100 flex items-center justify-center">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                </div>
+                <span>Verified Spaces</span>
+              </div>
+              <span className="text-slate-300 hidden sm:inline">|</span>
+              <div className="flex items-center gap-1.5">
+                <div className="w-4 h-4 rounded-full bg-sky-100 flex items-center justify-center">
+                  <PhoneCall className="w-3.5 h-3.5 text-sky-600" />
+                </div>
+                <span>Direct Owner Connect</span>
+              </div>
             </div>
           </div>
 
-          {/* Right Architectural Illustration Graphic */}
-          <div className="relative w-full lg:w-[460px] h-64 md:h-72 rounded-3xl overflow-hidden shadow-xl border border-slate-200 group shrink-0">
-            <img
-              src="https://images.unsplash.com/photo-1548013146-72479768bada?w=1000&auto=format&fit=crop"
-              alt="Indian Cities Architecture"
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent"></div>
-            <div className="absolute bottom-4 left-5 right-5 text-white">
-              <span className="px-2.5 py-1 rounded-full bg-teal-500 text-white text-[10px] font-extrabold uppercase tracking-wider mb-1.5 inline-block">
-                Top Student Hubs
-              </span>
-              <div className="text-xl font-black">Find Stays in 50+ Cities</div>
-              <div className="text-xs text-slate-200 font-medium mt-0.5">Explore Kota, Jaipur, Delhi, Indore &amp; more with Smart Bidding.</div>
-            </div>
-          </div>
+          {/* Right Column: Open space */}
+          <div className="hidden md:block w-full md:w-1/2"></div>
+
         </div>
       </section>
 

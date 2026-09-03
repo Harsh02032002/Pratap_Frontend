@@ -46,12 +46,45 @@ export default function MobileBottomNav() {
 
   if (!isVisible || isKeyboardOpen) return null;
 
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const fetchUnread = async () => {
+      try {
+        let userStr = localStorage.getItem('roomhy_user') || localStorage.getItem('user');
+        if (!userStr) return;
+        const userObj = JSON.parse(userStr);
+        let userId = userObj?.loginId || userObj?.email;
+        if (!userId && userObj?.email) {
+          let hash = 0;
+          const safeEmail = String(userObj.email).trim().toLowerCase();
+          for (let i = 0; i < safeEmail.length; i += 1) {
+            hash = (hash * 31 + safeEmail.charCodeAt(i)) % 1000000;
+          }
+          userId = `roomhyweb${String(hash).padStart(6, "0")}`;
+        }
+        if (!userId) return;
+
+        const { fetchJson } = await import('../../utils/api');
+        const data = await fetchJson(`/api/chat/inbox/${encodeURIComponent(userId)}`).catch(() => null);
+        if (data?.conversations && Array.isArray(data.conversations)) {
+          const total = data.conversations.reduce((acc, c) => acc + (Number(c.unread_count) || 0), 0);
+          setUnreadCount(total);
+        }
+      } catch (_) {}
+    };
+
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
   const navItems = [
     { icon: Home, path: '/', label: 'Home' },
     { icon: Building2, path: '/website/ourproperty', label: 'Properties' },
     { icon: HelpCircle, path: '/website/faq', label: 'FAQ' },
     { icon: Info, path: '/website/about', label: 'About' },
-    { icon: MessageCircle, path: '/website/chat', label: 'Chat' },
+    { icon: MessageCircle, path: '/website/chat', label: 'Chat', isChat: true },
     { icon: ListPlus, path: '/website/list', label: 'List' },
   ];
 
@@ -73,13 +106,20 @@ export default function MobileBottomNav() {
             <button
               key={item.path}
               onClick={() => navigate(item.path)}
-              className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
+              className={`flex flex-col items-center justify-center flex-1 h-full transition-colors relative ${
                 active 
-                  ? 'text-[#1ab64f]' 
+                  ? 'text-[#0FA596]' 
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
-              <Icon className="w-5 h-5" strokeWidth={active ? 2.5 : 2} />
+              <div className="relative">
+                <Icon className="w-5 h-5" strokeWidth={active ? 2.5 : 2} />
+                {item.isChat && unreadCount > 0 && (
+                  <span className="absolute -top-2 -right-2.5 bg-rose-500 text-white text-[9px] font-black min-w-[16px] h-[16px] px-1 rounded-full flex items-center justify-center border border-white shadow-xs animate-pulse">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </div>
               <span className="text-[9px] mt-0.5 font-medium">{item.label}</span>
             </button>
           );

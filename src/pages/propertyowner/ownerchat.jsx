@@ -189,8 +189,9 @@ export default function OwnerChat() {
     }
   };
 
-  const fetchInbox = async () => {
+  const fetchInbox = async (isInitial = false) => {
     try {
+      if (isInitial && inbox.length === 0) setLoadingInbox(true);
       const [res, tenants] = await Promise.all([
         apiFetch(`/api/chat/inbox/${owner.loginId}`).catch(() => ({ conversations: [] })),
         fetchOwnerTenants(owner.loginId).catch(() => [])
@@ -198,15 +199,12 @@ export default function OwnerChat() {
 
       let conversations = res?.conversations || [];
 
-      // Filter out owner-to-owner and owner-to-superadmin conversations.
-      // Keep only tenants (email-based IDs, roomhyweb* IDs) and unknown parties.
+      // Filter out other owner-to-owner conversations.
+      // Keep tenants, website users, admin/support, and unknown parties.
       const OWNER_LOGIN_PATTERN = /^ROOMHY\d{4,}$/i;
-      const SUPERADMIN_PATTERN = /^(superadmin|super_admin|admin)$/i;
       conversations = conversations.filter(c => {
         const pid = String(c.participant_login_id || '').trim();
-        // Exclude other owner accounts and superadmin
         if (OWNER_LOGIN_PATTERN.test(pid) && pid.toUpperCase() !== owner.loginId.toUpperCase()) return false;
-        if (SUPERADMIN_PATTERN.test(pid)) return false;
         return true;
       });
 
@@ -227,10 +225,13 @@ export default function OwnerChat() {
       }
 
       setInbox(conversations);
+      if (!activeChatRef.current && conversations.length > 0) {
+        setActiveChat(conversations[0]);
+      }
     } catch (err) {
       console.error(err);
     } finally {
-      setLoadingInbox(false);
+      if (isInitial) setLoadingInbox(false);
     }
   };
 
@@ -240,18 +241,21 @@ export default function OwnerChat() {
       if (!targetUserId) return;
       const res = await apiFetch(`/api/chat/conversation?user1=${owner.loginId}&user2=${targetUserId}`);
       if (res && Array.isArray(res)) {
-        setMessages(res.map(msg => ({
-          id: msg._id,
-          sender: msg.sender_login_id === owner.loginId ? "Me" : msg.sender_name,
-          text: msg.message,
-          message_type: msg.message_type || 'text',
-          file_url: msg.file_url || null,
-          time: new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-          isMe: msg.sender_login_id === owner.loginId,
-          isSystem: msg.sender_login_id === 'system' || msg.sender_role === 'superadmin' || msg.message_type === 'system',
-          isBlocked: msg.is_blocked || false,
-          violationType: msg.violation_type || null
-        })));
+        setMessages(res.map(msg => {
+          const isMeMsg = String(msg.sender_login_id || '').toUpperCase() === String(owner.loginId || '').toUpperCase();
+          return {
+            id: msg._id,
+            sender: isMeMsg ? "Me" : (msg.sender_name || "Tenant"),
+            text: msg.message,
+            message_type: msg.message_type || 'text',
+            file_url: msg.file_url || null,
+            time: new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+            isMe: isMeMsg,
+            isSystem: msg.sender_login_id === 'system' || msg.sender_role === 'superadmin' || msg.message_type === 'system',
+            isBlocked: msg.is_blocked || false,
+            violationType: msg.violation_type || null
+          };
+        }));
         scrollToBottom();
         // Mark these messages as read
         await apiFetch(`/api/chat/mark-read/${owner.loginId}?sender=${targetUserId}`, { method: "POST" });
@@ -261,14 +265,14 @@ export default function OwnerChat() {
     }
   };
 
-  // Stable inbox poll — 15 s interval, never restarts on search typing
+  // Fast inbox poll — 3s interval for instant live updates without page refresh
   React.useEffect(() => {
-    fetchInbox();
-    const interval = setInterval(fetchInbox, 15000);
+    fetchInbox(true);
+    const interval = setInterval(() => fetchInbox(false), 3000);
     return () => clearInterval(interval);
   }, [owner.loginId]);
 
-  // Stable message poll — 10 s interval, restarts only when active chat changes
+  // Fast message poll — 3s interval for instant live chat updates
   React.useEffect(() => {
     if (activeChat) {
       setLoadingMessages(true);
@@ -278,7 +282,7 @@ export default function OwnerChat() {
 
       const interval = setInterval(() => {
         fetchMessages(activeChat.participant_login_id);
-      }, 10000);
+      }, 3000);
       return () => clearInterval(interval);
     } else {
       setAssociatedBooking(null);

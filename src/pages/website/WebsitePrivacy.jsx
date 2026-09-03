@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import WebsiteNavbar from "../../components/website/WebsiteNavbar";
 import WebsiteFooter from "../../components/website/WebsiteFooter";
 import MobileBottomNav from "../../components/website/MobileBottomNav";
-import { Shield, Eye, Lock, Database, UserCheck, Mail, Phone, MapPin, CheckCircle2, ChevronRight, Sparkles } from 'lucide-react';
+import { Shield, Eye, Lock, Database, UserCheck, Mail, Phone, MapPin, CheckCircle2, ChevronRight, Sparkles, ShieldCheck, PhoneCall } from 'lucide-react';
 import { fetchJson } from "../../utils/api";
 import useSEO from "../../hooks/useSEO";
 
@@ -58,87 +58,193 @@ export default function WebsitePrivacy() {
       id: "collect",
       icon: Database,
       title: "1. Information We Collect",
-      items: [
-        "Personal Information: Name, email address, phone number, date of birth, profile picture, and identity verification details.",
-        "Property Information: Contact details, property location, rental prices, photos, and ownership documents (for property owners).",
-        "Usage Information: IP address, device type, browser type, pages visited, and browsing patterns.",
-        "Payment Information: Payment method, transaction history, and billing addresses (processed securely via encrypted payment gateways)."
-      ]
+      badge: "DATA COLLECTION",
+      content: (
+        <div className="space-y-4">
+          <p className="text-xs md:text-sm leading-relaxed text-slate-700 font-medium">
+            We collect personal information that you voluntarily provide to us when registering on Roomhy.com, submitting property enquiries, bidding on room rentals, or communicating with us.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2">
+            <div className="p-4 rounded-2xl bg-teal-50/60 border border-teal-100/90 space-y-1">
+              <div className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                <UserCheck className="w-4 h-4 text-[#0FA596]" />
+                <span>Personal Identity</span>
+              </div>
+              <p className="text-xs text-slate-600 font-medium">Name, email, phone number, college/workplace details, and profile photo.</p>
+            </div>
+            <div className="p-4 rounded-2xl bg-teal-50/60 border border-teal-100/90 space-y-1">
+              <div className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                <Lock className="w-4 h-4 text-[#0FA596]" />
+                <span>Verification Data</span>
+              </div>
+              <p className="text-xs text-slate-600 font-medium">Government ID proofs for owner listings and tenant safety verification.</p>
+            </div>
+          </div>
+        </div>
+      )
     },
     {
-      id: "use",
+      id: "usage",
       icon: Eye,
       title: "2. How We Use Your Information",
-      items: [
-        "To facilitate student accommodation listings, direct bidding, and verified bookings.",
-        "To process token deposits and instant refunds seamlessly.",
-        "To verify identity, prevent middleman fraud, and maintain broker-free safety.",
-        "To send automated booking updates, landlord counter-offers, and status notifications.",
-        "To continuously optimize platform speed, UI accessibility, and student experience.",
-        "To satisfy legal and statutory compliance obligations under Indian laws."
-      ]
+      badge: "DATA UTILIZATION",
+      content: (
+        <div className="space-y-4">
+          <p className="text-xs md:text-sm leading-relaxed text-slate-700 font-medium">
+            Roomhy uses your information strictly to facilitate direct connections between tenants and verified property owners, process custom bids, and ensure platform safety.
+          </p>
+          <ul className="space-y-2 text-xs md:text-sm text-slate-700 font-medium">
+            <li className="flex items-start gap-2">
+              <CheckCircle2 className="w-4 h-4 text-[#0FA596] shrink-0 mt-0.5" />
+              <span>To match student housing requirements with available verified PGs, Hostels, and Apartments.</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <CheckCircle2 className="w-4 h-4 text-[#0FA596] shrink-0 mt-0.5" />
+              <span>To facilitate direct owner-tenant in-app communication without broker interference.</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <CheckCircle2 className="w-4 h-4 text-[#0FA596] shrink-0 mt-0.5" />
+              <span>To process token deposits, bid acceptances, and fast refund requests safely.</span>
+            </li>
+          </ul>
+        </div>
+      )
     },
     {
       id: "security",
       icon: Lock,
-      title: "3. Data Security & Encryption",
-      items: [
-        "We enforce industry-standard security protocols including 256-bit SSL encryption, automated firewalls, and isolated secure cloud servers to protect your personal information against unauthorized access, loss, or alteration."
-      ]
+      title: "3. Data Security & Storage",
+      badge: "SECURITY PROTOCOLS",
+      content: (
+        <div className="space-y-4">
+          <p className="text-xs md:text-sm leading-relaxed text-slate-700 font-medium">
+            We implement industry-standard 256-bit SSL encryption, secure database access protocols, and regular security audits to protect your data against unauthorized access.
+          </p>
+          <div className="p-4 rounded-2xl bg-slate-900 text-white space-y-2 shadow-sm">
+            <div className="text-xs font-black text-teal-400 uppercase tracking-wider flex items-center gap-2">
+              <Shield className="w-4 h-4 text-teal-400" />
+              <span>Zero Selling Policy</span>
+            </div>
+            <p className="text-xs text-slate-300 font-medium leading-relaxed">
+              Roomhy Technology NEVER sells, rents, or trades your personal phone numbers or email addresses to third-party telemarketers or external broker agencies.
+            </p>
+          </div>
+        </div>
+      )
     },
     {
-      id: "rights",
-      icon: UserCheck,
-      title: "4. Your Rights & Data Choices",
-      items: [
-        "Right to access your stored profile and booking history anytime.",
-        "Right to request account deletion or data anonymization (subject to active lease/refund records).",
-        "Right to opt out of promotional communications with 1-click.",
-        "Right to request data portability of your verified user documents."
-      ]
+      id: "cookies",
+      icon: Database,
+      title: "4. Cookies & Analytics",
+      badge: "COOKIE POLICY",
+      content: (
+        <div className="space-y-4">
+          <p className="text-xs md:text-sm leading-relaxed text-slate-700 font-medium">
+            We use essential session cookies and performance analytics to store your search preferences (e.g. city, room type, budget) and deliver a smooth browsing experience.
+          </p>
+        </div>
+      )
+    },
+    {
+      id: "contact",
+      icon: Mail,
+      title: "5. Privacy Contact Officer",
+      badge: "GET IN TOUCH",
+      content: (
+        <div className="space-y-4">
+          <p className="text-xs md:text-sm leading-relaxed text-slate-700 font-medium">
+            If you have questions, concerns, or data deletion requests regarding this Privacy Policy, please contact our privacy compliance team directly:
+          </p>
+          <div className="p-5 rounded-2xl bg-teal-50/70 border border-teal-200/90 space-y-2 text-xs md:text-sm font-semibold text-slate-800">
+            <div className="flex items-center gap-2 text-slate-900 font-black">
+              <Mail className="w-4 h-4 text-[#0FA596]" />
+              <span>Email: team@roomhy.com</span>
+            </div>
+            <div className="flex items-center gap-2 text-slate-900 font-black">
+              <Phone className="w-4 h-4 text-[#0FA596]" />
+              <span>Phone: +91 8764425030</span>
+            </div>
+            <div className="flex items-center gap-2 text-slate-900 font-black">
+              <MapPin className="w-4 h-4 text-[#0FA596]" />
+              <span>Address: 847, Balaji Nagar, Rangbari, Kota, Rajasthan 324005, India</span>
+            </div>
+          </div>
+        </div>
+      )
     }
   ];
 
   return (
-    <div className="min-h-screen flex flex-col font-sans bg-[#F8FBFA] text-slate-900 selection:bg-teal-500 selection:text-white">
+    <div className="min-h-screen flex flex-col font-sans bg-[#F4F7F6] text-slate-900 selection:bg-teal-500 selection:text-white">
       <WebsiteNavbar />
 
       <main className="flex-grow">
-        {/* --- HERO BANNER --- */}
-        <section className="relative border-b border-[#DCE7EF]/80 text-slate-900 py-8 md:py-10 px-4 md:px-8 overflow-hidden bg-gradient-to-r from-slate-50 via-white to-teal-50/40">
-          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
-            <div className="flex-1 text-left max-w-2xl">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50/90 border border-teal-200/90 text-[#0FA596] text-xs font-extrabold mb-2 shadow-2xs">
-                <Shield className="w-3.5 h-3.5 text-[#0FA596]" />
-                <span>Data Protection &amp; Privacy Standard</span>
+        
+        {/* ================================================================
+         * 1. HERO — FULL SECTION BACKGROUND PHOTO (EDGE-TO-EDGE WITH SOFT LEFT OVERLAY)
+         * ================================================================ */}
+        <section className="relative border-b border-slate-200/80 text-slate-900 py-8 sm:py-10 px-4 sm:px-8 lg:px-14 overflow-hidden bg-slate-900 flex items-center min-h-[380px]">
+          
+          {/* Full Width Background Photo Layer (Edge-to-Edge Across 100% Section) */}
+          <div 
+            className="absolute inset-0 bg-cover bg-center md:bg-[center_right] opacity-100 z-0 brightness-105"
+            style={{ backgroundImage: `url('https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=1980&auto=format&fit=crop')` }}
+          />
+
+          {/* Rich White Opacity Overlay for 100% text readability & background visibility */}
+          <div 
+            className="absolute inset-0 z-0"
+            style={{ background: 'linear-gradient(90deg, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.90) 50%, rgba(255,255,255,0.35) 100%)' }}
+          ></div>
+
+          <div className="w-full max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+            
+            {/* Left Column: Direct Dark Typography */}
+            <div className="w-full md:max-w-[500px] lg:max-w-[540px] text-left space-y-3.5 text-slate-900">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 backdrop-blur-md border border-teal-200 text-[#0FA596] text-[10px] sm:text-xs font-black tracking-wide shadow-2xs">
+                <Sparkles className="w-3.5 h-3.5 text-[#0FA596] animate-pulse" />
+                <span className="uppercase tracking-wider">Data Protection &amp; Privacy Standard</span>
               </div>
               
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-slate-950 mb-1.5 leading-tight">
-                Privacy <span className="bg-gradient-to-r from-[#0FA596] to-emerald-500 bg-clip-text text-transparent">Policy</span>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-slate-950 leading-tight">
+                Privacy Policy &amp; <br className="hidden sm:inline" />
+                <span className="bg-gradient-to-r from-[#0FA596] via-teal-600 to-emerald-500 bg-clip-text text-transparent">
+                  User Data Security.
+                </span>
               </h1>
 
-              <p className="text-xs md:text-sm text-slate-600 font-medium leading-relaxed">
-                We are committed to protecting your personal data, booking details, and privacy with enterprise-grade security.
+              <p className="text-xs sm:text-sm text-slate-800 font-bold leading-relaxed">
+                We are committed to protecting your personal information, booking details, and browsing privacy with enterprise-grade SSL encryption and zero third-party data selling.
               </p>
-            </div>
 
-            <div className="relative w-full md:w-[340px] h-32 md:h-36 rounded-2xl overflow-hidden shadow-md border border-slate-200/90 shrink-0 my-auto group">
-              <img
-                src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop"
-                alt="Data Security &amp; Privacy"
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent" />
-              <div className="absolute bottom-2 left-3 right-3 bg-white/95 backdrop-blur-md p-2 rounded-xl border border-white/50 shadow-xs flex items-center justify-between">
-                <div>
-                  <div className="text-[11px] font-black text-slate-900">Encrypted &amp; Secure</div>
-                  <div className="text-[9px] font-bold text-slate-500">100% User Privacy</div>
+              {/* Trust Indicators Bar */}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-3 border-t border-slate-300/80 text-[11px] font-black text-slate-800 tracking-wide uppercase">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-4 h-4 rounded-full bg-teal-100 flex items-center justify-center">
+                    <ShieldCheck className="w-3 h-3 text-[#0FA596]" />
+                  </div>
+                  <span>256-Bit SSL Encrypted</span>
                 </div>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-extrabold border border-emerald-200">
-                  Protected
-                </span>
+                <span className="text-slate-300 hidden sm:inline">|</span>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-4 h-4 rounded-full bg-emerald-100 flex items-center justify-center">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                  </div>
+                  <span>100% User Privacy</span>
+                </div>
+                <span className="text-slate-300 hidden sm:inline">|</span>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-4 h-4 rounded-full bg-sky-100 flex items-center justify-center">
+                    <PhoneCall className="w-3.5 h-3.5 text-sky-600" />
+                  </div>
+                  <span>Zero Data Sharing</span>
+                </div>
               </div>
             </div>
+
+            {/* Right Column: Open space */}
+            <div className="hidden md:block w-full md:w-1/2"></div>
+
           </div>
         </section>
 
@@ -197,68 +303,34 @@ export default function WebsitePrivacy() {
               </div>
             </div>
 
-            {/* Right Detailed Section Cards (Fixed Portion Scrollable) */}
-            <div ref={rightContainerRef} className="lg:col-span-8 space-y-6 lg:max-h-[calc(100vh-140px)] lg:overflow-y-auto lg:pr-3 no-scrollbar scroll-smooth">
-              
-              {/* Introduction Card */}
-              <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 border-l-4 border-l-[#0FA596] shadow-2xs space-y-2">
-                <h2 className="text-lg font-extrabold text-slate-950">Introduction</h2>
-                <p className="text-slate-600 text-xs sm:text-sm font-medium leading-relaxed">
-                  Roomhy is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and protect your information when you use our web platform and digital services provided by <strong>ROOMHY TECHNOLOGY</strong>.
-                </p>
-              </div>
-
-              {/* Policy Category Sections */}
-              {staticSections.map((section) => {
-                const IconComp = section.icon;
+            {/* Right Detailed Section Cards */}
+            <div ref={rightContainerRef} className="lg:col-span-8 space-y-6">
+              {staticSections.map((sec, idx) => {
+                const IconComp = sec.icon;
                 return (
                   <div
-                    key={section.id}
-                    id={section.id}
-                    className="scroll-mt-24 bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 border-l-4 border-l-[#0FA596] shadow-2xs hover:shadow-md transition-all space-y-4"
+                    key={sec.id}
+                    id={sec.id}
+                    className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs space-y-4 hover:border-teal-300 transition-all"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-2xl bg-teal-50 text-[#0FA596] flex items-center justify-center font-bold shrink-0">
-                        <IconComp className="w-5 h-5 text-[#0FA596]" />
+                    <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-teal-50 text-[#0FA596] border border-teal-100 flex items-center justify-center shrink-0">
+                          <IconComp className="w-5 h-5" />
+                        </div>
+                        <h2 className="text-lg sm:text-xl font-black text-slate-950 tracking-tight">
+                          {sec.title}
+                        </h2>
                       </div>
-                      <h2 className="text-base sm:text-lg font-extrabold text-slate-950">{section.title}</h2>
+                      <span className="text-[10px] font-black tracking-widest text-[#0FA596] bg-teal-50 border border-teal-100 px-3 py-1 rounded-full uppercase">
+                        {sec.badge}
+                      </span>
                     </div>
 
-                    <div className="space-y-3 pt-1">
-                      {section.items.map((item, i) => (
-                        <div key={i} className="flex items-start gap-3">
-                          <CheckCircle2 className="w-4 h-4 text-[#0FA596] shrink-0 mt-0.5" />
-                          <p className="text-slate-600 text-xs sm:text-sm font-medium leading-relaxed">{item}</p>
-                        </div>
-                      ))}
-                    </div>
+                    <div>{sec.content}</div>
                   </div>
                 );
               })}
-
-              {/* Corporate Contact Card */}
-              <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-2xs space-y-4">
-                <h3 className="text-base font-extrabold text-slate-950">Corporate Privacy &amp; Legal Entity</h3>
-                
-                <div className="space-y-3 text-xs sm:text-sm text-slate-700 font-medium">
-                  <div className="font-black text-slate-900 text-sm">ROOMHY TECHNOLOGY</div>
-                  
-                  <div className="flex items-start gap-2.5 text-slate-600">
-                    <MapPin className="w-4 h-4 text-[#0FA596] shrink-0 mt-0.5" />
-                    <span>847, Balaji Nagar, Rangbari, Near Pani Ki Tanki, Kota, Rajasthan 324005, India</span>
-                  </div>
-
-                  <div className="flex flex-wrap gap-4 pt-2">
-                    <a href="mailto:team@roomhy.com" className="inline-flex items-center gap-2 text-xs font-bold text-[#0FA596] hover:text-teal-700">
-                      <Mail className="w-4 h-4" /> team@roomhy.com
-                    </a>
-                    <a href="tel:+918764425030" className="inline-flex items-center gap-2 text-xs font-bold text-[#0FA596] hover:text-teal-700">
-                      <Phone className="w-4 h-4" /> +91 8764425030
-                    </a>
-                  </div>
-                </div>
-              </div>
-
             </div>
 
           </div>
@@ -266,7 +338,10 @@ export default function WebsitePrivacy() {
       </main>
 
       <WebsiteFooter />
-      <MobileBottomNav />
+
+      <div className="md:hidden">
+        <MobileBottomNav />
+      </div>
     </div>
   );
 }

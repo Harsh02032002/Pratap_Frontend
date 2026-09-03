@@ -761,7 +761,7 @@ export default function PropertyDetailsPage() {
             // Description and basic info
             description: foundProperty.description || "No description provided",
             verified: foundProperty.isVerified || foundProperty.verified || false,
-            rating: foundProperty.rating || 4.5,
+            rating: foundProperty.rating || 0,
             latitude: foundProperty.latitude || foundProperty.propertyInfo?.latitude || foundProperty.propertyInfo?.location?.coordinates?.[1] || null,
             longitude: foundProperty.longitude || foundProperty.propertyInfo?.longitude || foundProperty.propertyInfo?.location?.coordinates?.[0] || null,
             address: foundProperty.address || foundProperty.propertyAddress || "",

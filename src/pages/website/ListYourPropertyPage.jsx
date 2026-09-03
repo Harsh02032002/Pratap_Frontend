@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ListPlus, Send, CheckCircle, Loader, Building2, User, Mail, Phone, MapPin, Home } from 'lucide-react';
+import { ListPlus, Send, CheckCircle, Loader, Building2, User, Mail, Phone, MapPin, Home, Sparkles, ShieldCheck, CheckCircle2, PhoneCall } from 'lucide-react';
 import WebsiteNavbar from "../../components/website/WebsiteNavbar";
 import WebsiteFooter from "../../components/website/WebsiteFooter";
 import MobileBottomNav from "../../components/website/MobileBottomNav";
@@ -180,42 +180,68 @@ export default function ListYourPropertyPage() {
   ];
 
   const renderHero = () => {
-    const content = getSectionContent('list-hero', {
-      title: 'List Your Property',
-      subtitle: 'Reach thousands of students looking for accommodation'
-    });
     return (
-      <div 
+      <section 
         key="list-hero" 
-        className="relative w-full py-8 md:py-12 px-4 md:px-8 overflow-hidden border-b border-stone-200/80 text-center"
-        style={{
-          background: 'linear-gradient(135deg, #EAEFF5 0%, #F5F7FA 50%, #E5EDF5 100%)'
-        }}
+        className="relative border-b border-slate-200/80 text-slate-900 py-6 sm:py-8 px-4 sm:px-8 lg:px-14 overflow-hidden flex items-center min-h-[260px] sm:min-h-[280px] bg-cover bg-center md:bg-[center_right]"
+        style={{ backgroundImage: `url('https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=1980&auto=format&fit=crop')` }}
       >
+        {/* Rich White Opacity Overlay for 100% text readability & background visibility */}
         <div 
-          className="absolute inset-0 opacity-[0.25] pointer-events-none"
-          style={{
-            backgroundImage: `radial-gradient(circle at 20% 30%, rgba(200, 215, 230, 0.4) 0%, transparent 40%), radial-gradient(circle at 80% 70%, rgba(210, 225, 240, 0.4) 0%, transparent 40%), linear-gradient(45deg, rgba(255,255,255,0.6) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.6) 75%)`,
-            backgroundSize: '100% 100%, 100% 100%, 60px 60px'
-          }}
+          className="absolute inset-0 z-0"
+          style={{ background: 'linear-gradient(90deg, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.90) 50%, rgba(255,255,255,0.35) 100%)' }}
         ></div>
-        <div className="relative max-w-6xl mx-auto flex flex-col items-center justify-center text-center">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-[#1E293B] tracking-wider uppercase leading-tight mb-4 drop-shadow-xs">
-            {(content.title || 'LIST YOUR PROPERTY').toUpperCase()}
-          </h1>
-          <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3">
-            <div className="px-3.5 py-1.5 rounded-full border border-slate-300/80 bg-white/70 backdrop-blur-xs text-slate-800 text-xs md:text-sm font-semibold tracking-wider uppercase shadow-2xs">
-              FREE LISTING
+
+        <div className="w-full max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+          
+          {/* Left Column: Heading */}
+          <div className="w-full md:max-w-[500px] lg:max-w-[540px] text-left space-y-2.5 text-slate-900">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 backdrop-blur-md border border-teal-200 text-[#0FA596] text-[10px] sm:text-xs font-black tracking-wide shadow-2xs">
+              <Sparkles className="w-3.5 h-3.5 text-[#0FA596] animate-pulse" />
+              <span className="uppercase tracking-wider">Free Property Host Partner Portal</span>
             </div>
-            <div className="px-3.5 py-1.5 rounded-full border border-slate-300/80 bg-white/70 backdrop-blur-xs text-slate-800 text-xs md:text-sm font-semibold tracking-wider uppercase shadow-2xs">
-              DIRECT TENANTS
-            </div>
-            <div className="px-3.5 py-1.5 rounded-full border border-slate-300/80 bg-white/70 backdrop-blur-xs text-slate-800 text-xs md:text-sm font-semibold tracking-wider uppercase shadow-2xs">
-              ZERO COMMISSION
+            
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-slate-950 leading-tight">
+              List your property &amp; connect <br className="hidden sm:inline" />
+              <span className="bg-gradient-to-r from-[#0FA596] via-teal-600 to-emerald-500 bg-clip-text text-transparent">
+                with student tenants directly.
+              </span>
+            </h1>
+
+            <p className="text-xs sm:text-sm text-slate-800 font-bold leading-relaxed">
+              Reach thousands of students searching for verified PGs, Hostels, and Apartments with 100% Zero Brokerage.
+            </p>
+
+            {/* Trust Indicators Bar */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-2.5 border-t border-slate-300/80 text-[11px] font-black text-slate-800 tracking-wide uppercase">
+              <div className="flex items-center gap-1.5">
+                <div className="w-4 h-4 rounded-full bg-teal-100 flex items-center justify-center">
+                  <ShieldCheck className="w-3 h-3 text-[#0FA596]" />
+                </div>
+                <span>Free Property Listing</span>
+              </div>
+              <span className="text-slate-300 hidden sm:inline">|</span>
+              <div className="flex items-center gap-1.5">
+                <div className="w-4 h-4 rounded-full bg-emerald-100 flex items-center justify-center">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                </div>
+                <span>Direct Tenants</span>
+              </div>
+              <span className="text-slate-300 hidden sm:inline">|</span>
+              <div className="flex items-center gap-1.5">
+                <div className="w-4 h-4 rounded-full bg-sky-100 flex items-center justify-center">
+                  <PhoneCall className="w-3.5 h-3.5 text-sky-600" />
+                </div>
+                <span>Zero Commission</span>
+              </div>
             </div>
           </div>
+
+          {/* Right Column: Open space */}
+          <div className="hidden md:block w-full md:w-1/2"></div>
+
         </div>
-      </div>
+      </section>
     );
   };
 
@@ -465,40 +491,44 @@ export default function ListYourPropertyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
       <WebsiteNavbar />
 
       {loading ? (
         <div className="flex items-center justify-center py-40">
-          <div className="w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-8 h-8 border-4 border-[#0FA596] border-t-transparent rounded-full animate-spin"></div>
         </div>
       ) : (
-        <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-12">
-          {activeOrder.map(sectionId => {
-            if (!isSectionVisible(sectionId)) return null;
-            switch (sectionId) {
-              case 'list-hero': return renderHero();
-              case 'owner-benefits': return renderBenefits();
-              case 'list-form': return renderForm();
-              default: return null;
-            }
-          })}
+        <>
+          {/* Full Width Hero Section Edge-to-Edge Right Under Navbar */}
+          {isSectionVisible('list-hero') && renderHero()}
 
-          <div className="mt-12 bg-blue-50 rounded-xl p-6">
-            <h3 className="font-semibold text-gray-900 mb-2">Need Help?</h3>
-            <p className="text-gray-600 text-sm mb-4">Our team is here to assist you with listing your property</p>
-            <div className="flex flex-wrap gap-4">
-              <a href="tel:+918764425030" className="flex items-center gap-2 text-blue-600 hover:text-blue-700">
-                <Phone className="w-4 h-4" />
-                <span>+91 8764425030</span>
-              </a>
-              <a href="mailto:team@roomhy.com" className="flex items-center gap-2 text-blue-600 hover:text-blue-700">
-                <Mail className="w-4 h-4" />
-                <span>team@roomhy.com</span>
-              </a>
+          <main className="flex-grow max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-10 w-full">
+            {activeOrder.map(sectionId => {
+              if (sectionId === 'list-hero' || !isSectionVisible(sectionId)) return null;
+              switch (sectionId) {
+                case 'owner-benefits': return renderBenefits();
+                case 'list-form': return renderForm();
+                default: return null;
+              }
+            })}
+
+            <div className="mt-10 bg-teal-50/70 border border-teal-100/90 rounded-2xl p-6 shadow-2xs">
+              <h3 className="font-extrabold text-slate-900 mb-1">Need Help Listing Your Property?</h3>
+              <p className="text-slate-600 text-xs font-medium mb-4">Our support team is here to assist you with listing setup and verification.</p>
+              <div className="flex flex-wrap gap-4 text-xs font-bold">
+                <a href="tel:+918764425030" className="flex items-center gap-2 text-[#0FA596] hover:underline">
+                  <Phone className="w-4 h-4" />
+                  <span>+91 8764425030</span>
+                </a>
+                <a href="mailto:team@roomhy.com" className="flex items-center gap-2 text-[#0FA596] hover:underline">
+                  <Mail className="w-4 h-4" />
+                  <span>team@roomhy.com</span>
+                </a>
+              </div>
             </div>
-          </div>
-        </main>
+          </main>
+        </>
       )}
 
       <WebsiteFooter />
