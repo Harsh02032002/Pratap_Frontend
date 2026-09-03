@@ -415,7 +415,12 @@ export default function OwnerChat() {
 
     socket.on("message_blocked", (data) => {
       if (data?.warning || data?.message || data?.blocked) {
-        setBlockedMsgSnippet(data?.message || 'Contact details / offline deal prohibited');
+        // `data.message` is the platform's warning copy, not anything the user
+        // typed. Passing it to setBlockedMsgSnippet rendered it under a "Your
+        // message" heading, so the dialog quoted its own warning back at the
+        // owner as though they had written it. The offending text arrives as
+        // `snippet`; when it is absent the quote block is simply not shown.
+        setBlockedMsgSnippet(data?.snippet || "");
         setShowBypassWarning(true);
       }
       if (activeChatRef.current?.participant_login_id) {
@@ -582,14 +587,18 @@ export default function OwnerChat() {
               It looks like this message shares contact details or arranges payment outside Roomhy, which isn&apos;t allowed on the platform.
             </p>
 
-            <div className="rounded-xl border border-border bg-muted/40 p-3 mb-4">
-              <span className="block text-[11px] font-bold text-muted-foreground uppercase tracking-wide mb-1.5">
-                Your message
-              </span>
-              <p className="text-xs font-mono text-foreground break-words line-clamp-4">
-                {blockedMsgSnippet}
-              </p>
-            </div>
+            {/* Only shown when we actually have the text that was withheld.
+                A warning arriving over the socket may not carry it. */}
+            {blockedMsgSnippet ? (
+              <div className="rounded-xl border border-border bg-muted/40 p-3 mb-4">
+                <span className="block text-[11px] font-bold text-muted-foreground uppercase tracking-wide mb-1.5">
+                  Your message
+                </span>
+                <p className="text-xs font-mono text-foreground break-words line-clamp-4">
+                  {blockedMsgSnippet}
+                </p>
+              </div>
+            ) : null}
 
             <div className="border-t border-border/60 pt-4 mb-5 space-y-1.5">
               <p className="text-xs text-muted-foreground leading-relaxed">
