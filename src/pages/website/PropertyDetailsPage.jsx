@@ -1190,32 +1190,17 @@ export default function PropertyDetailsPage() {
               <CompareSection currentProperty={property} />
 
               {/* 13. Owner Info (Mobile Only) */}
-              <div className="md:hidden px-4 py-5" style={{ borderBottom: '1px solid #e8e8e8' }}>
-                <h2 className="text-lg font-bold text-[#222] mb-3">Owner Information</h2>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-[10px] text-[#6d787d] uppercase tracking-wider">Owner Name</p>
-                    <p className="text-sm text-[#222] font-semibold">{property.owner}</p>
+              {property.owner && (
+                <div className="md:hidden px-4 py-5" style={{ borderBottom: '1px solid #e8e8e8' }}>
+                  <h2 className="text-lg font-bold text-[#222] mb-3">Owner Information</h2>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-[10px] text-[#6d787d] uppercase tracking-wider">Owner Name</p>
+                      <p className="text-sm text-[#222] font-semibold">{property.owner}</p>
+                    </div>
                   </div>
-                  {property.ownerPhone && (
-                    <a
-                      href={`tel:${property.ownerPhone}`}
-                      className="flex items-center justify-center gap-2 w-full py-3 bg-[#EE4266] text-white rounded-lg font-semibold text-sm hover:bg-[#d63a5b] transition-colors"
-                    >
-                      <Phone size={16} /> Call Owner
-                    </a>
-                  )}
-                  {property.ownerEmail && (
-                    <a
-                      href={`mailto:${property.ownerEmail}`}
-                      className="flex items-center justify-center gap-2 w-full py-3 bg-white text-[#222] rounded-lg font-semibold text-sm transition-colors"
-                      style={{ border: '1px solid #e0e0e0' }}
-                    >
-                      <Mail size={16} /> Send Email
-                    </a>
-                  )}
                 </div>
-              </div>
+              )}
             </div>
           </div>
 

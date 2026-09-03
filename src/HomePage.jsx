@@ -96,254 +96,251 @@ function DesktopHero({ searchQuery, setSearchQuery, selectedGender, setSelectedG
     { k: "PG", icon: Bed, val: "pg" },
     { k: "Hostels", icon: Building2, val: "hostel" },
     { k: "Co-living", icon: Sofa, val: "co-living" },
-    { k: "Apartments", icon: Home, val: "apartment" },
+    { k: "Apartments", icon: HomeIcon, val: "apartment" },
   ];
 
   return (
-    <section className="relative w-full overflow-hidden bg-slate-900 min-h-[360px] lg:min-h-[385px] py-4 lg:py-5 flex flex-col items-center justify-center border-b border-slate-100/80">
-      {/* 100% Pure Luxury Penthouse Background Image */}
-      <div className="absolute inset-0 z-0 overflow-hidden">
-        <img
-          src="/hero-luxury.jpg"
-          alt="Premium Roomhy stay"
-          className="h-full w-full object-cover object-center"
-        />
-        {/* Subtle Ambient Mask matching reference screenshot */}
-        <div className="absolute inset-0 bg-slate-950/20 pointer-events-none" />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/40 via-transparent to-transparent pointer-events-none" />
-      </div>
-
-      {/* Hero Centered Content Container */}
-      <div className="relative z-10 mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 w-full flex flex-col items-center justify-center text-center">
-        
-        {/* Top Trust Badge */}
-        <span className="inline-flex items-center gap-2 rounded-full bg-white/95 backdrop-blur-md px-3.5 py-1 text-xs font-bold text-slate-900 border border-white/80 shadow-md mb-2">
-          <ShieldCheck className="h-3.5 w-3.5 text-teal-600 shrink-0" />
-          <span>India's #1 Broker-Free Student Housing &amp; Smart Bidding</span>
-        </span>
-        
-        {/* Headline */}
-        <h1 className="font-display text-4xl sm:text-5xl lg:text-[3.15rem] font-extrabold leading-[1.1] text-white max-w-4xl tracking-tight drop-shadow-md mb-2">
-          Premium Student &amp; <br className="hidden sm:block" />
-          Professional <span className="text-teal-400 font-extrabold">Living</span>
-        </h1>
-        
-        {/* Subtitle */}
-        <p className="max-w-xl text-xs sm:text-sm font-semibold text-slate-100 leading-relaxed drop-shadow-sm mb-3.5">
-          Find and book verified PGs, Hostels, Co-living spaces and <br className="hidden sm:block" />
-          Apartments in top cities.
-        </p>
-
-        {/* Floating Search Module Container */}
-        <div className="w-full max-w-4xl lg:max-w-5xl rounded-3xl bg-white/95 backdrop-blur-md p-3 px-3.5 shadow-xl border border-white/60 text-left mb-3">
-          {/* Tabs */}
-          <div className="flex items-center justify-center gap-8 border-b border-slate-200/80 px-4 pt-0.5 pb-2 mb-2">
-            {tabs.map(({ k, icon: I, val }) => (
-              <button 
-                key={k} 
-                type="button"
-                onClick={() => setTab(k)}
-                className={`relative flex items-center gap-2 px-2 pb-0.5 text-xs font-bold transition-all cursor-pointer ${
-                  tab === k 
-                    ? "text-teal-600 font-extrabold" 
-                    : "text-slate-600 hover:text-slate-900 font-semibold"
-                }`}
-              >
-                <I className="h-3.5 w-3.5" />
-                <span>{k}</span>
-                {tab === k && <span className="absolute -bottom-2 left-0 right-0 h-0.5 bg-teal-600 rounded-full" />}
-              </button>
-            ))}
-          </div>
-
-          {/* Form */}
-          <form onSubmit={(e) => handleSearchSubmit(e, tabs.find(t => t.k === tab)?.val)} className="flex flex-col md:flex-row items-center gap-2">
-            <div className="flex flex-1 items-center gap-2.5 rounded-2xl border border-slate-200 bg-slate-50/80 px-3.5 py-1.5 hover:border-teal-400 focus-within:border-teal-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-teal-500/20 transition-all w-full">
-              <Search className="h-3.5 w-3.5 text-teal-600 shrink-0" />
-              <input 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-transparent text-xs font-semibold text-slate-900 outline-none placeholder:text-slate-400"
-                placeholder="Search city, locality or landmark (e.g. Koramangala, Mumbai)" 
-              />
-            </div>
-
-            <div className="flex items-center gap-2 w-full md:w-auto">
-              <select 
-                value={selectedGender}
-                onChange={(e) => setSelectedGender(e.target.value)}
-                className="flex h-[36px] w-full md:w-36 items-center justify-between rounded-2xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 hover:border-teal-400 outline-none cursor-pointer"
-              >
-                <option value="">Any Gender</option>
-                <option value="boys">Boys</option>
-                <option value="girls">Girls</option>
-                <option value="co-ed">Co-Ed</option>
-              </select>
-
-              <select 
-                value={selectedBudget}
-                onChange={(e) => setSelectedBudget(e.target.value)}
-                className="flex h-[36px] w-full md:w-40 items-center justify-between rounded-2xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 hover:border-teal-400 outline-none cursor-pointer"
-              >
-                <option value="">Any Budget</option>
-                <option value="5000">Under ₹5,000</option>
-                <option value="8000">Under ₹8,000</option>
-                <option value="12000">Under ₹12,000</option>
-                <option value="15000">₹15,000+</option>
-              </select>
-            </div>
-
-            <button type="submit" className="flex h-[36px] w-full md:w-auto items-center justify-center gap-2 rounded-2xl bg-teal-600 hover:bg-teal-700 px-7 text-xs font-extrabold text-white shadow-md hover:shadow-lg transition-all shrink-0 cursor-pointer">
-              <Search className="h-3.5 w-3.5" /> Search
-            </button>
-          </form>
-        </div>
-
-        {/* Benefits Strip */}
-        <div className="w-full max-w-4xl lg:max-w-5xl rounded-2xl bg-black/35 backdrop-blur-md border border-white/20 px-5 py-2 shadow-md flex flex-nowrap items-center justify-between gap-3 text-white text-xs font-bold overflow-x-auto lg:overflow-visible no-scrollbar">
-          <div className="flex items-center gap-2 shrink-0">
-            <ShieldCheck className="h-3.5 w-3.5 text-white shrink-0" />
-            <div className="text-left">
-              <p className="leading-none text-[11px] font-bold text-white whitespace-nowrap">Smart Bidding</p>
-              <p className="text-[9px] text-slate-300 font-medium mt-0.5 leading-none whitespace-nowrap">Best price deals</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <BadgeCheck className="h-3.5 w-3.5 text-white shrink-0" />
-            <div className="text-left">
-              <p className="leading-none text-[11px] font-bold text-white whitespace-nowrap">Verified Properties</p>
-              <p className="text-[9px] text-slate-300 font-medium mt-0.5 leading-none whitespace-nowrap">100% verified listings</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Tag className="h-3.5 w-3.5 text-white shrink-0" />
-            <div className="text-left">
-              <p className="leading-none text-[11px] font-bold text-white whitespace-nowrap">Lowest Price Guarantee</p>
-              <p className="text-[9px] text-slate-300 font-medium mt-0.5 leading-none whitespace-nowrap">Best price, always</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Headphones className="h-3.5 w-3.5 text-white shrink-0" />
-            <div className="text-left">
-              <p className="leading-none text-[11px] font-bold text-white whitespace-nowrap">24/7 Support</p>
-              <p className="text-[9px] text-slate-300 font-medium mt-0.5 leading-none whitespace-nowrap">Always here to help</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Lock className="h-3.5 w-3.5 text-white shrink-0" />
-            <div className="text-left">
-              <p className="leading-none text-[11px] font-bold text-white whitespace-nowrap">Safe &amp; Secure</p>
-              <p className="text-[9px] text-slate-300 font-medium mt-0.5 leading-none whitespace-nowrap">Your safety, our priority</p>
-            </div>
+    <>
+      {/* Hero Section */}
+      <div className="relative min-h-[380px] md:min-h-[410px] bg-slate-900 z-30 flex flex-col justify-center overflow-hidden py-6 md:py-8">
+        {/* Full width room background image */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div
+            className="absolute inset-0 bg-cover bg-center transition-all duration-1000 transform scale-105"
+            style={{ backgroundImage: `url('/hero-luxury.jpg')` }}
+          >
+            <div className="absolute inset-0 bg-slate-950/20 backdrop-blur-[1px]"></div>
           </div>
         </div>
 
+        {/* Centered Translucent Glass Panel */}
+        <div className="relative max-w-4xl lg:max-w-[960px] w-full mx-auto px-4 z-20">
+          <div className="bg-white/35 backdrop-blur-xl border border-white/60 rounded-[28px] p-4 sm:p-5 md:p-6 shadow-2xl text-center">
+            {/* Top Badge */}
+            <div className="inline-flex items-center gap-1.5 bg-white/90 backdrop-blur-md px-3.5 py-1 rounded-full shadow-xs text-[10px] sm:text-[11px] font-black text-slate-800 mb-2 border border-white/80">
+              <ShieldCheck className="w-3.5 h-3.5 text-[#0FA596] shrink-0" />
+              <span>India's #1 Broker-Free Student Housing &amp; Smart Bidding</span>
+            </div>
+
+            {/* Main Heading — DARK NAVY TEXT with TEAL "Living" */}
+            <h1 className="text-2xl sm:text-4xl md:text-[40px] font-black text-[#0F172A] mb-1 tracking-tight leading-[1.15]">
+              Premium Student &amp; <br className="hidden sm:inline" />
+              Professional <span className="text-[#0FA596]">Living</span>
+            </h1>
+            <p className="text-[11px] sm:text-xs md:text-sm font-semibold text-[#334155] mb-3 max-w-xl mx-auto leading-relaxed">
+              Find and book verified PGs, Hostels, Co-living spaces and Apartments in top cities.
+            </p>
+
+            {/* Search Container inside Glass Panel */}
+            <div className="bg-white/90 backdrop-blur-md rounded-[20px] shadow-lg p-2.5 sm:p-3 border border-white/80 text-left relative z-50">
+              {/* Category Tabs Bar */}
+              <div className="flex items-center justify-center gap-2 sm:gap-5 border-b border-slate-100/80 pb-2 mb-2 overflow-x-auto no-scrollbar">
+                {tabs.map(({ k, icon: Icon, val }) => (
+                  <button
+                    key={k}
+                    type="button"
+                    onClick={() => setTab(k)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-extrabold transition-all cursor-pointer ${
+                      tab === k
+                        ? "bg-teal-50 text-[#0FA596] border border-teal-200/80 shadow-2xs"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                    }`}
+                  >
+                    <Icon className={`w-3.5 h-3.5 ${tab === k ? 'text-[#0FA596]' : 'text-slate-400'}`} />
+                    <span>{k}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Search Inputs Row */}
+              <form onSubmit={(e) => handleSearchSubmit(e, tabs.find(t => t.k === tab)?.val)} className="flex flex-col md:flex-row items-center gap-2">
+                {/* Location Search Input */}
+                <div className="relative flex-1 w-full flex items-center bg-white border border-slate-200/90 rounded-full px-3.5 py-2 shadow-2xs focus-within:border-[#0FA596] focus-within:ring-2 focus-within:ring-teal-100 transition-all">
+                  <Search className="w-3.5 h-3.5 text-[#0FA596] mr-2 shrink-0" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search city, locality or landmark (e.g. Koramangala, Mumbai)"
+                    className="w-full bg-transparent outline-none text-xs font-bold text-slate-800 placeholder:text-slate-400"
+                  />
+                </div>
+
+                {/* Gender Filter Dropdown */}
+                <div className="w-full md:w-32 flex items-center bg-white border border-slate-200/90 rounded-full px-3 py-2 shadow-2xs text-xs font-bold text-slate-700">
+                  <select
+                    value={selectedGender}
+                    onChange={(e) => setSelectedGender(e.target.value)}
+                    className="w-full bg-transparent outline-none cursor-pointer"
+                  >
+                    <option value="">Any Gender</option>
+                    <option value="boys">Boys</option>
+                    <option value="girls">Girls</option>
+                    <option value="co-ed">Co-Ed</option>
+                  </select>
+                </div>
+
+                {/* Budget Filter Dropdown */}
+                <div className="w-full md:w-36 flex items-center bg-white border border-slate-200/90 rounded-full px-3 py-2 shadow-2xs text-xs font-bold text-slate-700">
+                  <select
+                    value={selectedBudget}
+                    onChange={(e) => setSelectedBudget(e.target.value)}
+                    className="w-full bg-transparent outline-none cursor-pointer"
+                  >
+                    <option value="">Any Budget</option>
+                    <option value="5000">Under ₹5,000</option>
+                    <option value="8000">Under ₹8,000</option>
+                    <option value="12000">Under ₹12,000</option>
+                    <option value="15000">₹15,000+</option>
+                  </select>
+                </div>
+
+                {/* Submit Search Button */}
+                <button
+                  type="submit"
+                  className="w-full md:w-auto bg-[#0FA596] hover:bg-[#0d9284] text-white px-6 py-2 rounded-full font-black text-xs flex items-center justify-center gap-1.5 transition-all shadow-md shrink-0 cursor-pointer"
+                >
+                  <Search className="w-3.5 h-3.5" />
+                  <span>Search</span>
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
       </div>
-    </section>
+
+      {/* WHITE BENEFITS STRIP — OVERLAPPING HERO BOTTOM */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 -mt-5 relative z-40">
+        <div className="bg-white rounded-[20px] shadow-xl border border-slate-100 p-3 md:p-3.5 grid grid-cols-2 md:grid-cols-5 gap-3 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+          <div className="flex items-center gap-2.5 pt-1 md:pt-0">
+            <div className="w-8 h-8 rounded-xl bg-teal-50 flex items-center justify-center shrink-0 text-[#0FA596] border border-teal-100/60">
+              <ShieldCheck className="w-4 h-4" />
+            </div>
+            <div>
+              <h4 className="text-[11px] font-black text-[#0F172A] leading-tight">Smart Bidding</h4>
+              <p className="text-[9px] font-semibold text-slate-500 leading-tight">Best price deals</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 pt-1 md:pt-0 md:pl-3">
+            <div className="w-8 h-8 rounded-xl bg-teal-50 flex items-center justify-center shrink-0 text-[#0FA596] border border-teal-100/60">
+              <BadgeCheck className="w-4 h-4" />
+            </div>
+            <div>
+              <h4 className="text-[11px] font-black text-[#0F172A] leading-tight">Verified Properties</h4>
+              <p className="text-[9px] font-semibold text-slate-500 leading-tight">100% verified listings</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 pt-1 md:pt-0 md:pl-3">
+            <div className="w-8 h-8 rounded-xl bg-teal-50 flex items-center justify-center shrink-0 text-[#0FA596] border border-teal-100/60">
+              <Tag className="w-4 h-4" />
+            </div>
+            <div>
+              <h4 className="text-[11px] font-black text-[#0F172A] leading-tight">Lowest Price Guarantee</h4>
+              <p className="text-[9px] font-semibold text-slate-500 leading-tight">Best price, always</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 pt-1 md:pt-0 md:pl-3">
+            <div className="w-8 h-8 rounded-xl bg-teal-50 flex items-center justify-center shrink-0 text-[#0FA596] border border-teal-100/60">
+              <Headphones className="w-4 h-4" />
+            </div>
+            <div>
+              <h4 className="text-[11px] font-black text-[#0F172A] leading-tight">24/7 Support</h4>
+              <p className="text-[9px] font-semibold text-slate-500 leading-tight">Always here to help</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 pt-1 md:pt-0 md:pl-3">
+            <div className="w-8 h-8 rounded-xl bg-teal-50 flex items-center justify-center shrink-0 text-[#0FA596] border border-teal-100/60">
+              <Lock className="w-4 h-4" />
+            </div>
+            <div>
+              <h4 className="text-[11px] font-black text-[#0F172A] leading-tight">Safe &amp; Secure</h4>
+              <p className="text-[9px] font-semibold text-slate-500 leading-tight">Your safety, our priority</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
 
 function DesktopWhatWeOffer() {
-  const [imgIdx, setImgIdx] = React.useState({});
   const items = [
-    { 
-      icon: Bed, 
-      t: "PG (Paying Guest)", 
-      href: "/pg", 
-      images: [
-        "https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?w=600&q=80",
-        "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=80",
-        "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&q=80"
-      ]
+    {
+      icon: Bed,
+      t: "PG (Paying Guest)",
+      href: "/website/ourproperty?type=pg",
+      image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=80"
     },
-    { 
-      icon: Building2, 
-      t: "Hostels", 
-      href: "/hostels", 
-      images: [
-        "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=600&q=80",
-        "https://images.unsplash.com/photo-1536376072261-38c75010e6c9?w=600&q=80",
-        "https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=600&q=80"
-      ]
+    {
+      icon: Building2,
+      t: "Hostels",
+      href: "/website/ourproperty?type=hostel",
+      image: "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=600&q=80"
     },
-    { 
-      icon: Sofa, 
-      t: "Co-living", 
-      href: "/co-living", 
-      images: [
-        "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=600&q=80",
-        "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=80",
-        "https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&q=80"
-      ]
+    {
+      icon: Sofa,
+      t: "Co-living",
+      href: "/website/ourproperty?type=co-living",
+      image: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=600&q=80"
     },
-    { 
-      icon: Home, 
-      t: "Apartments", 
-      href: "/apartments", 
-      images: [
-        "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&q=80",
-        "https://images.unsplash.com/photo-1484154218962-a197022b5858?w=600&q=80",
-        "https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?w=600&q=80"
-      ]
+    {
+      icon: HomeIcon,
+      t: "Apartments",
+      href: "/website/ourproperty?type=apartment",
+      image: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&q=80"
     }
   ];
 
   return (
-    <DesktopSection title="What We Offer" sub="Choose from a variety of accommodation types tailored for students and professionals.">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {items.map(({ icon: I, t, href, images }) => {
-          const idx = imgIdx[t] || 0;
-          const total = images.length;
+    <section className="py-5 md:py-6 bg-white relative z-0">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+        <div className="text-center mb-3 md:mb-4">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-[#0F172A] mb-0.5 tracking-tight">
+            What We Offer
+          </h2>
+          <p className="text-[11px] sm:text-xs font-semibold text-slate-500 max-w-xl mx-auto">
+            Choose from a variety of accommodation types tailored for students and professionals.
+          </p>
+        </div>
 
-          return (
-            <Link 
-              key={t} 
-              to={href} 
-              className="group relative overflow-hidden rounded-2xl border border-slate-200/90 bg-slate-900 shadow-sm hover:shadow-md transition-all duration-300 h-36 flex flex-col justify-end"
+        {/* 4 Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {items.map(({ icon: Icon, t, href, image }) => (
+            <Link
+              key={t}
+              to={href}
+              className="group relative h-40 md:h-44 rounded-[18px] overflow-hidden shadow-md border border-slate-100 hover:shadow-2xl transition-all duration-300 block"
             >
-              {/* Background Image */}
-              <img src={images[idx]} alt={t} className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
-              
-              {/* Gradient Bottom Readability Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent pointer-events-none" />
-              
-              {/* Top-Left Category Icon Badge */}
-              <div className="absolute top-2.5 left-2.5 w-7 h-7 rounded-lg bg-white/95 backdrop-blur-md shadow-xs text-teal-600 flex items-center justify-center border border-white/80 z-10">
-                <I className="h-3.5 w-3.5 text-teal-700" />
-              </div>
-              
-              {/* Top-Right Image Counter Badge */}
-              <div className="absolute top-2.5 right-2.5 bg-black/60 backdrop-blur-md text-white px-2 py-0.5 rounded-md text-[10px] font-bold z-10">
-                {idx + 1}/{total}
+              <img
+                src={image}
+                alt={t}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/15 to-transparent"></div>
+
+              {/* Top Right Counter Badge */}
+              <div className="absolute top-2.5 right-2.5 bg-black/80 backdrop-blur-xs text-white text-[9px] font-black px-2 py-0.5 rounded-md border border-white/20">
+                1/3
               </div>
 
-              {/* Left Arrow Button */}
-              <button
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setImgIdx(prev => ({ ...prev, [t]: (idx - 1 + total) % total })); }}
-                className="absolute left-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/40 hover:bg-black/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-20 cursor-pointer"
-              >
-                <ChevronLeft className="w-4 h-4 text-white" />
-              </button>
-              
-              {/* Right Arrow Button */}
-              <button
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setImgIdx(prev => ({ ...prev, [t]: (idx + 1) % total })); }}
-                className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/40 hover:bg-black/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-20 cursor-pointer"
-              >
-                <ChevronRight className="w-4 h-4 text-white" />
-              </button>
-
-              {/* Bottom-Left Solid Dark Category Title Pill */}
-              <div className="relative z-10 p-2.5 text-left">
-                <span className="inline-block px-2.5 py-1 rounded-lg bg-black/70 backdrop-blur-md text-white text-xs font-extrabold border border-white/20 shadow-xs">
-                  {t}
-                </span>
+              {/* Bottom Left White Pill Category Badge */}
+              <div className="absolute bottom-2.5 left-2.5 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-black text-slate-900 flex items-center gap-1.5 shadow-md border border-white/80 group-hover:bg-white transition-all">
+                <div className="w-4 h-4 rounded-full bg-teal-50 flex items-center justify-center text-[#0FA596]">
+                  <Icon className="w-3 h-3" />
+                </div>
+                <span>{t}</span>
+                <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-[#0FA596] group-hover:translate-x-0.5 transition-all" />
               </div>
             </Link>
-          );
-        })}
+          ))}
+        </div>
       </div>
-    </DesktopSection>
+    </section>
   );
 }
 

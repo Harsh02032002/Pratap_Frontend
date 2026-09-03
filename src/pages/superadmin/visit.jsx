@@ -334,10 +334,36 @@ export default function Visit() {
   // Owner Bank Details
   const [formBankHolderName, setFormBankHolderName] = useState("");
   const [formBankAccountNumber, setFormBankAccountNumber] = useState("");
+  const [formReBankAccountNumber, setFormReBankAccountNumber] = useState("");
   const [formBankIfscCode, setFormBankIfscCode] = useState("");
   const [formBankName, setFormBankName] = useState("");
   const [formBankBranchName, setFormBankBranchName] = useState("");
   const [formBankUpiId, setFormBankUpiId] = useState("");
+  const [ifscLookupLoading, setIfscLookupLoading] = useState(false);
+  const [ifscLookupStatus, setIfscLookupStatus] = useState(null);
+
+  const handleIfscBlur = async (code) => {
+    const cleanCode = (code || '').trim().toUpperCase();
+    if (!cleanCode || cleanCode.length !== 11) {
+      setIfscLookupStatus(null);
+      return;
+    }
+    try {
+      setIfscLookupLoading(true);
+      const res = await fetchJson(`/api/bank/ifsc/${cleanCode}`);
+      if (res && res.success && res.ifscStatus === 'valid') {
+        if (res.bankName && !formBankName) setFormBankName(res.bankName);
+        if (res.branchName && !formBankBranchName) setFormBankBranchName(res.branchName);
+        setIfscLookupStatus({ valid: true, message: `Verified IFSC: ${res.bankName} (${res.branchName})`, bankName: res.bankName, branchName: res.branchName });
+      } else {
+        setIfscLookupStatus({ valid: false, message: res?.message || 'Invalid IFSC code' });
+      }
+    } catch (err) {
+      setIfscLookupStatus({ valid: false, message: 'IFSC format invalid or code not found' });
+    } finally {
+      setIfscLookupLoading(false);
+    }
+  };
 
   // Live Camera modal state & refs
   const [cameraModalOpen, setCameraModalOpen] = useState(false);
@@ -592,7 +618,7 @@ export default function Visit() {
 
   const resetForm = () => {
     setFormName(""); setFormEmail(""); setFormPhone(""); setFormOwnerCity("");
-    setFormBankHolderName(""); setFormBankAccountNumber(""); setFormBankIfscCode(""); setFormBankName(""); setFormBankBranchName(""); setFormBankUpiId("");
+    setFormBankHolderName(""); setFormBankAccountNumber(""); setFormReBankAccountNumber(""); setFormBankIfscCode(""); setFormBankName(""); setFormBankBranchName(""); setFormBankUpiId("");
     setFormPropertyName(""); setFormPropertyType("hostel"); setFormGender("Co-ed");
     setFormRent(""); setFormDeposit(""); setFormDescription("");
     setFormArea(""); setFormCity(""); setFormAddress(""); setFormPincode(""); setFormLandmark("");
@@ -618,6 +644,12 @@ export default function Visit() {
     // Rent drives the public listing price — a property published at ₹0 is not usable.
     if (!(parseInt(formRent, 10) > 0)) {
       return notify("warning", "Monthly rent is required", "Rent drives the public listing price — a property published at ₹0 is not usable.");
+    }
+    // Account Number matching validation
+    if (formBankAccountNumber || formReBankAccountNumber) {
+      if (formBankAccountNumber !== formReBankAccountNumber) {
+        return notify("warning", "Account Numbers Do Not Match", "Bank Account Number and Re-entered Account Number must match exactly.");
+      }
     }
     setSaving(true);
     try {
@@ -927,15 +959,55 @@ export default function Visit() {
 
                     {/* Bank & Payout Details */}
                     <div className="pt-4 border-t border-slate-100">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Owner Bank & Payout Details</p>
+                      <div className="flex items-center justify-between mb-4">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Owner Bank &amp; Payout Details</p>
+                        {ifscLookupLoading && <span className="text-[10px] text-blue-600 font-bold animate-pulse">Verifying IFSC…</span>}
+                        {ifscLookupStatus && (
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${ifscLookupStatus.valid ? "bg-emerald-50 text-emerald-600 border border-emerald-200" : "bg-rose-50 text-rose-600 border border-rose-200"}`}>
+                            {ifscLookupStatus.message}
+                          </span>
+                        )}
+                      </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <FormField label="Account Holder Name" value={formBankHolderName} onChange={e => setFormBankHolderName(e.target.value)} placeholder="Name as per bank account" />
                         <FormField label="Bank Name" value={formBankName} onChange={e => setFormBankName(e.target.value)} placeholder="e.g. HDFC Bank, SBI..." />
-                        <FormField label="Account Number" value={formBankAccountNumber} onChange={e => setFormBankAccountNumber(e.target.value)} placeholder="Account number" />
-                        <FormField label="IFSC Code" value={formBankIfscCode} onChange={e => setFormBankIfscCode(e.target.value.toUpperCase())} placeholder="e.g. HDFC0001234" />
-                        <FormField label="Branch Name" value={formBankBranchName} onChange={e => setFormBankBranchName(e.target.value)} placeholder="e.g. MG Road Branch" />
+                        <FormField label="Account Number" type="password" value={formBankAccountNumber} onChange={e => setFormBankAccountNumber(e.target.value)} placeholder="••••••••••••" />
+                        <FormField label="Re-enter Account Number" type="password" value={formReBankAccountNumber} onChange={e => setFormReBankAccountNumber(e.target.value)} placeholder="••••••••••••" />
+                        <div className="flex flex-col">
+                          <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest ml-1">
+                            IFSC Code
+                          </label>
+                          <div className="flex items-center bg-slate-50 border border-slate-100 rounded-2xl px-5 py-2.5 focus-within:bg-white focus-within:border-blue-200 focus-within:ring-4 focus-within:ring-blue-100 transition-all">
+                            <input 
+                              type="text" 
+                              value={formBankIfscCode} 
+                              onChange={e => { 
+                                const val = e.target.value.toUpperCase(); 
+                                setFormBankIfscCode(val); 
+                                if (ifscLookupStatus) setIfscLookupStatus(null); 
+                              }} 
+                              onBlur={e => { if (e.target.value.length === 11) handleIfscBlur(e.target.value); }}
+                              placeholder="e.g. HDFC0000060" 
+                              className="w-full bg-transparent text-sm font-bold text-slate-700 outline-none placeholder:text-slate-300 uppercase"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleIfscBlur(formBankIfscCode)}
+                              disabled={ifscLookupLoading || !formBankIfscCode.trim()}
+                              className="ml-2 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl transition-all shrink-0 cursor-pointer shadow-xs flex items-center gap-1"
+                            >
+                              {ifscLookupLoading ? "Verifying..." : "Verify"}
+                            </button>
+                          </div>
+                        </div>
                         <FormField label="UPI ID" value={formBankUpiId} onChange={e => setFormBankUpiId(e.target.value)} placeholder="e.g. rahul@upi" />
                       </div>
+                      {formBankAccountNumber && formReBankAccountNumber && formBankAccountNumber !== formReBankAccountNumber && (
+                        <p className="text-xs font-bold text-rose-500 mt-3 flex items-center gap-1">⚠️ Account numbers do not match!</p>
+                      )}
+                      {formBankAccountNumber && formReBankAccountNumber && formBankAccountNumber === formReBankAccountNumber && (
+                        <p className="text-xs font-bold text-emerald-600 mt-3 flex items-center gap-1">✓ Account numbers match</p>
+                      )}
                     </div>
                   </div>
                 )}
@@ -1754,14 +1826,23 @@ export default function Visit() {
                 </DetailGrid>
                 {(viewingVisit.bankAccountHolderName || viewingVisit.bankAccountNumber || viewingVisit.bankIfscCode || viewingVisit.bankUpiId || ownerKyc?.checkinBankAccountNumber) && (
                   <>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-4 mb-2">Visit Report Bank Details</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-4 mb-2">Visit Report Bank &amp; Payout Details</p>
                     <DetailGrid>
-                      <DetailItem label="Account Holder" value={viewingVisit.bankAccountHolderName || ownerKyc?.checkinAccountHolderName} />
-                      <DetailItem label="Bank Name" value={viewingVisit.bankName || ownerKyc?.checkinBankName} />
-                      <DetailItem label="Account Number" value={viewingVisit.bankAccountNumber || ownerKyc?.checkinBankAccountNumber} />
-                      <DetailItem label="IFSC Code" value={viewingVisit.bankIfscCode || ownerKyc?.checkinIfscCode} />
-                      <DetailItem label="Branch" value={viewingVisit.bankBranchName || ownerKyc?.checkinBranchName} />
-                      <DetailItem label="UPI ID" value={viewingVisit.bankUpiId || ownerKyc?.checkinUpiId} />
+                      <DetailItem label="Account Holder" value={viewingVisit.bankAccountHolderName || ownerKyc?.checkinAccountHolderName || "—"} />
+                      <DetailItem label="Bank Name" value={viewingVisit.bankName || ownerKyc?.checkinBankName || "—"} />
+                      <DetailItem 
+                        label="Account Number" 
+                        value={(() => {
+                          const acct = String(viewingVisit.bankAccountNumber || ownerKyc?.checkinBankAccountNumber || "");
+                          if (!acct) return "—";
+                          return acct.length > 4 ? `••••••••${acct.slice(-4)}` : acct;
+                        })()} 
+                      />
+                      <DetailItem label="IFSC Code" value={viewingVisit.bankIfscCode || ownerKyc?.checkinIfscCode || "—"} />
+                      <DetailItem label="IFSC Status" value={viewingVisit.bankIfscCode ? "Format Validated" : "Not Provided"} />
+                      <DetailItem label="Account Verification" value="Pending SuperAdmin Audit" />
+                      <DetailItem label="Branch" value={viewingVisit.bankBranchName || ownerKyc?.checkinBranchName || "—"} />
+                      <DetailItem label="UPI ID" value={viewingVisit.bankUpiId || ownerKyc?.checkinUpiId || "—"} />
                     </DetailGrid>
                   </>
                 )}

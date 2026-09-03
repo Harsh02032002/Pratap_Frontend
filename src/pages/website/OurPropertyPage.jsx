@@ -359,6 +359,7 @@ export default function OurPropertyPage() {
 
   const [selectedRoomTypes, setSelectedRoomTypes] = useState([]);
   const [selectedAmenities, setSelectedAmenities] = useState([]);
+  const [amenitiesDropdownOpen, setAmenitiesDropdownOpen] = useState(false);
   const [showAllAmenities, setShowAllAmenities] = useState(false);
 
   // Dynamically compute all amenities and their property counts from DB properties
@@ -438,6 +439,8 @@ export default function OurPropertyPage() {
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
   const [priceInputText, setPriceInputText] = useState('');
+  const [pricePlaceholder, setPricePlaceholder] = useState('e.g. <8000, >5000, or 3000-8000');
+  const priceInputRef = useRef(null);
   const [selectedRatings, setSelectedRatings] = useState([]);
   const [sortBy, setSortBy] = useState('Featured');
   const [showSort, setShowSort] = useState(false);
@@ -927,8 +930,8 @@ export default function OurPropertyPage() {
 
       <main className="min-h-screen">
 {/* --- BREADCRUMBS BAR --- */}
-<div className="border-b border-slate-200/90 py-1.5 px-4 md:px-8" style={{ background: 'linear-gradient(90deg, #EFF6F9 0%, #F4F8FA 50%, #F0F6F8 100%)' }}>
-  <div className="max-w-7xl mx-auto flex items-center text-xs font-semibold text-slate-500 gap-2 flex-wrap">
+<div className="border-b border-slate-200/90 py-2 bg-gradient-to-r from-[#EFF6F9] via-[#F4F8FA] to-[#F0F6F8]">
+  <div className="w-full pl-1.5 sm:pl-2 md:pl-3 pr-3 sm:pr-4 md:pr-5 lg:pr-6 flex items-center justify-start text-xs font-semibold text-slate-500 gap-2 flex-wrap">
     <Link to="/" className="hover:text-teal-600 transition-colors">Home</Link>
     <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
     <Link to="/properties" className="hover:text-teal-600 transition-colors">Properties</Link>
@@ -952,8 +955,8 @@ export default function OurPropertyPage() {
 
 {/* --- DYNAMIC HERO HEADER (based on URL only — compact on mobile) --- */}
 {(initialCity || initialType) ? (
-  <div className="relative w-full py-2.5 md:py-5 px-3 md:px-8 bg-gradient-to-br from-[#F4F7FA] via-white to-teal-50/40 border-b border-slate-200 overflow-hidden">
-    <div className="max-w-[1550px] mx-auto flex flex-col md:flex-row items-center justify-between gap-3 md:gap-6 z-10 relative">
+  <div className="relative w-full py-3 md:py-5 bg-gradient-to-br from-[#F4F7FA] via-white to-teal-50/40 border-b border-slate-200 overflow-hidden">
+    <div className="w-full pl-1.5 sm:pl-2 md:pl-3 pr-3 sm:pr-4 md:pr-5 lg:pr-6 flex flex-col md:flex-row items-center justify-between gap-3 md:gap-6 z-10 relative">
       <div className="flex-1 text-left max-w-2xl">
         <h1 className="text-base sm:text-xl md:text-2xl lg:text-3xl font-black text-slate-900 tracking-tight leading-tight mb-1 sm:mb-2">
           {initialCity && initialType
@@ -1000,48 +1003,13 @@ export default function OurPropertyPage() {
       </div>
     </div>
   </div>
-) : (
-  /* Static hero for /properties — compact, no city/type */
-  <div className="relative w-full py-1 md:py-1.5 px-3 md:px-6 bg-gradient-to-br from-[#F4F7FA] via-white to-teal-50/30 border-b border-slate-200 overflow-hidden">
-    <div className="max-w-[1550px] mx-auto flex flex-col md:flex-row items-center justify-between gap-2 z-10 relative">
-      <div className="flex-1 text-left max-w-2xl">
-        <div className="flex items-center gap-2 mb-0.5">
-          <h1 className="text-sm sm:text-base font-black text-slate-900 tracking-tight leading-tight">
-            Browse Rental Properties
-          </h1>
-          <span className="text-[10px] text-slate-500 font-semibold">• Explore verified PGs, hostels &amp; co-living</span>
-        </div>
-        <div className="flex flex-wrap items-center gap-1.5">
-          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-slate-200 text-teal-700 text-[9.5px] font-extrabold shadow-2xs">
-            <Shield className="w-2.5 h-2.5 text-teal-600" /><span>Smart Bidding</span>
-          </div>
-          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-slate-200 text-emerald-700 text-[9.5px] font-extrabold shadow-2xs">
-            <Check className="w-2.5 h-2.5 text-emerald-600" /><span>Verified Properties</span>
-          </div>
-          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-slate-200 text-amber-700 text-[9.5px] font-extrabold shadow-2xs">
-            <Star className="w-2.5 h-2.5 text-amber-500 fill-amber-500" /><span>Trusted by Students</span>
-          </div>
-        </div>
-      </div>
-      <div className="hidden md:block relative w-[180px] lg:w-[200px] h-12 rounded-lg overflow-hidden shadow-xs border border-slate-200 shrink-0">
-        <img src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&auto=format&fit=crop" alt="Properties" className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent"></div>
-        <div className="absolute bottom-1 left-2 right-2 text-white">
-          <div className="text-[10px] font-black">All Top Cities</div>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
+) : null}
 
 
 
 
-        <section
-          className="pt-0 pb-3 pl-0 pr-2 sm:pr-3 md:pr-4 border-b border-slate-200 bg-white"
-          style={{ background: '#FFFFFF' }}
-        >
-          <div className="max-w-[1600px] mx-auto">
+        <section className="py-3 md:py-4 bg-white">
+          <div className="w-full pl-1 sm:pl-1.5 md:pl-2 pr-3 sm:pr-4 md:pr-5 lg:pr-6">
 
             {/* Top Bidding banner removed per user request */}
 
@@ -1103,12 +1071,12 @@ export default function OurPropertyPage() {
                 ${mobileFilterOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
               `}>
                 <div
-                  className="lg:sticky lg:top-[68px] w-full overflow-hidden lg:max-h-[calc(100vh-80px)] lg:overflow-y-auto no-scrollbar"
+                  className="lg:sticky lg:top-[75px] w-full overflow-hidden lg:h-[calc(100vh-95px)] flex flex-col justify-between"
                   style={{
                     background: '#FFFFFF',
                     border: '1px solid #D8E7E8',
-                    borderRadius: '6px',
-                    boxShadow: '0 2px 10px 0 rgba(15,159,145,0.07)',
+                    borderRadius: '8px',
+                    boxShadow: '0 2px 12px 0 rgba(15,159,145,0.08)',
                   }}
                 >
                   {/* Header — soft blue→mint gradient, 46px */}
@@ -1159,12 +1127,12 @@ export default function OurPropertyPage() {
                     </div>
                   </div>
 
-                  {/* Filter body — pure white, comfortable 12px 14px padding & 7px gap */}
-                  <div style={{ background: '#FFFFFF', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '7px' }}>
+                  {/* Filter body — compact & perfectly fitted on 1 screen */}
+                  <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2" style={{ background: '#FFFFFF' }}>
 
                     {/* 1. CITY */}
                     <div>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2.5px' }}>
                         <MapPin style={{ width: '13.5px', height: '13.5px', color: '#0F9F91', flexShrink: 0 }} />
                         <span style={{ fontSize: '11px', fontWeight: 800, color: '#0F172A', textTransform: 'uppercase', letterSpacing: '0.02em' }}>City</span>
                       </label>
@@ -1177,11 +1145,11 @@ export default function OurPropertyPage() {
                             setSelectedArea('');
                           }}
                           style={{
-                            width: '100%', height: '35px', borderRadius: '6px',
+                            width: '100%', height: '34px', borderRadius: '6px',
                             border: `1px solid ${selectedCity ? '#62CFC0' : '#DCE7EF'}`,
                             background: selectedCity ? '#F0FBF8' : '#FFFFFF',
                             color: selectedCity ? '#087F73' : '#334155',
-                            fontSize: '12px', fontWeight: 600,
+                            fontSize: '11.5px', fontWeight: 600,
                             padding: '0 28px 0 10px', appearance: 'none',
                             cursor: 'pointer', outline: 'none',
                             transition: 'border-color 0.15s, background 0.15s',
@@ -1202,7 +1170,7 @@ export default function OurPropertyPage() {
 
                     {/* 2. LOCALITY / AREA */}
                     <div>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2.5px' }}>
                         <Building2 style={{ width: '13.5px', height: '13.5px', color: '#0F9F91', flexShrink: 0 }} />
                         <span style={{ fontSize: '11px', fontWeight: 800, color: '#0F172A', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Locality / Area</span>
                       </label>
@@ -1211,11 +1179,11 @@ export default function OurPropertyPage() {
                           value={selectedArea}
                           onChange={(e) => setSelectedArea(e.target.value)}
                           style={{
-                            width: '100%', height: '35px', borderRadius: '6px',
+                            width: '100%', height: '34px', borderRadius: '6px',
                             border: `1px solid ${selectedArea ? '#62CFC0' : '#DCE7EF'}`,
                             background: selectedArea ? '#F0FBF8' : '#FFFFFF',
                             color: selectedArea ? '#087F73' : '#334155',
-                            fontSize: '12px', fontWeight: 600,
+                            fontSize: '11.5px', fontWeight: 600,
                             padding: '0 28px 0 10px', appearance: 'none',
                             cursor: 'pointer', outline: 'none',
                             transition: 'border-color 0.15s, background 0.15s',
@@ -1238,7 +1206,7 @@ export default function OurPropertyPage() {
 
                     {/* 3. PROPERTY TYPE */}
                     <div>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2.5px' }}>
                         <Home style={{ width: '13.5px', height: '13.5px', color: '#0F9F91', flexShrink: 0 }} />
                         <span style={{ fontSize: '11px', fontWeight: 800, color: '#0F172A', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Property Type</span>
                       </label>
@@ -1247,11 +1215,11 @@ export default function OurPropertyPage() {
                           value={selectedType}
                           onChange={(e) => setSelectedType(e.target.value)}
                           style={{
-                            width: '100%', height: '35px', borderRadius: '6px',
+                            width: '100%', height: '34px', borderRadius: '6px',
                             border: `1px solid ${selectedType ? '#62CFC0' : '#DCE7EF'}`,
                             background: selectedType ? '#F0FBF8' : '#FFFFFF',
                             color: selectedType ? '#087F73' : '#334155',
-                            fontSize: '12px', fontWeight: 600,
+                            fontSize: '11.5px', fontWeight: 600,
                             padding: '0 28px 0 10px', appearance: 'none',
                             cursor: 'pointer', outline: 'none',
                             transition: 'border-color 0.15s, background 0.15s',
@@ -1269,7 +1237,7 @@ export default function OurPropertyPage() {
 
                     {/* 4. GENDER / CATEGORY */}
                     <div>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2.5px' }}>
                         <Users style={{ width: '13.5px', height: '13.5px', color: '#0F9F91', flexShrink: 0 }} />
                         <span style={{ fontSize: '11px', fontWeight: 800, color: '#0F172A', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Gender / Category</span>
                       </label>
@@ -1278,11 +1246,11 @@ export default function OurPropertyPage() {
                           value={selectedGender}
                           onChange={(e) => setSelectedGender(e.target.value)}
                           style={{
-                            width: '100%', height: '35px', borderRadius: '6px',
+                            width: '100%', height: '34px', borderRadius: '6px',
                             border: `1px solid ${selectedGender ? '#62CFC0' : '#DCE7EF'}`,
                             background: selectedGender ? '#F0FBF8' : '#FFFFFF',
                             color: selectedGender ? '#087F73' : '#334155',
-                            fontSize: '12px', fontWeight: 600,
+                            fontSize: '11.5px', fontWeight: 600,
                             padding: '0 28px 0 10px', appearance: 'none',
                             cursor: 'pointer', outline: 'none',
                             transition: 'border-color 0.15s, background 0.15s',
@@ -1299,14 +1267,27 @@ export default function OurPropertyPage() {
 
                     {/* 5. PRICE FILTER - single smart input */}
                     <div>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
-                        <Tag style={{ width: '13.5px', height: '13.5px', color: '#0F9F91', flexShrink: 0 }} />
-                        <span style={{ fontSize: '11px', fontWeight: 800, color: '#0F172A', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Price Filter</span>
-                      </label>
+                      <div className="flex items-center justify-between gap-1 mb-1">
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Tag style={{ width: '13.5px', height: '13.5px', color: '#0F9F91', flexShrink: 0 }} />
+                          <span style={{ fontSize: '11px', fontWeight: 800, color: '#0F172A', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Price Filter</span>
+                        </label>
+                        {(minPrice || maxPrice || priceInputText) && (
+                          <button
+                            type="button"
+                            onClick={() => { setMinPrice(''); setMaxPrice(''); setPriceInputText(''); }}
+                            className="text-[10px] font-bold text-teal-600 hover:text-teal-800 underline ml-auto"
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </div>
+
                       <input
+                        ref={priceInputRef}
                         type="text"
                         value={priceInputText}
-                        placeholder="e.g. <8000  >5000  3000-10000"
+                        placeholder={pricePlaceholder}
                         onChange={(e) => {
                           const raw = e.target.value;
                           setPriceInputText(raw);
@@ -1326,59 +1307,179 @@ export default function OurPropertyPage() {
                           }
                         }}
                         style={{
-                          width: '100%', height: '35px', borderRadius: '6px',
+                          width: '100%', height: '34px', borderRadius: '6px',
                           border: `1px solid ${(minPrice || maxPrice) ? '#62CFC0' : '#DCE7EF'}`,
                           background: (minPrice || maxPrice) ? '#F0FBF8' : '#FFFFFF',
                           color: '#334155',
-                          fontSize: '11px', fontWeight: 600,
+                          fontSize: '11.5px', fontWeight: 600,
                           padding: '0 10px', outline: 'none',
                           transition: 'border-color 0.15s, background 0.15s',
                           boxSizing: 'border-box',
                         }}
                       />
+
+                      {/* Quick Format Helper Buttons (< Max, > Min, Min-Max) */}
+                      <div className="mt-1 space-y-1">
+                        <div className="text-[10px] font-bold text-slate-500">Quick Format:</div>
+                        <div className="grid grid-cols-3 gap-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPriceInputText('<');
+                              setPricePlaceholder('Enter Max Price (e.g. <8000)');
+                              if (priceInputRef.current) priceInputRef.current.focus();
+                            }}
+                            className={`px-1 py-1 rounded border text-[10px] font-black transition-all text-center ${
+                              priceInputText.startsWith('<')
+                                ? 'bg-teal-600 text-white border-teal-600 shadow-xs'
+                                : 'bg-slate-50 hover:bg-teal-50 text-slate-700 hover:text-teal-800 border-slate-200 hover:border-teal-200'
+                            }`}
+                            title="Below Max Price (e.g. <8000)"
+                          >
+                            &lt; Max
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPriceInputText('>');
+                              setPricePlaceholder('Enter Min Price (e.g. >5000)');
+                              if (priceInputRef.current) priceInputRef.current.focus();
+                            }}
+                            className={`px-1 py-1 rounded border text-[10px] font-black transition-all text-center ${
+                              priceInputText.startsWith('>')
+                                ? 'bg-teal-600 text-white border-teal-600 shadow-xs'
+                                : 'bg-slate-50 hover:bg-teal-50 text-slate-700 hover:text-teal-800 border-slate-200 hover:border-teal-200'
+                            }`}
+                            title="Above Min Price (e.g. >5000)"
+                          >
+                            &gt; Min
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPriceInputText('');
+                              setMinPrice(''); setMaxPrice('');
+                              setPricePlaceholder('Enter Range (e.g. 3000-8000)');
+                              if (priceInputRef.current) priceInputRef.current.focus();
+                            }}
+                            className={`px-1 py-1 rounded border text-[9.5px] font-black transition-all text-center ${
+                              pricePlaceholder.includes('Range') || priceInputText.includes('-')
+                                ? 'bg-teal-600 text-white border-teal-600 shadow-xs'
+                                : 'bg-slate-50 hover:bg-teal-50 text-slate-700 hover:text-teal-800 border-slate-200 hover:border-teal-200'
+                            }`}
+                            title="Price Range (e.g. 3000-8000)"
+                          >
+                            Min-Max
+                          </button>
+                        </div>
+                      </div>
+
                       {(minPrice || maxPrice) && (
-                        <p style={{ fontSize: '9px', color: '#0F9F91', marginTop: '2px', fontWeight: 700 }}>
-                          {minPrice && maxPrice ? `₹${minPrice} – ₹${maxPrice}` : minPrice ? `≥ ₹${minPrice}` : `≤ ₹${maxPrice}`}
+                        <p style={{ fontSize: '10px', color: '#0F9F91', marginTop: '2px', fontWeight: 800 }}>
+                          Active: {minPrice && maxPrice ? `₹${minPrice} – ₹${maxPrice}` : minPrice ? `≥ ₹${minPrice}` : `≤ ₹${maxPrice}`}
                         </p>
                       )}
                     </div>
 
-                    {/* 6. AMENITIES */}
-                    <div>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
-                        <Sparkles style={{ width: '13.5px', height: '13.5px', color: '#0F9F91', flexShrink: 0 }} />
-                        <span style={{ fontSize: '11px', fontWeight: 800, color: '#0F172A', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Amenities</span>
-                      </label>
-                      <div className="relative">
-                        <select
-                          value={selectedAmenities[0] || ''}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (!val) { setSelectedAmenities([]); } else { setSelectedAmenities([val]); }
-                          }}
-                          style={{
-                            width: '100%', height: '35px', borderRadius: '6px',
-                            border: `1px solid ${selectedAmenities.length > 0 ? '#62CFC0' : '#DCE7EF'}`,
-                            background: selectedAmenities.length > 0 ? '#F0FBF8' : '#FFFFFF',
-                            color: selectedAmenities.length > 0 ? '#087F73' : '#334155',
-                            fontSize: '12px', fontWeight: 600,
-                            padding: '0 28px 0 10px', appearance: 'none',
-                            cursor: 'pointer', outline: 'none',
-                            transition: 'border-color 0.15s, background 0.15s',
-                          }}
-                        >
-                          <option value="">All Amenities</option>
-                          {displayAmenities.map(a => (
-                            <option key={a.name} value={a.name}>{a.name} {a.count > 0 ? `(${a.count})` : ''}</option>
-                          ))}
-                        </select>
-                        <ChevronDown style={{ width: '14px', height: '14px', color: '#64748B', position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                    {/* 6. AMENITIES (Multi-Select Dropdown with Checkboxes) */}
+                    <div className="relative">
+                      <div className="flex items-center justify-between gap-1 mb-0.5">
+                        <label style={{ display: 'flex', items: 'center', gap: '6px' }}>
+                          <Sparkles style={{ width: '13.5px', height: '13.5px', color: '#0F9F91', flexShrink: 0 }} />
+                          <span style={{ fontSize: '11px', fontWeight: 800, color: '#0F172A', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Amenities</span>
+                        </label>
+                        {selectedAmenities.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedAmenities([])}
+                            className="text-[10px] font-bold text-teal-600 hover:text-teal-800 underline ml-auto"
+                          >
+                            Clear ({selectedAmenities.length})
+                          </button>
+                        )}
                       </div>
+
+                      {/* Dropdown Select Button (34px) */}
+                      <button
+                        type="button"
+                        onClick={() => setAmenitiesDropdownOpen(!amenitiesDropdownOpen)}
+                        style={{
+                          width: '100%', height: '34px', borderRadius: '6px',
+                          border: `1px solid ${selectedAmenities.length > 0 ? '#62CFC0' : '#DCE7EF'}`,
+                          background: selectedAmenities.length > 0 ? '#F0FBF8' : '#FFFFFF',
+                          color: selectedAmenities.length > 0 ? '#087F73' : '#334155',
+                          fontSize: '11.5px', fontWeight: 600,
+                          padding: '0 28px 0 10px',
+                          outline: 'none',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          position: 'relative',
+                          transition: 'border-color 0.15s, background 0.15s',
+                        }}
+                      >
+                        <span className="truncate">
+                          {selectedAmenities.length === 0
+                            ? 'All Amenities'
+                            : `${selectedAmenities.length} Selected (${selectedAmenities.slice(0, 2).join(', ')}${selectedAmenities.length > 2 ? '...' : ''})`
+                          }
+                        </span>
+                        <ChevronDown style={{ width: '14px', height: '14px', color: '#64748B', position: 'absolute', right: '10px', top: '50%', transform: `translateY(-50%) rotate(${amenitiesDropdownOpen ? 180 : 0}deg)`, transition: 'transform 0.15s' }} />
+                      </button>
+
+                      {/* Floating Dropdown Popup with Checkboxes */}
+                      {amenitiesDropdownOpen && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => setAmenitiesDropdownOpen(false)} />
+                          <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-white border border-slate-200 rounded-lg shadow-xl p-2 max-h-[220px] overflow-y-auto space-y-1 animate-in">
+                            {displayAmenities.length === 0 ? (
+                              <div className="text-[11px] text-slate-400 italic p-1">No amenities available</div>
+                            ) : (
+                              displayAmenities.map(a => {
+                                const isChecked = selectedAmenities.includes(a.name);
+                                return (
+                                  <label
+                                    key={a.name}
+                                    className={`flex items-center justify-between text-[11px] font-semibold px-2 py-1.5 rounded-md cursor-pointer transition-colors ${
+                                      isChecked ? 'bg-teal-50 text-teal-900 font-bold' : 'hover:bg-slate-50 text-slate-700'
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-2 truncate">
+                                      <input
+                                        type="checkbox"
+                                        checked={isChecked}
+                                        onChange={() => {
+                                          if (isChecked) {
+                                            setSelectedAmenities(selectedAmenities.filter(item => item !== a.name));
+                                          } else {
+                                            setSelectedAmenities([...selectedAmenities, a.name]);
+                                          }
+                                        }}
+                                        className="w-3.5 h-3.5 accent-teal-600 rounded cursor-pointer shrink-0"
+                                      />
+                                      <span className="truncate">{a.name}</span>
+                                    </div>
+                                    {a.count > 0 && (
+                                      <span className={`text-[9.5px] px-1.5 py-0.2 rounded-full font-bold shrink-0 ml-1 ${
+                                        isChecked ? 'bg-teal-100 text-teal-800' : 'bg-slate-100 text-slate-500'
+                                      }`}>
+                                        {a.count}
+                                      </span>
+                                    )}
+                                  </label>
+                                );
+                              })
+                            )}
+                          </div>
+                        </>
+                      )}
                     </div>
 
                     {/* 7. NEARBY COLLEGE / INSTITUTE */}
                     <div>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2.5px' }}>
                         <GraduationCap style={{ width: '13.5px', height: '13.5px', color: '#0F9F91', flexShrink: 0 }} />
                         <span style={{ fontSize: '11px', fontWeight: 800, color: '#0F172A', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Nearby College / Institute</span>
                       </label>
@@ -1390,11 +1491,11 @@ export default function OurPropertyPage() {
                             if (!val) { setSelectedColleges([]); } else { setSelectedColleges([val]); }
                           }}
                           style={{
-                            width: '100%', height: '35px', borderRadius: '6px',
+                            width: '100%', height: '34px', borderRadius: '6px',
                             border: `1px solid ${selectedColleges.length > 0 ? '#62CFC0' : '#DCE7EF'}`,
                             background: selectedColleges.length > 0 ? '#F0FBF8' : '#FFFFFF',
                             color: selectedColleges.length > 0 ? '#087F73' : '#334155',
-                            fontSize: '12px', fontWeight: 600,
+                            fontSize: '11.5px', fontWeight: 600,
                             padding: '0 28px 0 10px', appearance: 'none',
                             cursor: 'pointer', outline: 'none',
                             transition: 'border-color 0.15s, background 0.15s',
@@ -1417,7 +1518,7 @@ export default function OurPropertyPage() {
                       </div>
                     </div>
 
-                    {/* Bottom Action Button: Bid Now in Bidding Mode, else Reset All Filters */}
+                    {/* Bottom Action Button: Bid Now in Bidding Mode, else Bid Now + Reset Filters */}
                     {isBiddingMode ? (
                       <div className="flex items-center gap-1.5 mt-1">
                         <button
@@ -1486,34 +1587,35 @@ export default function OurPropertyPage() {
                         </button>
                       </div>
                     ) : (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedCity('');
-                          setSelectedArea('');
-                          setSelectedType('');
-                          setSelectedGender('');
-                          setMinPrice('');
-                          setMaxPrice('');
-                          setSelectedColleges([]);
-                          setSelectedRoomTypes([]);
-                          setSelectedAmenities([]);
-                        }}
-                        style={{
-                          width: '100%', height: '35px', borderRadius: '6px',
-                          background: 'linear-gradient(90deg, #BFD8FF 0%, #C8F2E8 100%)',
-                          border: 'none', color: '#0F172A',
-                          fontSize: '12px', fontWeight: 800,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          gap: '6px', cursor: 'pointer', transition: 'opacity 0.15s',
-                          marginTop: '3px',
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.opacity = '0.85'; }}
-                        onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
-                      >
-                        <RefreshCw style={{ width: '14px', height: '14px', color: '#0F9F91' }} />
-                        <span>Reset All Filters</span>
-                      </button>
+                      <div className="mt-auto p-3 border-t border-slate-100 bg-white shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedPropertyForBid(null);
+                            setShowBidModal(true);
+                          }}
+                          style={{
+                            width: '100%',
+                            height: '38px',
+                            borderRadius: '8px',
+                            background: '#0FA596',
+                            border: '1px solid #0FA596',
+                            color: '#FFFFFF',
+                            fontSize: '13px',
+                            fontWeight: 800,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease-in-out',
+                          }}
+                          className="hover:bg-teal-700 active:scale-95 transition-all shadow-md cursor-pointer"
+                        >
+                          <Zap style={{ width: '15px', height: '15px', fill: '#FFFFFF' }} />
+                          <span>Bid Now</span>
+                        </button>
+                      </div>
                     )}
 
                     {/* Mobile only: Apply button */}
@@ -2038,10 +2140,10 @@ function PropertyCard({ property, onBookNow }) {
       }
     }
     const dbRating = Number(property.rating || property.propertyInfo?.rating);
-    if (!isNaN(dbRating) && dbRating > 0 && dbRating !== 4.5) {
+    if (!isNaN(dbRating) && dbRating > 0) {
       return dbRating.toFixed(1);
     }
-    return '4.5';
+    return '0';
   })();
 
   const propSlug = slugify(property.name || property.title || property.id);
@@ -2075,11 +2177,11 @@ function PropertyCard({ property, onBookNow }) {
               <span>Roomhy-Serviced</span>
             </div>
 
-            {/* Bottom Left Rating Badge (★ 4.5 (46)) */}
+            {/* Bottom Left Rating Badge */}
             <div className="absolute bottom-2 left-2 bg-white/95 backdrop-blur-xs text-slate-900 px-2 py-0.5 rounded-md flex items-center gap-1 text-[10px] font-extrabold shadow-sm border border-slate-200/60">
               <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
               <span>{displayRating}</span>
-              <span className="text-slate-400 font-semibold">({property.reviewsCount || property.reviews?.length || 28})</span>
+              <span className="text-slate-400 font-semibold">({property.reviewsCount || property.reviews?.length || 0})</span>
             </div>
           </div>
 

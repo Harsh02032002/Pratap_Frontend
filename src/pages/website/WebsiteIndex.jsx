@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, MapPin, Star, BadgeCheck, TrendingUp, ChevronLeft, ChevronRight, ChevronDown, X, Building2, Home, Users, MessageSquare, Gavel, Plus, Minus } from 'lucide-react';
+import { Search, MapPin, Star, BadgeCheck, TrendingUp, ChevronLeft, ChevronRight, ChevronDown, X, Building2, Home, Users, MessageSquare, Gavel, Plus, Minus, ShieldCheck, Award, Tag, Headphones, Lock, Bed, Armchair, ArrowUpRight, Sparkles, Check } from 'lucide-react';
 import HowRoomhyWorks from '../../components/website/HowRoomhyWorks';
 import WhyRoomhy from '../../components/website/WhyRoomhy';
 import FindYourHome from '../../components/website/FindYourHome';
@@ -205,6 +205,8 @@ export default function WebsiteIndex() {
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [selectedType, setSelectedType] = useState('');
+  const [selectedGender, setSelectedGender] = useState('');
+  const [selectedBudget, setSelectedBudget] = useState('');
 
   // Hero image slideshow state
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -301,21 +303,23 @@ export default function WebsiteIndex() {
     loadCityStats();
   }, []);
 
-  // Search handler
-  const handleSearch = (query) => {
-    if (!query.trim()) {
+  // Dynamic Search handler
+  const handleSearch = async (query) => {
+    const q = (query || '').trim();
+    if (!q) {
       setSearchResults([]);
       setShowSearchDropdown(false);
       return;
     }
 
     setIsSearching(true);
-    const lowerQuery = query.toLowerCase();
+    const lowerQuery = q.toLowerCase();
 
     try {
       const results = [];
 
-      const cityMatches = cities.filter(city =>
+      // 1. Match Cities
+      const cityMatches = (cities || []).filter(city =>
         city.name?.toLowerCase().includes(lowerQuery)
       ).map(city => ({
         type: 'city',
@@ -326,32 +330,42 @@ export default function WebsiteIndex() {
       }));
       results.push(...cityMatches);
 
-      const propertyMatches = trendingProperties.filter(prop => {
-        const propName = prop.propertyName || prop.property_name || prop.name || '';
-        return propName.toLowerCase().includes(lowerQuery);
-      }).slice(0, 5).map(prop => ({
-        type: 'property',
-        title: prop.propertyName || prop.property_name || prop.name,
-        subtitle: `${prop.city || prop.location || ''} - ${prop.propertyType || prop.type || 'Property'}`,
-        link: `/website/property-details/${prop._id || prop.visitId}`,
-        icon: 'Building2'
-      }));
-      results.push(...propertyMatches);
+      // 2. Fetch live properties from backend API dynamically
+      try {
+        const res = await fetchJson(`/api/approved-properties/public/approved?limit=8&search=${encodeURIComponent(q)}`);
+        const liveProps = res?.properties || (Array.isArray(res) ? res : []);
+        const propMatches = liveProps.map(prop => {
+          const propName = prop.title || prop.propertyName || prop.propertyInfo?.name || 'Property';
+          const city = prop.city || prop.propertyInfo?.city || '';
+          const area = prop.area || prop.locality || prop.propertyInfo?.area || '';
+          const type = (prop.propertyType || prop.propertyInfo?.propertyType || 'PG').toUpperCase();
+          const pId = prop.visitId || prop._id;
+          return {
+            type: 'property',
+            title: propName,
+            subtitle: `${area}${area && city ? ', ' : ''}${city} • ${type}`,
+            link: `/website/property-details/${pId}`,
+            icon: 'Building2'
+          };
+        });
+        results.push(...propMatches);
+      } catch (err) {
+        // Fallback to client-side trending properties if network error
+        const propertyMatches = trendingProperties.filter(prop => {
+          const propName = prop.propertyName || prop.property_name || prop.name || '';
+          return propName.toLowerCase().includes(lowerQuery);
+        }).slice(0, 5).map(prop => ({
+          type: 'property',
+          title: prop.propertyName || prop.property_name || prop.name,
+          subtitle: `${prop.city || prop.location || ''} - ${prop.propertyType || prop.type || 'Property'}`,
+          link: `/website/property-details/${prop._id || prop.visitId}`,
+          icon: 'Building2'
+        }));
+        results.push(...propertyMatches);
+      }
 
-      const typeMatches = offerings.filter(offering =>
-        offering.title?.toLowerCase().includes(lowerQuery) ||
-        offering.category?.toLowerCase().includes(lowerQuery)
-      ).map(offering => ({
-        type: 'type',
-        title: offering.title,
-        subtitle: `Find ${offering.title} accommodations`,
-        link: `/website/ourproperty?type=${encodeURIComponent(offering.category.toLowerCase())}`,
-        icon: 'Home'
-      }));
-      results.push(...typeMatches);
-
-      setSearchResults(results.slice(0, 8));
-      setShowSearchDropdown(true);
+      setSearchResults(results.slice(0, 10));
+      setShowSearchDropdown(results.length > 0);
     } finally {
       setIsSearching(false);
     }
@@ -486,309 +500,279 @@ export default function WebsiteIndex() {
 
       <main className="min-h-screen">
         {/* Hero Section */}
-        <div className="relative min-h-[160px] md:min-h-0 md:h-[320px] bg-gradient-to-br from-teal-600 via-blue-600 to-cyan-500 z-30">
+        <div className="relative min-h-[380px] md:min-h-[410px] bg-slate-900 z-30 flex flex-col justify-center overflow-hidden py-6 md:py-8">
+          {/* Full width room background image */}
           <div className="absolute inset-0 overflow-hidden">
-            {heroImages.map((image, index) => (
-              <div
-                key={index}
-                className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ease-in-out ${
-                  index === currentImageIndex ? 'opacity-100' : 'opacity-0'
-                }`}
-                style={{ backgroundImage: `url(${image})` }}
-              >
-                <div className="absolute inset-0 bg-black/60"></div>
-              </div>
-            ))}
+            <div
+              className="absolute inset-0 bg-cover bg-center transition-all duration-1000 transform scale-105"
+              style={{ backgroundImage: `url('/hero-luxury.jpg')` }}
+            >
+              <div className="absolute inset-0 bg-slate-950/20 backdrop-blur-[1px]"></div>
+            </div>
           </div>
 
-          <div className="relative max-w-none w-full mx-auto px-4 md:px-8 lg:px-12 h-full flex flex-col justify-start pt-4 md:pt-10 z-20 overflow-visible">
-            <h1 className="text-xl sm:text-4xl md:text-6xl font-bold text-white mb-1 md:mb-4 leading-tight text-center drop-shadow-lg">
-              Find Your Perfect <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-orange-400 drop-shadow-2xl">Student Stay</span>
-            </h1>
-            <p className="text-xs sm:text-lg md:text-xl text-white/95 mb-2 md:mb-6 max-w-4xl mx-auto leading-relaxed text-center px-2">
-              Search verified PGs, hostels &amp; co-living spaces across 50+ Indian cities
-            </p>
+          {/* Centered Translucent Glass Panel */}
+          <div className="relative max-w-4xl lg:max-w-[960px] w-full mx-auto px-4 z-20">
+            <div className="bg-white/35 backdrop-blur-xl border border-white/60 rounded-[28px] p-4 sm:p-5 md:p-6 shadow-2xl text-center">
+              {/* Top Badge */}
+              <div className="inline-flex items-center gap-1.5 bg-white/90 backdrop-blur-md px-3.5 py-1 rounded-full shadow-xs text-[10px] sm:text-[11px] font-black text-slate-800 mb-2 border border-white/80">
+                <ShieldCheck className="w-3.5 h-3.5 text-[#0FA596] shrink-0" />
+                <span>India's #1 Broker-Free Student Housing &amp; Smart Bidding</span>
+              </div>
 
-            <div className="max-w-5xl mx-auto w-full px-2 md:px-4 search-container relative z-50 overflow-visible">
-              <form onSubmit={handleSearchSubmit} className="bg-white rounded-2xl md:rounded shadow-2xl p-2 md:p-0 flex flex-row gap-2 md:gap-0 items-center relative z-50 md:h-16 w-full overflow-visible">
-                
-                <div className="md:hidden relative flex-shrink-0 z-50" ref={typeDropdownRef}>
-                  <button
-                    type="button"
-                    onClick={() => setIsTypeDropdownOpen(!isTypeDropdownOpen)}
-                    className="flex items-center justify-between gap-1 bg-emerald-50 text-emerald-800 px-2.5 py-2 rounded-xl font-black text-xs border border-emerald-200 shadow-2xs cursor-pointer min-w-[78px]"
-                  >
-                    <span className="capitalize">{selectedType || 'Type'}</span>
-                    <ChevronDown className={`w-3.5 h-3.5 text-emerald-600 transition-transform ${isTypeDropdownOpen ? 'rotate-180' : ''}`} />
-                  </button>
+              {/* Main Heading — DARK NAVY TEXT with TEAL "Living" */}
+              <h1 className="text-2xl sm:text-4xl md:text-[40px] font-black text-[#0F172A] mb-1 tracking-tight leading-[1.15]">
+                Premium Student &amp; <br className="hidden sm:inline" />
+                Professional <span className="text-[#0FA596]">Living</span>
+              </h1>
+              <p className="text-[11px] sm:text-xs md:text-sm font-semibold text-[#334155] mb-3 max-w-xl mx-auto leading-relaxed">
+                Find and book verified PGs, Hostels, Co-living spaces and Apartments in top cities.
+              </p>
 
-                  {isTypeDropdownOpen && (
-                    <div className="fixed inset-0 bg-black/50 z-[9998] md:hidden flex items-start justify-center pt-24 px-4" onClick={() => setIsTypeDropdownOpen(false)}>
-                      <div 
-                        className="bg-white w-full max-w-sm rounded-2xl p-4 shadow-2xl border border-slate-200 z-[9999] animate-in fade-in zoom-in-95 duration-200"
-                        onClick={(e) => e.stopPropagation()}
+              {/* Search Container inside Glass Panel */}
+              <div className="bg-white/90 backdrop-blur-md rounded-[20px] shadow-lg p-2.5 sm:p-3 border border-white/80 text-left relative z-50">
+                {/* Category Tabs Bar */}
+                <div className="flex items-center justify-center gap-2 sm:gap-5 border-b border-slate-100/80 pb-2 mb-2 overflow-x-auto no-scrollbar">
+                  {[
+                    { id: 'pg', label: 'PG', icon: Bed },
+                    { id: 'hostel', label: 'Hostels', icon: Building2 },
+                    { id: 'co-living', label: 'Co-living', icon: Armchair },
+                    { id: 'apartment', label: 'Apartments', icon: Home },
+                  ].map((cat) => {
+                    const Icon = cat.icon;
+                    const isSelected = selectedType === cat.id;
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => setSelectedType(isSelected ? '' : cat.id)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-extrabold transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-teal-50 text-[#0FA596] border border-teal-200/80 shadow-2xs'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                        }`}
                       >
-                        <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 mb-3">
-                          <span className="text-xs font-black text-slate-900 uppercase tracking-wider">Select Stay Category</span>
-                          <button onClick={() => setIsTypeDropdownOpen(false)} className="text-slate-400 hover:text-slate-700 text-xs font-bold p-1">✕</button>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          {[
-                            { type: '', label: 'All Stays', icon: '🏠', desc: 'Browse all properties' },
-                            { type: 'pg', label: 'PG', icon: '🛏️', desc: 'Meals & Housekeeping' },
-                            { type: 'hostel', label: 'Hostels', icon: '🏢', desc: 'Budget Student Stays' },
-                            { type: 'co-living', label: 'Co-living', icon: '👥', desc: 'Shared Modern Spaces' },
-                            { type: 'apartment', label: 'Apartments', icon: '🔑', desc: 'Private 1BHK / 2BHK' }
-                          ].map((item) => (
-                            <button
-                              key={item.type}
-                              type="button"
-                              onClick={() => {
-                                setSelectedType(item.type);
-                                setIsTypeDropdownOpen(false);
-                              }}
-                              className={`p-3 rounded-xl border text-left transition-all ${
-                                selectedType === item.type 
-                                  ? 'bg-emerald-50 border-emerald-400 text-emerald-900 shadow-2xs font-black' 
-                                  : 'bg-slate-50 border-slate-100 text-slate-700 hover:bg-slate-100 font-bold'
-                              }`}
-                            >
-                              <div className="flex items-center gap-1.5 text-xs font-extrabold">
-                                <span>{item.icon}</span>
-                                <span>{item.label}</span>
-                              </div>
-                              <div className="text-[10px] text-slate-500 font-medium mt-1 leading-tight">{item.desc}</div>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                        <Icon className={`w-3.5 h-3.5 ${isSelected ? 'text-[#0FA596]' : 'text-slate-400'}`} />
+                        <span>{cat.label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
 
-                <div className="relative flex-1 hidden md:flex items-center px-5 h-full bg-white border-r border-gray-300 cursor-pointer hover:bg-gray-50" onClick={() => setIsTypeDropdownOpen(!isTypeDropdownOpen)}>
-                  <div className="flex-1 flex justify-between items-center text-base font-semibold text-gray-900">
-                    <span className="truncate">{selectedType ? selectedType.charAt(0).toUpperCase() + selectedType.slice(1) : 'Property Type'}</span>
-                    <ChevronLeft className={`w-4 h-4 text-gray-400 transition-transform ${isTypeDropdownOpen ? '-rotate-90' : '-rotate-180'}`} style={{ transform: isTypeDropdownOpen ? 'rotate(90deg)' : 'rotate(270deg)' }} />
+                {/* Search Inputs Row */}
+                <form onSubmit={handleSearchSubmit} className="flex flex-col md:flex-row items-center gap-2">
+                  {/* Location Search Input */}
+                  <div className="relative flex-1 w-full flex items-center bg-white border border-slate-200/90 rounded-full px-3.5 py-2 shadow-2xs focus-within:border-[#0FA596] focus-within:ring-2 focus-within:ring-teal-100 transition-all">
+                    <Search className="w-3.5 h-3.5 text-[#0FA596] mr-2 shrink-0" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search city, locality or landmark (e.g. Koramangala, Mumbai)"
+                      className="w-full bg-transparent outline-none text-xs font-bold text-slate-800 placeholder:text-slate-400"
+                    />
                   </div>
-                  
-                  {isTypeDropdownOpen && (
-                    <div className="absolute top-full left-0 mt-1 w-full bg-white rounded shadow-xl border border-gray-100 overflow-hidden z-[9999]">
-                      {offerings.map((offering) => (
-                        <div
-                          key={offering.category}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedType(offering.category.toLowerCase());
-                            setIsTypeDropdownOpen(false);
-                          }}
-                          className="px-5 py-3 cursor-pointer hover:bg-gray-50 border-b border-gray-50 last:border-0 group"
+
+                  {/* Gender Filter Dropdown */}
+                  <div className="w-full md:w-32 flex items-center bg-white border border-slate-200/90 rounded-full px-3 py-2 shadow-2xs text-xs font-bold text-slate-700">
+                    <select
+                      value={selectedGender || ''}
+                      onChange={(e) => setSelectedGender(e.target.value)}
+                      className="w-full bg-transparent outline-none cursor-pointer"
+                    >
+                      <option value="">Any Gender</option>
+                      <option value="male">Boys / Male</option>
+                      <option value="female">Girls / Female</option>
+                      <option value="unisex">Co-ed</option>
+                    </select>
+                  </div>
+
+                  {/* Budget Filter Dropdown */}
+                  <div className="w-full md:w-36 flex items-center bg-white border border-slate-200/90 rounded-full px-3 py-2 shadow-2xs text-xs font-bold text-slate-700">
+                    <select
+                      value={selectedBudget || ''}
+                      onChange={(e) => setSelectedBudget(e.target.value)}
+                      className="w-full bg-transparent outline-none cursor-pointer"
+                    >
+                      <option value="">Any Budget</option>
+                      <option value="5000">&lt; ₹5,000</option>
+                      <option value="10000">₹5,000 - ₹10,000</option>
+                      <option value="15000">₹10,000 - ₹15,000</option>
+                      <option value="20000">&gt; ₹15,000</option>
+                    </select>
+                  </div>
+
+                  {/* Submit Search Button */}
+                  <button
+                    type="submit"
+                    className="w-full md:w-auto bg-[#0FA596] hover:bg-[#0d9284] text-white px-6 py-2 rounded-full font-black text-xs flex items-center justify-center gap-1.5 transition-all shadow-md shrink-0 cursor-pointer"
+                  >
+                    <Search className="w-3.5 h-3.5" />
+                    <span>Search</span>
+                  </button>
+                </form>
+
+                {/* Dynamic Search Dropdown Results */}
+                {showSearchDropdown && searchResults.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-[9999]">
+                    <div className="max-h-80 overflow-y-auto">
+                      {searchResults.map((result, idx) => (
+                        <Link
+                          key={idx}
+                          to={result.link}
+                          onClick={() => setShowSearchDropdown(false)}
+                          className="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50 border-b border-slate-100 last:border-0 transition-colors"
                         >
-                          <div className="flex flex-col">
-                            <span className={`text-sm font-bold transition-colors ${selectedType === offering.category.toLowerCase() ? 'text-teal-600' : 'text-gray-900 group-hover:text-teal-600'}`}>
-                              {offering.title}
-                            </span>
-                            <span className="text-xs text-gray-500 line-clamp-1">{offering.description}</span>
+                          <div className="w-9 h-9 bg-teal-50 rounded-xl flex items-center justify-center shrink-0 border border-teal-100">
+                            {result.icon === 'MapPin' && <MapPin className="w-4 h-4 text-[#0FA596]" />}
+                            {result.icon === 'Building2' && <Building2 className="w-4 h-4 text-[#0FA596]" />}
+                            {result.icon === 'Home' && <Home className="w-4 h-4 text-[#0FA596]" />}
                           </div>
-                        </div>
+                          <div className="flex-1">
+                            <p className="font-extrabold text-xs sm:text-sm text-slate-900">{result.title}</p>
+                            <p className="text-[11px] text-slate-500 font-semibold">{result.subtitle}</p>
+                          </div>
+                          <ChevronRight className="w-4 h-4 text-slate-400" />
+                        </Link>
                       ))}
                     </div>
-                  )}
-                </div>
-
-                <div className="flex-1 md:flex-[1.5] flex items-center px-2 md:px-5 py-2 md:py-0 h-full bg-gray-50 md:bg-white rounded-lg md:rounded-none relative min-w-0">
-                  <Search className="w-3 h-3 md:w-5 md:h-5 text-gray-400 mr-1 md:mr-3 flex-shrink-0" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search city, locality, or landmark"
-                    className="flex-1 bg-transparent outline-none text-gray-900 text-[10px] md:text-base font-semibold min-w-0 w-full h-full"
-                  />
-                </div>
-
-                <button type="submit" className="bg-gradient-to-r from-teal-500 to-teal-600 md:bg-none md:bg-[#1AB64F] hover:bg-[#18a245] text-white px-3 md:px-10 py-2 md:py-0 h-full rounded-lg md:rounded-none font-bold text-[10px] md:text-lg transition-all flex-shrink-0 whitespace-nowrap border-l border-transparent md:border-[#18a245]">
-                  Search
-                </button>
-              </form>
-              
-              {showSearchDropdown && searchResults.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden z-[9999]">
-                  <div className="max-h-80 overflow-y-auto">
-                    {searchResults.map((result, idx) => (
-                      <Link
-                        key={idx}
-                        to={result.link}
-                        onClick={() => setShowSearchDropdown(false)}
-                        className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors"
-                      >
-                        <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center flex-shrink-0">
-                          {result.icon === 'MapPin' && <MapPin className="w-5 h-5 text-teal-600" />}
-                          {result.icon === 'Building2' && <Building2 className="w-5 h-5 text-teal-600" />}
-                          {result.icon === 'Home' && <Home className="w-5 h-5 text-teal-600" />}
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-semibold text-gray-900">{result.title}</p>
-                          <p className="text-sm text-gray-500">{result.subtitle}</p>
-                        </div>
-                        <ChevronRight className="w-5 h-5 text-gray-400" />
-                      </Link>
-                    ))}
                   </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Cities Sub-navigation */}
-        <div className="hidden md:block bg-[#f8f9fa] border-b border-gray-200 relative z-0">
-          <div className="max-w-none w-full mx-auto px-4 md:px-8 lg:px-12">
-            <div className="flex items-center justify-center h-8 text-[13px] font-medium text-gray-600">
-              <div className="flex items-center justify-center space-x-10 w-full">
-                {Object.keys(cityAreasMap).filter(city => ['Kota','Sikar','Indore'].includes(city)).map((city) => {
-                  const areas = cityAreasMap[city] || [];
-                  return (
-                    <div key={city} className="relative group h-full flex items-center">
-                      <Link to={`/${city.toLowerCase().replace(/\s+/g, '-')}`} className="flex items-center space-x-1 hover:text-black cursor-pointer h-full">
-                        <span>{city}</span>
-                        <ChevronDown className="w-3.5 h-3.5 text-gray-400 group-hover:text-black transition-colors" />
-                      </Link>
-
-                      {areas.length > 0 && (
-                        <div className="absolute top-full left-1/2 -translate-x-1/2 w-48 bg-white shadow-xl rounded-b-lg border border-gray-100 py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[100]">
-                          {areas.map((area) => (
-                            <Link
-                              key={area}
-                              to={`/${city.toLowerCase().replace(/\s+/g, '-')}/${area.toLowerCase().replace(/\s+/g, '-')}`}
-                              className="block px-4 py-2 text-xs text-gray-600 hover:bg-teal-50 hover:text-teal-600 transition-colors"
-                            >
-                              {area}
-                            </Link>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-                <Link to="/website/ourproperty" className="flex items-center space-x-1 hover:text-black cursor-pointer group font-semibold h-full">
-                  <span>All Cities</span>
-                  <ChevronDown className="w-3.5 h-3.5 text-gray-400 group-hover:text-black transition-colors" />
-                </Link>
+                )}
               </div>
             </div>
           </div>
         </div>
 
-        {/* What We Offer */}
-        <section className="py-1 md:py-4 bg-white relative z-0">
-          <div className="max-w-none w-full mx-auto px-4 md:px-8 lg:px-12 mt-1 md:mt-4">
-            <div className="text-center mb-4">
-              <h2 className="text-xl md:text-3xl font-bold text-gray-900 mb-1">What We Offer</h2>
-              <p className="text-xs md:text-base text-gray-600">Choose from a variety of accommodation types tailored for students</p>
+        {/* WHITE BENEFITS STRIP — OVERLAPPING HERO BOTTOM */}
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 -mt-5 relative z-40">
+          <div className="bg-white rounded-[20px] shadow-xl border border-slate-100 p-3 md:p-3.5 grid grid-cols-2 md:grid-cols-5 gap-3 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+            <div className="flex items-center gap-2.5 pt-1 md:pt-0">
+              <div className="w-8 h-8 rounded-xl bg-teal-50 flex items-center justify-center shrink-0 text-[#0FA596] border border-teal-100/60">
+                <ShieldCheck className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-[11px] font-black text-[#0F172A] leading-tight">Smart Bidding</h4>
+                <p className="text-[9px] font-semibold text-slate-500 leading-tight">Best price deals</p>
+              </div>
             </div>
 
-            <div className="hidden md:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6">
-              {offerings.map((offering) => {
-                const selectedIdx = offeringSelectedImage[offering.title] || 0;
-                const allImages = offering.images;
-                const totalImages = allImages.length;
+            <div className="flex items-center gap-2.5 pt-1 md:pt-0 md:pl-3">
+              <div className="w-8 h-8 rounded-xl bg-teal-50 flex items-center justify-center shrink-0 text-[#0FA596] border border-teal-100/60">
+                <Award className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-[11px] font-black text-[#0F172A] leading-tight">Verified Properties</h4>
+                <p className="text-[9px] font-semibold text-slate-500 leading-tight">100% verified listings</p>
+              </div>
+            </div>
 
-                const nextImage = () => {
-                  setOfferingSelectedImage(prev => ({
-                    ...prev,
-                    [offering.title]: (selectedIdx + 1) % totalImages
-                  }));
-                };
+            <div className="flex items-center gap-2.5 pt-1 md:pt-0 md:pl-3">
+              <div className="w-8 h-8 rounded-xl bg-teal-50 flex items-center justify-center shrink-0 text-[#0FA596] border border-teal-100/60">
+                <Tag className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-[11px] font-black text-[#0F172A] leading-tight">Lowest Price Guarantee</h4>
+                <p className="text-[9px] font-semibold text-slate-500 leading-tight">Best price, always</p>
+              </div>
+            </div>
 
-                const prevImage = () => {
-                  setOfferingSelectedImage(prev => ({
-                    ...prev,
-                    [offering.title]: (selectedIdx - 1 + totalImages) % totalImages
-                  }));
-                };
+            <div className="flex items-center gap-2.5 pt-1 md:pt-0 md:pl-3">
+              <div className="w-8 h-8 rounded-xl bg-teal-50 flex items-center justify-center shrink-0 text-[#0FA596] border border-teal-100/60">
+                <Headphones className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-[11px] font-black text-[#0F172A] leading-tight">24/7 Support</h4>
+                <p className="text-[9px] font-semibold text-slate-500 leading-tight">Always here to help</p>
+              </div>
+            </div>
 
+            <div className="flex items-center gap-2.5 pt-1 md:pt-0 md:pl-3">
+              <div className="w-8 h-8 rounded-xl bg-teal-50 flex items-center justify-center shrink-0 text-[#0FA596] border border-teal-100/60">
+                <Lock className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-[11px] font-black text-[#0F172A] leading-tight">Safe &amp; Secure</h4>
+                <p className="text-[9px] font-semibold text-slate-500 leading-tight">Your safety, our priority</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* What We Offer Section — STARTS DIRECTLY BELOW HERO */}
+        <section className="py-5 md:py-6 bg-white relative z-0">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6">
+            <div className="text-center mb-3 md:mb-4">
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-[#0F172A] mb-0.5 tracking-tight">
+                What We Offer
+              </h2>
+              <p className="text-[11px] sm:text-xs font-semibold text-slate-500 max-w-xl mx-auto">
+                Choose from a variety of accommodation types tailored for students and professionals.
+              </p>
+            </div>
+
+            {/* 4 Cards Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              {[
+                {
+                  id: 'pg',
+                  title: 'PG (Paying Guest)',
+                  icon: Bed,
+                  image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=600&auto=format&fit=crop',
+                  link: '/website/ourproperty?type=pg'
+                },
+                {
+                  id: 'hostel',
+                  title: 'Hostels',
+                  icon: Building2,
+                  image: 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?q=80&w=600&auto=format&fit=crop',
+                  link: '/website/ourproperty?type=hostel'
+                },
+                {
+                  id: 'co-living',
+                  title: 'Co-living',
+                  icon: Armchair,
+                  image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?q=80&w=600&auto=format&fit=crop',
+                  link: '/website/ourproperty?type=co-living'
+                },
+                {
+                  id: 'apartment',
+                  title: 'Apartments',
+                  icon: Home,
+                  image: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=600&auto=format&fit=crop',
+                  link: '/website/ourproperty?type=apartment'
+                }
+              ].map((card) => {
+                const Icon = card.icon;
                 return (
-                  <div
-                    key={offering.title}
-                    onClick={() => offering.link ? navigate(offering.link) : navigate(`/website/ourproperty?type=${offering.category.toLowerCase()}`)}
-                    className="bg-white rounded-xl overflow-hidden shadow hover:shadow-xl transition-all group cursor-pointer"
+                  <Link
+                    key={card.id}
+                    to={card.link}
+                    className="group relative h-40 md:h-44 rounded-[18px] overflow-hidden shadow-md border border-slate-100 hover:shadow-2xl transition-all duration-300 block"
                   >
-                    <div className="h-40 overflow-hidden relative">
-                      <img
-                        src={allImages[selectedIdx]}
-                        alt={offering.title}
-                        className="w-full h-full object-cover transition-all duration-300"
-                        loading="lazy"
-                        width="200"
-                        height="160"
-                      />
-                      <div className="absolute top-0 left-0 right-0 p-2 bg-gradient-to-b from-black/50 to-transparent">
-                        <h3 className="text-base font-bold text-white drop-shadow-md">{offering.title}</h3>
-                      </div>
-                      <div className="absolute bottom-0 left-0 right-0 p-2 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                        <p className="text-xs text-white drop-shadow-md line-clamp-2">{offering.description}</p>
-                      </div>
+                    <img
+                      src={card.image}
+                      alt={card.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/15 to-transparent"></div>
 
-                      {totalImages > 1 && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); e.preventDefault(); prevImage(); }}
-                          className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-transparent hover:bg-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10"
-                        >
-                          <ChevronLeft className="w-6 h-6 text-white drop-shadow-lg" />
-                        </button>
-                      )}
-
-                      {totalImages > 1 && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); e.preventDefault(); nextImage(); }}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-transparent hover:bg-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10"
-                        >
-                          <ChevronRight className="w-6 h-6 text-white drop-shadow-lg" />
-                        </button>
-                      )}
-
-                      <div className="absolute top-2 right-2 bg-black/60 text-white px-2 py-1 rounded text-xs">
-                        {selectedIdx + 1} / {totalImages}
-                      </div>
+                    {/* Top Right Counter Badge */}
+                    <div className="absolute top-2.5 right-2.5 bg-black/80 backdrop-blur-xs text-white text-[9px] font-black px-2 py-0.5 rounded-md border border-white/20">
+                      1/3
                     </div>
-                  </div>
+
+                    {/* Bottom Left White Pill Category Badge */}
+                    <div className="absolute bottom-2.5 left-2.5 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-black text-slate-900 flex items-center gap-1.5 shadow-md border border-white/80 group-hover:bg-white transition-all">
+                      <div className="w-4 h-4 rounded-full bg-teal-50 flex items-center justify-center text-[#0FA596]">
+                        <Icon className="w-3 h-3" />
+                      </div>
+                      <span>{card.title}</span>
+                      <ArrowUpRight className="w-3 h-3 text-slate-400 group-hover:text-[#0FA596] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+                    </div>
+                  </Link>
                 );
               })}
-            </div>
-
-            <div className="md:hidden relative -mx-4">
-              <div 
-                ref={offeringScrollContainerRef}
-                className="overflow-x-auto scrollbar-hide cursor-grab active:cursor-grabbing"
-              >
-                <div className="flex gap-4 w-max px-2 py-3">
-                  {offerings.map((offering) => (
-                    <div
-                      key={offering.title}
-                      onClick={() => navigate(`/website/ourproperty?type=${offering.category.toLowerCase()}`)}
-                      className="flex-shrink-0 w-32 bg-white rounded-lg overflow-hidden shadow cursor-pointer"
-                    >
-                      <div className="h-24 overflow-hidden relative group">
-                        <img
-                          src={offering.images[0]}
-                          alt={offering.title}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                          width="128"
-                          height="96"
-                        />
-                        <div className="absolute top-0 left-0 right-0 p-1 bg-gradient-to-b from-black/50 to-transparent">
-                          <h3 className="text-xs font-bold text-white drop-shadow-md truncate">{offering.title}</h3>
-                        </div>
-                        <div className="absolute bottom-0 left-0 right-0 p-1 bg-gradient-to-t from-black/70 to-transparent transform translate-y-full group-hover:translate-y-0 group-active:translate-y-0 transition-transform duration-300">
-                          <p className="text-[8px] text-white drop-shadow-md line-clamp-2">{offering.description}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
           </div>
         </section>
