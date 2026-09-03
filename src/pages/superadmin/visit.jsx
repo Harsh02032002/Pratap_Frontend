@@ -16,8 +16,32 @@ import toast from "react-hot-toast";
 import { fetchJson, getAuthHeader, getApiBase } from "../../utils/api";
 import { compressImage, PRESETS } from "../../utils/imageCompression";
 import { PROPERTY_TIERS, normalizeTierKey } from "../../utils/propertyTiers";
+import {
+  getCurrentDeviceLocation,
+  reverseGeocodeLocation,
+  formatCoordinates,
+  formatAccuracy,
+  classifyAccuracy,
+} from "../../utils/deviceLocation";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
+
+/** Starting point for the live-capture location state (see `captureLocation`). */
+const IDLE_CAPTURE_LOCATION = { status: "idle", coords: null, place: null, error: null };
+
+/**
+ * Whether a verified device fix is REQUIRED before a live capture can be taken.
+ *
+ * Currently false so the flow can be exercised from a laptop, which has no GPS
+ * chip and can only ever produce a Wi-Fi estimate hundreds of kilometres wide.
+ * Captures taken without a verified fix are still taken — they are just stamped
+ * "LOCATION NOT VERIFIED" in the photo itself and saved with
+ * `locationTrusted: false`, so nothing that lands in a report claims more than
+ * it can support.
+ *
+ * Set to true to enforce the gate once employees are capturing on phones.
+ */
+const REQUIRE_VERIFIED_LOCATION = false;
 
 /** One photo tile. `badge` says which of the two groups it belongs to. */
 function PhotoThumb({ url, badge, onRemove }) {
@@ -370,6 +394,110 @@ export default function Visit() {
   const videoRef = React.useRef(null);
   const streamRef = React.useRef(null);
 
+  /**
+   * Where the employee is standing, resolved fresh every time the modal opens.
+   *
+   *   status: "locating"  → waiting on the device; `coords` may already hold a
+   *                         first, coarse fix that is still being tightened
+   *           "geocoding" → accepted a fix, resolving the place name
+   *           "ready"     → coordinates + address
+   *           "partial"   → coordinates but the geocoder failed; the capture is
+   *                         still allowed and the photo is stamped with the raw
+   *                         coordinates, because a real fix with no label is
+   *                         better evidence than no fix at all
+   *           "unverified"→ a fix arrived but is too wide to be a device
+   *                         reading (a laptop's Wi-Fi estimate); shown and
+   *                         stamped only as unverified
+   *           "error"     → no fix at all
+   *
+   * The last two allow a capture only while `REQUIRE_VERIFIED_LOCATION` is off.
+   */
+  const [captureLocation, setCaptureLocation] = useState(IDLE_CAPTURE_LOCATION);
+  // Bumped on every attempt so a slow fix that resolves after the employee
+  // cancelled (or hit Retry) cannot overwrite the state of the current one.
+  const locationRunRef = React.useRef(0);
+
+  const resolveCaptureLocation = async () => {
+    const runId = ++locationRunRef.current;
+    const isStale = () => runId !== locationRunRef.current;
+
+    setCaptureLocation({ status: "locating", coords: null, place: null, error: null });
+
+    let coords;
+    try {
+      coords = await getCurrentDeviceLocation({
+        // Show the radius shrinking while the GPS settles, so a 10-second wait
+        // reads as progress rather than a hang.
+        onProgress: (fix) => {
+          if (isStale()) return;
+          setCaptureLocation(prev =>
+            prev.status === "locating" ? { ...prev, coords: fix } : prev);
+        },
+      });
+    } catch (err) {
+      if (isStale()) return;
+      // A fix too coarse to verify is still worth showing and stamping when the
+      // gate is off — as an unverified area, never as the employee's address.
+      if (err.fix) {
+        setCaptureLocation({
+          status: "unverified",
+          coords: err.fix,
+          place: null,
+          error: err.message,
+          errorCode: err.code,
+        });
+        try {
+          const place = await reverseGeocodeLocation(err.fix.latitude, err.fix.longitude);
+          if (isStale()) return;
+          setCaptureLocation(prev => prev.status === "unverified" ? { ...prev, place } : prev);
+        } catch {
+          /* Coordinates alone are enough for an unverified stamp. */
+        }
+        return;
+      }
+      setCaptureLocation({
+        status: "error",
+        coords: null,
+        place: null,
+        error: err.message,
+        errorCode: err.code,
+      });
+      return;
+    }
+    if (isStale()) return;
+
+    setCaptureLocation({ status: "geocoding", coords, place: null, error: null });
+    try {
+      const place = await reverseGeocodeLocation(coords.latitude, coords.longitude);
+      if (isStale()) return;
+      setCaptureLocation({ status: "ready", coords, place, error: null });
+    } catch {
+      if (isStale()) return;
+      setCaptureLocation({
+        status: "partial",
+        coords,
+        place: null,
+        error: "Location address unavailable — the photo will be stamped with coordinates.",
+      });
+    }
+  };
+
+  // Coordinates are the bar for capturing; the address is a label on top of them.
+  const locationVerified =
+    captureLocation.status === "ready" || captureLocation.status === "partial";
+  // A fix inside the acceptable band but wider than a real GPS reading: usable,
+  // but the photo and the record both have to say so rather than presenting a
+  // neighbourhood-sized guess as the address the employee stood at.
+  const locationApproximate =
+    locationVerified && classifyAccuracy(captureLocation.coords?.accuracy) !== "precise";
+  // Detection has finished and produced nothing trustworthy.
+  const locationUnresolved =
+    captureLocation.status === "unverified" || captureLocation.status === "error";
+  // Mid-detection stays disabled either way: the fix is seconds away and a
+  // photo taken now would be needlessly unverified.
+  const canCapture =
+    locationVerified || (!REQUIRE_VERIFIED_LOCATION && locationUnresolved);
+
   const [photoUploading, setPhotoUploading] = useState(0);
 
   /**
@@ -411,6 +539,9 @@ export default function Visit() {
   const startCamera = async () => {
     try {
       setCameraModalOpen(true);
+      // The location runs alongside the camera rather than after it: both
+      // prompts appear together, and a slow GPS fix does not delay the preview.
+      resolveCaptureLocation();
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: { ideal: "environment" } }
       });
@@ -422,25 +553,20 @@ export default function Visit() {
       }, 100);
     } catch (err) {
       notify("warning", "Camera unavailable", `${err.message}. You can upload a photo file instead.`);
+      locationRunRef.current++;
+      setCaptureLocation(IDLE_CAPTURE_LOCATION);
       setCameraModalOpen(false);
     }
   };
-
-  // Try to get device GPS location
-  const getGeoLocation = () => new Promise((resolve) => {
-    if (!navigator.geolocation) return resolve(null);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => resolve({ lat: pos.coords.latitude.toFixed(5), lon: pos.coords.longitude.toFixed(5) }),
-      () => resolve(null),
-      { timeout: 4000, maximumAge: 30000 }
-    );
-  });
 
   const stopCamera = () => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
+    // Discard any in-flight fix — the next capture must resolve its own.
+    locationRunRef.current++;
+    setCaptureLocation(IDLE_CAPTURE_LOCATION);
     setCameraModalOpen(false);
   };
 
@@ -451,6 +577,16 @@ export default function Visit() {
    */
   const capturePhotoFromCamera = async () => {
     if (!videoRef.current) return;
+    // Mirrors the button's own disabled rule, for a stray programmatic call.
+    if (!canCapture) return;
+
+    // Read the fix BEFORE stopCamera() clears it.
+    const { coords, place } = captureLocation;
+    const approximate = locationApproximate;
+    // No fix, or one too wide to be a device reading. The photo still gets
+    // taken (see REQUIRE_VERIFIED_LOCATION) but must not read as verified.
+    const unverified = !locationVerified;
+
     const video = videoRef.current;
     const canvas = document.createElement("canvas");
     canvas.width = video.videoWidth || 1280;
@@ -458,44 +594,65 @@ export default function Visit() {
     const ctx = canvas.getContext("2d");
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    // Get location in parallel with drawing
-    const geo = await getGeoLocation();
-
+    const capturedAtIso = new Date().toISOString();
     const timeStr = new Date().toLocaleString("en-IN", {
       day: "2-digit", month: "short", year: "numeric",
       hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true
     });
 
-    const geoStr = geo ? `📍 ${geo.lat}, ${geo.lon}` : "📍 Location N/A";
+    const coordStr = coords ? formatCoordinates(coords.latitude, coords.longitude) : null;
+    // No address → the coordinates stand in. Never a guessed place name, and
+    // never a bare address when the fix behind it was not verified — the
+    // caveat is burnt into the pixels, not just shown in the UI, so a reviewer
+    // months later sees exactly what the employee saw.
+    const geoStr = unverified
+      ? `📍 LOCATION NOT VERIFIED${place?.formattedAddress ? ` — near ${place.formattedAddress}` : coordStr ? ` — ${coordStr}` : ""}`
+      : `📍 ${approximate ? "Approx. " : ""}${place?.formattedAddress || coordStr}`;
+    const accuracyStr = [
+      coords?.accuracy != null
+        ? `🎯 ${unverified ? "Approximate area" : "GPS accuracy"}: ±${formatAccuracy(coords.accuracy)}`
+        : unverified ? "🎯 No device location available" : null,
+      // Coordinates are redundant beside a line that is already raw coordinates.
+      place?.formattedAddress ? coordStr : null,
+    ].filter(Boolean).join("   •   ");
 
     // Scale every dimension off the image height so the banner is equally
     // legible on a 720p webcam frame and a 12MP phone capture.
     const unit = Math.max(11, Math.round(canvas.height * 0.022));
     const pad = Math.round(unit * 0.8);
-    const bannerHeight = (unit + pad * 2) * 2; // 2 lines now: time + geo
+    const lineGap = Math.round(unit * 1.35);
+
+    const lines = [
+      { text: `ROOMHY LIVE VISIT  •  ${timeStr}`, color: "#e2e8f0", size: unit, bold: true },
+      { text: geoStr, color: "#94a3b8", size: Math.round(unit * 0.85) },
+    ];
+    if (accuracyStr) lines.push({ text: accuracyStr, color: "#64748b", size: Math.round(unit * 0.75) });
+
+    const bannerHeight = pad * 2 + lineGap * lines.length;
+    const bannerTop = canvas.height - bannerHeight;
+    const textLeft = pad + Math.round(unit * 0.9);
+    const maxTextWidth = canvas.width - textLeft - pad;
 
     ctx.fillStyle = "rgba(15, 23, 42, 0.86)";
-    ctx.fillRect(0, canvas.height - bannerHeight, canvas.width, bannerHeight);
+    ctx.fillRect(0, bannerTop, canvas.width, bannerHeight);
     ctx.fillStyle = "#f43f5e";
-    ctx.fillRect(0, canvas.height - bannerHeight, Math.max(3, Math.round(unit * 0.28)), bannerHeight);
+    ctx.fillRect(0, bannerTop, Math.max(3, Math.round(unit * 0.28)), bannerHeight);
 
     ctx.textBaseline = "middle";
-    ctx.fillStyle = "#e2e8f0";
-    ctx.font = `bold ${unit}px sans-serif`;
-    // Line 1: timestamp
-    ctx.fillText(
-      `ROOMHY LIVE VISIT  •  ${timeStr}`,
-      pad + Math.round(unit * 0.9),
-      canvas.height - bannerHeight + (bannerHeight / 2) - unit * 0.6
-    );
-    // Line 2: geo
-    ctx.fillStyle = "#94a3b8";
-    ctx.font = `${Math.round(unit * 0.85)}px sans-serif`;
-    ctx.fillText(
-      geoStr,
-      pad + Math.round(unit * 0.9),
-      canvas.height - bannerHeight + (bannerHeight / 2) + unit * 0.6
-    );
+    lines.forEach((line, i) => {
+      ctx.fillStyle = line.color;
+      ctx.font = `${line.bold ? "bold " : ""}${line.size}px sans-serif`;
+      // A long Indian address easily overruns a portrait phone frame; clip it
+      // rather than letting it run off the edge mid-word.
+      let text = line.text;
+      if (ctx.measureText(text).width > maxTextWidth) {
+        while (text.length > 1 && ctx.measureText(`${text}…`).width > maxTextWidth) {
+          text = text.slice(0, -1);
+        }
+        text = `${text}…`;
+      }
+      ctx.fillText(text, textLeft, bannerTop + pad + lineGap * i + lineGap / 2);
+    });
 
     stopCamera();
 
@@ -504,12 +661,30 @@ export default function Visit() {
       try {
         if (!blob) throw new Error("Could not read the captured frame");
         const url = await uploadPhotoToCloud(blob, `live-capture-${Date.now()}.jpg`);
-        // Live captures are INTERNAL PROOF — not sent to website
+        // Live captures are INTERNAL PROOF — not sent to website.
+        // The location keys below match the VisitData.photoDetails subdocument
+        // schema exactly; Mongoose drops any key it does not declare, which is
+        // why this sends latitude/longitude/placeName/placeAddress rather than
+        // a free-form label.
         setFormPhotos(prev => [...prev, url]);
         setFormPhotoDetails(prev => [...prev, {
           url,
           capturedAt: timeStr,
-          geoLocation: geo ? `${geo.lat}, ${geo.lon}` : null,
+          capturedAtIso,
+          // Undefined rather than null when there is no fix: Mongoose casts a
+          // null Number to null, which reads as "recorded as nothing" instead
+          // of "never recorded".
+          latitude: coords?.latitude,
+          longitude: coords?.longitude,
+          accuracy: coords?.accuracy ?? undefined,
+          placeName: place?.placeName || "",
+          placeAddress: place?.formattedAddress || "",
+          // The schema's own comment reserves this for a fix that is too vague
+          // to trust. Nothing server-side judges it yet, so the client marks
+          // what it can see: an address pinned from a neighbourhood-wide radius
+          // is not the evidence a 15 m fix is, and the reviewer must be able to
+          // tell them apart long after the capture.
+          locationTrusted: locationVerified && !approximate,
           source: "camera",
           websiteVisible: false  // internal proof only
         }]);
@@ -1307,7 +1482,12 @@ export default function Visit() {
                             <PhotoThumb key={idx} url={url} onRemove={() => removePhoto(idx)}
                               badge={<span className="truncate flex items-center gap-1 text-sky-400">
                                 <Clock size={10} className="shrink-0" /> {detail.capturedAt}
-                                {detail.geoLocation && <span className="text-[8px] text-slate-400 ml-1">📍 {detail.geoLocation}</span>}
+                                {(detail.placeAddress || detail.latitude != null) && (
+                                  <span className="text-[8px] text-slate-400 ml-1 truncate">
+                                    📍 {detail.locationTrusted === false ? "Approx. " : ""}
+                                    {detail.placeAddress || formatCoordinates(detail.latitude, detail.longitude)}
+                                  </span>
+                                )}
                               </span>} />
                           ))}
                         </div>
@@ -1949,7 +2129,17 @@ export default function Visit() {
                       const detail = viewingVisit.photoDetails?.[idx] || {};
                       const capturedAt = detail.capturedAt ||
                         (viewingVisit.photoTimestamps && viewingVisit.photoTimestamps[url]) || null;
-                      return { url, idx, capturedAt, isLive: detail.source === "camera" };
+                      const rawPlace = detail.placeAddress || detail.placeName ||
+                        (detail.latitude != null && detail.longitude != null
+                          ? formatCoordinates(detail.latitude, detail.longitude)
+                          : null);
+                      // Carries the caveat through to the reviewer: an address
+                      // pinned from a kilometre-wide fix reads identically to a
+                      // precise one unless it is labelled.
+                      const placeLabel = rawPlace && detail.locationTrusted === false
+                        ? `Approx. ${rawPlace}`
+                        : rawPlace;
+                      return { url, idx, capturedAt, placeLabel, isLive: detail.source === "camera" };
                     });
                     const live = rows.filter(r => r.isLive);
                     const uploaded = rows.filter(r => !r.isLive);
@@ -1975,8 +2165,15 @@ export default function Visit() {
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                               {live.map(r => (
                                 <Tile key={r.idx} r={r} badge={
-                                  <span className="truncate flex items-center gap-1.5 text-sky-400">
-                                    <Clock size={11} className="shrink-0" />{r.capturedAt || "Live capture"}
+                                  <span className="flex flex-col gap-0.5 min-w-0">
+                                    <span className="truncate flex items-center gap-1.5 text-sky-400">
+                                      <Clock size={11} className="shrink-0" />{r.capturedAt || "Live capture"}
+                                    </span>
+                                    {r.placeLabel && (
+                                      <span className="truncate flex items-center gap-1.5 text-slate-300 font-medium">
+                                        <MapPin size={11} className="shrink-0" />{r.placeLabel}
+                                      </span>
+                                    )}
                                   </span>
                                 } />
                               ))}
@@ -2121,16 +2318,131 @@ export default function Visit() {
             <div className="relative bg-black aspect-video flex items-center justify-center overflow-hidden">
               <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
               {/* Mirrors the stamp that will be burnt into the photo. */}
-              <div className="absolute bottom-2 left-2 bg-slate-950/80 px-3 py-1 rounded-full text-[10px] font-mono text-sky-400 font-bold">
-                {new Date().toLocaleString("en-IN")}
+              <div className="absolute bottom-2 left-2 right-2 flex flex-col items-start gap-1">
+                <span className="bg-slate-950/80 px-3 py-1 rounded-full text-[10px] font-mono text-sky-400 font-bold">
+                  {new Date().toLocaleString("en-IN")}
+                </span>
+                <span className="max-w-full bg-slate-950/80 px-3 py-1 rounded-full text-[10px] text-slate-300 flex items-center gap-1.5 min-w-0">
+                  {locationVerified ? (
+                    <MapPin size={11} className="shrink-0 text-emerald-400" />
+                  ) : locationUnresolved ? (
+                    <AlertTriangle size={11} className="shrink-0 text-amber-400" />
+                  ) : (
+                    <Loader2 size={11} className="shrink-0 text-sky-400 animate-spin" />
+                  )}
+                  <span className="truncate">
+                    {captureLocation.status === "ready"
+                      ? `${locationApproximate ? "Approx. " : ""}${captureLocation.place.formattedAddress}`
+                      : captureLocation.status === "partial"
+                        ? formatCoordinates(captureLocation.coords.latitude, captureLocation.coords.longitude)
+                        : captureLocation.status === "geocoding"
+                          ? "Resolving address…"
+                          : locationUnresolved
+                            ? "Location not verified"
+                            : captureLocation.coords
+                              // A first fix is in, still tightening.
+                              ? `Improving accuracy… ±${formatAccuracy(captureLocation.coords.accuracy)}`
+                              : "Detecting current location…"}
+                  </span>
+                </span>
               </div>
             </div>
+
+            {/* ── Verified location ─────────────────────────────────────────
+                Coordinates come from the device GPS at capture time, never an
+                IP lookup or a stored address. A capture without a verified fix
+                is allowed (see REQUIRE_VERIFIED_LOCATION) but never presented
+                as one. */}
+            <div className="px-5 pt-4">
+              {locationUnresolved ? (
+                <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3.5">
+                  <p className="text-[11px] text-amber-200 leading-relaxed flex items-start gap-2">
+                    <AlertTriangle size={13} className="shrink-0 mt-0.5" />
+                    <span>{captureLocation.error}</span>
+                  </p>
+                  {captureLocation.errorCode === "too_coarse" && (
+                    <p className="mt-2 pl-[21px] text-[10px] text-amber-300/70 leading-relaxed">
+                      Laptops and desktops have no GPS chip — the browser can only guess from
+                      nearby Wi-Fi networks, which is why the area is so wide. Open this page on
+                      the phone you are visiting with.
+                      {captureLocation.place && (
+                        <> Centre of that area: <span className="text-amber-200/80">{captureLocation.place.formattedAddress}</span> — this is not where you are.</>
+                      )}
+                    </p>
+                  )}
+                  {!REQUIRE_VERIFIED_LOCATION && (
+                    <p className="mt-2 pl-[21px] text-[10px] text-amber-300/70 leading-relaxed">
+                      You can still capture — the photo will be stamped “Location not verified”.
+                    </p>
+                  )}
+                  <button type="button" onClick={resolveCaptureLocation}
+                    className="mt-3 px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-100 text-[11px] font-bold flex items-center gap-1.5 transition-colors">
+                    <RefreshCw size={12} /> Retry location
+                  </button>
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-3.5">
+                  <p className="text-[11px] font-bold text-slate-200 flex items-start gap-2 min-w-0">
+                    {locationVerified
+                      ? <MapPin size={13} className="shrink-0 mt-0.5 text-emerald-400" />
+                      : <Loader2 size={13} className="shrink-0 mt-0.5 text-sky-400 animate-spin" />}
+                    <span className="break-words">
+                      {captureLocation.status === "ready"
+                        ? captureLocation.place.formattedAddress
+                        : captureLocation.status === "partial"
+                          ? formatCoordinates(captureLocation.coords.latitude, captureLocation.coords.longitude)
+                          : captureLocation.status === "geocoding"
+                            ? "Resolving address…"
+                            : "Detecting current location…"}
+                    </span>
+                  </p>
+                  <div className="mt-1.5 pl-[21px] space-y-0.5">
+                    {captureLocation.coords?.accuracy != null && (
+                      <p className={cn("text-[10px]", locationApproximate ? "text-amber-400/90" : "text-slate-500")}>
+                        GPS accuracy: ±{formatAccuracy(captureLocation.coords.accuracy)}
+                      </p>
+                    )}
+                    {captureLocation.status === "partial" && (
+                      <p className="text-[10px] text-amber-400/90">{captureLocation.error}</p>
+                    )}
+                    {locationApproximate && (
+                      <p className="text-[10px] text-amber-400/90 leading-relaxed">
+                        This is a wide, approximate area — likely a Wi-Fi estimate rather than GPS.
+                        The photo will be stamped “Approx.”. For an exact fix, capture on a phone with GPS on.
+                      </p>
+                    )}
+                    {!locationVerified && (
+                      <p className="text-[10px] text-slate-500">
+                        Allow location access when your browser asks — the photo is stamped with it.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="p-5 flex items-center justify-between bg-slate-900 gap-4">
               <button type="button" onClick={stopCamera} className="px-5 py-3 rounded-2xl text-xs font-bold text-slate-400 hover:text-white transition-colors">
                 Cancel
               </button>
-              <button type="button" onClick={capturePhotoFromCamera} className="px-6 py-3.5 bg-rose-600 hover:bg-rose-500 text-white rounded-2xl text-xs font-bold uppercase tracking-wider shadow-lg shadow-rose-600/30 flex items-center gap-2 transition-all">
-                <Camera size={16} /> Snap Photo & Watermark Timestamp
+              <button type="button" onClick={capturePhotoFromCamera} disabled={!canCapture}
+                title={canCapture ? undefined : "Waiting for your device location"}
+                className={cn(
+                  "px-6 py-3.5 text-white rounded-2xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all",
+                  "disabled:bg-slate-800 disabled:text-slate-500 disabled:shadow-none disabled:cursor-not-allowed",
+                  // An unverified capture is deliberately not the confident red
+                  // button — it should not feel like the normal, good outcome.
+                  locationVerified
+                    ? "bg-rose-600 hover:bg-rose-500 shadow-lg shadow-rose-600/30"
+                    : "bg-slate-700 hover:bg-slate-600"
+                )}>
+                {locationVerified ? (
+                  <><Camera size={16} /> Snap Photo &amp; Watermark Timestamp</>
+                ) : locationUnresolved ? (
+                  <><AlertTriangle size={16} /> Snap without verified location</>
+                ) : (
+                  <><Loader2 size={16} className="animate-spin" /> Waiting for location…</>
+                )}
               </button>
             </div>
           </div>
