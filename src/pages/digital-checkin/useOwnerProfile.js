@@ -253,7 +253,17 @@ export const useOwnerProfile = () => {
       if (!id || hydratedLoginRef.current === id) return;
       hydratedLoginRef.current = id;
       try {
-        const owner = await getWithFallback(`/api/owners/${encodeURIComponent(id)}`, apiBases);
+        // The public check-in endpoint, NOT /api/owners/:loginId. That one sits
+        // behind `protect`, and the owner arrives here from an emailed link with
+        // no session — it answered 401, the catch below swallowed it, and every
+        // field that did not come from the URL rendered blank under a
+        // "PRE-FILLED BY ROOMHY" heading. The link's password authorises the read.
+        const checkinPassword = getParamValue(["password", "tempPassword", "pass"]);
+        const res = await getWithFallback(
+          `/api/checkin/owner/profile/${encodeURIComponent(id)}?password=${encodeURIComponent(checkinPassword)}`,
+          apiBases
+        );
+        const owner = res?.owner || res;
         if (!owner || typeof owner !== "object") return;
 
         const nextOccupiedRooms = Number(owner.occupiedRooms ?? 0);
@@ -310,7 +320,13 @@ export const useOwnerProfile = () => {
         if (owner.checkinAadhaarImage) {
           setAadhaarDoc((prev) => prev.url ? prev : { ...emptyDoc, url: owner.checkinAadhaarImage, preview: owner.checkinAadhaarImage, name: "", uploaded: true });
         }
-      } catch (_) {}
+      } catch (err) {
+        // Prefill is optional — the owner can always type the fields — so a
+        // failure here must not block the page. But it is not silent: a swallowed
+        // 401 from the wrong endpoint hid an entirely blank form for a long time,
+        // and console.warn survives the production terser config.
+        console.warn("[ownerprofile] prefill unavailable:", err?.message || err);
+      }
     };
 
     hydrateFromOwner();
