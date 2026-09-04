@@ -319,6 +319,10 @@ export const getOwnerRuntimeSession = () => {
       // hide "All Properties" and pin their context (owners are unrestricted).
       assignedProperty: staff.assignedProperty || "",
       assignedPropertyName: staff.assignedPropertyName || "",
+      // The staff record already carries their photo (normalizeStaffRecord in
+      // staffAccess.js). Dropping it here left the header with nothing to render
+      // but an initial, even for staff who had uploaded one.
+      photoDataUrl: staff.photoDataUrl || "",
     };
   }
   return null;
