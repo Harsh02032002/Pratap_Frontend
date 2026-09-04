@@ -23,6 +23,8 @@ import {
   fetchCashRequests,
   approveCashRequest,
   rejectCashRequest,
+  getBulkReminderStatus,
+  claimBulkReminder,
 } from "../../utils/rentCollectionApi";
 
 const Pill = ({ tone = "muted", children }) => {
@@ -290,6 +292,49 @@ export default function Payment() {
     setTimeout(() => setToast(null), 3500);
   };
 
+  // ── Bulk reminder cooldown ─────────────────────────────────────────────────
+  // The deadline is derived from the server's secondsRemaining rather than an
+  // absolute server timestamp, so a device with a wrong clock cannot shorten or
+  // extend the wait. The server is still the authority: it re-checks on claim.
+  const [reminderEndsAt, setReminderEndsAt] = useState(0);   // ms epoch, 0 = ready
+  const [reminderNow, setReminderNow] = useState(Date.now());
+  const [sendingReminders, setSendingReminders] = useState(false);
+
+  const reminderMsLeft = Math.max(0, reminderEndsAt - reminderNow);
+  const reminderLocked = reminderMsLeft > 0;
+
+  const formatCountdown = (ms) => {
+    const total = Math.ceil(ms / 1000);
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const sec = total % 60;
+    const pad = (n) => String(n).padStart(2, "0");
+    return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${pad(m)}:${pad(sec)}`;
+  };
+
+  // Pull the remaining window from the server on mount. This is what makes the
+  // countdown survive a page reload, a different browser, and a backend restart.
+  const refreshReminderCooldown = useCallback(async () => {
+    try {
+      const res = await getBulkReminderStatus(getActiveOwnerPropertyId());
+      const secs = Number(res?.secondsRemaining) || 0;
+      setReminderEndsAt(secs > 0 ? Date.now() + secs * 1000 : 0);
+    } catch (_) {
+      // Non-critical: leave the button enabled. The claim call is authoritative
+      // and will refuse with 429 if the window is in fact still running.
+    }
+  }, []);
+
+  useEffect(() => { refreshReminderCooldown(); }, [refreshReminderCooldown]);
+
+  // Tick only while a countdown is actually running.
+  useEffect(() => {
+    if (!reminderEndsAt) return;
+    setReminderNow(Date.now());
+    const id = setInterval(() => setReminderNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [reminderEndsAt]);
+
   const loadData = useCallback(async (session) => {
     if (!session?.loginId) return;
     setLoading(true);
@@ -555,17 +600,62 @@ export default function Payment() {
   };
 
   const handleSendAllReminders = async () => {
+    if (sendingReminders || reminderLocked) return;
+
     const pending = filtered.filter(r => r.payStatus !== "paid" && r.invoice?._id);
     if (!pending.length) { showToast("No pending invoices to remind", "info"); return; }
-    let sent = 0;
-    for (const row of pending) {
+
+    setSendingReminders(true);
+    try {
+      // Claim the hour BEFORE sending anything. Doing it server-side first means
+      // a double-click, a second tab, or a reloaded page cannot fan out a second
+      // round of emails — and the window still stands after a backend restart.
+      let claim;
       try {
-        const tenantEmail = (!row.email || row.email === "-") ? "" : row.email;
-        const result = await sendReminder(row.invoice._id, tenantEmail, row.name || "Tenant");
-        if (result?.queued?.length) sent++;
-      } catch (_) { }
+        claim = await claimBulkReminder(getActiveOwnerPropertyId());
+      } catch (err) {
+        if (err?.status === 429) {
+          let secs = 0;
+          try { secs = Number(JSON.parse(err.body || "{}")?.secondsRemaining) || 0; } catch (_) { }
+          if (secs > 0) setReminderEndsAt(Date.now() + secs * 1000);
+          else refreshReminderCooldown();
+          showToast(
+            secs > 0
+              ? `Reminders were already sent. Try again in ${formatCountdown(secs * 1000)}.`
+              : "Reminders were already sent recently. Please wait for the cooldown.",
+            "info"
+          );
+          return;
+        }
+        throw err;
+      }
+
+      // Window is ours — start the countdown immediately so the button locks
+      // even if some individual sends are slow or fail.
+      const cooldownSecs = Number(claim?.secondsRemaining) || Number(claim?.cooldownSeconds) || 3600;
+      setReminderEndsAt(Date.now() + cooldownSecs * 1000);
+
+      let sent = 0;
+      for (const row of pending) {
+        try {
+          const tenantEmail = (!row.email || row.email === "-") ? "" : row.email;
+          const result = await sendReminder(row.invoice._id, tenantEmail, row.name || "Tenant");
+          if (result?.queued?.length) sent++;
+        } catch (_) { }
+      }
+
+      showToast(
+        sent > 0
+          ? `Reminders sent successfully to ${sent} tenant${sent === 1 ? "" : "s"}.`
+          : "No reminders could be sent — check that your tenants have an email or phone on file.",
+        sent > 0 ? "success" : "error"
+      );
+    } catch (err) {
+      showToast(err?.message || "Failed to send reminders", "error");
+      refreshReminderCooldown();
+    } finally {
+      setSendingReminders(false);
     }
-    showToast(`Reminders queued for ${sent} tenant(s)`);
   };
 
   const openPayModal = (row) => {
@@ -778,9 +868,24 @@ export default function Payment() {
           </button>
           <button
             onClick={handleSendAllReminders}
-            className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-lg border border-border bg-card text-[13px] font-medium hover:border-primary/40 transition-colors"
+            disabled={sendingReminders || reminderLocked}
+            title={
+              reminderLocked
+                ? `Reminders were sent recently. Available again in ${formatCountdown(reminderMsLeft)}.`
+                : "Send a payment reminder to every unpaid tenant"
+            }
+            className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-lg border border-border bg-card text-[13px] font-medium hover:border-primary/40 transition-colors disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:border-border"
           >
-            <Send className="size-3.5" /> Send reminders ({counts.due + counts.overdue + counts.partial})
+            {sendingReminders
+              ? <RefreshCw className="size-3.5 animate-spin" />
+              : reminderLocked
+                ? <Clock className="size-3.5" />
+                : <Send className="size-3.5" />}
+            {sendingReminders
+              ? "Sending..."
+              : reminderLocked
+                ? `Sent · retry in ${formatCountdown(reminderMsLeft)}`
+                : `Send reminders (${counts.due + counts.overdue + counts.partial})`}
           </button>
           <button
             onClick={() => window.location.href = "/propertyowner/penalty-config"}
