@@ -3,22 +3,20 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import { visualizer } from 'rollup-plugin-visualizer';
 import path from 'path';
-import { copyFileSync, mkdirSync, readFileSync } from 'fs';
+import { copyFileSync, mkdirSync, readFileSync, existsSync } from 'fs';
 import { tmpdir } from 'os';
 
 // Fix: Windows pe jiti tries to write cache to %TEMP%/node-jiti/ but the
 // directory may not exist, causing ENOENT crash. Create it proactively.
 try { mkdirSync(path.join(tmpdir(), 'node-jiti'), { recursive: true }); } catch {}
 
-// Copy exact user uploaded luxury penthouse image into public folder for hero background
+// Copy exact user uploaded luxury penthouse image into public folder for hero background (local dev only)
 try {
-  copyFileSync(
-    'C:/Users/HP/.gemini/antigravity-ide/brain/4457febe-666b-43a3-82cf-dc41f75dd2c3/media__1788362492905.jpg',
-    path.resolve(__dirname, 'public/hero-luxury.jpg')
-  );
-} catch (e) {
-  console.error('[hero-copy] copy error:', e);
-}
+  const srcImg = 'C:/Users/HP/.gemini/antigravity-ide/brain/4457febe-666b-43a3-82cf-dc41f75dd2c3/media__1788362492905.jpg';
+  if (existsSync(srcImg)) {
+    copyFileSync(srcImg, path.resolve(__dirname, 'public/hero-luxury.jpg'));
+  }
+} catch (e) {}
 
 const adminHtmlPath = path.resolve(__dirname, 'admin.html');
 

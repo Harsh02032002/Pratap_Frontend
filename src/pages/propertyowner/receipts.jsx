@@ -142,6 +142,7 @@ export default function ReceiptsPage() {
             <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold ${activeTab === "rent" ? "bg-teal-700 text-white" : "bg-teal-50 text-teal-600"}`}>{rentCount}</span>
           </button>
         </div>
+      </div>
 
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1">
