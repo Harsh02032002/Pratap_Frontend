@@ -58,8 +58,12 @@ export const getApiBase = () => {
                   host.endsWith(".local");
   if (isLocal) return `http://${host}:5001`;
 
-  // Production — use current origin (so /api calls map to live backend)
-  return window.location.origin;
+  if (host === "app.roomhy.com" || host === "roomhy.com" || host === "www.roomhy.com" || host === "admin.roomhy.com") {
+    return "https://api.roomhy.com";
+  }
+
+  // Production — fallback to current origin or api.roomhy.com
+  return window.location.origin || "https://api.roomhy.com";
 };
 
 // Read JWT for the Authorization: Bearer header on every request.
