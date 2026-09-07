@@ -25,6 +25,7 @@ import { SILVER_NAV, GOLD_NAV } from './navConfig';
 import { fetchOwnerProperties, clearOwnerRuntimeSession } from "../../utils/propertyowner";
 import { getStaffPanelNav, filterNotificationsForStaff, hasStaffPermission } from "../../utils/staffAccess";
 import { cacheGet, cacheSet, cacheInvalidate } from "../../utils/cache";
+import { API_URL } from "../../utils/api";
 import PropertyOwnerMobileLayout from "./PropertyOwnerMobileLayout";
 
 const DEFAULT_DESKTOP_ITEMS = [
@@ -360,6 +361,23 @@ export default function PropertyOwnerLayout({
 
   const displayName = useMemo(() => owner?.name || owner?.ownerName || "Owner", [owner]);
   const ownerInitial = useMemo(() => String(displayName).charAt(0).toUpperCase() || "O", [displayName]);
+
+  // Profile photo. Staff carry photoDataUrl (Employee.photoDataUrl, kept on the
+  // staff-proxy session); owners carry profilePic/photo. The header previously
+  // rendered the initial unconditionally with no <img> anywhere, so an uploaded
+  // photo could never appear for either.
+  const avatarSrc = useMemo(() => {
+    const raw = owner?.photoDataUrl || owner?.profilePic || owner?.photo || owner?.avatar || "";
+    if (!raw) return null;
+    if (raw.startsWith("data:") || raw.startsWith("http")) return raw;
+    return raw.startsWith("/") ? `${API_URL}${raw}` : `${API_URL}/${raw}`;
+  }, [owner]);
+
+  // A stored URL can 404 (file deleted, bad Cloudinary link). Falling back to
+  // the initial keeps a broken-image icon out of the header.
+  const [avatarFailed, setAvatarFailed] = useState(false);
+  useEffect(() => { setAvatarFailed(false); }, [avatarSrc]);
+  const showAvatar = !!avatarSrc && !avatarFailed;
   const displayLoginId = useMemo(() => owner?.managerLoginId || owner?.loginId, [owner]);
   const accountRole = useMemo(() => owner?.role === 'manager' ? 'Property Manager' : 'Property Owner', [owner]);
   const accountLabel = useMemo(() => (displayLoginId ? `Account: ${displayLoginId}` : accountRole), [displayLoginId, accountRole]);
@@ -526,10 +544,19 @@ export default function PropertyOwnerLayout({
           id={headerVariant === "compact" ? "headerAvatar" : "headerAvatar"}
           className={joinClassNames(
             headerVariant === "compact" ? "h-9 w-9 text-purple-700" : "w-8 h-8 text-purple-600",
-            "rounded-full bg-purple-100 flex items-center justify-center font-bold border border-purple-200"
+            "rounded-full bg-purple-100 flex items-center justify-center font-bold border border-purple-200 overflow-hidden"
           )}
         >
-          {ownerInitial}
+          {showAvatar ? (
+            <img
+              src={avatarSrc}
+              alt={displayName}
+              className="w-full h-full object-cover"
+              onError={() => setAvatarFailed(true)}
+            />
+          ) : (
+            ownerInitial
+          )}
         </div>
         {headerVariant === "compact" ? (
           <div className="hidden md:block text-left">
@@ -750,8 +777,12 @@ export default function PropertyOwnerLayout({
           </div>
         ) : (
           <div className="p-6 flex items-center gap-3 shrink-0">
-            <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-lg border-2 border-white/10 shadow-lg shadow-blue-600/20">
-              {ownerInitial}
+            <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-lg border-2 border-white/10 shadow-lg shadow-blue-600/20 overflow-hidden">
+              {showAvatar ? (
+                <img src={avatarSrc} alt={displayName} className="w-full h-full object-cover" onError={() => setAvatarFailed(true)} />
+              ) : (
+                ownerInitial
+              )}
             </div>
             <div className="min-w-0">
               <p className="text-sm font-bold text-white leading-none truncate">{displayName}</p>
@@ -941,8 +972,12 @@ export default function PropertyOwnerLayout({
                 <p className="text-sm font-black text-slate-900 leading-none group-hover:text-blue-600 transition-colors">{displayName}</p>
                 <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest opacity-60">ID: {owner?.loginId || "..."}</p>
               </div>
-              <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-lg group-hover:bg-blue-600 group-hover:text-white transition-all">
-                {ownerInitial}
+              <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-lg group-hover:bg-blue-600 group-hover:text-white transition-all overflow-hidden">
+                {showAvatar ? (
+                  <img src={avatarSrc} alt={displayName} className="w-full h-full object-cover" onError={() => setAvatarFailed(true)} />
+                ) : (
+                  ownerInitial
+                )}
               </div>
               <div className={cn("absolute top-full right-0 mt-4 w-48 bg-white rounded-xl shadow-xl border border-slate-100 transition-all z-50 overflow-hidden", profileOpen ? "opacity-100 visible translate-y-0" : "opacity-0 invisible -translate-y-2")}>
                 <div className="p-2 space-y-1">

@@ -216,7 +216,10 @@ export function getStaffSession() {
 }
 
 export function clearStaffSession() {
-  ["staff_session", "employee_session", "token"].forEach((k) => {
+  // staff_session_refreshed is the once-per-tab guard on the /me re-hydration in
+  // StaffLayout; clearing it lets the next staff member to sign in on this tab
+  // pull their own record rather than inheriting the previous one's snapshot.
+  ["staff_session", "employee_session", "token", "staff_session_refreshed"].forEach((k) => {
     try { sessionStorage.removeItem(k); } catch (_) { }
     try { localStorage.removeItem(k); } catch (_) { }
   });

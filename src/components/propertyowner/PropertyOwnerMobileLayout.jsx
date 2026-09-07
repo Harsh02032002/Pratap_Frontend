@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { SILVER_NAV, GOLD_NAV } from './navConfig';
 import { cacheInvalidate } from "../../utils/cache";
+import { API_URL } from "../../utils/api";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
@@ -141,6 +142,17 @@ export default function PropertyOwnerMobileLayout({
 
   const displayName = useMemo(() => owner?.name || owner?.ownerName || "Owner", [owner]);
   const ownerInitial = useMemo(() => String(displayName).charAt(0).toUpperCase() || "O", [displayName]);
+
+  // Mirrors PropertyOwnerLayout — staff carry photoDataUrl, owners profilePic.
+  const avatarSrc = useMemo(() => {
+    const raw = owner?.photoDataUrl || owner?.profilePic || owner?.photo || owner?.avatar || "";
+    if (!raw) return null;
+    if (raw.startsWith("data:") || raw.startsWith("http")) return raw;
+    return raw.startsWith("/") ? `${API_URL}${raw}` : `${API_URL}/${raw}`;
+  }, [owner]);
+  const [avatarFailed, setAvatarFailed] = useState(false);
+  useEffect(() => { setAvatarFailed(false); }, [avatarSrc]);
+  const showAvatar = !!avatarSrc && !avatarFailed;
   const activePropertyName = useMemo(() => {
     if (activePropertyId === 'all') return "All Properties";
     return properties.find(p => String(p._id || p.id) === activePropertyId)?.title || "Active Property";
@@ -222,9 +234,13 @@ export default function PropertyOwnerMobileLayout({
             {/* Profile Avatar */}
             <button 
               onClick={() => setProfileDrawerOpen(true)}
-              className="w-9 h-9 rounded-full bg-blue-600 text-white font-black text-sm flex items-center justify-center border-2 border-white/30 shadow-md shrink-0 hover:scale-105 transition-transform"
+              className="w-9 h-9 rounded-full bg-blue-600 text-white font-black text-sm flex items-center justify-center border-2 border-white/30 shadow-md shrink-0 hover:scale-105 transition-transform overflow-hidden"
             >
-              {ownerInitial}
+              {showAvatar ? (
+                <img src={avatarSrc} alt={displayName} className="w-full h-full object-cover" onError={() => setAvatarFailed(true)} />
+              ) : (
+                ownerInitial
+              )}
             </button>
           </div>
         </div>
@@ -630,8 +646,12 @@ export default function PropertyOwnerMobileLayout({
         </div>
 
         <div className="bg-blue-50 border border-blue-100 p-4 rounded-2xl flex items-center gap-3.5 mb-5">
-          <div className="w-12 h-12 rounded-full bg-blue-600 border-2 border-white shadow-md flex items-center justify-center font-black text-lg text-white">
-            {ownerInitial}
+          <div className="w-12 h-12 rounded-full bg-blue-600 border-2 border-white shadow-md flex items-center justify-center font-black text-lg text-white overflow-hidden">
+            {showAvatar ? (
+              <img src={avatarSrc} alt={displayName} className="w-full h-full object-cover" onError={() => setAvatarFailed(true)} />
+            ) : (
+              ownerInitial
+            )}
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-black text-slate-900 truncate leading-none mb-1">{displayName}</p>

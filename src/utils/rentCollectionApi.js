@@ -53,6 +53,23 @@ export const sendReminder = (invoiceId, tenantEmail, tenantName) =>
     body: JSON.stringify({ tenantEmail, tenantName }),
   });
 
+// ── Bulk reminder throttle ───────────────────────────────────────────────────
+// The window is owned by the server so it survives a backend restart and cannot
+// be reset from the browser. Never cached — a stale cooldown would either show a
+// dead countdown or re-enable the button early.
+export const getBulkReminderStatus = (propertyId = '') => {
+  const qs = new URLSearchParams(propertyId && propertyId !== 'all' ? { propertyId } : {}).toString();
+  return fetchJson(`${rentCollectionBase()}/reminders/bulk-status${qs ? `?${qs}` : ''}`);
+};
+
+// Claims the hour BEFORE any reminder goes out. Rejects with status 429 and a
+// secondsRemaining field while the previous window is still running.
+export const claimBulkReminder = (propertyId = '') =>
+  fetchJson(`${rentCollectionBase()}/reminders/bulk-claim`, {
+    method: 'POST',
+    body: JSON.stringify({ propertyId: propertyId && propertyId !== 'all' ? propertyId : '' }),
+  });
+
 export const waivePenalty = (invoiceId, reason, waivedAmount) =>
   fetchJson(`${rentCollectionBase()}/invoices/${invoiceId}/waive`, {
     method: 'PATCH',
