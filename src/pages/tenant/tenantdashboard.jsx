@@ -1175,8 +1175,7 @@ export default function Tenantdashboard() {
 
       const loaded = await ensureCashfreeLoaded();
       if (loaded && window.Cashfree && orderData.payment_session_id) {
-        // Use PROD mode for live, SANDBOX for test
-        const cfMode = (import.meta.env?.VITE_CASHFREE_MODE || "sandbox").toLowerCase();
+        const cfMode = orderData?.isSandbox === false ? "production" : (import.meta.env?.VITE_CASHFREE_MODE || "sandbox").toLowerCase();
         const cashfree = window.Cashfree({ mode: cfMode });
         cashfree.checkout({
           paymentSessionId: orderData.payment_session_id,

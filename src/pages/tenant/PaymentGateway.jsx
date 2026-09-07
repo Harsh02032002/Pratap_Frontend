@@ -103,7 +103,8 @@ const PaymentGateway = () => {
 
             // 2. Open Cashfree SDK or Redirect
             if (typeof window.Cashfree === 'function' && paymentSessionId) {
-                const cashfree = window.Cashfree({ mode: 'sandbox' });
+                const cfMode = data?.isSandbox === false ? 'production' : 'sandbox';
+                const cashfree = window.Cashfree({ mode: cfMode });
                 cashfree.checkout({
                     paymentSessionId: paymentSessionId,
                     redirectTarget: '_self'

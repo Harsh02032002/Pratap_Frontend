@@ -128,7 +128,8 @@ export default function PaymentCheckout() {
       const paymentSessionId = orderRes?.payment_session_id;
 
       if (typeof window.Cashfree === 'function' && paymentSessionId) {
-        const cashfree = window.Cashfree({ mode: 'sandbox' });
+        const cfMode = orderRes?.isSandbox === false ? 'production' : 'sandbox';
+        const cashfree = window.Cashfree({ mode: cfMode });
         cashfree.checkout({
           paymentSessionId: paymentSessionId,
           redirectTarget: '_self'
