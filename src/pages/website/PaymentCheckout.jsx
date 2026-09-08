@@ -47,12 +47,6 @@ export default function PaymentCheckout() {
     const init = async () => {
       setLoading(true);
       try {
-        if (redirectStatus === "SUCCESS" || redirectStatus === "PAID" || redirectStatus === "PAID_SUCCESSFULLY") {
-          setPaymentStatus("success");
-          setLoading(false);
-          return;
-        }
-
         if (orderId) {
           const statusRes = await fetchJson(`/api/payments/cashfree/status/${orderId}`).catch(() => null);
           const rawStatus = String(
@@ -67,18 +61,16 @@ export default function PaymentCheckout() {
             setPaymentStatus("success");
             setLoading(false);
             return;
-          } else if (rawStatus === "FAILED" || rawStatus === "CANCELLED") {
+          } else if (rawStatus === "FAILED" || rawStatus === "CANCELLED" || rawStatus === "CREATED") {
             setPaymentStatus("failed");
-            setError(statusRes?.message || "Payment transaction was not completed.");
+            setError(statusRes?.message || "Payment transaction was not completed or was cancelled.");
             setLoading(false);
             return;
           }
-          if (statusRes?.transaction) {
-            setBookingData({
-              property_name: statusRes.transaction.property_name || "Roomhy Stay",
-              amount: statusRes.transaction.booking_amount || 0
-            });
-          }
+        } else if (redirectStatus === "SUCCESS" || redirectStatus === "PAID" || redirectStatus === "PAID_SUCCESSFULLY") {
+          setPaymentStatus("success");
+          setLoading(false);
+          return;
         }
 
         // Fetch Razorpay Key
@@ -145,7 +137,10 @@ export default function PaymentCheckout() {
       if (paymentSessionId) {
         const CashfreeSDK = await loadCashfreeSdk();
         if (typeof CashfreeSDK === 'function') {
-          const cfMode = orderRes?.isSandbox === false ? 'production' : 'sandbox';
+          const isSandbox = orderRes?.isSandbox !== undefined
+            ? Boolean(orderRes.isSandbox)
+            : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+          const cfMode = isSandbox ? 'sandbox' : 'production';
           const cashfree = CashfreeSDK({ mode: cfMode });
           cashfree.checkout({
             paymentSessionId: paymentSessionId,
