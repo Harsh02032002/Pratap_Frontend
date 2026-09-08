@@ -156,7 +156,7 @@ export default function Index() {
       }
       setLoginError("Invalid credentials.");
     } catch (err) {
-      setLoginError(err?.body || err?.message || "Login failed.");
+      setLoginError(err?.message || "Login failed.");
     } finally {
       setLoginLoading(false);
     }
@@ -196,7 +196,7 @@ export default function Index() {
       });
       setForgotStep("otp");
     } catch (err) {
-      setForgotError(err?.body || err?.message || "Failed to send OTP.");
+      setForgotError(err?.message || "Failed to send OTP.");
     } finally {
       setForgotLoading(false);
     }
@@ -217,7 +217,7 @@ export default function Index() {
       setForgotToken(data?.token || "");
       setForgotStep("password");
     } catch (err) {
-      setForgotError(err?.body || err?.message || "Invalid OTP.");
+      setForgotError(err?.message || "Invalid OTP.");
     } finally {
       setForgotLoading(false);
     }
@@ -254,7 +254,7 @@ export default function Index() {
         closeForgotModal();
       }
     } catch (err) {
-      setForgotError(err?.body || err?.message || "Failed to reset password.");
+      setForgotError(err?.message || "Failed to reset password.");
     } finally {
       setForgotLoading(false);
     }

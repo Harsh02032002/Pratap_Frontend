@@ -33,7 +33,7 @@ export default function Refund() {
       setLoading(false);
     } catch (err) {
       setLoading(false);
-      setErrorMsg(err?.body || err?.message || "Error loading refunds");
+      setErrorMsg(err?.message || "Error loading refunds");
     }
   };
 

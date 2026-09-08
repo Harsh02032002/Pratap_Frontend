@@ -35,7 +35,7 @@ export default function Website() {
       setLoading(false);
     } catch (err) {
       setLoading(false);
-      setErrorMsg(err?.body || err?.message || "Error loading properties");
+      setErrorMsg(err?.message || "Error loading properties");
     }
   };
 
@@ -58,7 +58,7 @@ export default function Website() {
       await fetchJson(`/api/approved-properties/${propertyId}/toggle-live`, { method: "PUT" });
       await loadWebsite();
     } catch (err) {
-      window.alert(err?.body || err?.message || "Failed to toggle status");
+      window.alert(err?.message || "Failed to toggle status");
     }
   };
 

@@ -40,7 +40,7 @@ export default function WebsiteDb() {
       const list = Array.isArray(data) ? data : (data.properties || data.visits || []);
       setProperties(list);
     } catch (err) {
-      setErrorMsg(err?.body || err?.message || "Error loading properties");
+      setErrorMsg(err?.message || "Error loading properties");
     } finally {
       setLoading(false);
     }
@@ -72,7 +72,7 @@ export default function WebsiteDb() {
       await fetchJson(`/api/approved-properties/${propertyId}/toggle-live`, { method: "PUT" });
       await loadWebsite();
     } catch (err) {
-      window.alert(err?.body || err?.message || "Failed to toggle status");
+      window.alert(err?.message || "Failed to toggle status");
     }
   };
 

@@ -152,7 +152,7 @@ export default function Tenants() {
       setTenants(prev => prev.filter(t => (t._id !== tenantId && t.id !== tenantId)));
       if (owner?.loginId) clearOwnerFetchCache(owner.loginId);
     } catch (err) {
-      setErrorMsg(err?.body || err?.message || 'Failed to delete tenant.');
+      setErrorMsg(err?.message || 'Failed to delete tenant.');
     }
   };
 
@@ -192,7 +192,7 @@ export default function Tenants() {
       setEditingTenant(null);
       if (owner?.loginId) clearOwnerFetchCache(owner.loginId);
     } catch (err) {
-      setErrorMsg(err?.body || err?.message || "Failed to update tenant details.");
+      setErrorMsg(err?.message || "Failed to update tenant details.");
     } finally {
       setSaving(false);
     }
@@ -241,7 +241,7 @@ export default function Tenants() {
         clearOwnerFetchCache(owner.loginId);
       }
     } catch (err) {
-      setErrorMsg(err?.body || err?.message || "Failed to transfer room.");
+      setErrorMsg(err?.message || "Failed to transfer room.");
     } finally {
       setSaving(false);
     }
@@ -343,7 +343,7 @@ export default function Tenants() {
         setTenants(activeTenantsOnly);
         setRooms(roomsData?.rooms || []);
       } catch (err) {
-        setErrorMsg(err?.body || err?.message || "Failed to load tenants.");
+        setErrorMsg(err?.message || "Failed to load tenants.");
       } finally {
         setLoading(false);
       }

@@ -41,7 +41,7 @@ export default function ComplaintHistory() {
       const data = await fetchJson("/api/complaints");
       setComplaints(data?.complaints || data || []);
     } catch (err) {
-      setErrorMsg(err?.body || err?.message || "Failed to load complaints");
+      setErrorMsg(err?.message || "Failed to load complaints");
     } finally {
       setLoading(false);
     }
@@ -87,7 +87,7 @@ export default function ComplaintHistory() {
       });
       await loadComplaints();
     } catch (err) {
-      window.alert(err?.body || err?.message || "Failed to update complaint");
+      window.alert(err?.message || "Failed to update complaint");
     } finally {
       setActionId("");
     }

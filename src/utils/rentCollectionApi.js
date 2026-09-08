@@ -83,10 +83,10 @@ export const recordPayment = (invoiceId, amount, paymentMethod = 'cash', notes =
     body: JSON.stringify({ invoiceId, amount, paymentMethod, notes }),
   }).then(data => { cacheInvalidate('invoices:'); cacheInvalidate('dashboard:'); cacheInvalidate('payments:'); return data; });
 
-export function fetchCashRequests(ownerId, params = {}) {
+export function fetchCashRequests(ownerId, params = {}, force = false) {
   const qs = new URLSearchParams({ ownerId, ...params }).toString();
   const key = `cashRequests:${qs}`;
-  const hit = cacheGet(key);
+  const hit = force ? null : cacheGet(key);
   if (hit) return Promise.resolve(hit);
   return fetchJson(`${cashBase()}/cash/requests?${qs}`)
     .then(data => cacheSet(key, data, TTL.CASH_REQUESTS));

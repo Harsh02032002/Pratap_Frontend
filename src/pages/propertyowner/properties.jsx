@@ -1025,7 +1025,7 @@ export default function Properties() {
       const props = await fetchOwnerProperties(session.loginId);
       setProperties(props);
     } catch (err) {
-      setErrorMsg(err?.body || err?.message || "Failed to load properties.");
+      setErrorMsg(err?.message || "Failed to load properties.");
     } finally {
       setLoading(false);
     }

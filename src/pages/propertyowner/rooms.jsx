@@ -305,7 +305,7 @@ export default function Rooms() {
       setTenants(tList);
       setPropertyTotals(roomData.propertyTotals || {});
     } catch (e) {
-      setErrorMsg(e?.body || e?.message || "Failed to load.");
+      setErrorMsg(e?.message || "Failed to load.");
     } finally {
       setLoading(false);
     }
@@ -512,7 +512,7 @@ export default function Rooms() {
       clearOwnerFetchCache(owner.loginId);
       await load(owner);
     } catch (e) {
-      setErrorMsg(e?.body || e?.message || "Failed.");
+      setErrorMsg(e?.message || "Failed.");
     } finally {
       setIsAssigning(false);
     }

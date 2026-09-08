@@ -97,7 +97,7 @@ export default function Platform() {
       setLoading(false);
     } catch (err) {
       setLoading(false);
-      setErrorMsg(err?.body || err?.message || "Failed to load commission data");
+      setErrorMsg(err?.message || "Failed to load commission data");
     }
   };
 

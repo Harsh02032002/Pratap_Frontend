@@ -36,7 +36,7 @@ export default function EnquiryDb() {
       setLoading(false);
     } catch (err) {
       setLoading(false);
-      setErrorMsg(err?.body || err?.message || "Failed to load visits");
+      setErrorMsg(err?.message || "Failed to load visits");
     }
   };
 
@@ -62,7 +62,7 @@ export default function EnquiryDb() {
       await loadVisits();
       setSelected(null);
     } catch (err) {
-      window.alert(err?.body || err?.message || "Approve failed");
+      window.alert(err?.message || "Approve failed");
     }
   };
 
@@ -77,7 +77,7 @@ export default function EnquiryDb() {
       await loadVisits();
       setSelected(null);
     } catch (err) {
-      window.alert(err?.body || err?.message || "Hold failed");
+      window.alert(err?.message || "Hold failed");
     }
   };
 
@@ -92,7 +92,7 @@ export default function EnquiryDb() {
       await loadVisits();
       setSelected(null);
     } catch (err) {
-      window.alert(err?.body || err?.message || "Reject failed");
+      window.alert(err?.message || "Reject failed");
     }
   };
 

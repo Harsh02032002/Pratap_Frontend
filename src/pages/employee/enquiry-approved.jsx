@@ -40,7 +40,7 @@ export default function EnquiryApproved() {
       setLoading(false);
     } catch (err) {
       setLoading(false);
-      setErrorMsg(err?.body || err?.message || "Failed to load visits");
+      setErrorMsg(err?.message || "Failed to load visits");
     }
   };
 

@@ -56,7 +56,7 @@ export default function Location() {
         setCities(Array.isArray(citiesRes?.data) ? citiesRes.data : Array.isArray(citiesRes) ? citiesRes : []);
         setAreas(Array.isArray(areasRes?.data) ? areasRes.data : Array.isArray(areasRes) ? areasRes : []);
       } catch (err) {
-        setErrorMsg(err?.body || err?.message || "Failed to load locations.");
+        setErrorMsg(err?.message || "Failed to load locations.");
       } finally {
         setLoading(false);
       }

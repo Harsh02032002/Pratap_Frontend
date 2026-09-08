@@ -40,7 +40,7 @@ export default function EnquiryHold() {
       setLoading(false);
     } catch (err) {
       setLoading(false);
-      setErrorMsg(err?.body || err?.message || "Failed to load visits");
+      setErrorMsg(err?.message || "Failed to load visits");
     }
   };
 
@@ -62,7 +62,7 @@ export default function EnquiryHold() {
       });
       await loadVisits();
     } catch (err) {
-      window.alert(err?.body || err?.message || "Approve failed");
+      window.alert(err?.message || "Approve failed");
     }
   };
 

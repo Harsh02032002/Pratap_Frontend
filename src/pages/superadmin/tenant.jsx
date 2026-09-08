@@ -228,7 +228,7 @@ export default function Tenant() {
       alert(res.message || `Resident ${action}d successfully`);
       loadTenants();
     } catch (err) {
-      alert(`Failed to ${action} resident: ` + (err.body || err.message));
+      alert(`Failed to ${action} resident: ` + (err.message));
     } finally { setLoading(false); }
   };
 
@@ -242,7 +242,7 @@ export default function Tenant() {
       alert(res.message || "Resident deleted successfully");
       loadTenants();
     } catch (err) {
-      alert("Failed to delete resident: " + (err.body || err.message));
+      alert("Failed to delete resident: " + (err.message));
     } finally { setLoading(false); }
   };
 
