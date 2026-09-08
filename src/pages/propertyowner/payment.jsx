@@ -1609,6 +1609,3 @@ export default function Payment() {
     </PropertyOwnerLayout>
   );
 }
-    </PropertyOwnerLayout >
-  );
-}

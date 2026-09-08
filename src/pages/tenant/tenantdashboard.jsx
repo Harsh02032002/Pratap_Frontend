@@ -3076,34 +3076,3 @@ export default function Tenantdashboard() {
   );
 }
 
-
-
-                </div>
-              </div>
-
-              <div className="mt-6 border-t border-slate-200 pt-5 flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-bold text-slate-800">Total Payable</p>
-                  <p className="text-xs text-slate-500 mt-0.5">Please clear to maintain lease.</p>
-                </div>
-                <div className="bg-indigo-50 px-4 py-2 rounded-lg border border-indigo-100">
-                  <span className="text-xl font-black text-indigo-700 tabular-nums">{formatCurrency(selectedPrevMonthData.due)}</span>
-                </div>
-              </div>
-
-              <div className="mt-6 flex gap-3">
-                <button
-                  onClick={() => setPrevMonthDetailModal(false)}
-                  className="w-full bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 font-bold py-2.5 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-slate-200 focus:ring-offset-2 text-[14px]"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        )
-      }
-    </div >
-  );
-}
-
