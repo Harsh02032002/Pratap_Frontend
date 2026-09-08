@@ -41,7 +41,7 @@ export default function KycVerification() {
       const data = await fetchJson("/api/owners");
       setOwners(data?.owners || data || []);
     } catch (err) {
-      setErrorMsg(err?.body || err?.message || "Failed to load owners");
+      setErrorMsg(err?.message || "Failed to load owners");
     } finally {
       setLoadingOwners(false);
     }
@@ -53,7 +53,7 @@ export default function KycVerification() {
       const data = await fetchJson("/api/tenants");
       setTenants(data?.tenants || data || []);
     } catch (err) {
-      setErrorMsg(err?.body || err?.message || "Failed to load tenants");
+      setErrorMsg(err?.message || "Failed to load tenants");
     } finally {
       setLoadingTenants(false);
     }
@@ -90,7 +90,7 @@ export default function KycVerification() {
       });
       await loadOwners();
     } catch (err) {
-      window.alert(err?.body || err?.message || "Failed to update owner KYC");
+      window.alert(err?.message || "Failed to update owner KYC");
     } finally {
       setActionId("");
     }
@@ -107,7 +107,7 @@ export default function KycVerification() {
       });
       await loadTenants();
     } catch (err) {
-      window.alert(err?.body || err?.message || "Failed to update tenant KYC");
+      window.alert(err?.message || "Failed to update tenant KYC");
     } finally {
       setActionId("");
     }

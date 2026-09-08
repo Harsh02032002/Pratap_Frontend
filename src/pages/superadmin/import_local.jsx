@@ -67,7 +67,7 @@ export default function ImportLocal() {
       setResult(JSON.stringify(data, null, 2));
       setStatus("Import completed.");
     } catch (err) {
-      setStatus(err?.body || err?.message || "Import failed.");
+      setStatus(err?.message || "Import failed.");
     } finally {
       setLoading(false);
     }

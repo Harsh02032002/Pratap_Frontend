@@ -227,7 +227,7 @@ export default function Ownerlogin() {
       setNewPassword("");
       setConfirmPassword("");
     } catch (err) {
-      setErrorMsg(err?.body || err?.message || "Failed to update password.");
+      setErrorMsg(err?.message || "Failed to update password.");
     } finally {
       setLoading(false);
     }
@@ -262,7 +262,7 @@ export default function Ownerlogin() {
       });
       setForgotStep("otp");
     } catch (err) {
-      setForgotError(err?.body || err?.message || "Failed to send OTP.");
+      setForgotError(err?.message || "Failed to send OTP.");
     } finally {
       setLoading(false);
     }
@@ -283,7 +283,7 @@ export default function Ownerlogin() {
       setForgotToken(data?.token || "");
       setForgotStep("reset");
     } catch (err) {
-      setForgotError(err?.body || err?.message || "Invalid OTP.");
+      setForgotError(err?.message || "Invalid OTP.");
     } finally {
       setLoading(false);
     }
@@ -307,7 +307,7 @@ export default function Ownerlogin() {
       });
       closeForgot();
     } catch (err) {
-      setForgotError(err?.body || err?.message || "Failed to reset password.");
+      setForgotError(err?.message || "Failed to reset password.");
     } finally {
       setLoading(false);
     }

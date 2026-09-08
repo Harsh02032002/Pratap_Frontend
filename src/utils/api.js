@@ -128,9 +128,71 @@ const _notifyMutation = (method, path) => {
   }
 };
 
+// Statuses worth a second try: a transient server-side fault where the very
+// same request is likely to succeed shortly.
+//
+// Deliberately NOT retried:
+//   429 — our limiter uses a 15-minute window, so no realistic backoff can
+//         outlast it. Retrying would triple the load on a server that just
+//         asked us to stop, and still fail. Callers fall back to cached data.
+//   408 — a *client-side* abort from our own timeout. Retrying turns one 12s
+//         wait into ~38s of dead air on the page.
+// Anything else (400/401/403/404/500) fails identically no matter how often
+// we ask.
+const _RETRY_STATUSES = new Set([502, 503, 504]);
+const _RETRY_BASE_DELAYS = [500, 1500];
+const _MAX_RETRY_WAIT_MS = 5000;
+const _MAX_GET_ATTEMPTS = 3;
+// Ceiling across ALL attempts plus their backoffs. Per-attempt `timeout` bounds
+// one try; without this, three slow-then-erroring attempts (a proxy emitting
+// 504 just under the timeout) could stack into ~38s of dead air — and in-flight
+// dedup would hold every other caller of that URL there too.
+const _TOTAL_RETRY_BUDGET_MS = 20000;
+
+const _sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+const _isRetryable = (err) => {
+  if (err?.status != null) return _RETRY_STATUSES.has(err.status);
+  // fetch() rejects with a TypeError when the network itself failed. It also
+  // does so for a CORS rejection or a malformed request, which will never
+  // succeed — accepted as the price of covering genuine network blips.
+  return err?.name === 'TypeError';
+};
+
+// `Retry-After` is either a seconds count or an HTTP date. Anything absent,
+// malformed, zero or negative yields null so the caller uses its own backoff —
+// returning 0 here would retry instantly against a server asking us to wait.
+const _parseRetryAfter = (value) => {
+  const raw = typeof value === 'string' ? value.trim() : value;
+  if (raw === null || raw === undefined || raw === '') return null;
+  const seconds = Number(raw);
+  let ms;
+  if (Number.isFinite(seconds)) {
+    ms = seconds * 1000;
+  } else {
+    const when = Date.parse(raw);
+    if (Number.isNaN(when)) return null;
+    ms = when - Date.now();
+  }
+  if (!(ms > 0)) return null;
+  return Math.min(ms, _MAX_RETRY_WAIT_MS);
+};
+
+// Jitter keeps a throttled crowd from retrying in lockstep and re-tripping the
+// limit at the same instant. Clamped AFTER jitter so _MAX_RETRY_WAIT_MS is a
+// true ceiling on the sleep, not merely on its input.
+const _retryDelay = (attempt, retryAfterHeader) => {
+  const base = _parseRetryAfter(retryAfterHeader) ?? _RETRY_BASE_DELAYS[attempt] ?? 1500;
+  const jittered = base * (0.8 + Math.random() * 0.4);
+  return Math.max(0, Math.round(Math.min(jittered, _MAX_RETRY_WAIT_MS)));
+};
+
 export const fetchJson = (path, options = {}) => {
   // `timeout` is a per-call override (ms) — pulled out so it isn't passed to fetch().
-  const { timeout: timeoutMs = 12000, ...fetchOptions } = options;
+  // `maxAttempts` counts total tries, not extra ones — 1 disables retrying.
+  // Named for what it is: a `retries: 0` under the old name read as "don't
+  // retry" but fell through to the default, doing the opposite.
+  const { timeout: timeoutMs = 12000, maxAttempts: maxAttemptsOpt, ...fetchOptions } = options;
   const base = getApiBase();
   const url = path.startsWith("http") ? path : `${base}${path}`;
   const method = (fetchOptions.method || 'GET').toUpperCase();
@@ -141,6 +203,15 @@ export const fetchJson = (path, options = {}) => {
     if (existing) return existing;
   }
 
+  // Only idempotent reads are replayed automatically. Retrying a POST could
+  // record a payment or create a tenant twice — far worse than showing an error.
+  // The override is GET-only, so a caller cannot use it to make a write replay,
+  // and a non-integer can never produce an unbounded loop.
+  const defaultAttempts = method === 'GET' ? _MAX_GET_ATTEMPTS : 1;
+  const maxAttempts = (method === 'GET' && Number.isInteger(maxAttemptsOpt) && maxAttemptsOpt > 0)
+    ? maxAttemptsOpt
+    : defaultAttempts;
+
   const promise = (async () => {
     const hasBody = method !== 'GET' && method !== 'HEAD';
     const headers = {
@@ -148,45 +219,74 @@ export const fetchJson = (path, options = {}) => {
       ...(fetchOptions.headers || {}),
       ...getAuthHeader(),
     };
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-    try {
-      const res = await fetch(url, {
-        credentials: "include",
-        ...fetchOptions,
-        headers,
-        signal: controller.signal,
-      });
-      if (!res.ok) {
-        const text = await res.text();
-        let errorMsg = `Request failed: ${res.status} ${res.statusText}`;
-        try {
-          const parsed = JSON.parse(text);
-          const msg = parsed.message || parsed.error;
-          if (msg) errorMsg = msg + (parsed.details ? `: ${parsed.details}` : '');
-        } catch (_) {}
-        const err = new Error(errorMsg);
-        err.status = res.status;
-        err.body = text;
-        if (res.status === 401 && (errorMsg.includes("token invalid") || errorMsg.includes("Token expired") || errorMsg.includes("token missing"))) {
-          try { clearScopedSession(); } catch (_) {}
+
+    const startedAt = Date.now();
+    // A lone attempt always keeps its full `timeout`; only retries get squeezed
+    // to fit what remains of the overall budget.
+    const totalBudgetMs = Math.max(timeoutMs, _TOTAL_RETRY_BUDGET_MS);
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      // Each attempt gets its own controller, or the first timeout would abort
+      // every retry that follows it.
+      const remaining = totalBudgetMs - (Date.now() - startedAt);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), Math.max(1, Math.min(timeoutMs, remaining)));
+      let retryIn = null;
+      try {
+        const res = await fetch(url, {
+          credentials: "include",
+          ...fetchOptions,
+          headers,
+          signal: controller.signal,
+        });
+        if (!res.ok) {
+          const text = await res.text();
+          let errorMsg = `Request failed: ${res.status} ${res.statusText}`;
+          try {
+            const parsed = JSON.parse(text);
+            const msg = parsed.message || parsed.error;
+            if (msg) errorMsg = msg + (parsed.details ? `: ${parsed.details}` : '');
+          } catch (_) {}
+          const err = new Error(errorMsg);
+          err.status = res.status;
+          err.body = text;
+          err.retryAfter = res.headers.get('Retry-After');
+          if (res.status === 401 && (errorMsg.includes("token invalid") || errorMsg.includes("Token expired") || errorMsg.includes("token missing"))) {
+            try { clearScopedSession(); } catch (_) {}
+          }
+          throw err;
         }
-        throw err;
+        // 2xx on a write — let cache owners drop anything this may have changed.
+        if (hasBody) _notifyMutation(method, path);
+        return await res.json();
+      } catch (rawErr) {
+        let err = rawErr;
+        if (rawErr?.name === 'AbortError') {
+          err = new Error('Request timed out. Please try again.');
+          err.status = 408;
+          err.name = 'TimeoutError';
+        }
+        const nextDelay = _retryDelay(attempt, err.retryAfter);
+        const outOfBudget = (Date.now() - startedAt) + nextDelay >= totalBudgetMs;
+        if (attempt >= maxAttempts - 1 || outOfBudget || !_isRetryable(err)) {
+          // Never let bookkeeping replace the real error: a frozen Error or a
+          // thrown primitive would throw on assignment in strict mode.
+          if (err && typeof err === 'object' && Object.isExtensible(err)) {
+            err.retriedCount = attempt;
+          }
+          throw err;
+        }
+        retryIn = nextDelay;
+      } finally {
+        clearTimeout(timeoutId);
       }
-      // 2xx on a write — let cache owners drop anything this may have changed.
-      if (hasBody) _notifyMutation(method, path);
-      return res.json();
-    } catch (err) {
-      if (err.name === 'AbortError') {
-        const timeoutErr = new Error('Request timed out. Please try again.');
-        timeoutErr.status = 408;
-        timeoutErr.name = 'TimeoutError';
-        throw timeoutErr;
-      }
-      throw err;
-    } finally {
-      clearTimeout(timeoutId);
+      // Outside the try/finally so this attempt's abort timer is already
+      // cleared before we wait out the backoff.
+      await _sleep(retryIn);
     }
+    // Unreachable: the loop either returns or throws on its final attempt.
+    // Present so the function can never fall through to an implicit undefined.
+    throw new Error('Request failed after all retry attempts.');
   })().finally(() => {
     if (method === 'GET') _inflightRequests.delete(url);
   });

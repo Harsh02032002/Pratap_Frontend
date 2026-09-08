@@ -42,7 +42,7 @@ export default function NewSignups() {
       const list = Array.isArray(data) ? data : data?.data || data?.users || [];
       setSignups(list);
     } catch (err) {
-      setErrorMsg(err?.body || err?.message || "Failed to load signups");
+      setErrorMsg(err?.message || "Failed to load signups");
     } finally {
       setLoading(false);
     }
@@ -91,7 +91,7 @@ export default function NewSignups() {
       });
       await loadSignups();
     } catch (err) {
-      window.alert(err?.body || err?.message || "Failed to verify signup");
+      window.alert(err?.message || "Failed to verify signup");
     } finally {
       setActionId("");
     }
@@ -108,7 +108,7 @@ export default function NewSignups() {
       });
       await loadSignups();
     } catch (err) {
-      window.alert(err?.body || err?.message || "Failed to reject signup");
+      window.alert(err?.message || "Failed to reject signup");
     } finally {
       setActionId("");
     }

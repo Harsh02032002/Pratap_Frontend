@@ -223,7 +223,7 @@ export default function Settings() {
         body: JSON.stringify({ loginId: owner.loginId })
       });
     } catch (err) {
-      setPwError(err?.body || err?.message || "Failed to send OTP. Try again.");
+      setPwError(err?.message || "Failed to send OTP. Try again.");
     } finally {
       setPwLoading(false);
     }
@@ -241,7 +241,7 @@ export default function Settings() {
       setPwToken(data?.token || "");
       setPwStep("reset");
     } catch (err) {
-      setPwError(err?.body || err?.message || "Invalid OTP.");
+      setPwError(err?.message || "Invalid OTP.");
     } finally {
       setPwLoading(false);
     }
@@ -260,7 +260,7 @@ export default function Settings() {
       setPwModal(false);
       toast.success("Password changed successfully!");
     } catch (err) {
-      setPwError(err?.body || err?.message || "Failed to reset password.");
+      setPwError(err?.message || "Failed to reset password.");
     } finally {
       setPwLoading(false);
     }

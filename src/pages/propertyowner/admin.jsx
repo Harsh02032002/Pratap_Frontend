@@ -53,14 +53,45 @@ const CHART_CACHE_TTL = 7 * 60 * 1000; // 7 minutes
 const DASH_CACHE_TTL = 4 * 60 * 1000; // 4 minutes — hard expiry
 const DASH_REVALIDATE_AFTER = 90 * 1000; // 90s — only background-refresh cache older than this
 
-const getDashCache = (loginId, propertyId) => {
+// Beyond this age, showing old figures misleads more than it helps — an owner
+// reconciling rent against yesterday's numbers is worse off than one who is
+// told plainly that the refresh failed.
+const STALE_FALLBACK_MAX_AGE = 30 * 60 * 1000; // 30 minutes
+
+const getDashCache = (loginId, propertyId, { maxAgeMs = DASH_CACHE_TTL } = {}) => {
   try {
     const raw = sessionStorage.getItem(`rdash_${loginId}_${propertyId || "all"}`);
     if (!raw) return null;
     const d = JSON.parse(raw);
-    if (Date.now() - d.ts > DASH_CACHE_TTL) return null;
+    if (!d?.ts || Date.now() - d.ts > maxAgeMs) return null;
     return d;
   } catch { return null; }
+};
+
+const formatAgo = (ts) => {
+  const mins = Math.floor((Date.now() - ts) / 60000);
+  if (mins < 1) return "moments ago";
+  if (mins === 1) return "1 minute ago";
+  if (mins < 60) return `${mins} minutes ago`;
+  const hrs = Math.round(mins / 60);
+  return hrs === 1 ? "over an hour ago" : `over ${hrs} hours ago`;
+};
+
+// A transient fault is worth hiding behind cached figures. A 401/403/404 is
+// not — it means the session died or something is genuinely broken, and the
+// owner must see it rather than read stale numbers believing they are live.
+const TRANSIENT_STATUSES = [408, 429, 502, 503, 504];
+const isTransientError = (err) => err?.status == null || TRANSIENT_STATUSES.includes(err.status);
+
+const friendlyError = (err) => {
+  if (isTransientError(err)) {
+    return "We couldn't refresh your dashboard just now. Please try again in a moment.";
+  }
+  return err?.message || "Failed to load dashboard data.";
+};
+
+const clearDashCache = (loginId, propertyId) => {
+  try { sessionStorage.removeItem(`rdash_${loginId}_${propertyId || "all"}`); } catch { }
 };
 
 const setDashCache = (loginId, propertyId, data) => {
@@ -121,6 +152,12 @@ export default function Admin() {
   const [notifications, setNotifications] = useState([]);
   const [changeRequests, setChangeRequests] = useState([]);
   const [propertiesCount, setPropertiesCount] = useState(0);
+  // Timestamp of the cached figures being shown because a refresh failed.
+  const [staleSince, setStaleSince] = useState(null);
+  // Dashboard-load failures only, kept separate from `errorMsg` (which carries
+  // action errors like a failed enquiry update) so the "Try again" button on
+  // this banner always retries the thing that actually failed.
+  const [dashError, setDashError] = useState("");
   const [recentChats, setRecentChats] = useState([]);
   const [tenants, setTenants] = useState([]);
   const [complaints, setComplaints] = useState([]);
@@ -155,31 +192,48 @@ export default function Admin() {
     if (window?.lucide?.createIcons) window.lucide.createIcons();
   }, [owner, enquiries, loading]);
 
-  const loadDashboard = async (loginId, { silent = false } = {}) => {
+  const applyDashSnapshot = (cached) => {
+    setRoomsCount(cached.roomsCount);
+    setTotalBedsCapacity(cached.totalBedsCapacity);
+    setTenantsCount(cached.tenantsCount);
+    setTenants(cached.tenants);
+    setPropertiesCount(cached.propertiesCount);
+    setRecentChats(cached.recentChats);
+    setComplaints(cached.complaints);
+    setRentTotal(cached.rentTotal);
+    setEnquiries(cached.enquiries);
+    setWebsiteLeads(cached.websiteLeads || []);
+    setNotifications(cached.notifications);
+  };
+
+  // `force` skips the cache short-circuit — used by the Refresh button and
+  // after a mutation, where serving the cache would re-render the very state
+  // the owner just changed and make the action look like it never happened.
+  // `quiet` forces a network read without flipping the page back to skeletons —
+  // used after a mutation, where the owner is looking at a result, not a load.
+  // `evict` additionally drops the stored snapshot — only for reloads that
+  // follow a mutation, where the cache is known-wrong rather than merely old.
+  // A plain Refresh keeps it, so it stays available as a fallback if the
+  // network read fails.
+  const loadDashboard = async (loginId, { silent = false, force = false, quiet = false, evict = false } = {}) => {
     const propertyId = getActiveOwnerPropertyId();
     if (!silent) {
-      // Serve cache instantly so the page renders in <50ms
-      const cached = getDashCache(loginId, propertyId);
-      if (cached) {
-        setRoomsCount(cached.roomsCount);
-        setTotalBedsCapacity(cached.totalBedsCapacity);
-        setTenantsCount(cached.tenantsCount);
-        setTenants(cached.tenants);
-        setPropertiesCount(cached.propertiesCount);
-        setRecentChats(cached.recentChats);
-        setComplaints(cached.complaints);
-        setRentTotal(cached.rentTotal);
-        setEnquiries(cached.enquiries);
-        setWebsiteLeads(cached.websiteLeads || []);
-        setNotifications(cached.notifications);
-        setLoading(false);
-        // Always background-refresh to ensure data is correct & not stale
-        loadDashboard(loginId, { silent: true });
-        return;
+      if (force) {
+        if (evict) clearDashCache(loginId, propertyId);
+      } else {
+        // Serve cache instantly so the page renders in <50ms
+        const cached = getDashCache(loginId, propertyId);
+        if (cached) {
+          applyDashSnapshot(cached);
+          setLoading(false);
+          // Always background-refresh to ensure data is correct & not stale
+          loadDashboard(loginId, { silent: true });
+          return;
+        }
       }
-      setLoading(true);
+      if (!quiet) setLoading(true);
     }
-    setErrorMsg("");
+    if (!silent) setDashError("");
     try {
       // Single aggregation call replaces 8 separate HTTP round-trips.
       // Server-side scoped to the active property when one is selected; the
@@ -239,11 +293,47 @@ export default function Admin() {
         websiteLeads: allWebsiteLeads,
         notifications: allNotifications,
       });
+      setStaleSince(null);
+      // Ungated by `silent` so a recovered background refresh always clears a
+      // banner left over from an earlier failure.
+      setDashError("");
     } catch (err) {
-      if (!silent) setErrorMsg(err?.body || err?.message || "Failed to load dashboard data.");
+      // A dead session must never hide behind cached figures. fetchJson has
+      // already cleared it, so the owner is looking at a dashboard they are no
+      // longer signed in to — send them to the login page instead. This runs in
+      // the silent lane too: the common case is a cache hit whose background
+      // revalidate 401s, which would otherwise be completely invisible.
+      if (err?.status === 401) {
+        clearDashCache(loginId, propertyId);
+        window.location.href = "/propertyowner/ownerlogin";
+        return;
+      }
+      // Only a transient fault justifies showing old numbers.
+      const stale = isTransientError(err)
+        ? getDashCache(loginId, propertyId, { maxAgeMs: STALE_FALLBACK_MAX_AGE })
+        : null;
+      if (stale) {
+        // A silent background refresh means the screen already holds this data
+        // or something newer — re-applying the snapshot would rewind an action
+        // the owner just took. Just mark the figures as stale.
+        if (!silent) applyDashSnapshot(stale);
+        setStaleSince(stale.ts);
+      } else {
+        // Deliberately not gated on `silent`: a genuine fault with no usable
+        // cache has to surface, or a background failure leaves the owner
+        // reading numbers that quietly stopped updating.
+        setDashError(friendlyError(err));
+      }
     } finally {
       if (!silent) setLoading(false);
     }
+  };
+
+  const retryDashboard = () => {
+    const session = getOwnerRuntimeSession();
+    // force: without it a cache younger than the TTL short-circuits the reload
+    // and the button silently does nothing — exactly when it is being clicked.
+    if (session?.loginId) loadDashboard(session.loginId, { force: true });
   };
 
   const loadChartData = async (loginId, period = '7d') => {
@@ -337,11 +427,20 @@ export default function Admin() {
       return;
     }
     setOwner(session);
-    loadDashboard(session.loginId);
-    loadChartData(session.loginId, chartPeriod);
-    loadCollectionStats(session._id || session.loginId);
-    loadMonthlyData(session.loginId);
-    loadChangeRequests(session.loginId);
+    // The dashboard call feeds every number above the fold; the rest fill in
+    // panels further down. Firing all six at once is what tripped the backend
+    // rate limiter, so the secondary loaders queue behind the main one. Each
+    // swallows its own errors, so a failure never breaks the chain.
+    (async () => {
+      await loadDashboard(session.loginId);
+      await loadChartData(session.loginId, chartPeriod);
+      await loadCollectionStats(session._id || session.loginId);
+      await loadMonthlyData(session.loginId);
+      await loadChangeRequests(session.loginId);
+      // Each loader swallows its own fetch errors, but a few read storage
+      // before their try block — a locked-down browser can throw there, and an
+      // unhandled rejection would silently stop the remaining loaders.
+    })().catch(() => { /* already surfaced by loadDashboard's own handling */ });
   }, []);
 
   // Status of the owner's own submitted profile/bank-detail change requests —
@@ -366,10 +465,14 @@ export default function Admin() {
         body: JSON.stringify({ status })
       });
       if (owner?.loginId) {
-        await loadDashboard(owner.loginId);
+        // force: the cache still holds the pre-action data, and serving it here
+        // would flip the enquiry the owner just accepted back to Pending.
+        // quiet: the owner is watching a result, so don't blank the page back
+        // to skeletons while it reloads.
+        await loadDashboard(owner.loginId, { force: true, quiet: true, evict: true });
       }
     } catch (err) {
-      setErrorMsg(err?.body || err?.message || "Failed to update enquiry.");
+      setErrorMsg(err?.message || "Failed to update enquiry.");
     }
   };
 
@@ -548,9 +651,38 @@ export default function Admin() {
           </div>
         </div>
 
+        {staleSince && (
+          <div className="mb-5 flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-muted/40 border border-border text-[13px] text-muted-foreground">
+            <Clock className="size-3.5 shrink-0" />
+            <span>Showing your last saved figures from {formatAgo(staleSince)}.</span>
+            <button
+              onClick={retryDashboard}
+              className="ml-auto shrink-0 font-medium text-foreground underline underline-offset-2 hover:text-primary transition-colors"
+            >
+              Refresh
+            </button>
+          </div>
+        )}
+
+        {dashError && (
+          <div className="mb-5 flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-[13px] text-amber-800">
+            <AlertCircle className="size-4 shrink-0" />
+            <span>{dashError}</span>
+            <button
+              onClick={retryDashboard}
+              className="ml-auto shrink-0 font-medium underline underline-offset-2 hover:text-amber-900 transition-colors"
+            >
+              Try again
+            </button>
+          </div>
+        )}
+
+        {/* Action errors (e.g. a failed enquiry update). No retry button — it
+            would reload the dashboard rather than redo the action that failed. */}
         {errorMsg && (
-          <div className="mb-5 flex items-center gap-3 px-4 py-3 rounded-xl bg-rose-50 border border-rose-200 text-[13px] text-rose-700">
-            <AlertCircle className="size-4 shrink-0" /> {errorMsg}
+          <div className="mb-5 flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-[13px] text-amber-800">
+            <AlertCircle className="size-4 shrink-0" />
+            <span>{errorMsg}</span>
           </div>
         )}
 

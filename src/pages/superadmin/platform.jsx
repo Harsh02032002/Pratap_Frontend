@@ -92,7 +92,7 @@ export default function Platform() {
 
       setRows(rowsData);
     } catch (err) {
-      setErrorMsg(err?.body || err?.message || "Failed to load commission data");
+      setErrorMsg(err?.message || "Failed to load commission data");
     } finally {
       setLoading(false);
     }

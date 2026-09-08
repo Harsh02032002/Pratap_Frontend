@@ -188,7 +188,7 @@ export default function Tenantcomplints() {
         window.location.href = "/tenant/tenantlogin";
         return null;
       }
-      setErrorMsg(err?.body || err?.message || "Failed to load tenant data.");
+      setErrorMsg(err?.message || "Failed to load tenant data.");
       return null;
     }
   };
@@ -201,7 +201,7 @@ export default function Tenantcomplints() {
       const list = data?.complaints || data || [];
       setComplaints(mergeLocalMajorDrafts(list, tenantRecord));
     } catch (err) {
-      setErrorMsg(err?.body || err?.message || "Failed to load complaints.");
+      setErrorMsg(err?.message || "Failed to load complaints.");
     } finally {
       setLoading(false);
     }
@@ -265,7 +265,7 @@ export default function Tenantcomplints() {
       setMinorModalOpen(false); // Close Modal on success
       await loadComplaints(tenant);
     } catch (err) {
-      setMinorStatus({ loading: false, error: err?.body || err?.message || "Failed to submit minor complaint." });
+      setMinorStatus({ loading: false, error: err?.message || "Failed to submit minor complaint." });
     }
   };
 
@@ -384,7 +384,7 @@ export default function Tenantcomplints() {
         ]);
         setMajorStatus({
           loading: false,
-          error: fallbackErr?.body || fallbackErr?.message || firstErr?.body || firstErr?.message || "Failed to submit priority complaint."
+          error: fallbackErr?.message || firstErr?.message || "Failed to submit priority complaint."
         });
       }
     }

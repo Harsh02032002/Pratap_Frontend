@@ -419,6 +419,7 @@ export default function Tenantdashboard() {
   const [genericModal, setGenericModal] = useState(null);
   const [cashPanelOpen, setCashPanelOpen] = useState(false);
   const [cashOtp, setCashOtp] = useState("");
+  const [cashRetryNow, setCashRetryNow] = useState(() => Date.now());
   const [actionMsg, setActionMsg] = useState("");
   const [actionBusy, setActionBusy] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -518,7 +519,20 @@ export default function Tenantdashboard() {
   const targetRentContext = paymentTarget === "current" ? rent : prevMonthObj;
   const targetCashRequestStatus = targetRentContext?.cashRequestStatus || targetRentContext?.paymentStatus || "";
   const targetNormalizedCashStatus = String(targetCashRequestStatus || "NONE").toUpperCase();
+  const cashRejectedAt = targetRentContext?.cashRejectedAt || targetRentContext?.rejectedAt;
+  const cashRetryClock = cashRetryNow;
+  const cashRetrySeconds = targetNormalizedCashStatus === "REJECTED" && cashRejectedAt
+    ? Math.max(0, Math.ceil((120000 - (cashRetryClock - new Date(cashRejectedAt).getTime())) / 1000))
+    : 0;
+  const cashRetryLocked = cashRetrySeconds > 0;
   const showCashOtp = ["OWNER_APPROVED", "OTP_SENT", "VERIFIED"].includes(targetNormalizedCashStatus);
+
+  useEffect(() => {
+    if (targetNormalizedCashStatus !== "REJECTED" || !cashRejectedAt) return;
+    setCashRetryNow(Date.now());
+    const timer = setInterval(() => setCashRetryNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [targetNormalizedCashStatus, cashRejectedAt]);
   // Close dropdown on outside click
   useEffect(() => {
     const act = (e) => {
@@ -982,7 +996,7 @@ export default function Tenantdashboard() {
         loadAltKycRequest(tData._id);
       }
     }
-    catch (err) { setErrorMsg(err?.body || err?.message || "Failed to load tenant dashboard."); }
+    catch (err) { setErrorMsg(err?.message || "Failed to load tenant dashboard."); }
     finally { setLoading(false); }
   };
 
@@ -1188,7 +1202,7 @@ export default function Tenantdashboard() {
         throw new Error("Could not launch Cashfree checkout session.");
       }
     } catch (err) {
-      setActionMsg(err?.body || err?.message || "Payment initiation failed. Please try again.");
+      setActionMsg(err?.message || "Payment initiation failed. Please try again.");
     } finally {
       setActionBusy(false);
     }
@@ -1222,7 +1236,7 @@ export default function Tenantdashboard() {
       setComplaintDesc("");
       fetchMyComplaints();
     } catch (err) {
-      setComplaintStatusMsg(err?.body || err?.message || "Failed to submit complaint.");
+      setComplaintStatusMsg(err?.message || "Failed to submit complaint.");
     } finally {
       setComplaintBusy(false);
     }
@@ -1287,7 +1301,7 @@ export default function Tenantdashboard() {
       setVisitorExpectedTime("");
       fetchMyVisitors();
     } catch (err) {
-      setVisitorMsg(err?.body || err?.message || "Failed to create visitor pass.");
+      setVisitorMsg(err?.message || "Failed to create visitor pass.");
     } finally {
       setVisitorBusy(false);
     }
@@ -1315,7 +1329,7 @@ export default function Tenantdashboard() {
       setLeaveReason("");
       fetchMyLeaves();
     } catch (err) {
-      setLeaveMsg(err?.body || err?.message || "Failed to submit leave request.");
+      setLeaveMsg(err?.message || "Failed to submit leave request.");
     } finally {
       setLeaveBusy(false);
     }
@@ -1344,6 +1358,11 @@ export default function Tenantdashboard() {
 
     if (!tenant) { setActionMsg("Tenant data not found."); return; }
     if (isPaid && isCurrent) { setActionMsg("This rent is already marked as paid."); return; }
+    if (cashRetryLocked && isCurrent) {
+      setCashPanelOpen(true);
+      setActionMsg(`Please wait ${cashRetrySeconds} seconds before trying cash payment again.`);
+      return;
+    }
     if (["PENDING_APPROVAL", "OWNER_APPROVED", "OTP_SENT", "VERIFIED"].includes(targetNormalizedCashStatus) && isCurrent) {
       setCashPanelOpen(true);
       setActionMsg("A cash payment request already exists for this rent.");
@@ -2797,12 +2816,17 @@ export default function Tenantdashboard() {
                         {((!targetIsPaid && !["PENDING_APPROVAL", "OWNER_APPROVED", "OTP_SENT", "VERIFIED"].includes(targetNormalizedCashStatus)) && targetNormalizedCashStatus !== "PENDING_APPROVAL") ? (
                           <div className="mt-2 text-green-700">
                             <p className="text-xs mb-2">You are about to request a cash collection. An OTP will be sent to the owner upon approval.</p>
+                            {cashRetryLocked && targetNormalizedCashStatus === "REJECTED" ? (
+                              <p className="text-xs text-rose-700 mb-2">
+                                Owner rejected this request. You can try again in <span className="font-bold tabular-nums">{cashRetrySeconds}s</span>.
+                              </p>
+                            ) : null}
                             <button
                               onClick={handleCashRequest}
-                              disabled={actionBusy}
+                              disabled={actionBusy || cashRetryLocked}
                               className="w-full bg-green-600 text-white font-semibold py-2 rounded-lg hover:bg-green-700 text-sm disabled:opacity-60"
                             >
-                              {actionBusy ? "Submitting Request..." : "Submit Cash Request"}
+                              {actionBusy ? "Submitting Request..." : cashRetryLocked ? `Try again in ${cashRetrySeconds}s` : "Submit Cash Request"}
                             </button>
                           </div>
                         ) : (
@@ -2820,7 +2844,11 @@ export default function Tenantdashboard() {
                               <p className="text-xs text-green-700 mt-1">Rent payment completed successfully.</p>
                             )}
                             {targetNormalizedCashStatus === "REJECTED" && (
-                              <p className="text-xs text-rose-700 mt-1">The owner rejected this request. Please create a new cash request if needed.</p>
+                              <p className="text-xs text-rose-700 mt-1">
+                                {cashRetryLocked
+                                  ? `The owner rejected this request. Please wait ${cashRetrySeconds} seconds before trying again.`
+                                  : "The waiting period is over. You can create a new cash request."}
+                              </p>
                             )}
                             {targetNormalizedCashStatus === "EXPIRED" && (
                               <p className="text-xs text-amber-700 mt-1">The OTP expired. Ask the owner to approve again.</p>
@@ -3075,6 +3103,4 @@ export default function Tenantdashboard() {
     </div >
   );
 }
-
-
 

@@ -268,7 +268,7 @@ export default function Owner() {
          alert(res.message || `Owner ${action}d successfully`);
          loadOwners();
       } catch (err) {
-         alert(`Failed to ${action} owner: ` + (err.body || err.message));
+         alert(`Failed to ${action} owner: ` + (err.message));
       } finally {
          setLoading(false);
       }
@@ -301,7 +301,7 @@ export default function Owner() {
          alert(res.message || "✅ Owner approved and credentials email sent successfully!");
          loadOwners();
       } catch (err) {
-         alert("Failed to approve owner: " + (err.body || err.message));
+         alert("Failed to approve owner: " + (err.message));
       } finally {
          setLoading(false);
       }
