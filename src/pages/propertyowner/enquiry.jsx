@@ -1,20 +1,20 @@
 import React, { useState, useEffect } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerProperties, filterByActiveProperty, getActiveOwnerPropertyId } from "../../utils/propertyowner";
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerProperties, filterByActiveProperty } from "../../utils/propertyowner";
 import { apiFetch } from "../../utils/api";
 import { cacheGet, cacheSet, cacheInvalidate } from "../../utils/cache";
 import { useOwnerLiveUpdates } from "../../hooks/useOwnerLiveUpdates";
-import { 
-  Search, Plus, Phone, MessageCircle, X, Mail, MapPin, Loader2, Trash2, Users, 
+import {
+  Search, Plus, Phone, MessageCircle, X, Mail, MapPin, Loader2, Trash2, Users,
   TrendingUp, CalendarCheck, BookOpen, Check, MessageSquare, Wallet, Building2, AlertTriangle
 } from "lucide-react";
 
 export default function Enquiry() {
   const owner = getOwnerRuntimeSession();
-  
-  if (!owner?.loginId && typeof window !== "undefined") { 
-    window.location.href = "/propertyowner/ownerlogin"; 
-    return null; 
+
+  if (!owner?.loginId && typeof window !== "undefined") {
+    window.location.href = "/propertyowner/ownerlogin";
+    return null;
   }
 
   const [enquiries, setEnquiries] = useState([]);
@@ -22,7 +22,7 @@ export default function Enquiry() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("all");
   const [search, setSearch] = useState("");
-  
+
   // Add Lead Modal State
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -57,7 +57,7 @@ export default function Enquiry() {
         fetchOwnerProperties(owner.loginId).catch(() => [])
       ]);
       const normalizedEnquiries = Array.isArray(enqRes) ? enqRes : (enqRes?.data || enqRes?.enquiries || []);
-      
+
       // Filter out deleted/rejected items
       const activeLeads = normalizedEnquiries.filter(e => {
         const s = String(e.status || '').toLowerCase();
@@ -149,14 +149,7 @@ export default function Enquiry() {
 
   const formatNoteSimple = (notes, budgetStr = "") => {
     if (!notes) return "";
-    const str = String(notes);
-    if (str.includes("Tenant Budget:") || str.includes("Tenant Max Budget:") || str.includes("Flexible Bid:") || str.includes("Agar aap")) {
-      const cleanBudget = String(budgetStr).replace(/[^\d]/g, "");
-      const match = str.match(/₹([\d,]+)/);
-      const amount = cleanBudget && cleanBudget !== "0" ? Number(cleanBudget).toLocaleString("en-IN") : (match ? match[1] : "7,000");
-      return `Tenant Max Budget: ₹${amount}. If you can offer this property for ₹${amount}/month, please accept the bid.`;
-    }
-    return str;
+    return String(notes);
   };
 
   const isBookingLead = (l) => {
@@ -168,7 +161,7 @@ export default function Enquiry() {
   const filtered = enquiries.filter(l => {
     const isBook = isBookingLead(l);
     const matchesTab = tab === "all" || (tab === "bookings" ? isBook : !isBook);
-    const matchesSearch = !search || 
+    const matchesSearch = !search ||
       (l.studentName || "").toLowerCase().includes(search.toLowerCase()) ||
       (l.studentPhone || "").toLowerCase().includes(search.toLowerCase()) ||
       (l.propertyName || "").toLowerCase().includes(search.toLowerCase()) ||
@@ -181,9 +174,9 @@ export default function Enquiry() {
   const newCount = enquiries.filter(x => !isBookingLead(x)).length;
 
   return (
-    <PropertyOwnerLayout 
-      owner={owner} 
-      title="Leads & Enquiries" 
+    <PropertyOwnerLayout
+      owner={owner}
+      title="Leads & Enquiries"
       onLogout={() => { clearOwnerRuntimeSession(); window.location.href = "/propertyowner/ownerlogin"; }}
     >
       {/* Page Header */}
@@ -192,11 +185,11 @@ export default function Enquiry() {
           <h1 className="font-serif text-[38px] md:text-[44px] leading-[1.05] text-foreground">Leads & Enquiries</h1>
           <p className="mt-1.5 text-[13.5px] text-muted-foreground">Track every lead, view budget preferences, and convert prospects to tenants.</p>
         </div>
-        <button 
+        <button
           onClick={() => setShowModal(true)}
           className="inline-flex items-center gap-2 h-11 px-5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-sm md:mt-2"
         >
-          <Plus className="size-4"/> Add Manual Lead
+          <Plus className="size-4" /> Add Manual Lead
         </button>
       </div>
 
@@ -227,9 +220,9 @@ export default function Enquiry() {
             { k: "new", l: `New (${newCount})` },
             { k: "bookings", l: `Bookings (${bookingsCount})` }
           ].map(({ k, l }) => (
-            <button 
-              key={k} 
-              onClick={() => setTab(k)} 
+            <button
+              key={k}
+              onClick={() => setTab(k)}
               className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${tab === k ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
             >
               {l}
@@ -240,10 +233,10 @@ export default function Enquiry() {
         {/* Search */}
         <div className="relative flex-1 max-w-md">
           <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input 
-            value={search} 
-            onChange={e => setSearch(e.target.value)} 
-            placeholder="Search leads by name, city, or property..." 
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search leads by name, city, or property..."
             className="w-full h-10 pl-9 pr-3 rounded-xl bg-card border border-border text-[13px] focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground"
           />
         </div>
@@ -345,17 +338,14 @@ export default function Enquiry() {
                 {/* Card Action Buttons */}
                 <div className="border-t border-border/60 mt-6 pt-4 space-y-2">
                   <button
-                    onClick={() => {
-                      const resolvedPropId = l.propertyId || l.property_id || l.property?._id || l.property || getActiveOwnerPropertyId() || '';
-                      window.location.href = `/propertyowner/tenantrec?name=${encodeURIComponent(l.studentName || l.name || '')}&email=${encodeURIComponent(l.studentEmail || l.email || '')}&phone=${encodeURIComponent(l.studentPhone || l.phone || '')}&propertyId=${encodeURIComponent(resolvedPropId)}`;
-                    }}
+                    onClick={() => window.location.href = `/propertyowner/tenantrec?name=${encodeURIComponent(l.studentName || '')}&email=${encodeURIComponent(l.studentEmail || '')}&phone=${encodeURIComponent(l.studentPhone || '')}&propertyId=${encodeURIComponent(l.propertyId || '')}`}
                     className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2"
                   >
                     Onboard as Tenant
                   </button>
 
                   <div className="flex gap-2">
-                    <button 
+                    <button
                       onClick={() => handleDelete(l._id)}
                       className="w-full h-10 border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5"
                       title="Delete Lead"
@@ -374,7 +364,7 @@ export default function Enquiry() {
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-card border border-border rounded-3xl w-full max-w-lg p-6 relative shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-            <button 
+            <button
               onClick={() => setShowModal(false)}
               className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition p-1 hover:bg-muted rounded-full"
             >
@@ -382,12 +372,12 @@ export default function Enquiry() {
             </button>
 
             <h3 className="font-serif text-[24px] font-bold text-foreground mb-4">Add Manual Lead</h3>
-            
+
             <form onSubmit={handleAddLead} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[12px] font-bold text-muted-foreground uppercase mb-1">Lead Name *</label>
-                  <input 
+                  <input
                     required
                     value={form.studentName}
                     onChange={e => setForm(prev => ({ ...prev, studentName: e.target.value }))}
@@ -397,7 +387,7 @@ export default function Enquiry() {
                 </div>
                 <div>
                   <label className="block text-[12px] font-bold text-muted-foreground uppercase mb-1">Phone Number *</label>
-                  <input 
+                  <input
                     required
                     type="tel"
                     value={form.studentPhone}
@@ -410,7 +400,7 @@ export default function Enquiry() {
 
               <div>
                 <label className="block text-[12px] font-bold text-muted-foreground uppercase mb-1">Email Address</label>
-                <input 
+                <input
                   type="email"
                   value={form.studentEmail}
                   onChange={e => setForm(prev => ({ ...prev, studentEmail: e.target.value }))}
@@ -422,7 +412,7 @@ export default function Enquiry() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[12px] font-bold text-muted-foreground uppercase mb-1">Target Property</label>
-                  <select 
+                  <select
                     value={form.propertyId}
                     onChange={e => setForm(prev => ({ ...prev, propertyId: e.target.value }))}
                     className="w-full h-10 px-3 rounded-xl bg-muted/40 border border-border text-[13px] focus:outline-none focus:ring-2 focus:ring-primary/20"
@@ -435,7 +425,7 @@ export default function Enquiry() {
                 </div>
                 <div>
                   <label className="block text-[12px] font-bold text-muted-foreground uppercase mb-1">Lead Source</label>
-                  <select 
+                  <select
                     value={form.source}
                     onChange={e => setForm(prev => ({ ...prev, source: e.target.value }))}
                     className="w-full h-10 px-3 rounded-xl bg-muted/40 border border-border text-[13px] focus:outline-none focus:ring-2 focus:ring-primary/20"
@@ -453,7 +443,7 @@ export default function Enquiry() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[12px] font-bold text-muted-foreground uppercase mb-1">Room Interest</label>
-                  <input 
+                  <input
                     value={form.interest}
                     onChange={e => setForm(prev => ({ ...prev, interest: e.target.value }))}
                     placeholder="e.g. Single Room AC"
@@ -462,7 +452,7 @@ export default function Enquiry() {
                 </div>
                 <div>
                   <label className="block text-[12px] font-bold text-muted-foreground uppercase mb-1">Target Budget</label>
-                  <input 
+                  <input
                     value={form.budget}
                     onChange={e => setForm(prev => ({ ...prev, budget: e.target.value }))}
                     placeholder="e.g. ₹7,000/mo"
@@ -473,7 +463,7 @@ export default function Enquiry() {
 
               <div>
                 <label className="block text-[12px] font-bold text-muted-foreground uppercase mb-1">Conversation Notes</label>
-                <textarea 
+                <textarea
                   rows={3}
                   value={form.notes}
                   onChange={e => setForm(prev => ({ ...prev, notes: e.target.value }))}
@@ -483,15 +473,15 @@ export default function Enquiry() {
               </div>
 
               <div className="pt-4 flex gap-3 border-t border-border mt-6">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => setShowModal(false)}
                   className="flex-1 h-11 border border-border rounded-xl text-xs font-bold text-muted-foreground hover:bg-muted transition"
                 >
                   Cancel
                 </button>
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   disabled={saving}
                   className="flex-1 h-11 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2"
                 >

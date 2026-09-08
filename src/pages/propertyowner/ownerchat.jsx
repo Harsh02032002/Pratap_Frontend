@@ -160,16 +160,7 @@ export default function OwnerChat() {
 
   const handleSendPaymentLink = async () => {
     if (!associatedBooking || !activeChat) return;
-
-    // Dynamically fetch booking token amount set by superadmin (defaults to 500 if unset)
-    let amount = 500;
-    try {
-      const configRes = await apiFetch("/api/booking/config/settings").catch(() => null);
-      if (configRes && configRes.bookingAmount) {
-        amount = Number(configRes.bookingAmount);
-      }
-    } catch (_) {}
-
+    const amount = 500; // Fixed ₹500 booking token amount for chat booking confirmation
     const propertyName = associatedBooking.property_name || "property";
     const tenantName = associatedBooking.name || activeChat.participant_name || "Tenant";
     const bookingId = associatedBooking._id;

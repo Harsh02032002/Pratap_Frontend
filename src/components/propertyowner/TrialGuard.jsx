@@ -77,8 +77,7 @@ export default function TrialGuard({ owner, children, onLogout }) {
       const orderId = orderRes.order_id;
 
       if (Cashfree && paymentSessionId) {
-        const cfMode = orderRes?.isSandbox === false ? 'production' : 'sandbox';
-        const cf = Cashfree({ mode: cfMode });
+        const cf = Cashfree({ mode: 'sandbox' });
         cf.checkout({
           paymentSessionId: paymentSessionId,
           redirectTarget: '_modal'

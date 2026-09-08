@@ -14,7 +14,6 @@ export default function SuperadminSettings() {
 
   const [commissionPercentage, setCommissionPercentage] = useState(10);
   const [gstPercentage, setGstPercentage] = useState(18);
-  const [bookingAmount, setBookingAmount] = useState(500);
   const [loading, setLoading] = useState(true);
   const [savingSettings, setSavingSettings] = useState(false);
 
@@ -47,7 +46,6 @@ export default function SuperadminSettings() {
         if (settingsRes && settingsRes.success && settingsRes.settings) {
           setCommissionPercentage(settingsRes.settings.commission_percentage ?? 10);
           setGstPercentage(settingsRes.settings.gst_percentage ?? 18);
-          setBookingAmount(settingsRes.settings.bookingAmount ?? settingsRes.settings.fixedFee ?? 500);
         }
         if (profileRes && profileRes.success && profileRes.user) {
           setProfile({
@@ -74,8 +72,7 @@ export default function SuperadminSettings() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           commission_percentage: Number(commissionPercentage),
-          gst_percentage: Number(gstPercentage),
-          bookingAmount: Number(bookingAmount)
+          gst_percentage: Number(gstPercentage)
         })
       });
       if (res.success) {
@@ -246,25 +243,6 @@ export default function SuperadminSettings() {
                     className="w-20 bg-white border border-slate-200 rounded-xl py-2 px-3 text-center text-sm font-black text-slate-900 focus:outline-none focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 transition-all"
                   />
                   <span className="text-sm font-black text-slate-500">%</span>
-                </div>
-              </div>
-
-              <div className="border-t border-dashed border-slate-200 my-4" />
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-xs font-bold text-slate-600 block">Default Booking Token Amount (₹)</label>
-                  <p className="text-[10px] text-slate-400 font-medium">Fixed token amount requested for booking links & chat confirmations</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-black text-slate-500">₹</span>
-                  <input 
-                    type="number" 
-                    min="1"
-                    value={bookingAmount}
-                    onChange={(e) => setBookingAmount(Math.max(1, Number(e.target.value)))}
-                    className="w-28 bg-white border border-slate-200 rounded-xl py-2 px-3 text-center text-sm font-black text-slate-900 focus:outline-none focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 transition-all"
-                  />
                 </div>
               </div>
 

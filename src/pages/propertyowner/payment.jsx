@@ -481,7 +481,7 @@ export default function Payment() {
         const data = JSON.parse(e.data || '{}');
         setCashRequestsLoading(true);
         // Silently re-fetch cash requests in background
-        fetchCashRequests(owner._id || owner.loginId, {}, true)
+        fetchCashRequests(owner._id || owner.loginId)
           .then(res => setCashRequests(res?.requests || res?.cashRequests || res?.items || []))
           .catch(err => console.error("SSE fetch cash error:", err))
           .finally(() => setCashRequestsLoading(false));
@@ -733,16 +733,16 @@ export default function Payment() {
       const invoicePayments = (Array.isArray(data.payments) && data.payments.length > 0)
         ? data.payments
         : (Array.isArray(data.invoice?.payments) && data.invoice.payments.length > 0)
-        ? data.invoice.payments
-        : (data.invoice?.status === "PAID" || (data.invoice?.paidAmount || 0) > 0)
-        ? [{
-            _id: (data.invoice?._id || "pay") + "_synthetic",
-            amount: data.invoice?.paidAmount || data.invoice?.rentAmount || row.paidAmount || 0,
-            paymentDate: data.invoice?.updatedAt || data.invoice?.createdAt || new Date(),
-            paymentMethod: data.invoice?.paymentMethod || row.paymentMethod || "online",
-            notes: "Payment Processed & Confirmed"
-          }]
-        : [];
+          ? data.invoice.payments
+          : (data.invoice?.status === "PAID" || (data.invoice?.paidAmount || 0) > 0)
+            ? [{
+              _id: (data.invoice?._id || "pay") + "_synthetic",
+              amount: data.invoice?.paidAmount || data.invoice?.rentAmount || row.paidAmount || 0,
+              paymentDate: data.invoice?.updatedAt || data.invoice?.createdAt || new Date(),
+              paymentMethod: data.invoice?.paymentMethod || row.paymentMethod || "online",
+              notes: "Payment Processed & Confirmed"
+            }]
+            : [];
 
       setHistoryModal({
         tenantName: row.name,
@@ -903,33 +903,33 @@ export default function Payment() {
       </div>
 
       {/* Owner Cashfree Wallet & Instant Bank Withdrawal Banner */}
-      <div className="mb-6 bg-gradient-to-r from-emerald-50/90 via-teal-50/70 to-cyan-50/50 text-slate-900 p-6 rounded-3xl shadow-sm border border-emerald-200/80 relative overflow-hidden">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
-          
+      <div className="mb-6 bg-gradient-to-br from-slate-900 via-slate-800 to-black text-white p-6 rounded-3xl shadow-xl border border-slate-800">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+
           <div className="flex items-center gap-4">
-            <div className="p-3.5 bg-emerald-500/10 text-emerald-700 rounded-2xl border border-emerald-500/20 shadow-sm">
-              <Wallet size={30} />
+            <div className="p-3 bg-teal-500/20 text-teal-400 rounded-2xl border border-teal-500/30">
+              <Wallet size={32} />
             </div>
             <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-xl font-bold text-slate-900">Owner Cashfree Wallet</h2>
-                <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 text-[11px] font-bold rounded-full border border-emerald-300/80">⚡ Instant Bank Payout Active</span>
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-bold text-white">Owner Cashfree Wallet</h2>
+                <span className="px-2.5 py-0.5 bg-teal-500/20 text-teal-300 text-[11px] font-bold rounded-full border border-teal-500/30">Instant Bank Payout Active</span>
               </div>
-              <p className="text-xs text-slate-600 mt-1 font-medium">Tenant payments are credited directly to your Available Balance for instant withdrawal.</p>
+              <p className="text-xs text-slate-400 mt-1">Tenant payments are credited directly to your Available Balance for instant withdrawal.</p>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-6">
-            <div className="bg-white/90 backdrop-blur-sm px-5 py-2.5 rounded-2xl border border-emerald-100 shadow-sm">
-              <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-800 mb-0.5">💰 Available Balance</div>
-              <div className="text-2xl font-black text-emerald-600">₹{(walletData.availableBalance || walletData.walletBalance || 0).toLocaleString('en-IN')}</div>
-              <div className="text-[10px] text-slate-500 font-medium">Ready for instant withdrawal</div>
+            <div>
+              <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-400 mb-1">💰 Available Balance</div>
+              <div className="text-2xl font-black text-emerald-400">₹{(walletData.availableBalance || walletData.walletBalance || 0).toLocaleString('en-IN')}</div>
+              <div className="text-[10px] text-slate-400 mt-0.5">Ready for instant withdrawal</div>
             </div>
 
             <button
               onClick={() => setWithdrawModalOpen(true)}
               disabled={(walletData.availableBalance || walletData.walletBalance || 0) <= 0}
-              className="px-5 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-md shadow-emerald-600/20 transition-all transform hover:-translate-y-0.5 text-xs disabled:opacity-40 disabled:pointer-events-none flex items-center gap-2"
+              className="px-5 py-3 bg-teal-500 hover:bg-teal-400 text-slate-950 font-black rounded-2xl shadow-lg shadow-teal-500/20 transition-all transform hover:-translate-y-0.5 text-xs disabled:opacity-40 disabled:pointer-events-none flex items-center gap-2"
             >
               <CreditCard size={16} /> Withdraw to My Bank Account
             </button>
@@ -1037,9 +1037,6 @@ export default function Payment() {
                       <div className="font-semibold text-foreground">{request.tenantName || request.name || "Tenant"}</div>
                       <div className="text-[12px] text-muted-foreground mt-0.5">
                         {request.propertyName || request.propertyTitle || "Property"} · Room {request.roomNumber || request.roomNo || "—"}
-                      </div>
-                      <div className="text-[12px] text-slate-600 mt-1">
-                        Roomhy ID: <span className="font-semibold">{request.tenantLoginId || request.tenant?.loginId || "—"}</span>
                       </div>
                     </div>
                     <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-100">
@@ -1610,5 +1607,8 @@ export default function Payment() {
         />
       )}
     </PropertyOwnerLayout>
+  );
+}
+    </PropertyOwnerLayout >
   );
 }

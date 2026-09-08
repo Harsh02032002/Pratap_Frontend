@@ -274,12 +274,12 @@ const AadhaarScanStatus = ({ scan }) => {
   if (!scan || scan.state === "idle") return null;
 
   const variants = {
-    scanning:   { cls: "text-blue-600",    Icon: Loader2,      spin: true,  fallback: "Scanning card\u2026" },
-    verified:   { cls: "text-emerald-600", Icon: ShieldCheck,  spin: false, fallback: "Aadhaar verified" },
-    onfile:     { cls: "text-emerald-600", Icon: CheckCircle2, spin: false, fallback: "Document on file" },
-    unreadable: { cls: "text-amber-600",   Icon: AlertCircle,  spin: false, fallback: "Card unclear \u2014 retake the photo" },
-    rejected:   { cls: "text-rose-600",    Icon: AlertCircle,  spin: false, fallback: "This doesn't look like an Aadhaar card" },
-    error:      { cls: "text-rose-600",    Icon: AlertCircle,  spin: false, fallback: "Scan failed \u2014 please try again" },
+    scanning: { cls: "text-blue-600", Icon: Loader2, spin: true, fallback: "Scanning card\u2026" },
+    verified: { cls: "text-emerald-600", Icon: ShieldCheck, spin: false, fallback: "Aadhaar verified" },
+    onfile: { cls: "text-emerald-600", Icon: CheckCircle2, spin: false, fallback: "Document on file" },
+    unreadable: { cls: "text-amber-600", Icon: AlertCircle, spin: false, fallback: "Card unclear \u2014 retake the photo" },
+    rejected: { cls: "text-rose-600", Icon: AlertCircle, spin: false, fallback: "This doesn't look like an Aadhaar card" },
+    error: { cls: "text-rose-600", Icon: AlertCircle, spin: false, fallback: "Scan failed \u2014 please try again" },
   };
 
   const variant = variants[scan.state];
@@ -701,7 +701,7 @@ export default function TenantRec() {
         }
 
         if (pId) {
-          let matchedProp = props.find(p => String(p._id) === String(pId) || String(p.visitId) === String(pId) || String(p.propertyId || "") === String(pId));
+          let matchedProp = props.find(p => p._id === pId || p.visitId === pId || p.propertyId === pId);
           let resolvedPropertyId = matchedProp ? matchedProp._id : pId;
 
           if (!matchedProp) {
@@ -710,7 +710,7 @@ export default function TenantRec() {
               const approvedProp = approvedPropData?.property || approvedPropData;
               if (approvedProp && approvedProp.propertyId) {
                 const actualPropId = approvedProp.propertyId;
-                matchedProp = props.find(p => String(p._id) === String(actualPropId) || String(p.visitId) === String(actualPropId) || String(p.propertyId || "") === String(actualPropId));
+                matchedProp = props.find(p => p._id === actualPropId || p.visitId === actualPropId || p.propertyId === actualPropId);
                 if (matchedProp) {
                   resolvedPropertyId = matchedProp._id;
                 }
@@ -725,16 +725,11 @@ export default function TenantRec() {
             propertyId: resolvedPropertyId,
             ...(room ? { roomUnit: room } : {})
           }));
-        } else if (props && props.length > 0) {
-          const activePId = getActiveOwnerPropertyId();
-          const matchedProp = props.find(p => String(p._id) === String(activePId) || String(p.visitId) === String(activePId) || String(p.propertyId || "") === String(activePId)) || props[0];
-          if (matchedProp) {
-            setRoomAssignment(prev => ({
-              ...prev,
-              propertyId: matchedProp._id,
-              ...(room ? { roomUnit: room } : {})
-            }));
-          }
+        } else if (props && props.length === 1) {
+          setRoomAssignment(prev => ({
+            ...prev,
+            propertyId: props[0]._id
+          }));
         }
       } catch (err) {
         console.error("Initialization error:", err);
@@ -794,7 +789,7 @@ export default function TenantRec() {
               if (!rpId && !rpName) return true;
               return rpId === pid || (!!pName && rpName === pName);
             });
-          } catch (_) {}
+          } catch (_) { }
         }
 
         setRooms(roomList);
@@ -1557,8 +1552,19 @@ export default function TenantRec() {
           {/* Section 2 */}
           {(!isMobile || activeMobileTab === 2) && (() => {
             const availableRooms = rooms.filter(r => {
-              if (!r || r.isDeleted === true) return false;
-              return true;
+              if (!r) return false;
+              const matchesSelected = roomAssignment.roomUnit && (r.title === roomAssignment.roomUnit || r.number === roomAssignment.roomUnit || r.roomNo === roomAssignment.roomUnit || r._id === roomAssignment.roomUnit);
+              if (matchesSelected) return true;
+
+              if (r.isDeleted === true) return false;
+              if (Array.isArray(r.availableBeds) && r.availableBeds.length > 0) return true;
+              if (r.isAvailable !== false) return true;
+
+              const bedsList = toLegacyBeds(r);
+              return bedsList.some(b => {
+                const s = String(b.status || '').toLowerCase().trim();
+                return s !== 'occupied' && !b.tenantId;
+              });
             });
 
             const getRoomFloor = (r) => {
@@ -1580,7 +1586,7 @@ export default function TenantRec() {
             const roomsForFloor = (!roomAssignment.floor || roomAssignment.floor === 'All Floors' || roomAssignment.floor === 'All / Ground Floor')
               ? availableRooms
               : availableRooms.filter(r => getRoomFloor(r) === roomAssignment.floor);
-            
+
             const selectedRoom = availableRooms.find(r => (r.title || r.number || r.roomNo) === roomAssignment.roomUnit);
             const bedsList = selectedRoom ? toLegacyBeds(selectedRoom) : [];
             const bedOptions = bedsList

@@ -92,13 +92,15 @@ export default function FastBiddingModal({ isOpen, onClose, initialData = {} }) 
 
     setSubmitting(true);
     try {
-      const budget = parseInt(maxPrice, 10) || 8000;
+      const parsedMax = parseInt(maxPrice, 10);
       const userId = user?.loginId || user?._id || user?.id || '';
 
       const bidRequests = filteredProperties.slice(0, 15).map((prop, index) => {
         const propInfo = prop.propertyInfo || {};
         const propertyId = prop._id || prop.id || prop.visitId || `property-${index}`;
         const ownerId = resolvePropertyOwnerLoginId(prop) || (prop.generatedCredentials && prop.generatedCredentials.loginId) || prop.ownerLoginId || propInfo.ownerLoginId || 'admin';
+        const propRent = parseInt(prop.monthlyRent || prop.rent || prop.price || prop.pricing?.monthlyRent || 0, 10);
+        const budget = (Number.isFinite(parsedMax) && parsedMax > 0) ? parsedMax : (propRent > 0 ? propRent : null);
 
         return fetchJson(`${getApiBase()}/api/bids/create`, {
           method: 'POST',
@@ -120,8 +122,8 @@ export default function FastBiddingModal({ isOpen, onClose, initialData = {} }) 
             owner_id: ownerId,
             requestType: 'bid',
             request_type: 'bid',
-            rentAmount: parseInt(prop.monthlyRent || prop.rent || 0, 10),
-            rent_amount: parseInt(prop.monthlyRent || prop.rent || 0, 10),
+            rentAmount: propRent,
+            rent_amount: propRent,
             bidAmount: budget,
             bid_amount: budget,
             offeredAmount: budget,

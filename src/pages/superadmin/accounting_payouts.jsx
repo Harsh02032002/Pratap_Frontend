@@ -20,13 +20,13 @@ function Toast({ message, type, onClose }) {
   }, [onClose]);
   const colors = {
     success: "bg-emerald-600 text-white",
-    error:   "bg-rose-600 text-white",
-    info:    "bg-slate-800 text-white",
+    error: "bg-rose-600 text-white",
+    info: "bg-slate-800 text-white",
   };
   return (
     <div className={`fixed top-5 right-5 z-[9999] flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-2xl text-sm font-bold animate-in slide-in-from-top-2 ${colors[type] || colors.info}`}>
       {type === "success" && <CheckCircle2 size={16} />}
-      {type === "error"   && <XCircle size={16} />}
+      {type === "error" && <XCircle size={16} />}
       <span>{message}</span>
       <button onClick={onClose} className="ml-2 opacity-70 hover:opacity-100">✕</button>
     </div>
@@ -36,11 +36,11 @@ function Toast({ message, type, onClose }) {
 // ─── Stat Card ────────────────────────────────────────────────────────────────
 function StatCard({ label, value, sub, icon: Icon, color }) {
   const palette = {
-    purple:  "bg-purple-50 text-purple-600 border-purple-100",
-    blue:    "bg-blue-50 text-blue-600 border-blue-100",
+    purple: "bg-purple-50 text-purple-600 border-purple-100",
+    blue: "bg-blue-50 text-blue-600 border-blue-100",
     emerald: "bg-emerald-50 text-emerald-600 border-emerald-100",
-    rose:    "bg-rose-50 text-rose-600 border-rose-100",
-    amber:   "bg-amber-50 text-amber-600 border-amber-100",
+    rose: "bg-rose-50 text-rose-600 border-rose-100",
+    amber: "bg-amber-50 text-amber-600 border-amber-100",
   };
   return (
     <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-md flex items-start gap-3 hover:-translate-y-0.5 transition-all">
@@ -64,22 +64,22 @@ function RecordPaymentModal({ onClose, onSuccess }) {
     propertyName: "", amount: "",
     notes: "",
   });
-  const [owners, setOwners]     = useState([]);
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState("");
-  const [preview, setPreview]   = useState(null);
+  const [owners, setOwners] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [preview, setPreview] = useState(null);
 
   useEffect(() => {
     fetchJson("/api/finance/payouts/options")
       .then(d => setOwners(d.ownersOptions || []))
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const handleOwnerChange = (loginId) => {
     const o = owners.find(x => x.loginId === loginId);
     setForm(f => ({
       ...f,
-      ownerId:   loginId,
+      ownerId: loginId,
       ownerName: o?.name || o?.profile?.name || loginId,
     }));
   };
@@ -89,7 +89,7 @@ function RecordPaymentModal({ onClose, onSuccess }) {
     const amt = Number(form.amount);
     if (!amt) { setPreview(null); return; }
     const commission = Math.round(amt * 0.10);
-    const gst        = Math.round(commission * 0.18);
+    const gst = Math.round(commission * 0.18);
     setPreview({ commission, gst, ownerShare: amt - commission - gst });
   }, [form.amount]);
 
@@ -234,13 +234,13 @@ function RecordPaymentModal({ onClose, onSuccess }) {
 // ─── Single Transfer Confirm Modal ────────────────────────────────────────────
 function TransferModal({ payout, onClose, onSuccess }) {
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError]           = useState("");
+  const [error, setError] = useState("");
 
   const bank = {
     holder: payout.payout_account_holder || payout.bank_details?.account_holder || payout.owner_name || "—",
     number: payout.payout_account_number || payout.bank_details?.account_number || "—",
-    ifsc:   payout.payout_ifsc_code      || payout.bank_details?.ifsc_code      || "—",
-    name:   payout.payout_bank_name      || payout.bank_details?.bank_name      || "—",
+    ifsc: payout.payout_ifsc_code || payout.bank_details?.ifsc_code || "—",
+    name: payout.payout_bank_name || payout.bank_details?.bank_name || "—",
   };
 
   const handleConfirm = async () => {
@@ -265,8 +265,8 @@ function TransferModal({ payout, onClose, onSuccess }) {
             <Banknote size={20} />
           </div>
           <div>
-            <h3 className="text-base font-black text-slate-900">Confirm Cashfree Payout</h3>
-            <p className="text-[10px] text-purple-600 font-bold uppercase tracking-widest mt-0.5">Instant Cashfree Bank Transfer</p>
+            <h3 className="text-base font-black text-slate-900">Confirm Transfer</h3>
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Manual Bank Transfer</p>
           </div>
         </div>
 
@@ -278,19 +278,19 @@ function TransferModal({ payout, onClose, onSuccess }) {
 
         {/* Amount */}
         <div className="bg-purple-50 border border-purple-100 rounded-2xl p-5 text-center mb-5">
-          <p className="text-[9px] font-bold text-purple-400 uppercase tracking-widest mb-1">Payout Amount</p>
+          <p className="text-[9px] font-bold text-purple-400 uppercase tracking-widest mb-1">Transfer Amount</p>
           <p className="text-3xl font-black text-purple-700">₹{fmt(payout.owner_amount)}</p>
           <p className="text-[10px] text-purple-500 font-semibold mt-1">{payout.owner_name}</p>
         </div>
 
         {/* Bank details — read-only, auto-filled */}
         <div className="border border-slate-100 rounded-2xl p-4 space-y-3 mb-6">
-          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Bank / UPI Details (Cashfree Target)</p>
+          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Bank Details (auto-filled from DB)</p>
           {[
             ["Account Holder", bank.holder],
-            ["Bank Name",      bank.name],
-            ["Account No.",    bank.number],
-            ["IFSC Code",      bank.ifsc],
+            ["Bank Name", bank.name],
+            ["Account No.", bank.number],
+            ["IFSC Code", bank.ifsc],
           ].map(([lbl, val]) => (
             <div key={lbl} className="flex justify-between items-center">
               <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{lbl}</span>
@@ -299,8 +299,8 @@ function TransferModal({ payout, onClose, onSuccess }) {
           ))}
         </div>
 
-        <p className="text-[10px] text-slate-500 text-center mb-5 font-medium">
-          ⚡ Clicking &apos;Yes, Transfer&apos; will execute an instant real bank transfer directly to the owner&apos;s account via Cashfree Payouts.
+        <p className="text-[10px] text-slate-400 text-center mb-5 font-medium">
+          This records the transfer in the system. Actual bank transfer must be done separately via NEFT/UPI.
         </p>
 
         <div className="flex gap-3">
@@ -321,7 +321,7 @@ function TransferModal({ payout, onClose, onSuccess }) {
 // ─── Bulk Transfer Confirm Modal ──────────────────────────────────────────────
 function BulkTransferModal({ selectedIds, total, count, onClose, onSuccess }) {
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError]           = useState("");
+  const [error, setError] = useState("");
 
   const handleConfirm = async () => {
     setSubmitting(true);
@@ -399,19 +399,19 @@ export default function Payouts() {
     canonical: "https://roomhy.com/superadmin/accounting_payouts",
   });
 
-  const [wallet,       setWallet]       = useState(null);
-  const [payoutsList,  setPayoutsList]  = useState([]);
-  const [loading,      setLoading]      = useState(true);
-  const [searchQuery,  setSearchQuery]  = useState("");
+  const [wallet, setWallet] = useState(null);
+  const [payoutsList, setPayoutsList] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("Pending"); // Pending | Paid | All
 
   // Checkbox selection
   const [selectedIds, setSelectedIds] = useState(new Set());
 
   // Modals
-  const [showRecordModal,  setShowRecordModal]  = useState(false);
-  const [transferPayout,   setTransferPayout]   = useState(null); // single
-  const [showBulkModal,    setShowBulkModal]    = useState(false);
+  const [showRecordModal, setShowRecordModal] = useState(false);
+  const [transferPayout, setTransferPayout] = useState(null); // single
+  const [showBulkModal, setShowBulkModal] = useState(false);
 
   // Toast
   const [toast, setToast] = useState(null);
@@ -424,8 +424,8 @@ export default function Payouts() {
         fetchJson("/api/finance/admin-wallet").catch(() => null),
         fetchJson("/api/finance/payouts/pending").catch(() => null),
       ]);
-      if (walletRes?.success)  setWallet(walletRes.wallet);
-      if (txRes?.success)      setPayoutsList(txRes.pending || []);
+      if (walletRes?.success) setWallet(walletRes.wallet);
+      if (txRes?.success) setPayoutsList(txRes.pending || []);
     } catch (e) {
       console.error("loadData error:", e);
     } finally {
@@ -440,13 +440,13 @@ export default function Payouts() {
     const matchSearch =
       !searchQuery ||
       (p.owner_name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (p.owner_id   || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (p.owner_id || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
       (p.razorpay_payment_id || "").toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchStatus =
       filterStatus === "All" ? true :
-      filterStatus === "Pending" ? p.payout_status !== "Paid" :
-      p.payout_status === "Paid";
+        filterStatus === "Pending" ? p.payout_status !== "Paid" :
+          p.payout_status === "Paid";
 
     return matchSearch && matchStatus;
   });
@@ -455,7 +455,7 @@ export default function Payouts() {
 
   // Select all (only pending)
   const allPendingIds = pendingOnly.map(p => p._id || p.id);
-  const allSelected   = allPendingIds.length > 0 && allPendingIds.every(id => selectedIds.has(id));
+  const allSelected = allPendingIds.length > 0 && allPendingIds.every(id => selectedIds.has(id));
 
   const toggleSelectAll = () => {
     if (allSelected) {
@@ -535,11 +535,11 @@ export default function Payouts() {
 
       {/* ── Wallet Stats ─────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <StatCard label="Admin Wallet Balance"   value={fmt(w.adminBalance)}   sub="Commission collected"   icon={Wallet}   color="emerald" />
-        <StatCard label="Total Collected"        value={fmt(w.totalCollected)} sub={`${w.totalTx || 0} transactions`}    icon={IndianRupee} color="purple" />
-        <StatCard label="Pending Owner Payouts"  value={fmt(w.pendingPayouts)} sub={`${w.pendingCount || 0} pending`}     icon={Send}     color="rose"   />
-        <StatCard label="Paid to Owners"         value={fmt(w.paidPayouts)}    sub={`${w.paidCount || 0} transferred`}   icon={Zap}      color="blue"   />
-        <StatCard label="Remaining Liability"    value={fmt(w.pendingPayouts)} sub="To be transferred"     icon={CreditCard} color="amber"  />
+        <StatCard label="Admin Wallet Balance" value={fmt(w.adminBalance)} sub="Commission collected" icon={Wallet} color="emerald" />
+        <StatCard label="Total Collected" value={fmt(w.totalCollected)} sub={`${w.totalTx || 0} transactions`} icon={IndianRupee} color="purple" />
+        <StatCard label="Pending Owner Payouts" value={fmt(w.pendingPayouts)} sub={`${w.pendingCount || 0} pending`} icon={Send} color="rose" />
+        <StatCard label="Paid to Owners" value={fmt(w.paidPayouts)} sub={`${w.paidCount || 0} transferred`} icon={Zap} color="blue" />
+        <StatCard label="Remaining Liability" value={fmt(w.pendingPayouts)} sub="To be transferred" icon={CreditCard} color="amber" />
       </div>
 
       {/* ── Table Card ───────────────────────────────────────────────────── */}
@@ -621,16 +621,16 @@ export default function Payouts() {
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {filteredPayouts.map((p, i) => {
-                  const id         = p._id || p.id;
-                  const isPaid     = p.payout_status === "Paid";
+                  const id = p._id || p.id;
+                  const isPaid = p.payout_status === "Paid";
                   const isSelected = selectedIds.has(id);
-                  const acctNum    = p.payout_account_number || p.bank_details?.account_number || "";
-                  const bankNm     = p.payout_bank_name      || p.bank_details?.bank_name      || "";
-                  const ifsc       = p.payout_ifsc_code      || p.bank_details?.ifsc_code      || "";
+                  const acctNum = p.payout_account_number || p.bank_details?.account_number || "";
+                  const bankNm = p.payout_bank_name || p.bank_details?.bank_name || "";
+                  const ifsc = p.payout_ifsc_code || p.bank_details?.ifsc_code || "";
 
-                  const ownerNet   = p.owner_amount || 0;
-                  const totalRent  = p.booking_amount || p.amount || (ownerNet + (p.commission_amount || 0) + (p.gst_amount || 0));
-                  const commFee    = ((p.commission_amount || 0) + (p.gst_amount || 0)) || Math.max(0, totalRent - ownerNet);
+                  const ownerNet = p.owner_amount || 0;
+                  const totalRent = p.booking_amount || p.amount || (ownerNet + (p.commission_amount || 0) + (p.gst_amount || 0));
+                  const commFee = ((p.commission_amount || 0) + (p.gst_amount || 0)) || Math.max(0, totalRent - ownerNet);
 
                   return (
                     <tr key={id || i}

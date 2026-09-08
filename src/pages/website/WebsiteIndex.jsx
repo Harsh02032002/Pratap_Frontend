@@ -264,7 +264,7 @@ export default function WebsiteIndex() {
             _id: p._id || p.visitId || p.id,
             name: p.propertyName || p.property_name || p.propertyInfo?.name || p.name || 'Roomhy Property',
             location: `${p.area || p.propertyInfo?.area ? (p.area || p.propertyInfo?.area) + ', ' : ''}${p.city || p.propertyInfo?.city || 'Kota'}`,
-            monthlyRent: p.monthlyRent || p.rent || p.propertyInfo?.rent || 8000,
+            monthlyRent: p.monthlyRent || p.rent || p.price || p.pricing?.monthlyRent || p.pricing?.price || p.pricing?.pricePerBed || 0,
             image: p.featuredImage || p.images?.[0] || p.propertyInfo?.photos?.[0] || 'https://images.pexels.com/photos/1571468/pexels-photo-1571468.jpeg?auto=compress&cs=tinysrgb&w=600',
             images: (() => {
               const imgs = [];

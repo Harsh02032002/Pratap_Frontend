@@ -465,13 +465,15 @@ export default function OurPropertyPage() {
 
     setBiddingSubmitting(true);
     try {
-      const budget = parseInt(maxPrice) || 8000;
+      const parsedMax = parseInt(maxPrice, 10);
       const userId = user?.loginId || user?._id || user?.id || '';
 
       const bidRequests = targetProperties.slice(0, 15).map((prop, index) => {
         const propInfo = prop.propertyInfo || {};
         const propertyId = prop._id || prop.id || prop.visitId || `property-${index}`;
         const ownerId = (prop.generatedCredentials && prop.generatedCredentials.loginId) || prop.ownerLoginId || propInfo.ownerLoginId || 'admin';
+        const propRent = parseInt(prop.monthlyRent || prop.rent || prop.price || prop.pricing?.monthlyRent || 0, 10);
+        const budget = (Number.isFinite(parsedMax) && parsedMax > 0) ? parsedMax : (propRent > 0 ? propRent : null);
 
         return fetchJson(`${getApiBase()}/api/bids/create`, {
           method: 'POST',
@@ -485,6 +487,8 @@ export default function OurPropertyPage() {
             ownerId,
             requestType: 'bid',
             request_type: 'bid',
+            rentAmount: propRent,
+            rent_amount: propRent,
             bidAmount: budget,
             offeredAmount: budget,
             proposedPrice: budget,
