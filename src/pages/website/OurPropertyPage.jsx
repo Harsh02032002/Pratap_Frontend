@@ -471,7 +471,7 @@ export default function OurPropertyPage() {
       const bidRequests = targetProperties.slice(0, 15).map((prop, index) => {
         const propInfo = prop.propertyInfo || {};
         const propertyId = prop._id || prop.id || prop.visitId || `property-${index}`;
-        const ownerId = (prop.generatedCredentials && prop.generatedCredentials.loginId) || prop.ownerLoginId || propInfo.ownerLoginId || 'admin';
+        const ownerId = resolvePropertyOwnerLoginId(prop) || (prop.generatedCredentials && prop.generatedCredentials.loginId) || prop.ownerLoginId || propInfo.ownerLoginId || 'admin';
         const propRent = parseInt(prop.monthlyRent || prop.rent || prop.price || prop.pricing?.monthlyRent || 0, 10);
         const budget = (Number.isFinite(parsedMax) && parsedMax > 0) ? parsedMax : (propRent > 0 ? propRent : null);
 

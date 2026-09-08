@@ -951,9 +951,13 @@ export const submitEnquiry = async (formData) => {
 const OWNER_LOGIN_ID_SOURCES = [
   (p) => p?.generatedCredentials?.loginId,
   (p) => p?.ownerLoginId,
+  (p) => p?.propertyInfo?.ownerLoginId,
+  (p) => p?.propertyInfo?.owner_id,
   (p) => p?.owner_login_id,
   (p) => p?.owner_id,
   (p) => p?.ownerId,
+  (p) => p?.contact?.ownerLoginId,
+  (p) => p?.ownerDetails?.loginId,
   (p) => p?.createdBy,
   (p) => p?.owner,
   (p) => p?.propertyOwnerId,
