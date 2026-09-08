@@ -10,15 +10,7 @@ import { tmpdir } from 'os';
 // directory may not exist, causing ENOENT crash. Create it proactively.
 try { mkdirSync(path.join(tmpdir(), 'node-jiti'), { recursive: true }); } catch {}
 
-// Copy exact user uploaded luxury penthouse image into public folder for hero background
-try {
-  copyFileSync(
-    'C:/Users/HP/.gemini/antigravity-ide/brain/4457febe-666b-43a3-82cf-dc41f75dd2c3/media__1788362492905.jpg',
-    path.resolve(__dirname, 'public/hero-luxury.jpg')
-  );
-} catch (e) {
-  console.error('[hero-copy] copy error:', e);
-}
+
 
 const adminHtmlPath = path.resolve(__dirname, 'admin.html');
 

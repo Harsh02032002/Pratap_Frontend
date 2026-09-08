@@ -1775,14 +1775,6 @@ export const fetchSiteStats = async () => {
         byCityFormatted: { Kota: '500+', Sikar: '300+', Indore: '800+' },
         totalUsersFormatted: '50,000+',
       };
-    }
-  }
-};
-
-      distribution: [],
-      recentReviews: [],
-      topProperties: []
-    };
   }
 };
 
