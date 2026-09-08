@@ -481,7 +481,7 @@ export default function Payment() {
         const data = JSON.parse(e.data || '{}');
         setCashRequestsLoading(true);
         // Silently re-fetch cash requests in background
-        fetchCashRequests(owner._id || owner.loginId)
+        fetchCashRequests(owner._id || owner.loginId, {}, true)
           .then(res => setCashRequests(res?.requests || res?.cashRequests || res?.items || []))
           .catch(err => console.error("SSE fetch cash error:", err))
           .finally(() => setCashRequestsLoading(false));
@@ -1037,6 +1037,9 @@ export default function Payment() {
                       <div className="font-semibold text-foreground">{request.tenantName || request.name || "Tenant"}</div>
                       <div className="text-[12px] text-muted-foreground mt-0.5">
                         {request.propertyName || request.propertyTitle || "Property"} · Room {request.roomNumber || request.roomNo || "—"}
+                      </div>
+                      <div className="text-[12px] text-slate-600 mt-1">
+                        Roomhy ID: <span className="font-semibold">{request.tenantLoginId || request.tenant?.loginId || "—"}</span>
                       </div>
                     </div>
                     <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-100">
