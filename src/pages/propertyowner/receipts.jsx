@@ -37,35 +37,53 @@ export default function ReceiptsPage() {
     return () => clearTimeout(t);
   }, [search]);
 
-  const receipts = useMemo(() => payments.map(p => ({
-    id: p.invoiceNumber || p.transactionId || String(p._id).slice(-8).toUpperCase(),
-    tenant: p.tenantName,
-    room: p.roomNo,
-    phone: p.tenantPhone,
-    email: p.tenantEmail,
-    date: new Date(p.paymentDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
-    period: billingLabel(p.billingMonth),
-    amount: p.rentAmount || p.amount,
-    penalty: p.totalPenalty || 0,
-    advanceChargeAmount: Number(p.advanceChargeAmount || p.advanceCharge || p.moveInCharges || p.invoiceId?.advanceChargeAmount || p.tenantId?.digitalCheckin?.agreementDetails?.advanceCharge || 0),
-    electricity: p.electricityBill || 0,
-    totalDue: (p.rentAmount || 0) + (p.totalPenalty || 0) + (p.electricityBill || 0) + Number(p.advanceChargeAmount || p.advanceCharge || p.invoiceId?.advanceChargeAmount || 0),
-    paid: p.amount,
-    paymentMethod: p.paymentMethod || p.invoiceId?.paymentMethod || '',
-    invoiceStatus: p.invoiceStatus || '',   // PAID / PARTIAL / PENDING — from DB
-    type: (p.advanceChargeAmount || p.advanceCharge) > 0 ? "Rent & Move-in" : p.electricityBill > 0 ? "Rent & Utility" : p.totalPenalty > 0 ? "Rent + Penalty" : "Rent Only",
-    _raw: p,
-  })), [payments]);
+  const [activeTab, setActiveTab] = useState("all"); // 'all' | 'booking' | 'rent'
+
+  const receipts = useMemo(() => payments.map(p => {
+    const isToken = p.isBookingToken || String(p.type || p.category || '').toLowerCase().includes('token') || String(p.invoiceNumber || '').startsWith('BKG');
+    return {
+      id: p.invoiceNumber || p.transactionId || String(p._id).slice(-8).toUpperCase(),
+      tenant: p.tenantName,
+      room: p.roomNo || 'N/A',
+      phone: p.tenantPhone,
+      email: p.tenantEmail,
+      date: new Date(p.paymentDate || p.createdAt || Date.now()).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
+      period: billingLabel(p.billingMonth),
+      amount: p.rentAmount || p.amount,
+      penalty: p.totalPenalty || 0,
+      advanceChargeAmount: Number(p.advanceChargeAmount || p.advanceCharge || p.moveInCharges || p.invoiceId?.advanceChargeAmount || p.tenantId?.digitalCheckin?.agreementDetails?.advanceCharge || 0),
+      electricity: p.electricityBill || 0,
+      totalDue: (p.rentAmount || 0) + (p.totalPenalty || 0) + (p.electricityBill || 0) + Number(p.advanceChargeAmount || p.advanceCharge || p.invoiceId?.advanceChargeAmount || 0),
+      paid: p.amount,
+      paymentMethod: p.paymentMethod || p.invoiceId?.paymentMethod || 'Cashfree',
+      invoiceStatus: p.invoiceStatus || 'PAID',
+      isToken,
+      type: isToken ? "Booking Token" : (p.advanceChargeAmount || p.advanceCharge) > 0 ? "Rent & Move-in" : p.electricityBill > 0 ? "Rent & Utility" : p.totalPenalty > 0 ? "Rent + Penalty" : "Rent Only",
+      _raw: p,
+    };
+  }), [payments]);
 
   const filtered = useMemo(() => {
     const q = debouncedSearch.trim().toLowerCase();
-    if (!q) return receipts;
-    return receipts.filter(r =>
-      r.tenant.toLowerCase().includes(q) ||
-      String(r.room).toLowerCase().includes(q) ||
-      r.id.toLowerCase().includes(q)
-    );
-  }, [receipts, debouncedSearch]);
+    return receipts.filter(r => {
+      const matchesQuery = !q || (
+        r.tenant.toLowerCase().includes(q) ||
+        String(r.room).toLowerCase().includes(q) ||
+        r.id.toLowerCase().includes(q)
+      );
+
+      if (activeTab === "booking") {
+        return matchesQuery && r.isToken;
+      }
+      if (activeTab === "rent") {
+        return matchesQuery && !r.isToken;
+      }
+      return matchesQuery;
+    });
+  }, [receipts, debouncedSearch, activeTab]);
+
+  const bookingCount = useMemo(() => receipts.filter(r => r.isToken).length, [receipts]);
+  const rentCount = useMemo(() => receipts.filter(r => !r.isToken).length, [receipts]);
 
   const handleDownload = (r) => {
     const win = window.open("", "_blank", "width=860,height=960");
@@ -81,16 +99,49 @@ export default function ReceiptsPage() {
       title="Issued Receipts"
       onLogout={() => { clearOwnerRuntimeSession(); window.location.href = "/propertyowner/ownerlogin"; }}
     >
-      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-8">
+      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
         <div>
           <h1 className="font-serif text-[38px] md:text-[44px] leading-[1.05] text-foreground">Issued Receipts</h1>
-          <p className="mt-1.5 text-[13.5px] text-muted-foreground">Search and download generated receipts for every recorded payment.</p>
+          <p className="mt-1.5 text-[13.5px] text-muted-foreground">Search and download generated receipts for booking tokens and monthly rent.</p>
         </div>
         {!loading && (
           <span className="text-[11px] bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-full px-3 py-1 font-semibold self-start md:mt-2">
             {receipts.length} receipt{receipts.length !== 1 ? "s" : ""}
           </span>
         )}
+      </div>
+
+      {/* ── 2 TABS CONTROL ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-2xl border border-slate-200">
+          <button
+            onClick={() => setActiveTab("all")}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+              activeTab === "all" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-900"
+            }`}
+          >
+            <span>All Receipts</span>
+            <span className="bg-slate-200/80 px-2 py-0.5 rounded-md text-[10px] font-extrabold">{receipts.length}</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("booking")}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+              activeTab === "booking" ? "bg-purple-600 text-white shadow-md shadow-purple-600/20" : "text-slate-600 hover:text-purple-600"
+            }`}
+          >
+            <span>🎟️ Booking Token Receipts</span>
+            <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold ${activeTab === "booking" ? "bg-purple-700 text-white" : "bg-purple-50 text-purple-600"}`}>{bookingCount}</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("rent")}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+              activeTab === "rent" ? "bg-teal-600 text-white shadow-md shadow-teal-600/20" : "text-slate-600 hover:text-teal-600"
+            }`}
+          >
+            <span>🏠 Monthly Rent Receipts</span>
+            <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold ${activeTab === "rent" ? "bg-teal-700 text-white" : "bg-teal-50 text-teal-600"}`}>{rentCount}</span>
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3 mb-6">

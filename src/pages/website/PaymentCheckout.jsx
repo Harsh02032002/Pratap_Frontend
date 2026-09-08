@@ -47,12 +47,6 @@ export default function PaymentCheckout() {
     const init = async () => {
       setLoading(true);
       try {
-        if (redirectStatus === "SUCCESS" || redirectStatus === "PAID" || redirectStatus === "PAID_SUCCESSFULLY") {
-          setPaymentStatus("success");
-          setLoading(false);
-          return;
-        }
-
         if (orderId) {
           const statusRes = await fetchJson(`/api/payments/cashfree/status/${orderId}`).catch(() => null);
           const rawStatus = String(
@@ -67,18 +61,16 @@ export default function PaymentCheckout() {
             setPaymentStatus("success");
             setLoading(false);
             return;
-          } else if (rawStatus === "FAILED" || rawStatus === "CANCELLED") {
+          } else if (rawStatus === "FAILED" || rawStatus === "CANCELLED" || rawStatus === "CREATED") {
             setPaymentStatus("failed");
-            setError(statusRes?.message || "Payment transaction was not completed.");
+            setError(statusRes?.message || "Payment transaction was not completed or was cancelled.");
             setLoading(false);
             return;
           }
-          if (statusRes?.transaction) {
-            setBookingData({
-              property_name: statusRes.transaction.property_name || "Roomhy Stay",
-              amount: statusRes.transaction.booking_amount || 0
-            });
-          }
+        } else if (redirectStatus === "SUCCESS" || redirectStatus === "PAID" || redirectStatus === "PAID_SUCCESSFULLY") {
+          setPaymentStatus("success");
+          setLoading(false);
+          return;
         }
 
         // Fetch Razorpay Key
@@ -106,6 +98,22 @@ export default function PaymentCheckout() {
     init();
   }, [extractedBookingId, rawBookingId, orderId, redirectStatus]);
 
+  const loadCashfreeSdk = () => {
+    return new Promise((resolve) => {
+      if (typeof window.Cashfree === 'function') return resolve(window.Cashfree);
+      const existingScript = document.querySelector('script[src*="cashfree.js"]');
+      if (existingScript) {
+        existingScript.addEventListener('load', () => resolve(window.Cashfree));
+        if (window.Cashfree) return resolve(window.Cashfree);
+      }
+      const script = document.createElement('script');
+      script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
+      script.onload = () => resolve(window.Cashfree);
+      script.onerror = () => resolve(null);
+      document.body.appendChild(script);
+    });
+  };
+
   const handlePayNow = async () => {
     try {
       const targetBookingId = extractedBookingId || rawBookingId;
@@ -124,38 +132,31 @@ export default function PaymentCheckout() {
         })
       });
 
-      const paymentLink = orderRes?.payment_link || orderRes?.link_url;
       const paymentSessionId = orderRes?.payment_session_id;
 
-      if (typeof window.Cashfree === 'function' && paymentSessionId) {
-        const cashfree = window.Cashfree({ mode: 'sandbox' });
-        cashfree.checkout({
-          paymentSessionId: paymentSessionId,
-          redirectTarget: '_self'
-        });
-      } else if (paymentLink) {
-        window.location.href = paymentLink;
-      } else {
-        // Fallback to create-link if payment_session_id is not directly returned
-        const linkRes = await fetchJson("/api/payments/cashfree/create-link", {
-          method: "POST",
-          body: JSON.stringify({
-            bookingId: targetBookingId,
-            amount: Number(finalAmount),
-            customerInfo: {
-              name: bookingData?.name || "Guest",
-              email: bookingData?.email || "",
-              phone: bookingData?.phone || ""
-            }
-          })
-        }).catch(() => null);
-
-        if (linkRes?.link_url) {
-          window.location.href = linkRes.link_url;
-        } else {
-          throw new Error(orderRes?.message || linkRes?.message || "Could not create Cashfree payment session");
+      if (paymentSessionId) {
+        const CashfreeSDK = await loadCashfreeSdk();
+        if (typeof CashfreeSDK === 'function') {
+          const isSandbox = orderRes?.isSandbox !== undefined
+            ? Boolean(orderRes.isSandbox)
+            : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+          const cfMode = isSandbox ? 'sandbox' : 'production';
+          const cashfree = CashfreeSDK({ mode: cfMode });
+          cashfree.checkout({
+            paymentSessionId: paymentSessionId,
+            redirectTarget: '_self'
+          });
+          return;
         }
       }
+
+      const paymentLink = orderRes?.payment_link || orderRes?.link_url;
+      if (paymentLink) {
+        window.location.href = paymentLink;
+        return;
+      }
+
+      throw new Error(orderRes?.message || "Could not create Cashfree payment session");
     } catch (err) {
       console.error("Payment initiation error:", err);
       const errorMsg = err?.body?.message || err?.body?.error || err?.message || "Error initiating payment.";

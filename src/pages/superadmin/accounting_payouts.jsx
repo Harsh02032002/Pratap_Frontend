@@ -265,8 +265,8 @@ function TransferModal({ payout, onClose, onSuccess }) {
             <Banknote size={20} />
           </div>
           <div>
-            <h3 className="text-base font-black text-slate-900">Confirm Transfer</h3>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Manual Bank Transfer</p>
+            <h3 className="text-base font-black text-slate-900">Confirm Cashfree Payout</h3>
+            <p className="text-[10px] text-purple-600 font-bold uppercase tracking-widest mt-0.5">Instant Cashfree Bank Transfer</p>
           </div>
         </div>
 
@@ -278,14 +278,14 @@ function TransferModal({ payout, onClose, onSuccess }) {
 
         {/* Amount */}
         <div className="bg-purple-50 border border-purple-100 rounded-2xl p-5 text-center mb-5">
-          <p className="text-[9px] font-bold text-purple-400 uppercase tracking-widest mb-1">Transfer Amount</p>
+          <p className="text-[9px] font-bold text-purple-400 uppercase tracking-widest mb-1">Payout Amount</p>
           <p className="text-3xl font-black text-purple-700">₹{fmt(payout.owner_amount)}</p>
           <p className="text-[10px] text-purple-500 font-semibold mt-1">{payout.owner_name}</p>
         </div>
 
         {/* Bank details — read-only, auto-filled */}
         <div className="border border-slate-100 rounded-2xl p-4 space-y-3 mb-6">
-          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Bank Details (auto-filled from DB)</p>
+          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Bank / UPI Details (Cashfree Target)</p>
           {[
             ["Account Holder", bank.holder],
             ["Bank Name",      bank.name],
@@ -299,8 +299,8 @@ function TransferModal({ payout, onClose, onSuccess }) {
           ))}
         </div>
 
-        <p className="text-[10px] text-slate-400 text-center mb-5 font-medium">
-          This records the transfer in the system. Actual bank transfer must be done separately via NEFT/UPI.
+        <p className="text-[10px] text-slate-500 text-center mb-5 font-medium">
+          ⚡ Clicking &apos;Yes, Transfer&apos; will execute an instant real bank transfer directly to the owner&apos;s account via Cashfree Payouts.
         </p>
 
         <div className="flex gap-3">

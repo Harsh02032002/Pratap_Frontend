@@ -2036,36 +2036,6 @@ export default function OurPropertyPage() {
           </section>
         )}
 
-        {/* Dynamic Property Owner CTA Banner (PDF Screenshot 3) */}
-        <section className="hidden md:block max-w-7xl mx-auto px-4 md:px-8 my-8">
-          <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50 border border-emerald-100 rounded-3xl p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
-            <div className="flex flex-col md:flex-row items-center gap-5 text-center md:text-left">
-              <div className="w-20 h-20 rounded-2xl bg-teal-600 text-white flex items-center justify-center shrink-0 shadow-md">
-                <Building2 className="w-10 h-10" />
-              </div>
-              <div>
-                <h3 className="text-xl md:text-2xl font-black text-slate-900">
-                  {selectedCity ? `Have a property in ${locationDisplayName}?` : 'Have a property to list?'}
-                </h3>
-                <p className="text-xs text-slate-600 font-medium mt-1">
-                  List your PG, Hostel or Co-living space {selectedCity ? `in ${locationDisplayName}` : ''} and connect with thousands of students.
-                </p>
-                <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mt-3 text-[11px] font-bold text-slate-700">
-                  <span className="flex items-center gap-1 text-emerald-600"><Check className="w-3.5 h-3.5" /> Smart Bidding</span>
-                  <span className="flex items-center gap-1 text-emerald-600"><Check className="w-3.5 h-3.5" /> Verified Tenants</span>
-                  <span className="flex items-center gap-1 text-emerald-600"><Check className="w-3.5 h-3.5" /> Quick Rent</span>
-                  <span className="flex items-center gap-1 text-emerald-600"><Check className="w-3.5 h-3.5" /> Wide Reach</span>
-                </div>
-              </div>
-            </div>
-            <Link
-              to="/list-property"
-              className="px-6 py-3.5 bg-teal-600 hover:bg-teal-700 text-white font-extrabold text-xs rounded-xl shadow-md transition-all shrink-0 hover:scale-105"
-            >
-              List Your Property FREE →
-            </Link>
-          </div>
-        </section>
       </main>
 
       <MobileBottomNav />
