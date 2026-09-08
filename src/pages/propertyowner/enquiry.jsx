@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerProperties, filterByActiveProperty } from "../../utils/propertyowner";
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerProperties, filterByActiveProperty, getActiveOwnerPropertyId } from "../../utils/propertyowner";
 import { apiFetch } from "../../utils/api";
 import { cacheGet, cacheSet, cacheInvalidate } from "../../utils/cache";
 import { useOwnerLiveUpdates } from "../../hooks/useOwnerLiveUpdates";
@@ -345,7 +345,10 @@ export default function Enquiry() {
                 {/* Card Action Buttons */}
                 <div className="border-t border-border/60 mt-6 pt-4 space-y-2">
                   <button
-                    onClick={() => window.location.href = `/propertyowner/tenantrec?name=${encodeURIComponent(l.studentName || '')}&email=${encodeURIComponent(l.studentEmail || '')}&phone=${encodeURIComponent(l.studentPhone || '')}&propertyId=${encodeURIComponent(l.propertyId || '')}`}
+                    onClick={() => {
+                      const resolvedPropId = l.propertyId || l.property_id || l.property?._id || l.property || getActiveOwnerPropertyId() || '';
+                      window.location.href = `/propertyowner/tenantrec?name=${encodeURIComponent(l.studentName || l.name || '')}&email=${encodeURIComponent(l.studentEmail || l.email || '')}&phone=${encodeURIComponent(l.studentPhone || l.phone || '')}&propertyId=${encodeURIComponent(resolvedPropId)}`;
+                    }}
                     className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2"
                   >
                     Onboard as Tenant

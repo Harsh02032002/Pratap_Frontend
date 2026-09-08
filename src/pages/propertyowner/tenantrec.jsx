@@ -701,7 +701,7 @@ export default function TenantRec() {
         }
 
         if (pId) {
-          let matchedProp = props.find(p => p._id === pId || p.visitId === pId || p.propertyId === pId);
+          let matchedProp = props.find(p => String(p._id) === String(pId) || String(p.visitId) === String(pId) || String(p.propertyId || "") === String(pId));
           let resolvedPropertyId = matchedProp ? matchedProp._id : pId;
 
           if (!matchedProp) {
@@ -710,7 +710,7 @@ export default function TenantRec() {
               const approvedProp = approvedPropData?.property || approvedPropData;
               if (approvedProp && approvedProp.propertyId) {
                 const actualPropId = approvedProp.propertyId;
-                matchedProp = props.find(p => p._id === actualPropId || p.visitId === actualPropId || p.propertyId === actualPropId);
+                matchedProp = props.find(p => String(p._id) === String(actualPropId) || String(p.visitId) === String(actualPropId) || String(p.propertyId || "") === String(actualPropId));
                 if (matchedProp) {
                   resolvedPropertyId = matchedProp._id;
                 }
@@ -725,11 +725,16 @@ export default function TenantRec() {
             propertyId: resolvedPropertyId,
             ...(room ? { roomUnit: room } : {})
           }));
-        } else if (props && props.length === 1) {
-          setRoomAssignment(prev => ({
-            ...prev,
-            propertyId: props[0]._id
-          }));
+        } else if (props && props.length > 0) {
+          const activePId = getActiveOwnerPropertyId();
+          const matchedProp = props.find(p => String(p._id) === String(activePId) || String(p.visitId) === String(activePId) || String(p.propertyId || "") === String(activePId)) || props[0];
+          if (matchedProp) {
+            setRoomAssignment(prev => ({
+              ...prev,
+              propertyId: matchedProp._id,
+              ...(room ? { roomUnit: room } : {})
+            }));
+          }
         }
       } catch (err) {
         console.error("Initialization error:", err);
@@ -1552,19 +1557,8 @@ export default function TenantRec() {
           {/* Section 2 */}
           {(!isMobile || activeMobileTab === 2) && (() => {
             const availableRooms = rooms.filter(r => {
-              if (!r) return false;
-              const matchesSelected = roomAssignment.roomUnit && (r.title === roomAssignment.roomUnit || r.number === roomAssignment.roomUnit || r.roomNo === roomAssignment.roomUnit || r._id === roomAssignment.roomUnit);
-              if (matchesSelected) return true;
-
-              if (r.isDeleted === true) return false;
-              if (Array.isArray(r.availableBeds) && r.availableBeds.length > 0) return true;
-              if (r.isAvailable !== false) return true;
-
-              const bedsList = toLegacyBeds(r);
-              return bedsList.some(b => {
-                const s = String(b.status || '').toLowerCase().trim();
-                return s !== 'occupied' && !b.tenantId;
-              });
+              if (!r || r.isDeleted === true) return false;
+              return true;
             });
 
             const getRoomFloor = (r) => {
