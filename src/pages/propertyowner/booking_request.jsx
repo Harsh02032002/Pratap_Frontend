@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import toast from "react-hot-toast";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession, filterByActiveProperty } from "../../utils/propertyowner";
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, filterByActiveProperty, fetchOwnerProperties } from "../../utils/propertyowner";
 import { fetchJson } from "../../utils/api";
 import { cacheGet, cacheSet, cacheInvalidate } from "../../utils/cache";
 import { useOwnerLiveUpdates } from "../../hooks/useOwnerLiveUpdates";
@@ -24,7 +24,7 @@ export default function BookingRequestPage() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedRequestForView, setSelectedRequestForView] = useState(null);
-  const [activeTab, setActiveTab] = useState("direct");
+  const [activeTab, setActiveTab] = useState("all");
 
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [approvingItem, setApprovingItem] = useState(null);
@@ -45,6 +45,7 @@ export default function BookingRequestPage() {
     }
     try {
       setLoading(true);
+      await fetchOwnerProperties(owner.loginId, true).catch(() => []);
       const response = await fetchJson(`/api/booking?owner_id=${encodeURIComponent(owner.loginId)}&status=pending`);
       const data = response?.data || [];
       if (data.length > 0) cacheSet(cacheKey, data, BOOKING_TTL);
@@ -111,9 +112,10 @@ export default function BookingRequestPage() {
     
     if (activeTab === "bid") {
       return r.request_type === "bid";
-    } else {
+    } else if (activeTab === "direct") {
       return r.request_type !== "bid";
     }
+    return true;
   });
 
   return (
@@ -153,6 +155,14 @@ export default function BookingRequestPage() {
 
       {/* Tab Switcher */}
       <div className="flex gap-1 bg-slate-100 dark:bg-slate-900 rounded-2xl p-1 w-fit mb-6">
+        <button
+          onClick={() => setActiveTab("all")}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black transition-all ${
+            activeTab === "all" ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+          }`}
+        >
+          All Requests ({requests.length})
+        </button>
         <button
           onClick={() => setActiveTab("direct")}
           className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black transition-all ${

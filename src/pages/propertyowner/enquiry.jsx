@@ -54,7 +54,7 @@ export default function Enquiry() {
     try {
       const [enqRes, propRes] = await Promise.all([
         apiFetch(`/api/owners/${owner.loginId}/enquiries`),
-        fetchOwnerProperties(owner.loginId).catch(() => [])
+        fetchOwnerProperties(owner.loginId, true).catch(() => [])
       ]);
       const normalizedEnquiries = Array.isArray(enqRes) ? enqRes : (enqRes?.data || enqRes?.enquiries || []);
 
@@ -152,15 +152,15 @@ export default function Enquiry() {
     return String(notes);
   };
 
-  const isBookingLead = (l) => {
+  const isConfirmedBooking = (l) => {
     if (!l) return false;
     const s = String(l.status || "").toLowerCase();
-    return Boolean(l.isBookingRequest || l.request_type || ["booking", "confirmed", "booked", "active", "closed"].includes(s));
+    return s === "confirmed" || s === "booked" || s === "accepted" || s === "closed";
   };
 
   const filtered = enquiries.filter(l => {
-    const isBook = isBookingLead(l);
-    const matchesTab = tab === "all" || (tab === "bookings" ? isBook : !isBook);
+    const isConfirmed = isConfirmedBooking(l);
+    const matchesTab = tab === "all" || (tab === "bookings" ? isConfirmed : !isConfirmed);
     const matchesSearch = !search ||
       (l.studentName || "").toLowerCase().includes(search.toLowerCase()) ||
       (l.studentPhone || "").toLowerCase().includes(search.toLowerCase()) ||
@@ -170,8 +170,8 @@ export default function Enquiry() {
   });
 
   const totalCount = enquiries.length;
-  const bookingsCount = enquiries.filter(x => isBookingLead(x)).length;
-  const newCount = enquiries.filter(x => !isBookingLead(x)).length;
+  const bookingsCount = enquiries.filter(x => isConfirmedBooking(x)).length;
+  const newCount = enquiries.filter(x => !isConfirmedBooking(x)).length;
 
   return (
     <PropertyOwnerLayout

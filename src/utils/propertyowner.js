@@ -246,8 +246,8 @@ export const filterByActiveProperty = (list, isProperty = false) => {
       const savedProps = readJson('roomhy_properties', []);
       if (Array.isArray(savedProps)) {
         const targetObj = savedProps.find(p =>
-          key(p._id) === targetStr || key(p.id) === targetStr ||
-          key(p.title) === targetStr || key(p.name) === targetStr
+          key(p._id) === targetStr || key(p.id) === targetStr || key(p.visitId) === targetStr ||
+          key(p.title) === targetStr || key(p.name) === targetStr || key(p.propertyName) === targetStr
         );
         if (targetObj) {
           [targetObj._id, targetObj.id, targetObj.visitId, targetObj.propertyId, targetObj.property_id]
@@ -266,13 +266,16 @@ export const filterByActiveProperty = (list, isProperty = false) => {
       if (!item) return false;
       if (isProperty) {
         const itemTitle = item.title || item.name;
-        return [item._id, item.id, itemTitle, stripTieredPropertyName(itemTitle)]
+        return [item._id, item.id, item.visitId, itemTitle, stripTieredPropertyName(itemTitle)]
           .some(v => key(v) && targetKeys.has(key(v)));
       }
 
       // For items linked to a property (rooms, tenants, enquiries, booking requests, etc.)
       const pId = item.property?._id || item.property?.id || item.property || item.propertyId || item.property_id;
       const pName = item.propertyName || item.property_name || item.propertyTitle || item.title || item.propertyInfo?.name || item.propertyInfo?.title;
+
+      // Open/general leads with no property explicitly linked belong to all owner properties
+      if (!pId && !pName) return true;
 
       return [pId, pName, stripTieredPropertyName(pName)]
         .some(v => key(v) && targetKeys.has(key(v)));
@@ -459,21 +462,22 @@ export const fetchOwnerProperties = async (loginId, bypassFilter = false) => {
   if (_hit) return _hit;
   let response = await fetchJson(`/api/owners/${encodeURIComponent(loginId)}/properties`);
 
-  // When bypassFilter is true (properties page "Your Properties" view),
-  // trust the backend's result fully and skip client-side ownerLoginId filtering
-  // which can exclude valid properties due to case mismatches or ObjectId owner field.
+  const allProperties = response?.properties || [];
+  if (allProperties.length > 0) {
+    writeJson("roomhy_properties", allProperties);
+  }
+
   let properties;
   if (bypassFilter) {
-    properties = response?.properties || [];
+    properties = allProperties;
   } else {
-    properties = (response?.properties || []).filter((item) => {
+    properties = allProperties.filter((item) => {
       const candidateOwner = item?.ownerLoginId || item?.ownerId || item?.owner || "";
       return candidateOwner && matchesOwnerLoginId(candidateOwner, loginId);
     });
     properties = filterByActiveProperty(properties, true);
   }
 
-  writeJson("roomhy_properties", properties);
   _setCached(_cacheKey, properties);
   return properties;
 };
