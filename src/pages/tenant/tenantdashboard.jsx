@@ -1149,25 +1149,45 @@ export default function Tenantdashboard() {
   // ─── Payment handlers ─────────────────────────────────────────────────────────
   const handleOnlinePayment = async () => {
     const isCurrent = paymentTarget === "current";
-    const targetRentObj = isCurrent ? rent : prevMonthObj;
     const paymentAmount = isCurrent ? rentAmount : (Number(selectedPrevMonthData?.due) || 0);
+    const targetRentId = isCurrent ? rent?._id : prevMonthObj?._id;
 
     if (!tenantUser || paymentAmount <= 0) { setActionMsg("Invalid payment amount."); return; }
     setActionBusy(true);
     setActionMsg("");
+
     try {
-      const targetRentId = isCurrent ? rent?._id : prevMonthObj?._id;
+      const bookingRef = targetRentId || `rent_${loginId}_${Date.now()}`;
+      const customerInfo = {
+        name: tenantUser?.name || tenant?.name || "Tenant",
+        email: tenantUser?.email || tenant?.email || "",
+        phone: tenantUser?.phone || tenant?.phone || "",
+      };
+
+      // ── STEP 1: Try create-link (same as booking payment — direct URL, no SDK) ──
+      let paymentUrl = null;
+      try {
+        const linkRes = await fetchJson("/api/payments/cashfree/create-link", {
+          method: "POST",
+          body: JSON.stringify({ bookingId: bookingRef, amount: paymentAmount, customerInfo })
+        });
+        const isMockLink = linkRes?.isMockSandbox ||
+          (typeof linkRes?.link_url === 'string' && !linkRes.link_url.includes('cashfree.com'));
+        if (!isMockLink && linkRes?.link_url) {
+          paymentUrl = linkRes.link_url;
+        }
+      } catch (_) { /* fall through to create-order */ }
+
+      // If we got a real Cashfree link → redirect directly (same as booking flow)
+      if (paymentUrl) {
+        window.location.href = paymentUrl;
+        return;
+      }
+
+      // ── STEP 2: Fallback — create-order + SDK checkout ──
       const orderData = await fetchJson("/api/payments/cashfree/create-order", {
         method: "POST",
-        body: JSON.stringify({
-          bookingId: targetRentId || `rent_${loginId}_${Date.now()}`,
-          amount: paymentAmount,
-          customerInfo: {
-            name: tenantUser?.name || tenant?.name || "Tenant",
-            email: tenantUser?.email || tenant?.email || "",
-            phone: tenantUser?.phone || tenant?.phone || "",
-          }
-        }),
+        body: JSON.stringify({ bookingId: bookingRef, amount: paymentAmount, customerInfo }),
       });
 
       if (!orderData?.success)
@@ -1189,13 +1209,9 @@ export default function Tenantdashboard() {
 
       const loaded = await ensureCashfreeLoaded();
       if (loaded && window.Cashfree && orderData.payment_session_id) {
-        // Use PROD mode for live, SANDBOX for test
-        const cfMode = (import.meta.env?.VITE_CASHFREE_MODE || "sandbox").toLowerCase();
+        const cfMode = (import.meta.env?.VITE_CASHFREE_MODE || "production").toLowerCase();
         const cashfree = window.Cashfree({ mode: cfMode });
-        cashfree.checkout({
-          paymentSessionId: orderData.payment_session_id,
-          redirectTarget: "_self",
-        });
+        cashfree.checkout({ paymentSessionId: orderData.payment_session_id, redirectTarget: "_self" });
       } else if (orderData.return_url || orderData.payment_link || orderData.link_url) {
         window.location.href = orderData.return_url || orderData.payment_link || orderData.link_url;
       } else {

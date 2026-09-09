@@ -112,55 +112,73 @@ const PaymentGateway = () => {
         setLoading(true);
 
         try {
-            // 1. Get Cashfree Order / Payment Link
+            const bookingRef = propertyData?.bookingId || propertyData?._id || token;
+            const amount = propertyData?.rentAmount || propertyData?.amount || 0;
+            const customerInfo = {
+                name: propertyData?.tenantName || 'Tenant',
+                phone: propertyData?.tenantPhone || '',
+                email: propertyData?.tenantEmail || ''
+            };
+
+            // ── STEP 1: Try create-link first (same as booking payment — direct URL, no SDK needed) ──
+            let paymentUrl = null;
+            try {
+                const linkRes = await fetchJson('/api/payments/cashfree/create-link', {
+                    method: 'POST',
+                    body: JSON.stringify({ bookingId: bookingRef, amount, customerInfo })
+                });
+
+                const isMockLink = linkRes?.isMockSandbox ||
+                    (typeof linkRes?.link_url === 'string' && !linkRes.link_url.includes('cashfree.com'));
+
+                if (!isMockLink && linkRes?.link_url) {
+                    paymentUrl = linkRes.link_url;
+                }
+            } catch (_) { /* fall through to create-order */ }
+
+            // If we got a real Cashfree link → redirect directly (same as booking flow)
+            if (paymentUrl) {
+                window.location.href = paymentUrl;
+                return;
+            }
+
+            // ── STEP 2: Fallback — create-order + SDK checkout ──
             const data = await fetchJson('/api/payments/cashfree/create-order', {
                 method: 'POST',
-                body: JSON.stringify({
-                    bookingId: propertyData?.bookingId || propertyData?._id || token,
-                    amount: propertyData?.rentAmount || propertyData?.amount || 0,
-                    customerInfo: {
-                        name: propertyData?.tenantName || 'Tenant',
-                        phone: propertyData?.tenantPhone || '',
-                        email: propertyData?.tenantEmail || ''
-                    }
-                })
+                body: JSON.stringify({ bookingId: bookingRef, amount, customerInfo })
             });
 
             const paymentSessionId = data.payment_session_id;
             const paymentLink = data.payment_link || data.link_url;
 
-            // 2. Open Cashfree SDK or Redirect
             const isMock = data.isMockSandbox ||
                 (typeof paymentSessionId === 'string' && paymentSessionId.startsWith('session_sb_mock_')) ||
                 (typeof data.cf_order_id === 'string' && data.cf_order_id.startsWith('cf_sb_ord_'));
 
             if (isMock) {
-                // Verify payment, mark DB as PAID, activate tenant status, send credentials email, and transition to Step 4
                 const orderIdToVerify = data.order_id || data.cf_order_id;
                 await fetchJson('/api/payments/cashfree/verify-rent-payment', {
                     method: 'POST',
                     body: JSON.stringify({
                         orderId: orderIdToVerify,
-                        rentId: propertyData?.bookingId || propertyData?._id || loginId || token,
-                        amount: propertyData?.rentAmount || propertyData?.amount || 0,
+                        rentId: bookingRef,
+                        amount,
                         tenantLoginId: propertyData?.loginId || loginId
                     })
                 }).catch(vErr => console.warn('Online mock verify warning:', vErr.message));
-
                 setStep(4);
                 return;
             }
 
+            // SDK checkout (if payment_session_id is returned)
             if (typeof window.Cashfree === 'function' && paymentSessionId) {
-                const cashfree = window.Cashfree({ mode: 'sandbox' });
-                cashfree.checkout({
-                    paymentSessionId: paymentSessionId,
-                    redirectTarget: '_self'
-                });
+                const cfMode = (import.meta.env?.VITE_CASHFREE_MODE || 'production').toLowerCase();
+                const cashfree = window.Cashfree({ mode: cfMode });
+                cashfree.checkout({ paymentSessionId, redirectTarget: '_self' });
             } else if (paymentLink) {
                 window.location.href = paymentLink;
             } else {
-                throw new Error('Could not initiate Cashfree checkout session.');
+                throw new Error('Could not initiate Cashfree payment. Please try again.');
             }
 
         } catch (err) {

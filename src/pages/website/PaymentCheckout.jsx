@@ -110,24 +110,42 @@ export default function PaymentCheckout() {
     try {
       const targetBookingId = extractedBookingId || rawBookingId;
       const finalAmount = amount || bookingData?.amount || bookingData?.booking_amount || 0;
+      const customerInfo = {
+        name: bookingData?.name || "Guest",
+        email: bookingData?.email || "",
+        phone: bookingData?.phone || ""
+      };
 
+      // ── STEP 1: Try create-link first (same as booking payment — direct URL, no SDK) ──
+      let paymentUrl = null;
+      try {
+        const linkRes = await fetchJson("/api/payments/cashfree/create-link", {
+          method: "POST",
+          body: JSON.stringify({ bookingId: targetBookingId, amount: Number(finalAmount), customerInfo })
+        });
+        const isMockLink = linkRes?.isMockSandbox ||
+          (typeof linkRes?.link_url === 'string' && !linkRes.link_url.includes('cashfree.com'));
+        if (!isMockLink && linkRes?.link_url) {
+          paymentUrl = linkRes.link_url;
+        }
+      } catch (_) { /* fall through to create-order */ }
+
+      // If we got a real Cashfree link → redirect directly
+      if (paymentUrl) {
+        window.location.href = paymentUrl;
+        return;
+      }
+
+      // ── STEP 2: Fallback — create-order + SDK checkout ──
       const orderRes = await fetchJson("/api/payments/cashfree/create-order", {
         method: "POST",
-        body: JSON.stringify({
-          bookingId: targetBookingId,
-          amount: Number(finalAmount),
-          customerInfo: {
-            name: bookingData?.name || "Guest",
-            email: bookingData?.email || "",
-            phone: bookingData?.phone || ""
-          }
-        })
+        body: JSON.stringify({ bookingId: targetBookingId, amount: Number(finalAmount), customerInfo })
       });
 
       const paymentLink = orderRes?.payment_link || orderRes?.link_url;
       const paymentSessionId = orderRes?.payment_session_id;
 
-      const isMock = orderRes?.isMockSandbox ||
+      const isMock = orderRes?.isMockSandbox ||\
         (typeof paymentSessionId === 'string' && paymentSessionId.startsWith('session_sb_mock_')) ||
         (typeof orderRes?.cf_order_id === 'string' && orderRes.cf_order_id.startsWith('cf_sb_ord_'));
 
@@ -140,33 +158,13 @@ export default function PaymentCheckout() {
       }
 
       if (typeof window.Cashfree === 'function' && paymentSessionId) {
-        const cashfree = window.Cashfree({ mode: 'sandbox' });
-        cashfree.checkout({
-          paymentSessionId: paymentSessionId,
-          redirectTarget: '_self'
-        });
+        const cfMode = (import.meta.env?.VITE_CASHFREE_MODE || 'production').toLowerCase();
+        const cashfree = window.Cashfree({ mode: cfMode });
+        cashfree.checkout({ paymentSessionId, redirectTarget: '_self' });
       } else if (paymentLink) {
         window.location.href = paymentLink;
       } else {
-        // Fallback to create-link if payment_session_id is not directly returned
-        const linkRes = await fetchJson("/api/payments/cashfree/create-link", {
-          method: "POST",
-          body: JSON.stringify({
-            bookingId: targetBookingId,
-            amount: Number(finalAmount),
-            customerInfo: {
-              name: bookingData?.name || "Guest",
-              email: bookingData?.email || "",
-              phone: bookingData?.phone || ""
-            }
-          })
-        }).catch(() => null);
-
-        if (linkRes?.link_url) {
-          window.location.href = linkRes.link_url;
-        } else {
-          throw new Error(orderRes?.message || linkRes?.message || "Could not create Cashfree payment session");
-        }
+        throw new Error(orderRes?.message || "Could not create Cashfree payment session");
       }
     } catch (err) {
       console.error("Payment initiation error:", err);
