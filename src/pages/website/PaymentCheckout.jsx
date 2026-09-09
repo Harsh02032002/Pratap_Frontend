@@ -145,7 +145,7 @@ export default function PaymentCheckout() {
       const paymentLink = orderRes?.payment_link || orderRes?.link_url;
       const paymentSessionId = orderRes?.payment_session_id;
 
-      const isMock = orderRes?.isMockSandbox ||\
+      const isMock = orderRes?.isMockSandbox ||
         (typeof paymentSessionId === 'string' && paymentSessionId.startsWith('session_sb_mock_')) ||
         (typeof orderRes?.cf_order_id === 'string' && orderRes.cf_order_id.startsWith('cf_sb_ord_'));
 
