@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { X, MapPin, Zap, Send, Loader, Info, Shield, CheckCircle, AlertTriangle, ChevronDown, Wallet, Building2, Home, Users, Bed, Check, Search, Star, Wind, Utensils, Tv, Filter, RefreshCw } from 'lucide-react';
 import { fetchCities, fetchProperties, fetchJson, getPropertyDetailsUrl, getApiBase, resolvePropertyOwnerLoginId } from '../../utils/api';
+import { cacheInvalidate } from '../../utils/cache';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 
@@ -100,7 +101,7 @@ export default function FastBiddingModal({ isOpen, onClose, initialData = {} }) 
         const propertyId = prop._id || prop.id || prop.visitId || `property-${index}`;
         const ownerId = resolvePropertyOwnerLoginId(prop) || (prop.generatedCredentials && prop.generatedCredentials.loginId) || prop.ownerLoginId || propInfo.ownerLoginId || 'admin';
         const propRent = parseInt(prop.monthlyRent || prop.rent || prop.price || prop.pricing?.monthlyRent || 0, 10);
-        const budget = (Number.isFinite(parsedMax) && parsedMax > 0) ? parsedMax : (propRent > 0 ? propRent : null);
+        const budget = (Number.isFinite(parsedMax) && parsedMax > 0) ? parsedMax : 0;
 
         return fetchJson(`${getApiBase()}/api/bids/create`, {
           method: 'POST',
@@ -138,6 +139,8 @@ export default function FastBiddingModal({ isOpen, onClose, initialData = {} }) 
       });
 
       await Promise.all(bidRequests);
+      cacheInvalidate('enquiries:');
+      cacheInvalidate('booking-requests:');
       setSubmitting(false);
       showToast(`⚡ Bid request sent successfully to ${Math.min(filteredProperties.length, 15)} matching property owners!`, 'success');
       setTimeout(() => onClose(), 2000);

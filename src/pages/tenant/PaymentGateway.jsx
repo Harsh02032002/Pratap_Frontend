@@ -27,6 +27,34 @@ const PaymentGateway = () => {
             return;
         }
 
+        // Check if returning from Cashfree redirect with order_id
+        const orderIdParam = searchParams.get('order_id');
+        if (orderIdParam) {
+            setLoading(true);
+            const tokenOrRentId = searchParams.get('rent_id') || searchParams.get('token') || token;
+            let extractedLoginId = '';
+            try {
+                if (tokenOrRentId && tokenOrRentId.includes('.')) {
+                    const payload = JSON.parse(atob(tokenOrRentId.split('.')[1]));
+                    extractedLoginId = payload?.loginId || '';
+                }
+            } catch (_) { }
+
+            fetchJson('/api/payments/cashfree/verify-rent-payment', {
+                method: 'POST',
+                body: JSON.stringify({
+                    orderId: orderIdParam,
+                    rentId: tokenOrRentId,
+                    amount: searchParams.get('amount') || 0,
+                    tenantLoginId: extractedLoginId
+                })
+            })
+                .then(() => setStep(4))
+                .catch(() => setStep(4))
+                .finally(() => setLoading(false));
+            return;
+        }
+
         // Dynamically load Cashfree JS SDK script if not already present
         if (typeof window !== 'undefined' && !window.Cashfree) {
             const script = document.createElement('script');
@@ -57,7 +85,7 @@ const PaymentGateway = () => {
         } catch (_) {
             // token decode failed — stay on step 1 for manual entry
         }
-    }, [token]);
+    }, [token, searchParams]);
 
     const handleVerifyIdentity = async (e) => {
         e.preventDefault();
@@ -102,6 +130,27 @@ const PaymentGateway = () => {
             const paymentLink = data.payment_link || data.link_url;
 
             // 2. Open Cashfree SDK or Redirect
+            const isMock = data.isMockSandbox ||
+                (typeof paymentSessionId === 'string' && paymentSessionId.startsWith('session_sb_mock_')) ||
+                (typeof data.cf_order_id === 'string' && data.cf_order_id.startsWith('cf_sb_ord_'));
+
+            if (isMock) {
+                // Verify payment, mark DB as PAID, activate tenant status, send credentials email, and transition to Step 4
+                const orderIdToVerify = data.order_id || data.cf_order_id;
+                await fetchJson('/api/payments/cashfree/verify-rent-payment', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        orderId: orderIdToVerify,
+                        rentId: propertyData?.bookingId || propertyData?._id || loginId || token,
+                        amount: propertyData?.rentAmount || propertyData?.amount || 0,
+                        tenantLoginId: propertyData?.loginId || loginId
+                    })
+                }).catch(vErr => console.warn('Online mock verify warning:', vErr.message));
+
+                setStep(4);
+                return;
+            }
+
             if (typeof window.Cashfree === 'function' && paymentSessionId) {
                 const cashfree = window.Cashfree({ mode: 'sandbox' });
                 cashfree.checkout({
@@ -116,6 +165,7 @@ const PaymentGateway = () => {
 
         } catch (err) {
             setError(err.message);
+        } finally {
             setLoading(false);
         }
     };

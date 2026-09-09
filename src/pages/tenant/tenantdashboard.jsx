@@ -1173,6 +1173,20 @@ export default function Tenantdashboard() {
       if (!orderData?.success)
         throw new Error(orderData?.error || orderData?.message || "Failed to create payment order.");
 
+      const isMock = orderData.isMockSandbox ||
+        (typeof orderData.payment_session_id === 'string' && orderData.payment_session_id.startsWith('session_sb_mock_')) ||
+        (typeof orderData.cf_order_id === 'string' && orderData.cf_order_id.startsWith('cf_sb_ord_'));
+
+      if (isMock) {
+        alert("⚡ Sandbox Mock Mode: Cashfree payment order created! Redirecting to complete test payment.");
+        if (orderData.return_url || orderData.payment_link || orderData.link_url) {
+          window.location.href = orderData.return_url || orderData.payment_link || orderData.link_url;
+        } else {
+          window.location.reload();
+        }
+        return;
+      }
+
       const loaded = await ensureCashfreeLoaded();
       if (loaded && window.Cashfree && orderData.payment_session_id) {
         // Use PROD mode for live, SANDBOX for test

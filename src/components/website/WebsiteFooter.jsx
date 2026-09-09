@@ -20,14 +20,14 @@ function Logo() {
 }
 
 const POPULAR_SEARCHES = [
-  { label: "PG in Kota", link: "/website/ourproperty?city=kota" },
-  { label: "PG in Jaipur", link: "/website/ourproperty?city=jaipur" },
-  { label: "PG in Delhi", link: "/website/ourproperty?city=delhi" },
-  { label: "Hostels in Kota", link: "/website/ourproperty?city=kota" },
-  { label: "Hostels in Jaipur", link: "/website/ourproperty?city=jaipur" },
-  { label: "Hostels in Delhi", link: "/website/ourproperty?city=delhi" },
-  { label: "Co-living in Bangalore", link: "/website/ourproperty?city=bangalore" },
-  { label: "Co-living in Pune", link: "/website/ourproperty?city=pune" },
+  { label: "PG in Kota", link: "/pg/kota" },
+  { label: "PG in Jaipur", link: "/pg/jaipur" },
+  { label: "PG in Delhi", link: "/pg/delhi" },
+  { label: "Hostels in Kota", link: "/hostels/kota" },
+  { label: "Hostels in Jaipur", link: "/hostels/jaipur" },
+  { label: "Hostels in Delhi", link: "/hostels/delhi" },
+  { label: "Co-living in Bangalore", link: "/co-living/bangalore" },
+  { label: "Co-living in Pune", link: "/co-living/pune" },
   { label: "Student Apartments", link: "/apartments" },
   { label: "Girls Hostel", link: "/hostels?gender=girls" },
   { label: "Boys Hostel", link: "/hostels?gender=boys" },
@@ -70,7 +70,7 @@ export default function WebsiteFooter() {
               ))}
             </div>
 
-            <Link to="/website/ourproperty" className="shrink-0 text-xs font-bold text-[#0FA89D] hover:text-[#0b837b] transition-colors flex items-center gap-1">
+            <Link to="/properties" className="shrink-0 text-xs font-bold text-[#0FA89D] hover:text-[#0b837b] transition-colors flex items-center gap-1">
               View all searches &rarr;
             </Link>
           </div>
@@ -187,14 +187,14 @@ export default function WebsiteFooter() {
                   <span>Popular Cities</span>
                 </h3>
                 <ul className="space-y-2 text-xs font-semibold text-[#0B2341]">
-                  <LinkItem to="/website/ourproperty?city=kota">PG in Kota</LinkItem>
-                  <LinkItem to="/website/ourproperty?city=jaipur">PG in Jaipur</LinkItem>
-                  <LinkItem to="/website/ourproperty?city=delhi">PG in Delhi</LinkItem>
-                  <LinkItem to="/website/ourproperty?city=indore">PG in Indore</LinkItem>
-                  <LinkItem to="/website/ourproperty?city=bangalore">PG in Bangalore</LinkItem>
-                  <LinkItem to="/website/ourproperty?city=pune">PG in Pune</LinkItem>
+                  <LinkItem to="/properties-in-kota">PG in Kota</LinkItem>
+                  <LinkItem to="/properties-in-jaipur">PG in Jaipur</LinkItem>
+                  <LinkItem to="/properties-in-delhi">PG in Delhi</LinkItem>
+                  <LinkItem to="/properties-in-indore">PG in Indore</LinkItem>
+                  <LinkItem to="/properties-in-bangalore">PG in Bangalore</LinkItem>
+                  <LinkItem to="/properties-in-pune">PG in Pune</LinkItem>
                   <li className="pt-1">
-                    <Link to="/website/ourproperty" className="inline-flex items-center gap-1 text-[#0FA89D] font-bold hover:text-[#0b837b] transition-colors text-xs">
+                    <Link to="/cities" className="inline-flex items-center gap-1 text-[#0FA89D] font-bold hover:text-[#0b837b] transition-colors text-xs">
                       View all cities &rarr;
                     </Link>
                   </li>
@@ -217,8 +217,8 @@ export default function WebsiteFooter() {
                   <LinkItem to="/co-living">Co-living</LinkItem>
                   <LinkItem to="/apartments">Apartments</LinkItem>
                   <li className="pt-1">
-                    <Link to="/website/ourproperty" className="inline-flex items-center gap-1 text-[#0FA89D] font-bold hover:text-[#0b837b] transition-colors text-xs">
-                      View all properties &rarr;
+                    <Link to="/properties" className="inline-flex items-center gap-1 text-[#0FA89D] font-bold hover:text-[#0b837b] transition-colors text-xs">
+                      View all types &rarr;
                     </Link>
                   </li>
                 </ul>

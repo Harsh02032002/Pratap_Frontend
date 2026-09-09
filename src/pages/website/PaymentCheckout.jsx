@@ -127,6 +127,18 @@ export default function PaymentCheckout() {
       const paymentLink = orderRes?.payment_link || orderRes?.link_url;
       const paymentSessionId = orderRes?.payment_session_id;
 
+      const isMock = orderRes?.isMockSandbox ||
+        (typeof paymentSessionId === 'string' && paymentSessionId.startsWith('session_sb_mock_')) ||
+        (typeof orderRes?.cf_order_id === 'string' && orderRes.cf_order_id.startsWith('cf_sb_ord_'));
+
+      if (isMock) {
+        alert("⚡ Sandbox Mock Mode: Cashfree payment order created! Redirecting to complete test payment.");
+        if (orderRes.return_url || paymentLink) {
+          window.location.href = orderRes.return_url || paymentLink;
+        }
+        return;
+      }
+
       if (typeof window.Cashfree === 'function' && paymentSessionId) {
         const cashfree = window.Cashfree({ mode: 'sandbox' });
         cashfree.checkout({

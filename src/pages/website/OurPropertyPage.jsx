@@ -6,6 +6,7 @@ const { Filter, MapPin, Wallet, Home, Users, TrendingUp, Send, RefreshCw, Chevro
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useSearchParams, Link, useNavigate, useParams, useLocation } from "react-router-dom";
 import { fetchProperties, searchPropertiesByLocation, getNearbyAreas, getInstitutions, getPriceRangeByType, trackPropertyClick, getApiBase, fetchJson, resolvePropertyOwnerLoginId, firstNonEmptyList } from "../../utils/api";
+import { cacheInvalidate } from "../../utils/cache";
 import FastBiddingModal from "../../components/website/FastBiddingModal";
 import QuickBookingModal from "../../components/website/QuickBookingModal";
 import { useAuth } from "../../contexts/AuthContext";
@@ -156,9 +157,9 @@ export default function OurPropertyPage() {
   const getTypeFromPathname = (path) => {
     const clean = (path || '').replace(/^\/+|\/+$/g, '').toLowerCase();
     if (clean === 'pg' || clean.startsWith('pg-') || clean.startsWith('pg/')) return 'PG';
-    if (clean === 'hostels' || clean.startsWith('hostels-') || clean.startsWith('hostels/')) return 'Hostel';
-    if (clean === 'co-living' || clean.startsWith('co-living-') || clean.startsWith('co-living/')) return 'Co-living';
-    if (clean === 'apartments' || clean.startsWith('apartments-') || clean.startsWith('apartments/')) return 'Apartment';
+    if (clean === 'hostels' || clean === 'hostel' || clean.startsWith('hostel') || clean.startsWith('hostels-') || clean.startsWith('hostels/')) return 'Hostel';
+    if (clean === 'co-living' || clean === 'coliving' || clean.startsWith('co-living-') || clean.startsWith('co-living/')) return 'Co-living';
+    if (clean === 'apartments' || clean === 'apartment' || clean.startsWith('apartment') || clean.startsWith('apartments-') || clean.startsWith('apartments/')) return 'Apartment';
     return '';
   };
 
@@ -473,7 +474,7 @@ export default function OurPropertyPage() {
         const propertyId = prop._id || prop.id || prop.visitId || `property-${index}`;
         const ownerId = resolvePropertyOwnerLoginId(prop) || (prop.generatedCredentials && prop.generatedCredentials.loginId) || prop.ownerLoginId || propInfo.ownerLoginId || 'admin';
         const propRent = parseInt(prop.monthlyRent || prop.rent || prop.price || prop.pricing?.monthlyRent || 0, 10);
-        const budget = (Number.isFinite(parsedMax) && parsedMax > 0) ? parsedMax : (propRent > 0 ? propRent : null);
+        const budget = (Number.isFinite(parsedMax) && parsedMax > 0) ? parsedMax : 0;
 
         return fetchJson(`${getApiBase()}/api/bids/create`, {
           method: 'POST',
@@ -502,6 +503,8 @@ export default function OurPropertyPage() {
       });
 
       await Promise.all(bidRequests);
+      cacheInvalidate('enquiries:');
+      cacheInvalidate('booking-requests:');
       setBiddingSubmitting(false);
       const count = Math.min(targetProperties.length, 15);
       if (window.toast?.success) {

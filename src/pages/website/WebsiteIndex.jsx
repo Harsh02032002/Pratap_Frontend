@@ -718,28 +718,28 @@ export default function WebsiteIndex() {
                   title: 'PG (Paying Guest)',
                   icon: Bed,
                   image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=600&auto=format&fit=crop',
-                  link: '/website/ourproperty?type=pg'
+                  link: '/pg'
                 },
                 {
                   id: 'hostel',
                   title: 'Hostels',
                   icon: Building2,
                   image: 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?q=80&w=600&auto=format&fit=crop',
-                  link: '/website/ourproperty?type=hostel'
+                  link: '/hostels'
                 },
                 {
                   id: 'co-living',
                   title: 'Co-living',
                   icon: Armchair,
                   image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?q=80&w=600&auto=format&fit=crop',
-                  link: '/website/ourproperty?type=co-living'
+                  link: '/co-living'
                 },
                 {
                   id: 'apartment',
                   title: 'Apartments',
                   icon: Home,
                   image: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=600&auto=format&fit=crop',
-                  link: '/website/ourproperty?type=apartment'
+                  link: '/apartments'
                 }
               ].map((card) => {
                 const Icon = card.icon;

@@ -335,14 +335,42 @@ export const extractAadhaarAddress = (text) => {
   const labelIdx = clean.search(/(?:address|पता|s\/o|d\/o|w\/o|c\/o)\s*[:\s]/i);
   const start = labelIdx !== -1 && labelIdx < pinIdx ? labelIdx : Math.max(0, pinIdx - 220);
 
+  const isBoilerplate = (str) => {
+    const s = str.toLowerCase();
+    return (
+      s.includes("unique identification") ||
+      s.includes("authority of india") ||
+      s.includes("government of india") ||
+      s.includes("govt of india") ||
+      s.includes("p.o. box") ||
+      s.includes("po box") ||
+      s.includes("uidaigovin") ||
+      s.includes("www.uidai") ||
+      s.includes("help@uidai") ||
+      s.includes("enrolment") ||
+      s.includes("download date") ||
+      s.includes("issue date")
+    );
+  };
+
   const parts = clean
     .slice(start, pinIdx + 6)
     .replace(/(?:s\/o|d\/o|w\/o|c\/o|son\s+of|daughter\s+of|wife\s+of|care\s+of)\s*[:\s][A-Za-z.\s]{3,40}(?:,|\n|$)/gi, "")
     .replace(/\b(?:address|पता|addr)\s*[:\s,.-]*/gi, "")
-    .replace(/[^A-Za-z0-9\s#\/,.-]/g, " ")
     .split(/[,\n]/)
-    .map((p) => p.replace(/\s+/g, " ").trim())
-    .filter((p) => p.length >= 3 && !/^(india|govt|government|unique|aadhaar|help|uidai)$/i.test(p));
+    .map((p) => {
+      const words = p
+        .replace(/[^A-Za-z0-9\s#\/.-]/g, " ")
+        .split(/\s+/)
+        .filter((w) => {
+          if (w.length <= 2 && !/^\d+$/.test(w) && !/^(no|st|rd|th)$/i.test(w)) return false;
+          if (/^[b-z]$/i.test(w)) return false;
+          if (/india|govt|government|unique|aadhaar|help|uidai|authority|identification/i.test(w)) return false;
+          return true;
+        });
+      return words.join(" ").trim();
+    })
+    .filter((p) => p.length >= 3 && !isBoilerplate(p));
 
   const seen = new Set();
   const unique = [];
@@ -354,7 +382,16 @@ export const extractAadhaarAddress = (text) => {
   }
 
   if (unique.length < 2) return "";
-  return unique.join(", ");
+
+  const finalAddress = unique.join(", ").replace(/\s+,/g, ",").replace(/,\s*,/g, ",").trim();
+  const validWords = finalAddress.split(/\s+/).filter(w => w.length >= 3);
+  if (validWords.length < 2) return "";
+
+  const hasAddressKeyword = /\b(?:house|h\.?no|flat|plot|door|ward|w\.?no|street|road|marg|gali|lane|cross|sector|sec|block|phase|colony|nagar|vihar|enclave|society|apartment|building|tower|floor|near|opp|behind|beside|landmark|village|vill|gram|tehsil|taluk|post|p\.?o\.?|dist|district|city|state|pin|chandigarh|delhi|punjab|haryana|rajasthan|mumbai|kota|mohali|panchkula|jaipur|lucknow|noida|gurgaon|ghaziabad|indore|bhopal|ahmedabad|surat|pune|bangalore|bengaluru|hyderabad|chennai|kolkata|patna|ranchi|dehradun|shimla|jammu)\b/i.test(finalAddress);
+
+  if (!hasAddressKeyword) return "";
+
+  return finalAddress;
 };
 
 // ── OCR ──────────────────────────────────────────────────────────────────────

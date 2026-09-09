@@ -22,16 +22,16 @@ import {
 import toast from 'react-hot-toast';
 
 const CITIES_DATA = [
-  { city: 'Kota', state: 'Rajasthan', count: '512+ PGs', image: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=800&auto=format&fit=crop' },
-  { city: 'Jaipur', state: 'Rajasthan', count: '320+ PGs', image: 'https://images.unsplash.com/photo-1599661046827-dacff0c0f09a?w=800&auto=format&fit=crop' },
-  { city: 'Delhi', state: 'Delhi NCR', count: '780+ PGs', image: 'https://images.unsplash.com/photo-1587474260584-136574528ed5?w=800&auto=format&fit=crop' },
-  { city: 'Indore', state: 'Madhya Pradesh', count: '210+ PGs', image: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800&auto=format&fit=crop' },
-  { city: 'Bhopal', state: 'Madhya Pradesh', count: '190+ PGs', image: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=800&auto=format&fit=crop' },
-  { city: 'Nagpur', state: 'Maharashtra', count: '150+ PGs', image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&auto=format&fit=crop' },
-  { city: 'Sikar', state: 'Rajasthan', count: '120+ PGs', image: 'https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?w=800&auto=format&fit=crop' },
-  { city: 'Bangalore', state: 'Karnataka', count: '600+ PGs', image: 'https://images.unsplash.com/photo-1596178065887-1198b6148b2b?w=800&auto=format&fit=crop' },
-  { city: 'Pune', state: 'Maharashtra', count: '430+ PGs', image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&auto=format&fit=crop' },
-  { city: 'Hyderabad', state: 'Telangana', count: '380+ PGs', image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&auto=format&fit=crop' }
+  { city: 'Kota', state: 'Rajasthan', count: '512+ Properties', image: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=800&auto=format&fit=crop' },
+  { city: 'Jaipur', state: 'Rajasthan', count: '320+ Properties', image: 'https://images.unsplash.com/photo-1599661046827-dacff0c0f09a?w=800&auto=format&fit=crop' },
+  { city: 'Delhi', state: 'Delhi NCR', count: '780+ Properties', image: 'https://images.unsplash.com/photo-1587474260584-136574528ed5?w=800&auto=format&fit=crop' },
+  { city: 'Indore', state: 'Madhya Pradesh', count: '210+ Properties', image: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800&auto=format&fit=crop' },
+  { city: 'Bhopal', state: 'Madhya Pradesh', count: '190+ Properties', image: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=800&auto=format&fit=crop' },
+  { city: 'Nagpur', state: 'Maharashtra', count: '150+ Properties', image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&auto=format&fit=crop' },
+  { city: 'Sikar', state: 'Rajasthan', count: '120+ Properties', image: 'https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?w=800&auto=format&fit=crop' },
+  { city: 'Bangalore', state: 'Karnataka', count: '600+ Properties', image: 'https://images.unsplash.com/photo-1596178065887-1198b6148b2b?w=800&auto=format&fit=crop' },
+  { city: 'Pune', state: 'Maharashtra', count: '430+ Properties', image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&auto=format&fit=crop' },
+  { city: 'Hyderabad', state: 'Telangana', count: '380+ Properties', image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&auto=format&fit=crop' }
 ];
 
 export default function AllCitiesPage() {
@@ -62,7 +62,7 @@ export default function AllCitiesPage() {
   };
 
   useEffect(() => {
-    document.title = 'All Cities - Find Verified PGs & Hostels | Roomhy';
+    document.title = 'All Cities - Explore Top Cities & Stays | Roomhy';
     window.scrollTo(0, 0);
   }, []);
 
@@ -157,14 +157,14 @@ export default function AllCitiesPage() {
         </div>
       </section>
 
-      {/* --- EXPLORE PGS IN TOP CITIES GRID (MATCHING PDF SCREENSHOT 1 & 2) --- */}
+      {/* --- EXPLORE CITIES GRID --- */}
       <section className="py-10 px-4 md:px-8 max-w-7xl mx-auto">
         <div className="text-center max-w-2xl mx-auto mb-8">
           <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
-            Explore PGs in Top Cities
+            Explore Properties in Top Cities
           </h2>
           <p className="text-xs md:text-sm text-slate-500 font-semibold mt-1.5">
-            Choose a city to find PGs, Hostels and Co-living spaces that suit your lifestyle and budget.
+            Choose a city to find PGs, Hostels, Co-living spaces, and Apartments that suit your lifestyle and budget.
           </p>
         </div>
 
@@ -172,13 +172,13 @@ export default function AllCitiesPage() {
           {filteredCities.map((item) => (
             <Link
               key={item.city}
-              to={`/pg-in-${slugify(item.city)}`}
+              to={`/properties-in-${slugify(item.city)}`}
               className="group bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-xl hover:border-teal-200 transition-all duration-300 flex flex-col justify-between"
             >
               <div className="h-44 sm:h-48 overflow-hidden relative">
                 <img
                   src={item.image}
-                  alt={`PG in ${item.city}`}
+                  alt={`Properties in ${item.city}`}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent"></div>
@@ -190,7 +190,7 @@ export default function AllCitiesPage() {
               <div className="p-4 bg-white flex-1 flex flex-col justify-between">
                 <div>
                   <h3 className="font-extrabold text-slate-900 text-base group-hover:text-teal-600 transition-colors">
-                    PG in {item.city}
+                    Properties in {item.city}
                   </h3>
                   <p className="text-xs font-bold text-slate-500 mt-0.5">{item.count}</p>
 
@@ -226,7 +226,7 @@ export default function AllCitiesPage() {
         )}
       </section>
 
-      {/* --- CAN'T DECIDE WHICH CITY OR PG IS RIGHT FOR YOU? (CALLBACK BANNER MATCHING PDF SCREENSHOT 2 & 3) --- */}
+      {/* --- CAN'T DECIDE WHICH CITY OR STAY IS RIGHT FOR YOU? --- */}
       <section className="max-w-7xl mx-auto px-4 md:px-8 mb-12">
         <div className="bg-gradient-to-r from-emerald-500 via-teal-600 to-teal-700 rounded-3xl p-6 sm:p-8 md:p-10 text-white shadow-xl relative overflow-hidden">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
@@ -236,10 +236,10 @@ export default function AllCitiesPage() {
                 Free Assistance
               </span>
               <h2 className="text-2xl sm:text-3xl font-black leading-tight mb-3">
-                Can't Decide Which City or PG is Right for You?
+                Can't Decide Which City or Property is Right for You?
               </h2>
               <p className="text-xs sm:text-sm text-teal-50 font-medium leading-relaxed mb-6">
-                Submit your details, bid your budget, and let Roomhy find the best matching PG for you with Smart Bidding.
+                Submit your details, bid your budget, and let Roomhy find the best matching stay for you with Smart Bidding.
               </p>
 
               <div className="grid grid-cols-2 gap-2 text-xs font-bold">
@@ -249,7 +249,7 @@ export default function AllCitiesPage() {
                 </div>
                 <div className="flex items-center gap-2 bg-white/10 p-2 rounded-xl border border-white/15">
                   <Check className="w-4 h-4 text-emerald-300 shrink-0" />
-                  <span>Best Matching PGs</span>
+                  <span>Best Matching Stays</span>
                 </div>
                 <div className="flex items-center gap-2 bg-white/10 p-2 rounded-xl border border-white/15">
                   <Check className="w-4 h-4 text-emerald-300 shrink-0" />
@@ -320,7 +320,7 @@ export default function AllCitiesPage() {
                   className="w-full py-3.5 bg-teal-600 hover:bg-teal-700 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-2 hover:scale-[1.01]"
                 >
                   <Send className="w-4 h-4" />
-                  <span>Submit &amp; Find My PG →</span>
+                  <span>Submit &amp; Find My Stay →</span>
                 </button>
               </form>
             </div>
@@ -328,7 +328,7 @@ export default function AllCitiesPage() {
         </div>
       </section>
 
-      {/* --- TRUST STATS STRIP (MATCHING PDF SCREENSHOT 3) --- */}
+      {/* --- TRUST STATS STRIP --- */}
       <section className="bg-white border-t border-slate-200 py-8 px-4 md:px-8 mb-12">
         <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
           <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
@@ -337,7 +337,7 @@ export default function AllCitiesPage() {
           </div>
           <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
             <div className="text-2xl md:text-3xl font-black text-emerald-600">10,000+</div>
-            <div className="text-xs font-bold text-slate-600 mt-1">Verified PGs</div>
+            <div className="text-xs font-bold text-slate-600 mt-1">Verified Stays</div>
           </div>
           <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
             <div className="text-2xl md:text-3xl font-black text-purple-600">50+</div>

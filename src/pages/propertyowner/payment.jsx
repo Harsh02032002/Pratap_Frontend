@@ -902,37 +902,33 @@ export default function Payment() {
         </div>
       </div>
 
-      {/* Owner Cashfree Wallet & Instant Bank Withdrawal Banner */}
-      <div className="mb-6 bg-gradient-to-br from-slate-900 via-slate-800 to-black text-white p-6 rounded-3xl shadow-xl border border-slate-800">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+      {/* Owner Cashfree Wallet Banner — Clean & Simple Light UI */}
+      <div className="mb-6 bg-gradient-to-r from-emerald-50 via-teal-50/40 to-blue-50/30 bg-white p-5 sm:p-6 rounded-3xl shadow-sm border border-emerald-100/80 relative overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
 
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-teal-500/20 text-teal-400 rounded-2xl border border-teal-500/30">
-              <Wallet size={32} />
+            <div className="p-3.5 bg-emerald-600 text-white rounded-2xl shadow-md shadow-emerald-600/20 flex items-center justify-center shrink-0">
+              <Wallet size={26} />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-xl font-bold text-white">Owner Cashfree Wallet</h2>
-                <span className="px-2.5 py-0.5 bg-teal-500/20 text-teal-300 text-[11px] font-bold rounded-full border border-teal-500/30">Instant Bank Payout Active</span>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">Owner Cashfree Wallet</h2>
+                <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 text-[11px] font-bold rounded-full border border-emerald-200/80 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  Instant Bank Payout Active
+                </span>
               </div>
-              <p className="text-xs text-slate-400 mt-1">Tenant payments are credited directly to your Available Balance for instant withdrawal.</p>
+              <p className="text-xs font-medium text-slate-500 mt-0.5">Tenant payments are credited directly to your Available Balance.</p>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-6">
-            <div>
-              <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-400 mb-1">💰 Available Balance</div>
-              <div className="text-2xl font-black text-emerald-400">₹{(walletData.availableBalance || walletData.walletBalance || 0).toLocaleString('en-IN')}</div>
-              <div className="text-[10px] text-slate-400 mt-0.5">Ready for instant withdrawal</div>
+          <div className="bg-white/80 backdrop-blur-md px-5 py-3 rounded-2xl border border-emerald-100 shadow-2xs shrink-0 text-left sm:text-right">
+            <div className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-700 mb-0.5">
+              Available Balance
             </div>
-
-            <button
-              onClick={() => setWithdrawModalOpen(true)}
-              disabled={(walletData.availableBalance || walletData.walletBalance || 0) <= 0}
-              className="px-5 py-3 bg-teal-500 hover:bg-teal-400 text-slate-950 font-black rounded-2xl shadow-lg shadow-teal-500/20 transition-all transform hover:-translate-y-0.5 text-xs disabled:opacity-40 disabled:pointer-events-none flex items-center gap-2"
-            >
-              <CreditCard size={16} /> Withdraw to My Bank Account
-            </button>
+            <div className="text-2xl sm:text-3xl font-black text-emerald-700 tracking-tight">
+              ₹{(walletData.availableBalance || walletData.walletBalance || 0).toLocaleString('en-IN')}
+            </div>
           </div>
 
         </div>

@@ -113,7 +113,7 @@ function DesktopHero({ searchQuery, setSearchQuery, selectedGender, setSelectedG
     // Check city matches
     knownCities.forEach(city => {
       if (city.toLowerCase().includes(q)) {
-        matches.push({ type: 'city', title: city, subtitle: 'Explore all stays in ' + city, link: `/website/ourproperty?city=${encodeURIComponent(city)}` });
+        matches.push({ type: 'city', title: city, subtitle: 'Explore all stays in ' + city, link: `/properties-in-${city.toLowerCase()}` });
       }
     });
 
@@ -123,7 +123,7 @@ function DesktopHero({ searchQuery, setSearchQuery, selectedGender, setSelectedG
       const loc = p.location || p.city || p.area || '';
       if (name.toLowerCase().includes(q) || loc.toLowerCase().includes(q)) {
         if (matches.length < 6) {
-          matches.push({ type: 'prop', title: name, subtitle: loc, link: `/website/ourproperty?search=${encodeURIComponent(name)}` });
+          matches.push({ type: 'prop', title: name, subtitle: loc, link: `/property-details/${p._id || p.id}` });
         }
       }
     });
@@ -338,25 +338,25 @@ function DesktopWhatWeOffer() {
     {
       icon: Bed,
       t: "PG (Paying Guest)",
-      href: "/website/ourproperty?type=pg",
+      href: "/pg",
       image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=80"
     },
     {
       icon: Building2,
       t: "Hostels",
-      href: "/website/ourproperty?type=hostel",
+      href: "/hostels",
       image: "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=600&q=80"
     },
     {
       icon: Sofa,
       t: "Co-living",
-      href: "/website/ourproperty?type=co-living",
+      href: "/co-living",
       image: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=600&q=80"
     },
     {
       icon: HomeIcon,
       t: "Apartments",
-      href: "/website/ourproperty?type=apartment",
+      href: "/apartments",
       image: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&q=80"
     }
   ];
@@ -675,11 +675,11 @@ function DesktopCities() {
             <h2 className="font-display text-2xl font-extrabold text-slate-900 md:text-3xl">Browse by Cities</h2>
             <p className="mt-1 text-sm text-slate-600 font-medium">Explore properties in India's most popular student cities.</p>
           </div>
-          <Link to="/website/ourproperty" className={`shrink-0 text-sm font-semibold ${BRAND}`}>View all cities →</Link>
+          <Link to="/cities" className={`shrink-0 text-sm font-semibold ${BRAND}`}>View all cities →</Link>
         </div>
         <div className="mt-5 grid grid-cols-6 gap-3">
           {cities.map((c) => (
-            <Link to={`/website/ourproperty?city=${c.n.toLowerCase()}`} key={c.n} className="group overflow-hidden rounded-2xl border border-emerald-100 bg-white transition hover:-translate-y-0.5 hover:shadow-lg">
+            <Link to={`/properties-in-${c.n.toLowerCase()}`} key={c.n} className="group overflow-hidden rounded-2xl border border-emerald-100 bg-white transition hover:-translate-y-0.5 hover:shadow-lg">
               <div className="relative aspect-[5/4] overflow-hidden">
                 <img src={c.img} alt={c.n} className="h-full w-full object-cover transition group-hover:scale-105" />
               </div>
@@ -705,8 +705,10 @@ function DesktopPopularAreas() {
     { city: "Bhopal", areas: ["MP Nagar", "Indrapuri", "New Market", "Arera Colony", "Ayodhya Bypass"] }
   ];
 
+  const slugify = (text) => (text || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
   return (
-    <DesktopSection title="Popular Areas" sub="Find stays in the most preferred localities across top cities.">
+    <DesktopSection title="Popular Areas" sub="Find stays in the most preferred localities across top cities." right={<Link to="/localities" className={`text-sm font-semibold ${BRAND}`}>View all localities →</Link>}>
       <div className="grid grid-cols-6 gap-4">
         {data.map((c) => (
           <div key={c.city} className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-sm hover:shadow-md transition-shadow">
@@ -718,14 +720,14 @@ function DesktopPopularAreas() {
               <ul className="space-y-2 text-xs font-medium text-slate-600">
                 {c.areas.map((area) => (
                   <li key={area}>
-                    <Link to={`/website/ourproperty?search=${encodeURIComponent(area)}`} className="hover:text-emerald-600 cursor-pointer transition-colors block">
+                    <Link to={`/properties-in-${slugify(area)}-${slugify(c.city)}`} className="hover:text-emerald-600 cursor-pointer transition-colors block">
                       {area}
                     </Link>
                   </li>
                 ))}
               </ul>
             </div>
-            <Link to={`/website/ourproperty?city=${c.city.toLowerCase()}`} className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-emerald-600 hover:underline">
+            <Link to={`/properties-in-${c.city.toLowerCase()}`} className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-emerald-600 hover:underline">
               View all →
             </Link>
           </div>
@@ -828,7 +830,7 @@ function DesktopFindYourStay() {
           const idx = cardImgIdx[c.type] || 0;
           const total = c.images.length;
           return (
-            <Link key={c.title} to={`/website/ourproperty?type=${c.type}`} className={`flex flex-col justify-between rounded-3xl border ${c.bgCard} p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md group`}>
+            <Link key={c.title} to={c.type === 'pg' ? '/pg' : c.type === 'hostel' ? '/hostels' : c.type === 'co-living' ? '/co-living' : c.type === 'apartment' ? '/apartments' : `/website/ourproperty?type=${c.type}`} className={`flex flex-col justify-between rounded-3xl border ${c.bgCard} p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md group`}>
               <div>
                 <div className="flex items-center gap-2.5 mb-4">
                   <div className={`flex h-8 w-8 items-center justify-center rounded-xl ${c.color}`}>
@@ -1252,15 +1254,22 @@ export default function HomePage() {
   const handleSearchSubmit = (e, selectedTabType) => {
     if (e && e.preventDefault) e.preventDefault();
     const query = searchQuery.trim();
-    const params = new URLSearchParams();
     
     // Try to detect city and area from query text
     const knownCities = ['kota', 'sikar', 'indore', 'jaipur', 'delhi', 'mumbai', 'pune', 'bangalore', 'bengaluru', 'hyderabad', 'bhopal', 'nagpur', 'lucknow', 'chandigarh', 'noida', 'gurugram'];
+    const lowerQ = query.toLowerCase();
+    const matchedCity = knownCities.find(c => lowerQ === c || lowerQ.includes(c));
+
+    // If simple city search with no extra filters
+    if (matchedCity && !selectedGender && !selectedBudget && (!query || lowerQ.trim() === matchedCity)) {
+      const typePrefix = selectedTabType || selectedType ? `${(selectedTabType || selectedType).toLowerCase()}-in-` : 'properties-in-';
+      navigate(`/${typePrefix}${matchedCity}`);
+      return;
+    }
+
+    const params = new URLSearchParams();
     if (query) {
-      const lowerQ = query.toLowerCase();
-      const matchedCity = knownCities.find(c => lowerQ.includes(c));
       if (matchedCity) {
-        // Extract city and area from search
         const cityFormatted = matchedCity.charAt(0).toUpperCase() + matchedCity.slice(1);
         params.append('city', cityFormatted);
         const areaText = lowerQ.replace(matchedCity, '').replace(/,/g, '').trim();
@@ -1273,7 +1282,9 @@ export default function HomePage() {
     if (selectedTabType || selectedType) params.append('type', selectedTabType || selectedType);
     if (selectedGender) params.append('gender', selectedGender);
     if (selectedBudget) params.append('maxPrice', selectedBudget);
-    navigate(`/website/ourproperty?${params.toString()}`);
+
+    const queryString = params.toString();
+    navigate(queryString ? `/properties?${queryString}` : '/properties');
   };
 
   return (

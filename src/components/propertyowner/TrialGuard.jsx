@@ -76,6 +76,28 @@ export default function TrialGuard({ owner, children, onLogout }) {
       const paymentSessionId = orderRes.payment_session_id;
       const orderId = orderRes.order_id;
 
+      const isMock = orderRes.isMockSandbox ||
+        (typeof paymentSessionId === 'string' && paymentSessionId.startsWith('session_sb_mock_')) ||
+        (typeof orderRes.cf_order_id === 'string' && orderRes.cf_order_id.startsWith('cf_sb_ord_'));
+
+      if (isMock) {
+        alert("⚡ Sandbox Mock Mode: Subscription payment created! Completing trial activation.");
+        try {
+          const verifyRes = await fetchJson('/api/owners/verify-subscription-payment', {
+            method: 'POST',
+            body: JSON.stringify({ loginId, order_id: orderId })
+          });
+          if (verifyRes.success) {
+            setLoading(true);
+            fetchTrialStatus();
+          }
+        } catch (vErr) {
+          console.warn('[TrialGuard] Mock subscription verification warning:', vErr.message);
+          fetchTrialStatus();
+        }
+        return;
+      }
+
       if (Cashfree && paymentSessionId) {
         const cf = Cashfree({ mode: 'sandbox' });
         cf.checkout({
