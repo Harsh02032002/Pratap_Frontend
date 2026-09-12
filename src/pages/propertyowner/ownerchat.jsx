@@ -160,7 +160,16 @@ export default function OwnerChat() {
 
   const handleSendPaymentLink = async () => {
     if (!associatedBooking || !activeChat) return;
-    const amount = 500; // Fixed ₹500 booking token amount for chat booking confirmation
+
+    // Fetch dynamic booking amount configured by superadmin
+    let amount = 500;
+    try {
+      const configRes = await apiFetch("/api/booking/config/booking-amount").catch(() => null);
+      if (configRes?.bookingAmount && !isNaN(Number(configRes.bookingAmount))) {
+        amount = Number(configRes.bookingAmount);
+      }
+    } catch (_) {}
+
     const propertyName = associatedBooking.property_name || "property";
     const tenantName = associatedBooking.name || activeChat.participant_name || "Tenant";
     const bookingId = associatedBooking._id;
@@ -169,8 +178,8 @@ export default function OwnerChat() {
     let paymentUrl = `https://roomhy.com/website/pay?bookingId=${bookingId}&amount=${amount}`;
 
     try {
-      // Create Cashfree payment order & link
-      const cfRes = await apiFetch("/api/payments/cashfree/create-link", {
+      // Create PayU payment session & link
+      const payuRes = await apiFetch("/api/payments/payu/create-order", {
         method: "POST",
         body: JSON.stringify({
           bookingId,
@@ -183,14 +192,14 @@ export default function OwnerChat() {
         })
       }).catch(() => null);
 
-      if (cfRes?.link_url && (cfRes.link_url.includes('cashfree.com') || cfRes.link_url.includes('cashfree'))) {
-        paymentUrl = cfRes.link_url;
+      if (payuRes?.actionUrl) {
+        paymentUrl = `https://roomhy.com/website/pay?bookingId=${bookingId}&amount=${amount}`;
       }
     } catch (_) {}
 
     paymentUrl = paymentUrl.replace(/app\.roomhy\.com/g, 'roomhy.com');
 
-    const paymentMessage = `Dear ${tenantName}, please complete the token payment of ₹${amount} to confirm your booking for "${propertyName}". 💳 You can pay securely via Cashfree here: ${paymentUrl}`;
+    const paymentMessage = `Dear ${tenantName}, please complete the token payment of ₹${amount} to confirm your booking for "${propertyName}". 💳 You can pay securely via PayU here: ${paymentUrl}`;
 
     const optimisticMsg = {
       id: Date.now(),
