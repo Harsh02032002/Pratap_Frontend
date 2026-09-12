@@ -1031,8 +1031,8 @@ export default function Tenantdashboard() {
     if (params.get("pay") === "online") setPayOpen(true);
     if (params.get("pay") === "cash") { setPayOpen(true); setCashPanelOpen(true); }
 
-    // Cashfree redirects back with ?order_id=RMH_...&rent_id=...&amount=...
-    const cfOrderId = params.get("order_id");
+    // PayU redirects back with ?order_id=RMH_...&rent_id=...&amount=...
+    const cfOrderId = params.get("order_id") || params.get("txnid");
     const cfRentId  = params.get("rent_id");
     const cfAmount  = params.get("amount");
     if (cfOrderId) {
@@ -1040,8 +1040,8 @@ export default function Tenantdashboard() {
       const cleanUrl = window.location.pathname;
       window.history.replaceState({}, document.title, cleanUrl);
 
-      setActionMsg("⏳ Verifying payment with Cashfree...");
-      fetchJson("/api/payments/cashfree/verify-rent-payment", {
+      setActionMsg("⏳ Verifying payment with PayU...");
+      fetchJson("/api/payments/payu/verify-rent-payment", {
         method: "POST",
         body: JSON.stringify({
           orderId: cfOrderId,
@@ -1135,17 +1135,6 @@ export default function Tenantdashboard() {
     window.dispatchEvent(new Event("paymentUpdated"));
   };
 
-  const ensureCashfreeLoaded = () => {
-    return new Promise((resolve) => {
-      if (window.Cashfree) return resolve(true);
-      const script = document.createElement("script");
-      script.src = "https://sdk.cashfree.com/js/v3/cashfree.js";
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.body.appendChild(script);
-    });
-  };
-
   // ─── Payment handlers ─────────────────────────────────────────────────────────
   const handleOnlinePayment = async () => {
     const isCurrent = paymentTarget === "current";
@@ -1164,59 +1153,31 @@ export default function Tenantdashboard() {
         phone: tenantUser?.phone || tenant?.phone || "",
       };
 
-      // ── STEP 1: Try create-link (same as booking payment — direct URL, no SDK) ──
-      let paymentUrl = null;
-      try {
-        const linkRes = await fetchJson("/api/payments/cashfree/create-link", {
-          method: "POST",
-          body: JSON.stringify({ bookingId: bookingRef, amount: paymentAmount, customerInfo })
-        });
-        const isMockLink = linkRes?.isMockSandbox ||
-          (typeof linkRes?.link_url === 'string' && !linkRes.link_url.includes('cashfree.com'));
-        if (!isMockLink && linkRes?.link_url) {
-          paymentUrl = linkRes.link_url;
-        }
-      } catch (_) { /* fall through to create-order */ }
-
-      // If we got a real Cashfree link → redirect directly (same as booking flow)
-      if (paymentUrl) {
-        window.location.href = paymentUrl;
-        return;
-      }
-
-      // ── STEP 2: Fallback — create-order + SDK checkout ──
-      const orderData = await fetchJson("/api/payments/cashfree/create-order", {
+      const orderData = await fetchJson("/api/payments/payu/create-order", {
         method: "POST",
         body: JSON.stringify({ bookingId: bookingRef, amount: paymentAmount, customerInfo }),
       });
 
-      if (!orderData?.success)
-        throw new Error(orderData?.error || orderData?.message || "Failed to create payment order.");
+      if (!orderData?.success || !orderData?.actionUrl || !orderData?.params) {
+        throw new Error(orderData?.message || "Failed to create PayU payment session.");
+      }
 
-      const isMock = orderData.isMockSandbox ||
-        (typeof orderData.payment_session_id === 'string' && orderData.payment_session_id.startsWith('session_sb_mock_')) ||
-        (typeof orderData.cf_order_id === 'string' && orderData.cf_order_id.startsWith('cf_sb_ord_'));
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = orderData.actionUrl;
 
-      if (isMock) {
-        alert("⚡ Sandbox Mock Mode: Cashfree payment order created! Redirecting to complete test payment.");
-        if (orderData.return_url || orderData.payment_link || orderData.link_url) {
-          window.location.href = orderData.return_url || orderData.payment_link || orderData.link_url;
-        } else {
-          window.location.reload();
+      Object.entries(orderData.params).forEach(([k, v]) => {
+        if (v !== undefined && v !== null) {
+          const input = document.createElement("input");
+          input.type = "hidden";
+          input.name = k;
+          input.value = String(v);
+          form.appendChild(input);
         }
-        return;
-      }
+      });
 
-      const loaded = await ensureCashfreeLoaded();
-      if (loaded && window.Cashfree && orderData.payment_session_id) {
-        const cfMode = (import.meta.env?.VITE_CASHFREE_MODE || "production").toLowerCase();
-        const cashfree = window.Cashfree({ mode: cfMode });
-        cashfree.checkout({ paymentSessionId: orderData.payment_session_id, redirectTarget: "_self" });
-      } else if (orderData.return_url || orderData.payment_link || orderData.link_url) {
-        window.location.href = orderData.return_url || orderData.payment_link || orderData.link_url;
-      } else {
-        throw new Error("Could not launch Cashfree checkout session.");
-      }
+      document.body.appendChild(form);
+      form.submit();
     } catch (err) {
       setActionMsg(err?.body || err?.message || "Payment initiation failed. Please try again.");
     } finally {

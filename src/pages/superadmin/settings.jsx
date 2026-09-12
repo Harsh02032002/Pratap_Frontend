@@ -14,6 +14,7 @@ export default function SuperadminSettings() {
 
   const [commissionPercentage, setCommissionPercentage] = useState(10);
   const [gstPercentage, setGstPercentage] = useState(18);
+  const [defaultBookingAmount, setDefaultBookingAmount] = useState(500);
   const [loading, setLoading] = useState(true);
   const [savingSettings, setSavingSettings] = useState(false);
 
@@ -46,6 +47,7 @@ export default function SuperadminSettings() {
         if (settingsRes && settingsRes.success && settingsRes.settings) {
           setCommissionPercentage(settingsRes.settings.commission_percentage ?? 10);
           setGstPercentage(settingsRes.settings.gst_percentage ?? 18);
+          setDefaultBookingAmount(settingsRes.settings.defaultBookingAmount ?? 500);
         }
         if (profileRes && profileRes.success && profileRes.user) {
           setProfile({
@@ -72,7 +74,8 @@ export default function SuperadminSettings() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           commission_percentage: Number(commissionPercentage),
-          gst_percentage: Number(gstPercentage)
+          gst_percentage: Number(gstPercentage),
+          defaultBookingAmount: Number(defaultBookingAmount)
         })
       });
       if (res.success) {
@@ -246,14 +249,33 @@ export default function SuperadminSettings() {
                 </div>
               </div>
 
+              <div className="border-t border-dashed border-slate-200 my-4" />
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="text-xs font-bold text-slate-900 block">Default Booking Amount (₹)</label>
+                  <span className="text-[10px] text-slate-400 font-semibold block">Configured token amount charged for room/property bookings</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-black text-slate-500">₹</span>
+                  <input 
+                    type="number" 
+                    min="0"
+                    value={defaultBookingAmount}
+                    onChange={(e) => setDefaultBookingAmount(Math.max(0, Number(e.target.value)))}
+                    className="w-28 bg-white border border-slate-200 rounded-xl py-2 px-3 text-center text-sm font-black text-slate-900 focus:outline-none focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 transition-all"
+                  />
+                </div>
+              </div>
+
               {/* Live Calculator Visualizer */}
               <div className="bg-white rounded-xl p-4 border border-slate-200/60 shadow-inner space-y-3">
                 <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-400 uppercase tracking-widest">
                   <Sparkles size={11} className="text-purple-600" /> Live Earnings Calculator
                 </div>
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-slate-500 font-semibold">Booking Amount:</span>
-                  <span className="font-bold text-slate-800">₹{mockTenantPayment.toLocaleString("en-IN")}</span>
+                  <span className="text-slate-500 font-semibold">Default Booking Amount:</span>
+                  <span className="font-bold text-purple-700">₹{Number(defaultBookingAmount || 500).toLocaleString("en-IN")}</span>
                 </div>
                 <div className="border-t border-dashed border-slate-100 my-2" />
                 <div className="flex justify-between items-center">
@@ -261,21 +283,21 @@ export default function SuperadminSettings() {
                     <span className="text-[10px] font-black text-purple-600 uppercase tracking-wider">Admin Commission ({commissionPercentage}%)</span>
                     <span className="text-[9px] text-slate-400">Admin gets (before GST)</span>
                   </div>
-                  <span className="text-sm font-black text-purple-700">₹{platformEarning.toLocaleString("en-IN")}</span>
+                  <span className="text-sm font-black text-purple-700">₹{((Number(defaultBookingAmount || 500) * commissionPercentage) / 100).toLocaleString("en-IN")}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <div className="flex flex-col">
                     <span className="text-[10px] font-black text-rose-600 uppercase tracking-wider">GST on Commission ({gstPercentage}%)</span>
                     <span className="text-[9px] text-slate-400">Govt. Tax</span>
                   </div>
-                  <span className="text-sm font-bold text-rose-700">₹{gstOnCommission.toLocaleString("en-IN")}</span>
+                  <span className="text-sm font-bold text-rose-700">₹{(((Number(defaultBookingAmount || 500) * commissionPercentage / 100) * gstPercentage) / 100).toLocaleString("en-IN")}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <div className="flex flex-col">
                     <span className="text-[10px] font-black text-slate-600 uppercase tracking-wider">Owner Earnings</span>
                     <span className="text-[9px] text-slate-400">Net Owner Payout</span>
                   </div>
-                  <span className="text-sm font-bold text-slate-900">₹{ownerPayout.toLocaleString("en-IN")}</span>
+                  <span className="text-sm font-bold text-slate-900">₹{(Number(defaultBookingAmount || 500) - ((Number(defaultBookingAmount || 500) * commissionPercentage) / 100) - (((Number(defaultBookingAmount || 500) * commissionPercentage / 100) * gstPercentage) / 100)).toLocaleString("en-IN")}</span>
                 </div>
               </div>
             </div>

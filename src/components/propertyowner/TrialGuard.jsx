@@ -5,18 +5,6 @@ import { getOwnerRuntimeSession } from '../../utils/propertyowner';
 
 const CACHE_KEY = 'owner_trial_status';
 
-// Dynamically load Cashfree JS SDK v3
-const loadCashfreeSDK = () => {
-  return new Promise((resolve, reject) => {
-    if (window.Cashfree) return resolve(window.Cashfree);
-    const script = document.createElement('script');
-    script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
-    script.onload = () => resolve(window.Cashfree);
-    script.onerror = () => reject(new Error('Failed to load Cashfree SDK'));
-    document.body.appendChild(script);
-  });
-};
-
 /**
  * TrialGuard — wraps all Owner Panel pages.
  * If trial is expired: shows full blur overlay + non-dismissable Cashfree payment modal.
@@ -53,80 +41,40 @@ export default function TrialGuard({ owner, children, onLogout }) {
     fetchTrialStatus();
   }, [fetchTrialStatus]);
 
-  // Handle Online Subscription Payment via Cashfree
-  const handleCashfreeSubscription = async () => {
+// Handle Online Subscription Payment via PayU
+  const handlePayUSubscription = async () => {
     if (!loginId) return;
     setPaying(true);
     setPayError('');
 
     try {
-      // 1. Ensure Cashfree SDK is loaded
-      const Cashfree = await loadCashfreeSDK();
-
-      // 2. Create order on backend
       const orderRes = await fetchJson('/api/owners/create-subscription-order', {
         method: 'POST',
         body: JSON.stringify({ loginId })
       });
 
-      if (!orderRes.success || (!orderRes.payment_session_id && !orderRes.order_id)) {
-        throw new Error(orderRes.message || 'Could not initiate Cashfree payment session');
+      if (!orderRes.success || !orderRes.actionUrl || !orderRes.params) {
+        throw new Error(orderRes.message || 'Could not initiate PayU subscription payment session');
       }
 
-      const paymentSessionId = orderRes.payment_session_id;
-      const orderId = orderRes.order_id;
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = orderRes.actionUrl;
 
-      const isMock = orderRes.isMockSandbox ||
-        (typeof paymentSessionId === 'string' && paymentSessionId.startsWith('session_sb_mock_')) ||
-        (typeof orderRes.cf_order_id === 'string' && orderRes.cf_order_id.startsWith('cf_sb_ord_'));
-
-      if (isMock) {
-        alert("⚡ Sandbox Mock Mode: Subscription payment created! Completing trial activation.");
-        try {
-          const verifyRes = await fetchJson('/api/owners/verify-subscription-payment', {
-            method: 'POST',
-            body: JSON.stringify({ loginId, order_id: orderId })
-          });
-          if (verifyRes.success) {
-            setLoading(true);
-            fetchTrialStatus();
-          }
-        } catch (vErr) {
-          console.warn('[TrialGuard] Mock subscription verification warning:', vErr.message);
-          fetchTrialStatus();
+      Object.entries(orderRes.params).forEach(([k, v]) => {
+        if (v !== undefined && v !== null) {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = k;
+          input.value = String(v);
+          form.appendChild(input);
         }
-        return;
-      }
+      });
 
-      if (Cashfree && paymentSessionId) {
-        const cf = Cashfree({ mode: 'sandbox' });
-        cf.checkout({
-          paymentSessionId: paymentSessionId,
-          redirectTarget: '_modal'
-        }).then(async (result) => {
-          console.log('[TrialGuard] Cashfree checkout complete:', result);
-          // Verify payment with backend
-          try {
-            const verifyRes = await fetchJson('/api/owners/verify-subscription-payment', {
-              method: 'POST',
-              body: JSON.stringify({ loginId, order_id: orderId })
-            });
-
-            if (verifyRes.success) {
-              setLoading(true);
-              fetchTrialStatus();
-            }
-          } catch (vErr) {
-            console.error('[TrialGuard] Verification error:', vErr);
-            // Refresh trial status anyway
-            fetchTrialStatus();
-          }
-        });
-      } else {
-        throw new Error('Cashfree SDK is unavailable');
-      }
+      document.body.appendChild(form);
+      form.submit();
     } catch (err) {
-      console.error('[TrialGuard] Cashfree payment error:', err);
+      console.error('[TrialGuard] PayU payment error:', err);
       setPayError(err.message || 'Payment initiation failed. Please try again.');
     } finally {
       setPaying(false);
@@ -247,16 +195,16 @@ export default function TrialGuard({ owner, children, onLogout }) {
 
             {/* Action Buttons */}
             <div className="px-8 pb-8 space-y-3">
-              {/* Pay Online via Cashfree */}
+              {/* Pay Online via PayU */}
               <button
-                onClick={handleCashfreeSubscription}
+                onClick={handlePayUSubscription}
                 disabled={paying}
                 className="w-full flex items-center justify-center gap-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black py-4 rounded-2xl transition-all shadow-xl shadow-emerald-600/30 text-sm active:scale-95 disabled:opacity-50"
               >
                 {paying ? (
                   <>
                     <RefreshCw size={16} className="animate-spin" />
-                    <span>Connecting Cashfree...</span>
+                    <span>Connecting PayU...</span>
                   </>
                 ) : (
                   <>

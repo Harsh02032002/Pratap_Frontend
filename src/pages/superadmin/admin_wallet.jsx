@@ -78,7 +78,7 @@ export default function AdminWalletPage() {
             </div>
             <div>
               <h1 className="text-2xl font-black text-gray-900">Admin Platform Wallet</h1>
-              <p className="text-sm text-gray-500">Manage 5% platform commission earnings and direct Cashfree bank transfers</p>
+              <p className="text-sm text-gray-500">Manage 5% platform commission earnings and direct bank transfers</p>
             </div>
           </div>
 
@@ -127,7 +127,7 @@ export default function AdminWalletPage() {
             <h2 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
               <ArrowUpRight className="text-teal-600" size={20} /> Withdraw Platform Earnings
             </h2>
-            <p className="text-sm text-gray-500 mb-6">Instantly transfer available platform commission to registered Cashfree Merchant Account</p>
+            <p className="text-sm text-gray-500 mb-6">Instantly transfer available platform commission to registered PayU Merchant Account</p>
 
             <form onSubmit={handleWithdrawAdminEarnings} className="space-y-4">
               <div>
@@ -157,7 +157,7 @@ export default function AdminWalletPage() {
             <h2 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
               <Building className="text-blue-600" size={20} /> Registered Merchant Bank Account
             </h2>
-            <p className="text-sm text-gray-500 mb-6">Linked Cashfree Payout Merchant Account</p>
+            <p className="text-sm text-gray-500 mb-6">Linked PayU Merchant Account</p>
 
             <div className="space-y-4 bg-gray-50 p-6 rounded-2xl border border-gray-100">
               <div className="flex justify-between items-center text-sm border-b border-gray-200/60 pb-3">
@@ -166,7 +166,7 @@ export default function AdminWalletPage() {
               </div>
               <div className="flex justify-between items-center text-sm border-b border-gray-200/60 pb-3">
                 <span className="text-gray-500 font-medium">Merchant Gateway</span>
-                <span className="font-bold text-teal-600">Cashfree PG Payout Auto-Settlement</span>
+                <span className="font-bold text-teal-600">PayU PG Settlement</span>
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-gray-500 font-medium">Status</span>

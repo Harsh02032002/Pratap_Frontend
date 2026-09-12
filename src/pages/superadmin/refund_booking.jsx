@@ -31,7 +31,7 @@ export default function RefundBookingPage() {
   }, []);
 
   const handleProcessRefund = async (reqId) => {
-    if (!window.confirm("Are you sure you want to process full booking refund via Cashfree?")) return;
+    if (!window.confirm("Are you sure you want to process full booking refund via PayU?")) return;
     setProcessingId(reqId);
     setMsg({ text: "", type: "" });
     try {

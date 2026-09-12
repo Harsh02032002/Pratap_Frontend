@@ -22,7 +22,7 @@ export default function PartialRefundPage() {
     setLoading(true);
 
     try {
-      const res = await fetchJson("/api/payments/cashfree/refund", {
+      const res = await fetchJson("/api/payments/payu/refund", {
         method: "POST",
         body: JSON.stringify({
           transactionId,

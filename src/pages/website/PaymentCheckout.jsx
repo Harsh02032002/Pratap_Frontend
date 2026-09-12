@@ -54,16 +54,14 @@ export default function PaymentCheckout() {
         }
 
         if (orderId) {
-          const statusRes = await fetchJson(`/api/payments/cashfree/status/${orderId}`).catch(() => null);
+          const statusRes = await fetchJson(`/api/payments/payu/status/${orderId}`).catch(() => null);
           const rawStatus = String(
             statusRes?.status ||
-            statusRes?.cf_status ||
-            statusRes?.db_status ||
             statusRes?.transaction?.status ||
             ""
           ).toUpperCase();
 
-          if (rawStatus === "PAID" || rawStatus === "SUCCESS" || rawStatus === "VERIFIED" || rawStatus === "SETTLED" || rawStatus === "PAID_SUCCESSFULLY") {
+          if (rawStatus === "PAID" || rawStatus === "SUCCESS" || rawStatus === "VERIFIED" || rawStatus === "SETTLED") {
             setPaymentStatus("success");
             setLoading(false);
             return;
@@ -85,6 +83,10 @@ export default function PaymentCheckout() {
         const keyRes = await fetchJson("/api/booking/config/razorpay-key").catch(() => null);
         setRazorpayKey(keyRes?.razorpayKey || keyRes?.key || "");
 
+        // Fetch dynamic booking amount config as fallback
+        const bookingAmtRes = await fetchJson("/api/booking/config/booking-amount").catch(() => null);
+        const systemDefaultAmt = bookingAmtRes?.bookingAmount || 500;
+
         // Fetch Booking Details if possible
         const targetBookingId = extractedBookingId || rawBookingId;
         if (targetBookingId) {
@@ -92,9 +94,14 @@ export default function PaymentCheckout() {
           if (bRes) {
             setBookingData(prev => ({
               ...(bRes.data || bRes || {}),
-              amount: bRes?.total_amount || bRes?.amount || prev?.amount || 0
+              amount: bRes?.total_amount || bRes?.booking_amount || bRes?.amount || prev?.amount || systemDefaultAmt
             }));
           }
+        } else {
+          setBookingData(prev => ({
+            ...prev,
+            amount: prev?.amount || systemDefaultAmt
+          }));
         }
       } catch (err) {
         console.error(err);
@@ -116,56 +123,32 @@ export default function PaymentCheckout() {
         phone: bookingData?.phone || ""
       };
 
-      // ── STEP 1: Try create-link first (same as booking payment — direct URL, no SDK) ──
-      let paymentUrl = null;
-      try {
-        const linkRes = await fetchJson("/api/payments/cashfree/create-link", {
-          method: "POST",
-          body: JSON.stringify({ bookingId: targetBookingId, amount: Number(finalAmount), customerInfo })
-        });
-        const isMockLink = linkRes?.isMockSandbox ||
-          (typeof linkRes?.link_url === 'string' && !linkRes.link_url.includes('cashfree.com'));
-        if (!isMockLink && linkRes?.link_url) {
-          paymentUrl = linkRes.link_url;
-        }
-      } catch (_) { /* fall through to create-order */ }
-
-      // If we got a real Cashfree link → redirect directly
-      if (paymentUrl) {
-        window.location.href = paymentUrl;
-        return;
-      }
-
-      // ── STEP 2: Fallback — create-order + SDK checkout ──
-      const orderRes = await fetchJson("/api/payments/cashfree/create-order", {
+      const orderRes = await fetchJson("/api/payments/payu/create-order", {
         method: "POST",
         body: JSON.stringify({ bookingId: targetBookingId, amount: Number(finalAmount), customerInfo })
       });
 
-      const paymentLink = orderRes?.payment_link || orderRes?.link_url;
-      const paymentSessionId = orderRes?.payment_session_id;
+      if (!orderRes?.success || !orderRes?.actionUrl || !orderRes?.params) {
+        throw new Error(orderRes?.message || "Could not create PayU payment session");
+      }
 
-      const isMock = orderRes?.isMockSandbox ||
-        (typeof paymentSessionId === 'string' && paymentSessionId.startsWith('session_sb_mock_')) ||
-        (typeof orderRes?.cf_order_id === 'string' && orderRes.cf_order_id.startsWith('cf_sb_ord_'));
+      // Auto-submit POST form to PayU checkout URL
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = orderRes.actionUrl;
 
-      if (isMock) {
-        alert("⚡ Sandbox Mock Mode: Cashfree payment order created! Redirecting to complete test payment.");
-        if (orderRes.return_url || paymentLink) {
-          window.location.href = orderRes.return_url || paymentLink;
+      Object.entries(orderRes.params).forEach(([k, v]) => {
+        if (v !== undefined && v !== null) {
+          const input = document.createElement("input");
+          input.type = "hidden";
+          input.name = k;
+          input.value = String(v);
+          form.appendChild(input);
         }
-        return;
-      }
+      });
 
-      if (typeof window.Cashfree === 'function' && paymentSessionId) {
-        const cfMode = (import.meta.env?.VITE_CASHFREE_MODE || 'production').toLowerCase();
-        const cashfree = window.Cashfree({ mode: cfMode });
-        cashfree.checkout({ paymentSessionId, redirectTarget: '_self' });
-      } else if (paymentLink) {
-        window.location.href = paymentLink;
-      } else {
-        throw new Error(orderRes?.message || "Could not create Cashfree payment session");
-      }
+      document.body.appendChild(form);
+      form.submit();
     } catch (err) {
       console.error("Payment initiation error:", err);
       const errorMsg = err?.body?.message || err?.body?.error || err?.message || "Error initiating payment.";
@@ -221,7 +204,7 @@ export default function PaymentCheckout() {
                   <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-xl border border-blue-100">
                     <ShieldCheck className="text-blue-600 shrink-0 mt-0.5" size={18} />
                     <p className="text-[11px] text-blue-700 leading-relaxed font-medium">
-                      Your payment is secured by Cashfree. Roomhy does not store your card or bank details.
+                      Your payment is secured by PayU. Roomhy does not store your card or bank details.
                     </p>
                   </div>
 

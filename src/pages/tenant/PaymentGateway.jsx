@@ -27,8 +27,8 @@ const PaymentGateway = () => {
             return;
         }
 
-        // Check if returning from Cashfree redirect with order_id
-        const orderIdParam = searchParams.get('order_id');
+        // Check if returning from PayU redirect with order_id
+        const orderIdParam = searchParams.get('order_id') || searchParams.get('txnid');
         if (orderIdParam) {
             setLoading(true);
             const tokenOrRentId = searchParams.get('rent_id') || searchParams.get('token') || token;
@@ -40,7 +40,7 @@ const PaymentGateway = () => {
                 }
             } catch (_) { }
 
-            fetchJson('/api/payments/cashfree/verify-rent-payment', {
+            fetchJson('/api/payments/payu/verify-rent-payment', {
                 method: 'POST',
                 body: JSON.stringify({
                     orderId: orderIdParam,
@@ -53,14 +53,6 @@ const PaymentGateway = () => {
                 .catch(() => setStep(4))
                 .finally(() => setLoading(false));
             return;
-        }
-
-        // Dynamically load Cashfree JS SDK script if not already present
-        if (typeof window !== 'undefined' && !window.Cashfree) {
-            const script = document.createElement('script');
-            script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
-            script.async = true;
-            document.body.appendChild(script);
         }
 
         // Auto-extract loginId from JWT token and skip Step 1
@@ -120,66 +112,31 @@ const PaymentGateway = () => {
                 email: propertyData?.tenantEmail || ''
             };
 
-            // ── STEP 1: Try create-link first (same as booking payment — direct URL, no SDK needed) ──
-            let paymentUrl = null;
-            try {
-                const linkRes = await fetchJson('/api/payments/cashfree/create-link', {
-                    method: 'POST',
-                    body: JSON.stringify({ bookingId: bookingRef, amount, customerInfo })
-                });
-
-                const isMockLink = linkRes?.isMockSandbox ||
-                    (typeof linkRes?.link_url === 'string' && !linkRes.link_url.includes('cashfree.com'));
-
-                if (!isMockLink && linkRes?.link_url) {
-                    paymentUrl = linkRes.link_url;
-                }
-            } catch (_) { /* fall through to create-order */ }
-
-            // If we got a real Cashfree link → redirect directly (same as booking flow)
-            if (paymentUrl) {
-                window.location.href = paymentUrl;
-                return;
-            }
-
-            // ── STEP 2: Fallback — create-order + SDK checkout ──
-            const data = await fetchJson('/api/payments/cashfree/create-order', {
+            const data = await fetchJson('/api/payments/payu/create-order', {
                 method: 'POST',
                 body: JSON.stringify({ bookingId: bookingRef, amount, customerInfo })
             });
 
-            const paymentSessionId = data.payment_session_id;
-            const paymentLink = data.payment_link || data.link_url;
-
-            const isMock = data.isMockSandbox ||
-                (typeof paymentSessionId === 'string' && paymentSessionId.startsWith('session_sb_mock_')) ||
-                (typeof data.cf_order_id === 'string' && data.cf_order_id.startsWith('cf_sb_ord_'));
-
-            if (isMock) {
-                const orderIdToVerify = data.order_id || data.cf_order_id;
-                await fetchJson('/api/payments/cashfree/verify-rent-payment', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        orderId: orderIdToVerify,
-                        rentId: bookingRef,
-                        amount,
-                        tenantLoginId: propertyData?.loginId || loginId
-                    })
-                }).catch(vErr => console.warn('Online mock verify warning:', vErr.message));
-                setStep(4);
-                return;
+            if (!data?.success || !data?.actionUrl || !data?.params) {
+                throw new Error(data?.message || 'Could not initiate PayU payment session.');
             }
 
-            // SDK checkout (if payment_session_id is returned)
-            if (typeof window.Cashfree === 'function' && paymentSessionId) {
-                const cfMode = (import.meta.env?.VITE_CASHFREE_MODE || 'production').toLowerCase();
-                const cashfree = window.Cashfree({ mode: cfMode });
-                cashfree.checkout({ paymentSessionId, redirectTarget: '_self' });
-            } else if (paymentLink) {
-                window.location.href = paymentLink;
-            } else {
-                throw new Error('Could not initiate Cashfree payment. Please try again.');
-            }
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = data.actionUrl;
+
+            Object.entries(data.params).forEach(([k, v]) => {
+                if (v !== undefined && v !== null) {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = k;
+                    input.value = String(v);
+                    form.appendChild(input);
+                }
+            });
+
+            document.body.appendChild(form);
+            form.submit();
 
         } catch (err) {
             setError(err.message);
@@ -345,7 +302,7 @@ const PaymentGateway = () => {
                                     className="w-full relative flex items-center justify-between p-4 border border-purple-200 bg-purple-50 hover:bg-purple-100 rounded-xl cursor-pointer transition-colors"
                                 >
                                     <div className="flex flex-col text-left">
-                                        <span className="font-bold text-purple-900">Pay Online (Cashfree)</span>
+                                        <span className="font-bold text-purple-900">Pay Online (PayU)</span>
                                         <span className="text-purple-700 text-xs mt-1">UPI, Credit/Debit Card, Netbanking</span>
                                     </div>
                                     <span className="text-purple-600">→</span>
@@ -445,10 +402,7 @@ const PaymentGateway = () => {
                 </div>
             </div>
 
-            {/* Script include for Cashfree */}
-            <div className="hidden">
-                <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
-            </div>
+
 
         </div>
     );

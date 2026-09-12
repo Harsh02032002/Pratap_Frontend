@@ -31,7 +31,7 @@ export default function PaymentGatewayPage() {
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-8">
         <div>
           <h1 className="font-serif text-[38px] md:text-[44px] leading-[1.05] text-foreground">Payment Gateway</h1>
-          <p className="mt-1.5 text-[13.5px] text-muted-foreground">Link your merchant Razorpay, Cashfree, or Paytm UPI credentials for direct tenant rent settlements.</p>
+          <p className="mt-1.5 text-[13.5px] text-muted-foreground">Link your merchant Razorpay, PayU, or Paytm UPI credentials for direct tenant rent settlements.</p>
         </div>
       </div>
 
