@@ -6,6 +6,7 @@ import MobileBottomNav from "../../components/website/MobileBottomNav";
 import { submitEnquiry, fetchJson } from '../../utils/api';
 import { getOwnerRuntimeSession } from '../../utils/propertyowner';
 import useSEO from '../../hooks/useSEO';
+import { toast } from 'react-hot-toast';
 
 export default function ListYourPropertyPage() {
   useSEO({ 
@@ -165,7 +166,7 @@ export default function ListYourPropertyPage() {
       });
     } catch (error) {
       console.error('Error submitting enquiry:', error);
-      alert('Failed to submit. Please try again.');
+      toast.error('Failed to submit. Please try again.');
     } finally {
       setLoadingForm(false);
     }

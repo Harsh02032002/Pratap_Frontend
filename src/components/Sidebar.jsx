@@ -104,7 +104,6 @@ const NAV = [
         { label: "Total Properties", path: "/superadmin/total-properties", restrictedKey: "pm_total_properties" },
         { label: "Add Property", path: "/superadmin/add-property", restrictedKey: "pm_add_property" },
         { label: "Approve / Reject Properties", path: "/superadmin/property/approvals", restrictedKey: "pm_approve" },
-        { label: "Employee Property Approvals", path: "/superadmin/employee-properties", restrictedKey: "pm_emp_approval" },
         { label: "Pending Properties", path: "/superadmin/property/pending", restrictedKey: "pm_pending" },
         { label: "Rooms Management", path: "/superadmin/rooms", restrictedKey: "pm_rooms" },
         { label: "Online Leads", path: "/superadmin/enquiry", restrictedKey: "pm_leads" },

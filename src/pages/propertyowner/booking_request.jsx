@@ -189,9 +189,26 @@ export default function BookingRequestPage() {
       ) : filteredRequests.length === 0 ? (
         <div className="rounded-2xl border border-border bg-card p-12 text-center shadow-soft">
           <Clock size={40} className="mx-auto text-muted-foreground mb-4" />
-          <h3 className="font-serif text-[20px] font-bold text-foreground">No Pending Requests</h3>
-          <p className="text-[13px] text-muted-foreground mt-1">There are no new booking requests at the moment.</p>
-          <button onClick={() => fetchRequests(true)} className="mt-4 text-[13px] text-primary underline underline-offset-2">Check for new requests</button>
+          <h3 className="font-serif text-[20px] font-bold text-foreground">
+            {requests.length > 0 
+              ? `No ${activeTab === 'direct' ? 'Direct' : 'Bidding'} Requests`
+              : "No Pending Requests"}
+          </h3>
+          <p className="text-[13px] text-muted-foreground mt-1">
+            {requests.length > 0 
+              ? `You have no pending ${activeTab === 'direct' ? 'direct booking' : 'bidding'} requests, but ${requests.length} total request(s) exist under the other tab.`
+              : "There are no new booking requests at the moment."}
+          </p>
+          {requests.length > 0 ? (
+            <button 
+              onClick={() => setActiveTab("all")} 
+              className="mt-4 px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition"
+            >
+              View All Requests ({requests.length})
+            </button>
+          ) : (
+            <button onClick={() => fetchRequests(true)} className="mt-4 text-[13px] text-primary underline underline-offset-2">Check for new requests</button>
+          )}
         </div>
       ) : (
         /* Grid of Booking Requests */

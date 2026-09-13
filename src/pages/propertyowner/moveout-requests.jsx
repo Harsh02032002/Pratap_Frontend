@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
 import { getOwnerRuntimeSession, clearOwnerRuntimeSession } from "../../utils/propertyowner";
 import { apiFetch } from "../../utils/api";
+import { toast } from "react-hot-toast";
 import {
   LogOut, Search, Phone, CheckCircle2, AlertTriangle,
   Clock, XCircle, Loader2, CalendarDays, IndianRupee, CalendarClock, Undo2
@@ -164,7 +165,7 @@ export default function MoveoutRequestsPage() {
       setSelected(null);
       fetchRequests();
     } catch (err) {
-      alert(err.message || "Failed to approve checkout");
+      toast.error(err.message || "Failed to approve checkout");
     } finally {
       setSubmitting(false);
     }
@@ -183,7 +184,7 @@ export default function MoveoutRequestsPage() {
       setCancelReason("");
       fetchRequests();
     } catch (err) {
-      alert(err.message || "Failed to cancel the notice period");
+      toast.error(err.message || "Failed to cancel the notice period");
     } finally {
       setCancelling(false);
     }
@@ -198,7 +199,7 @@ export default function MoveoutRequestsPage() {
       });
       fetchRequests();
     } catch (err) {
-      alert(err.message || "Failed to reject move-out request");
+      toast.error(err.message || "Failed to reject move-out request");
     }
   };
 

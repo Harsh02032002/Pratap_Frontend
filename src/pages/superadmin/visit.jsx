@@ -1342,6 +1342,27 @@ export default function Visit() {
     }
   };
 
+  const deleteVisit = async (v) => {
+    const id = v.visitId || v._id;
+    if (!window.confirm(`Are you sure you want to delete the visit report for "${v.propertyName || "this property"}"? This action cannot be undone.`)) return;
+    setActingId(id);
+    try {
+      await fetchJson(`/api/visits/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+        headers: getAuthHeader(),
+      });
+      notify("success", "Visit report deleted", `Deleted report for ${v.propertyName || "property"}.`);
+      if (viewingVisit && (viewingVisit.visitId === id || viewingVisit._id === id)) {
+        setViewingVisit(null);
+      }
+      loadVisits();
+    } catch (err) {
+      notify("error", "Could not delete visit report", err?.message || "Please try again.");
+    } finally {
+      setActingId(null);
+    }
+  };
+
   // ─── Photo Helpers ──────────────────────────────────────────────────────────
 
   const addPhotoUrl = () => {
@@ -2173,18 +2194,18 @@ export default function Visit() {
           </div>
 
           {/* Table */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-            <table className="w-full text-left border-collapse">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[1300px]">
               <thead>
-                <tr className="bg-slate-50/50 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                  <th className="p-4 pl-6">Property / Owner</th>
-                  <th className="p-4">Location</th>
-                  <th className="p-4">Type / Rent</th>
-                  <th className="p-4">Submitted By</th>
-                  <th className="p-4">KYC</th>
-                  <th className="p-4">Tier</th>
-                  <th className="p-4">Status</th>
-                  <th className="p-4 pr-6 text-right">Actions</th>
+                <tr className="bg-slate-50/50 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">
+                  <th className="p-4 pl-6 min-w-[200px]">Property / Owner</th>
+                  <th className="p-4 min-w-[160px]">Location</th>
+                  <th className="p-4 min-w-[140px]">Type / Rent</th>
+                  <th className="p-4 min-w-[160px]">Submitted By</th>
+                  <th className="p-4 min-w-[120px]">KYC</th>
+                  <th className="p-4 min-w-[140px]">Tier</th>
+                  <th className="p-4 min-w-[120px]">Status</th>
+                  <th className="p-4 pr-6 text-right min-w-[280px]">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 text-xs font-bold text-slate-700">
@@ -2265,7 +2286,7 @@ export default function Visit() {
                           </p>
                         )}
                       </td>
-                      <td className="p-4 pr-6">
+                      <td className="p-4 pr-6 whitespace-nowrap">
                         <div className="flex items-center justify-end gap-2">
                           <button onClick={() => setViewingVisit(v)}
                             className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold uppercase transition-all">
@@ -2301,6 +2322,7 @@ export default function Visit() {
                               )}
                               {canApprove && (
                                 <button
+                                  type="button"
                                   onClick={() => { setRejectModal(v); setRejectReason(""); }}
                                   disabled={actingId === (v.visitId || v._id)}
                                   title="Reject this report and send the employee a reason"
@@ -2310,6 +2332,17 @@ export default function Visit() {
                                 </button>
                               )}
                             </>
+                          )}
+                          {canApprove && (
+                            <button
+                              type="button"
+                              onClick={() => deleteVisit(v)}
+                              disabled={actingId === (v.visitId || v._id)}
+                              title="Delete this visit report permanently"
+                              className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-lg text-[10px] font-bold uppercase transition-all flex items-center gap-1 cursor-pointer disabled:opacity-40 shadow-xs"
+                            >
+                              <Trash size={11} /> Delete
+                            </button>
                           )}
                         </div>
                       </td>
@@ -2428,13 +2461,14 @@ export default function Visit() {
                       <DetailItem label="Branch" value={ownerKyc?.checkinBranchName} />
                       <DetailItem label="UPI ID" value={ownerKyc?.checkinUpiId} />
                     </DetailGrid>
-                    {(ownerKyc?.checkinOwnerPhoto || ownerKyc?.checkinAadhaarImage || ownerKyc?.checkinBankProof) && (
+                    {(ownerKyc?.checkinOwnerPhoto || ownerKyc?.checkinAadhaarImage || ownerKyc?.documentImage || ownerKyc?.checkinBankProof) && (
                       <>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-6 mb-3">Uploaded Documents</p>
                         <div className="flex flex-wrap gap-4">
                           {[
                             { src: ownerKyc?.checkinOwnerPhoto, label: "Owner Photo" },
-                            { src: ownerKyc?.checkinAadhaarImage, label: "Aadhaar" },
+                            { src: ownerKyc?.checkinAadhaarImage || ownerKyc?.documentImage || ownerKyc?.checkinAadhaarFront, label: "Aadhaar Card" },
+                            { src: ownerKyc?.checkinAadhaarBack, label: "Aadhaar Back" },
                             { src: ownerKyc?.checkinBankProof, label: "Bank Proof" },
                           ].filter(d => d.src).map((d, idx) => (
                             <a key={idx} href={d.src} target="_blank" rel="noreferrer" className="group">

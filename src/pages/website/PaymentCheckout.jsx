@@ -4,6 +4,7 @@ import { CreditCard, ShieldCheck, ArrowLeft, CheckCircle2, AlertCircle, Loader2 
 import WebsiteNavbar from "../../components/website/WebsiteNavbar";
 import WebsiteFooter from "../../components/website/WebsiteFooter";
 import { fetchJson } from "../../utils/api";
+import { toast } from "react-hot-toast";
 
 export default function PaymentCheckout() {
   const [searchParams] = useSearchParams();
@@ -152,7 +153,7 @@ export default function PaymentCheckout() {
     } catch (err) {
       console.error("Payment initiation error:", err);
       const errorMsg = err?.body?.message || err?.body?.error || err?.message || "Error initiating payment.";
-      alert(errorMsg);
+      toast.error(errorMsg);
     }
   };
 

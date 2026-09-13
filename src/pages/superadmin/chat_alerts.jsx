@@ -6,7 +6,7 @@ import {
   AlertTriangle, ShieldAlert, CheckCircle2, UserX, MessageSquare, 
   Eye, RefreshCw, MoreVertical, Ban, Trash2, Mail, ShieldCheck, 
   HelpCircle, UserCheck, Play, ArrowRight, Info, Clock, Lock, 
-  PhoneCall, DollarSign, CreditCard, ExternalLink
+  PhoneCall, DollarSign, CreditCard, ExternalLink, X, Loader2
 } from "lucide-react";
 
 export default function ChatAlerts() {
@@ -46,16 +46,27 @@ export default function ChatAlerts() {
     window.history.replaceState({}, "", url.toString());
   };
 
-  const handleUnblockOwner = async (loginId) => {
-    if (!window.confirm(`Are you sure you want to unblock owner ${loginId}?`)) return;
+  const [unblockConfirmId, setUnblockConfirmId] = useState(null);
+  const [unblocking, setUnblocking] = useState(false);
+
+  const handleUnblockOwner = (loginId) => {
+    setUnblockConfirmId(loginId);
+  };
+
+  const confirmUnblockOwner = async () => {
+    if (!unblockConfirmId) return;
     try {
-      const res = await fetchJson(`/api/chat/admin/blocked-owners/${loginId}/unblock`, { method: "POST" });
+      setUnblocking(true);
+      const res = await fetchJson(`/api/chat/admin/blocked-owners/${unblockConfirmId}/unblock`, { method: "POST" });
       if (res.success) {
-        toast.success(`Owner ${loginId} unblocked successfully!`);
+        toast.success(`Owner ${unblockConfirmId} unblocked successfully!`);
+        setUnblockConfirmId(null);
         loadData();
       }
     } catch (err) {
       toast.error(err.message || "Failed to unblock owner");
+    } finally {
+      setUnblocking(false);
     }
   };
 
@@ -916,6 +927,53 @@ export default function ChatAlerts() {
                 }`}
               >
                 Execute Action
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unblock Account Confirmation Modal */}
+      {unblockConfirmId && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-md p-6 relative shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <button
+              onClick={() => setUnblockConfirmId(null)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition p-1 hover:bg-slate-100 rounded-full"
+            >
+              <X className="size-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="size-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                <UserCheck size={24} />
+              </div>
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 bg-emerald-50 border border-emerald-100 px-2.5 py-0.5 rounded-full">
+                  Confirmation Needed
+                </span>
+                <h3 className="font-serif text-[20px] font-bold text-slate-900 dark:text-white mt-1">Unblock Owner Account</h3>
+              </div>
+            </div>
+
+            <p className="text-[13px] text-slate-600 dark:text-slate-300 leading-relaxed mb-6">
+              Are you sure you want to unblock owner <strong className="text-slate-900 dark:text-white">{unblockConfirmId}</strong>? This will restore their chat privileges and reactivate their account on Roomhy.
+            </p>
+
+            <div className="flex items-center justify-end gap-3 border-t border-slate-100 dark:border-slate-800 pt-4">
+              <button
+                onClick={() => setUnblockConfirmId(null)}
+                className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-bold transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmUnblockOwner}
+                disabled={unblocking}
+                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black transition flex items-center gap-2 shadow-lg shadow-emerald-600/20"
+              >
+                {unblocking ? <Loader2 className="size-4 animate-spin" /> : <UserCheck className="size-4" />}
+                <span>Confirm Unblock</span>
               </button>
             </div>
           </div>

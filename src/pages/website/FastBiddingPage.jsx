@@ -5,6 +5,7 @@ import WebsiteFooter from "../../components/website/WebsiteFooter";
 import MobileBottomNav from "../../components/website/MobileBottomNav";
 import { fetchCities, fetchAreas, fetchProperties, resolvePropertyOwnerLoginId } from '../../utils/api';
 import { getWebsiteUser, getWebsiteUserId, getWebsiteUserName, getWebsiteUserEmail, isWebsiteLoggedIn } from '../../utils/websiteSession';
+import { toast } from 'react-hot-toast';
 
 const defaultCities = [
   { _id: 'kota', name: 'Kota, Rajasthan' },
@@ -230,7 +231,7 @@ export default function FastBiddingPage() {
     e.preventDefault();
 
     if (!validateForm()) {
-      alert('Please fill in all required fields correctly');
+      toast.error('Please fill in all required fields correctly');
       return;
     }
 
@@ -241,7 +242,7 @@ export default function FastBiddingPage() {
     }
 
     if (properties.length === 0) {
-      alert('No matching properties found in this area');
+      toast.error('No matching properties found in this area');
       return;
     }
 

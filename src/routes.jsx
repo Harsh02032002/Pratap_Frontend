@@ -48,7 +48,6 @@ const routeEntries = [
   ["/superadmin/featured", "./pages/superadmin/FeaturedListings.jsx"],
   ["/superadmin/property/pending", "./pages/superadmin/PendingProperties.jsx"],
   ["/superadmin/property/approvals", "./pages/superadmin/property_approvals.jsx"],
-  ["/superadmin/employee-properties", "./pages/superadmin/employee_properties.jsx"],
   ["/superadmin/property/flagged", "./pages/superadmin/property_flagged.jsx"],
   ["/superadmin/property/categories", "./pages/superadmin/property_categories.jsx"],
   ["/superadmin/property/amenities", "./pages/superadmin/property_amenities.jsx"],

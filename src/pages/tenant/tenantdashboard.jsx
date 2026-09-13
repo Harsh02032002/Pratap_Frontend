@@ -8,6 +8,7 @@ import { useHtmlPage } from "../../utils/htmlPage";
 import { fetchJson, getApiBase, getAuthHeader, parseApiError } from "../../utils/api";
 import { clearAllAuthKeys } from "../../contexts/AuthContext";
 import { verifyCashOtp as verifyCashOtpRequest } from "../../utils/rentCollectionApi";
+import { toast } from "react-hot-toast";
 import {
   CheckCircle, Download, Eye, Upload, Star, Clock, XCircle,
   Clock3, AlertTriangle, FileWarning, X, CreditCard, HandCoins, Undo2,
@@ -1113,7 +1114,7 @@ export default function Tenantdashboard() {
       pdf.save(`Roomhy_Receipt_${receiptNo}.pdf`);
 
     } catch (err) {
-      alert("Receipt download failed: " + (err?.message || "Unknown error"));
+      toast.error("Receipt download failed: " + (err?.message || "Unknown error"));
     } finally {
       setPdfBusy(false);
       setActiveReceiptItem(null);

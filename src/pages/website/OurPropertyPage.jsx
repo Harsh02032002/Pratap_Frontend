@@ -13,6 +13,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useHtmlPage } from "../../utils/htmlPage";
 import axios from "axios";
 import useSEO from "../../hooks/useSEO";
+import { toast } from "react-hot-toast";
 
 // Client-side memory cache to optimize performance and prevent duplicate API lookups
 const seoCache = new Map();
@@ -507,11 +508,7 @@ export default function OurPropertyPage() {
       cacheInvalidate('booking-requests:');
       setBiddingSubmitting(false);
       const count = Math.min(targetProperties.length, 15);
-      if (window.toast?.success) {
-        window.toast.success(`⚡ Fast Bid request sent successfully to ${count} matching properties!`);
-      } else {
-        alert(`⚡ Fast Bid request sent successfully to ${count} matching properties!`);
-      }
+      toast.success(`⚡ Fast Bid request sent successfully to ${count} matching properties!`);
     } catch (err) {
       setBiddingSubmitting(false);
       console.error('Bidding error:', err);
@@ -561,7 +558,7 @@ export default function OurPropertyPage() {
 
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'Failed to submit booking request');
-    alert('Direct Booking Request Sent Successfully to Property Owner!');
+    toast.success('Direct Booking Request Sent Successfully to Property Owner!');
     setShowDirectBookingModal(false);
   };
 

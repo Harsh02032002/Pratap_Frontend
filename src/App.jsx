@@ -11,8 +11,24 @@ import TenantProtectedRoute from "./pages/tenant/TenantProtectedRoute";
 import { getStaffSession, setStaffSession, clearStaffSession, canAccessOwnerPathAsStaff, STAFF_HOME_PATH, UNIFIED_LOGIN_PATH } from "./utils/staffAccess";
 import { fetchJson } from "./utils/api";
 import { hasEmployeePermission, getFirstAllowedEmployeeRoute } from "./utils/employeePermissions";
-import { Toaster } from "react-hot-toast";
+import { Toaster, toast } from "react-hot-toast";
 import InstallPWA from "./components/InstallPWA";
+
+// Global Toast Override for any native browser alert() calls across Roomhy
+if (typeof window !== "undefined") {
+  window.alert = (msg) => {
+    if (!msg) return;
+    const str = String(msg);
+    const lower = str.toLowerCase();
+    if (lower.includes("error") || lower.includes("failed") || lower.includes("invalid") || lower.includes("not found") || lower.includes("cannot")) {
+      toast.error(str, { duration: 4000 });
+    } else if (lower.includes("success") || lower.includes("completed") || lower.includes("sent") || lower.includes("approved") || lower.includes("done")) {
+      toast.success(str, { duration: 4000 });
+    } else {
+      toast(str, { duration: 4000, icon: "🔔" });
+    }
+  };
+}
 
 // Routes that require the user to be an authenticated tenant.
 // /tenant/tenantlogin and /visitor-verify are deliberately excluded (public).

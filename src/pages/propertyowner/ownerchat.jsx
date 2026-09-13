@@ -510,8 +510,6 @@ export default function OwnerChat() {
     if (checkBypassAttempt(message)) {
       setBlockedMsgSnippet(message);
       setShowBypassWarning(true);
-      setMessage("");
-      return;
     }
 
 

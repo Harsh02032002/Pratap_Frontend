@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
 import { getOwnerRuntimeSession, clearOwnerRuntimeSession } from "../../utils/propertyowner";
 import { apiFetch } from "../../utils/api";
+import { toast } from "react-hot-toast";
 import { 
   MessageSquare, Search, Phone, ExternalLink, 
   UserCheck, AlertCircle, Clock, Zap, Loader2
@@ -47,7 +48,7 @@ export default function WhatsappLeadsPage() {
       setLeads(prev => prev.map(l => l._id === id ? { ...l, status: "completed" } : l));
     } catch (err) {
       console.error("Error marking lead handled:", err);
-      alert(`Action failed: ${err.message}`);
+      toast.error(`Action failed: ${err.message}`);
     }
   };
 

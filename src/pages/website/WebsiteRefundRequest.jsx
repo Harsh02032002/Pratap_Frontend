@@ -5,6 +5,7 @@ import MobileBottomNav from "../../components/website/MobileBottomNav";
 import { RefreshCcw, Send, Loader2, ShieldCheck, CheckCircle2, Building2, HelpCircle, Mail, Clock, Sparkles } from 'lucide-react';
 import { fetchJson } from "../../utils/api";
 import useSEO from "../../hooks/useSEO";
+import { toast } from "react-hot-toast";
 
 export default function WebsiteRefundRequest() {
   useSEO({
@@ -74,7 +75,7 @@ export default function WebsiteRefundRequest() {
         body: JSON.stringify(payload)
       });
       
-      alert(response?.message || "Your refund/alternative request has been submitted successfully!");
+      toast.success(response?.message || "Your refund/alternative request has been submitted successfully!");
       
       // Reset form
       setFormData({
@@ -92,7 +93,7 @@ export default function WebsiteRefundRequest() {
       });
     } catch (error) {
       console.error("Error submitting refund request:", error);
-      alert(error.message || "Failed to submit request. Please verify your Booking ID and Email address.");
+      toast.error(error.message || "Failed to submit request. Please verify your Booking ID and Email address.");
     } finally {
       setSubmitting(false);
     }

@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { fetchPropertyByVisitId, getPropertyReviews, getPropertyReviewStats, checkUserReview, submitReview, trackPropertyView, trackPropertyClick, fetchJson, firstNonEmptyList } from "../../utils/api";
 import useSEO from "../../hooks/useSEO";
+import { toast } from "react-hot-toast";
 
 // Extract city from property name (e.g., "HOSTEL - Vastrapur, Ahmedabad" -> "Ahmedabad")
 const extractCityFromName = (name) => {
@@ -951,7 +952,7 @@ export default function PropertyDetailsPage() {
     const actualPropertyId = rawPropertyId;
     
     if (!actualPropertyId) {
-      alert('Error: Property ID not found');
+      toast.error('Error: Property ID not found');
       return;
     }
     
@@ -981,7 +982,7 @@ export default function PropertyDetailsPage() {
     
     const actualPropertyId = rawPropertyId;
     if (!actualPropertyId) {
-      alert('Error: Property ID not found');
+      toast.error('Error: Property ID not found');
       return;
     }
     
@@ -1022,7 +1023,7 @@ export default function PropertyDetailsPage() {
         await loadReviews();
       }
     } catch (error) {
-      alert('Error updating rating: ' + error.message);
+      toast.error('Error updating rating: ' + error.message);
     } finally {
       setUpdatingRating(false);
     }

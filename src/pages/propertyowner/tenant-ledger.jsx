@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
 import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerTenants } from "../../utils/propertyowner";
 import { apiFetch } from "../../utils/api";
+import { toast } from "react-hot-toast";
 import { 
   FileText, Search, Printer, Mail, IndianRupee, 
   ArrowUpRight, ArrowDownRight, ClipboardList, Plus
@@ -91,7 +92,7 @@ export default function TenantLedgerPage() {
       fetchLedger(selectedTenantLoginId);
     } catch (err) {
       console.error("Error adding ledger entry:", err);
-      alert(err.message || "Failed to post entry");
+      toast.error(err.message || "Failed to post entry");
     }
   };
 

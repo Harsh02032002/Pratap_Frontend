@@ -5,6 +5,7 @@ import MobileBottomNav from "../../components/website/MobileBottomNav";
 import { Mail, Phone, MapPin, Send, Headphones, ShieldCheck, CheckCircle2, PhoneCall, Sparkles } from "lucide-react";
 import { fetchJson } from "../../utils/api";
 import useSEO from "../../hooks/useSEO";
+import { toast } from "react-hot-toast";
 
 export default function ContactPage() {
   useSEO({
@@ -50,7 +51,7 @@ export default function ContactPage() {
         }),
       });
 
-      alert(
+      toast.success(
         response?.message ||
         "Thank you for your message! We'll get back to you within 2-4 hours."
       );
@@ -64,7 +65,7 @@ export default function ContactPage() {
     } catch (error) {
       console.error("Error submitting contact form:", error);
 
-      alert(
+      toast.error(
         error.message ||
         "Failed to submit message. Please try again later."
       );
