@@ -37,13 +37,13 @@ export default function HowRoomhyWorks({ onOpenVideoModal }) {
   };
 
   return (
-    <section className="py-6 lg:py-8 bg-slate-50/60 border-b border-slate-100">
+    <section className="py-6 lg:py-8 bg-[#F3FBFA] border-b border-[#DDE9E8]">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 gap-4">
           <div>
-            <span className="text-[11px] font-extrabold text-teal-600 uppercase tracking-widest block mb-1">Simple 4-Step Process</span>
-            <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">How Roomhy Works</h2>
-            <p className="text-xs md:text-sm text-slate-500 font-medium mt-1">
+            <span className="text-[11px] font-extrabold text-[#0FA89C] uppercase tracking-widest block mb-1">Simple 4-Step Process</span>
+            <h2 className="text-2xl md:text-3xl font-extrabold text-[#102A43] tracking-tight">How Roomhy Works</h2>
+            <p className="text-xs md:text-sm text-[#60758A] font-medium mt-1">
               Your journey from searching to moving in — transparent, broker-free &amp; quick
             </p>
           </div>
@@ -51,9 +51,9 @@ export default function HowRoomhyWorks({ onOpenVideoModal }) {
           <button
             onClick={handleVideoClick}
             type="button"
-            className="inline-flex items-center gap-2 bg-white hover:bg-teal-50 text-slate-800 hover:text-teal-700 px-4 py-2.5 rounded-xl border border-slate-200 shadow-2xs font-extrabold text-xs transition-all cursor-pointer shrink-0"
+            className="inline-flex items-center gap-2 bg-white hover:bg-[#F3FBFA] text-[#102A43] hover:text-[#0FA89C] px-4 py-2.5 rounded-xl border border-[#DDE9E8] shadow-2xs font-extrabold text-xs transition-all cursor-pointer shrink-0"
           >
-            <div className="w-5 h-5 rounded-full bg-teal-500 text-white flex items-center justify-center">
+            <div className="w-5 h-5 rounded-full bg-[#0FA89C] text-white flex items-center justify-center">
               <Play className="w-2.5 h-2.5 fill-white ml-0.5" />
             </div>
             <span>Watch How It Works</span>
@@ -64,7 +64,7 @@ export default function HowRoomhyWorks({ onOpenVideoModal }) {
           {steps.map((step) => (
             <div 
               key={step.number} 
-              className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs hover:shadow-md transition-all duration-300 overflow-hidden group flex flex-col justify-between"
+              className="bg-white rounded-2xl border border-[#DDE9E8] shadow-2xs hover:shadow-md transition-all duration-300 overflow-hidden group flex flex-col justify-between"
             >
               <div className="relative h-36 overflow-hidden bg-slate-100">
                 <img
@@ -72,14 +72,14 @@ export default function HowRoomhyWorks({ onOpenVideoModal }) {
                   alt={step.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
-                <div className="absolute top-3 left-3 bg-teal-600 text-white w-7 h-7 rounded-lg flex items-center justify-center font-extrabold text-xs shadow-md">
+                <div className="absolute top-3 left-3 bg-[#0FA89C] text-white w-7 h-7 rounded-lg flex items-center justify-center font-extrabold text-xs shadow-md">
                   {step.number}
                 </div>
               </div>
               <div className="p-4 flex-1 flex flex-col justify-between">
                 <div>
-                  <h3 className="font-extrabold text-sm text-slate-900 mb-1">{step.title}</h3>
-                  <p className="text-slate-500 text-xs leading-relaxed font-medium">{step.description}</p>
+                  <h3 className="font-extrabold text-sm text-[#102A43] mb-1">{step.title}</h3>
+                  <p className="text-[#60758A] text-xs leading-relaxed font-medium">{step.description}</p>
                 </div>
               </div>
             </div>

@@ -17,10 +17,10 @@ import WhyRoomhy from './components/website/WhyRoomhy';
 import { fetchProperties } from './utils/api';
 import useSEO from './hooks/useSEO';
 
-const BRAND = "text-[oklch(0.68_0.15_165)]";
-const BRAND_BG = "bg-[oklch(0.68_0.15_165)]";
-const BRAND_SOFT = "bg-[oklch(0.96_0.04_165)]";
-const BRAND_BORDER = "border-[oklch(0.68_0.15_165)]";
+const BRAND = "text-[#0FA89C]";
+const BRAND_BG = "bg-[#0FA89C]";
+const BRAND_SOFT = "bg-[#F3FBFA]";
+const BRAND_BORDER = "border-[#DDE9E8]";
 
 const heroImages = [
   'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=1980&auto=format&fit=crop',
@@ -67,13 +67,13 @@ const staticOfferings = [
 ];
 
 /* Reusable Desktop Section Wrapper */
-function DesktopSection({ title, sub, children, right }) {
+function DesktopSection({ title, sub, children, right, className = "" }) {
   return (
-    <section className="mx-auto max-w-[1440px] px-4 py-4 md:px-8">
-      <div className="relative mb-3 text-center">
+    <section className={`mx-auto max-w-[1360px] px-4 md:px-6 lg:px-8 py-5 md:py-6 ${className}`}>
+      <div className="relative mb-4 text-center">
         <div className="mx-auto max-w-2xl">
-          <h2 className="font-display text-2xl font-extrabold text-slate-900 md:text-3xl">{title}</h2>
-          {sub && <p className="mt-0.5 text-xs text-slate-500 md:text-sm font-medium">{sub}</p>}
+          <h2 className="font-display text-2xl font-extrabold text-[#102A43] md:text-3xl">{title}</h2>
+          {sub && <p className="mt-1 text-xs text-[#60758A] md:text-sm font-medium">{sub}</p>}
         </div>
         {right && (
           <div className="mt-2 md:absolute md:right-0 md:bottom-0 md:mt-0">
@@ -132,39 +132,39 @@ function DesktopHero({ searchQuery, setSearchQuery, selectedGender, setSelectedG
   }, [searchQuery, properties]);
 
   return (
-    <div className="relative min-h-[400px] md:min-h-[430px] bg-slate-900 z-30 flex flex-col justify-between overflow-hidden pt-5 pb-3.5 md:pt-6 md:pb-4">
+    <div className="relative min-h-[400px] md:min-h-[430px] bg-[#102A43] z-30 flex flex-col justify-between overflow-hidden pt-5 pb-3.5 md:pt-6 md:pb-4">
       {/* Full width room background image */}
       <div className="absolute inset-0 overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center transition-all duration-1000 transform scale-105"
           style={{ backgroundImage: `url('/hero-luxury.jpg')` }}
         >
-          <div className="absolute inset-0 bg-black/10 backdrop-blur-[0.5px]"></div>
+          <div className="absolute inset-0 bg-black/20 backdrop-blur-[0.5px]"></div>
         </div>
       </div>
 
-      {/* Centered Translucent Glass Panel — VERY FAINT & SUBTLE WHITE GLASS HAZE */}
+      {/* Centered Translucent Glass Panel */}
       <div className="relative max-w-[1020px] w-full mx-auto px-4 z-20 my-auto">
-        <div className="bg-white/25 backdrop-blur-[2px] border border-white/50 rounded-[28px] p-4 sm:p-5 md:p-6 text-center shadow-[0_8px_32px_rgba(0,0,0,0.1)]">
+        <div className="bg-white/30 backdrop-blur-[4px] border border-white/60 rounded-[28px] p-4 sm:p-5 md:p-6 text-center shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
           {/* Top Badge */}
-          <div className="inline-flex items-center gap-1.5 bg-white/90 backdrop-blur-md px-3.5 py-1 rounded-full shadow-2xs text-[11px] font-black text-slate-800 mb-2 border border-white/80">
-            <ShieldCheck className="w-3.5 h-3.5 text-[#0FA596] shrink-0" />
+          <div className="inline-flex items-center gap-1.5 bg-white/95 backdrop-blur-md px-3.5 py-1 rounded-full shadow-2xs text-[11px] font-black text-[#102A43] mb-2 border border-[#DDE9E8]">
+            <ShieldCheck className="w-3.5 h-3.5 text-[#0FA89C] shrink-0" />
             <span>India's #1 Broker-Free Student Housing &amp; Smart Bidding</span>
           </div>
 
           {/* Main Heading — DARK NAVY TEXT with TEAL "Living" */}
-          <h1 className="text-2xl sm:text-3xl md:text-[36px] font-black text-[#0F172A] mb-1 tracking-tight leading-[1.15]">
+          <h1 className="text-2xl sm:text-3xl md:text-[36px] font-black text-[#102A43] mb-1 tracking-tight leading-[1.15]">
             Premium Student &amp; <br className="hidden sm:inline" />
-            Professional <span className="text-[#0FA596]">Living</span>
+            Professional <span className="text-[#0FA89C]">Living</span>
           </h1>
-          <p className="text-xs sm:text-sm font-semibold text-[#334155] mb-3 max-w-xl mx-auto leading-relaxed">
+          <p className="text-xs sm:text-sm font-semibold text-[#102A43] mb-3 max-w-xl mx-auto leading-relaxed">
             Find and book verified PGs, Hostels, Co-living spaces and Apartments in top cities.
           </p>
 
           {/* Search Container inside Glass Panel */}
-          <div className="bg-white/90 backdrop-blur-md rounded-[20px] shadow-lg p-2 sm:p-2.5 border border-white/80 text-left relative z-50">
+          <div className="bg-white/95 backdrop-blur-md rounded-[20px] shadow-lg p-2 sm:p-2.5 border border-[#DDE9E8] text-left relative z-50">
             {/* Category Tabs Bar */}
-            <div className="flex items-center justify-center gap-2 sm:gap-5 border-b border-slate-100/80 pb-1.5 mb-1.5 overflow-x-auto no-scrollbar">
+            <div className="flex items-center justify-center gap-2 sm:gap-5 border-b border-[#DDE9E8] pb-1.5 mb-1.5 overflow-x-auto no-scrollbar">
               {tabs.map(({ k, icon: Icon, val }) => (
                 <button
                   key={k}
@@ -172,11 +172,11 @@ function DesktopHero({ searchQuery, setSearchQuery, selectedGender, setSelectedG
                   onClick={() => setTab(k)}
                   className={`flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-extrabold transition-all cursor-pointer ${
                     tab === k
-                      ? "bg-teal-50 text-[#0FA596] border border-teal-200/80 shadow-2xs"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                      ? "bg-[#F3FBFA] text-[#0FA89C] border border-[#DDE9E8] shadow-2xs"
+                      : "text-[#60758A] hover:text-[#102A43] hover:bg-[#F7FAFA]"
                   }`}
                 >
-                  <Icon className={`w-3.5 h-3.5 ${tab === k ? 'text-[#0FA596]' : 'text-slate-400'}`} />
+                  <Icon className={`w-3.5 h-3.5 ${tab === k ? 'text-[#0FA89C]' : 'text-[#60758A]'}`} />
                   <span>{k}</span>
                 </button>
               ))}
@@ -191,8 +191,8 @@ function DesktopHero({ searchQuery, setSearchQuery, selectedGender, setSelectedG
               className="flex flex-col md:flex-row items-center gap-2 relative"
             >
               {/* Location Search Input */}
-              <div className="relative flex-1 w-full flex items-center bg-white border border-slate-200/90 rounded-full px-4 py-2 shadow-2xs focus-within:border-[#0FA596] focus-within:ring-2 focus-within:ring-teal-100 transition-all">
-                <Search className="w-4 h-4 text-[#0FA596] mr-2 shrink-0" />
+              <div className="relative flex-1 w-full flex items-center bg-white border border-[#DDE9E8] rounded-full px-4 py-2 shadow-2xs focus-within:border-[#0FA89C] focus-within:ring-2 focus-within:ring-[#F3FBFA] transition-all">
+                <Search className="w-4 h-4 text-[#0FA89C] mr-2 shrink-0" />
                 <input
                   type="text"
                   value={searchQuery}
@@ -202,12 +202,12 @@ function DesktopHero({ searchQuery, setSearchQuery, selectedGender, setSelectedG
                     setShowDropdown(true);
                   }}
                   placeholder="Search city, locality or landmark (e.g. Koramangala, Mumbai)"
-                  className="w-full bg-transparent outline-none text-xs font-bold text-slate-800 placeholder:text-slate-400"
+                  className="w-full bg-transparent outline-none text-xs font-bold text-[#102A43] placeholder:text-[#60758A]"
                 />
               </div>
 
               {/* Gender Filter Dropdown */}
-              <div className="w-full md:w-36 flex items-center bg-white border border-slate-200/90 rounded-full px-3.5 py-2 shadow-2xs text-xs font-bold text-slate-700">
+              <div className="w-full md:w-36 flex items-center bg-white border border-[#DDE9E8] rounded-full px-3.5 py-2 shadow-2xs text-xs font-bold text-[#102A43]">
                 <select
                   value={selectedGender}
                   onChange={(e) => setSelectedGender(e.target.value)}
@@ -221,7 +221,7 @@ function DesktopHero({ searchQuery, setSearchQuery, selectedGender, setSelectedG
               </div>
 
               {/* Budget Filter Dropdown */}
-              <div className="w-full md:w-40 flex items-center bg-white border border-slate-200/90 rounded-full px-3.5 py-2 shadow-2xs text-xs font-bold text-slate-700">
+              <div className="w-full md:w-40 flex items-center bg-white border border-[#DDE9E8] rounded-full px-3.5 py-2 shadow-2xs text-xs font-bold text-[#102A43]">
                 <select
                   value={selectedBudget}
                   onChange={(e) => setSelectedBudget(e.target.value)}
@@ -238,7 +238,7 @@ function DesktopHero({ searchQuery, setSearchQuery, selectedGender, setSelectedG
               {/* Submit Search Button */}
               <button
                 type="submit"
-                className="w-full md:w-auto bg-[#0FA596] hover:bg-[#0d9284] text-white px-6 py-2 rounded-full font-black text-xs flex items-center justify-center gap-1.5 transition-all shadow-md shrink-0 cursor-pointer"
+                className="w-full md:w-auto bg-[#0FA89C] hover:bg-[#0D9388] text-white px-6 py-2 rounded-full font-black text-xs flex items-center justify-center gap-1.5 transition-all shadow-md shrink-0 cursor-pointer"
               >
                 <Search className="w-4 h-4" />
                 <span>Search</span>
@@ -247,7 +247,7 @@ function DesktopHero({ searchQuery, setSearchQuery, selectedGender, setSelectedG
 
             {/* LIVE AUTOCOMPLETE SEARCH DROPDOWN */}
             {showDropdown && filteredSuggestions.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-[99999] text-left">
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-[#DDE9E8] overflow-hidden z-[99999] text-left">
                 <div className="max-h-72 overflow-y-auto">
                   {filteredSuggestions.map((item, idx) => (
                     <div
@@ -256,16 +256,16 @@ function DesktopHero({ searchQuery, setSearchQuery, selectedGender, setSelectedG
                         setShowDropdown(false);
                         navigate(item.link);
                       }}
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-teal-50/60 border-b border-slate-100 last:border-0 cursor-pointer transition-colors"
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-[#F3FBFA] border-b border-[#DDE9E8] last:border-0 cursor-pointer transition-colors"
                     >
-                      <div className="w-8 h-8 rounded-lg bg-teal-50 text-[#0FA596] flex items-center justify-center shrink-0 border border-teal-100">
+                      <div className="w-8 h-8 rounded-lg bg-[#F3FBFA] text-[#0FA89C] flex items-center justify-center shrink-0 border border-[#DDE9E8]">
                         {item.type === 'city' ? <MapPin className="w-4 h-4" /> : <Building2 className="w-4 h-4" />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-extrabold text-xs text-slate-900 truncate">{item.title}</p>
-                        <p className="text-[10px] text-slate-500 font-semibold truncate">{item.subtitle}</p>
+                        <p className="font-extrabold text-xs text-[#102A43] truncate">{item.title}</p>
+                        <p className="text-[10px] text-[#60758A] font-semibold truncate">{item.subtitle}</p>
                       </div>
-                      <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                      <ChevronRight className="w-3.5 h-3.5 text-[#60758A]" />
                     </div>
                   ))}
                 </div>
@@ -277,54 +277,54 @@ function DesktopHero({ searchQuery, setSearchQuery, selectedGender, setSelectedG
 
       {/* WHITE BENEFITS STRIP — FLOATING INSIDE HERO BOTTOM */}
       <div className="relative max-w-[1020px] w-full mx-auto px-4 z-20 mt-3 sm:mt-3.5">
-        <div className="bg-white rounded-[22px] shadow-xl border border-slate-100/90 p-3 md:p-3.5 grid grid-cols-2 md:grid-cols-5 gap-2.5 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+        <div className="bg-white rounded-[22px] shadow-xl border border-[#DDE9E8] p-3 md:p-3.5 grid grid-cols-2 md:grid-cols-5 gap-2.5 divide-y md:divide-y-0 md:divide-x divide-[#DDE9E8]">
           <div className="flex items-center gap-2.5 pt-1 md:pt-0">
-            <div className="w-7.5 h-7.5 rounded-xl bg-teal-50 flex items-center justify-center shrink-0 text-[#0FA596] border border-teal-100/60">
+            <div className="w-7.5 h-7.5 rounded-xl bg-[#F3FBFA] flex items-center justify-center shrink-0 text-[#0FA89C] border border-[#DDE9E8]">
               <ShieldCheck className="w-4 h-4" />
             </div>
             <div>
-              <h4 className="text-[11px] font-black text-[#0F172A] leading-tight">Smart Bidding</h4>
-              <p className="text-[8.5px] font-semibold text-slate-500 leading-tight">Best price deals</p>
+              <h4 className="text-[11px] font-black text-[#102A43] leading-tight">Smart Bidding</h4>
+              <p className="text-[8.5px] font-semibold text-[#60758A] leading-tight">Best price deals</p>
             </div>
           </div>
 
           <div className="flex items-center gap-2.5 pt-1 md:pt-0 md:pl-2.5">
-            <div className="w-7.5 h-7.5 rounded-xl bg-teal-50 flex items-center justify-center shrink-0 text-[#0FA596] border border-teal-100/60">
+            <div className="w-7.5 h-7.5 rounded-xl bg-[#F3FBFA] flex items-center justify-center shrink-0 text-[#0FA89C] border border-[#DDE9E8]">
               <BadgeCheck className="w-4 h-4" />
             </div>
             <div>
-              <h4 className="text-[11px] font-black text-[#0F172A] leading-tight">Verified Properties</h4>
-              <p className="text-[8.5px] font-semibold text-slate-500 leading-tight">100% verified listings</p>
+              <h4 className="text-[11px] font-black text-[#102A43] leading-tight">Verified Properties</h4>
+              <p className="text-[8.5px] font-semibold text-[#60758A] leading-tight">100% verified listings</p>
             </div>
           </div>
 
           <div className="flex items-center gap-2.5 pt-1 md:pt-0 md:pl-2.5">
-            <div className="w-7.5 h-7.5 rounded-xl bg-teal-50 flex items-center justify-center shrink-0 text-[#0FA596] border border-teal-100/60">
+            <div className="w-7.5 h-7.5 rounded-xl bg-[#F3FBFA] flex items-center justify-center shrink-0 text-[#0FA89C] border border-[#DDE9E8]">
               <Tag className="w-4 h-4" />
             </div>
             <div>
-              <h4 className="text-[11px] font-black text-[#0F172A] leading-tight">Lowest Price Guarantee</h4>
-              <p className="text-[8.5px] font-semibold text-slate-500 leading-tight">Best price, always</p>
+              <h4 className="text-[11px] font-black text-[#102A43] leading-tight">Lowest Price Guarantee</h4>
+              <p className="text-[8.5px] font-semibold text-[#60758A] leading-tight">Best price, always</p>
             </div>
           </div>
 
           <div className="flex items-center gap-2.5 pt-1 md:pt-0 md:pl-2.5">
-            <div className="w-7.5 h-7.5 rounded-xl bg-teal-50 flex items-center justify-center shrink-0 text-[#0FA596] border border-teal-100/60">
+            <div className="w-7.5 h-7.5 rounded-xl bg-[#F3FBFA] flex items-center justify-center shrink-0 text-[#0FA89C] border border-[#DDE9E8]">
               <Headphones className="w-4 h-4" />
             </div>
             <div>
-              <h4 className="text-[11px] font-black text-[#0F172A] leading-tight">24/7 Support</h4>
-              <p className="text-[8.5px] font-semibold text-slate-500 leading-tight">Always here to help</p>
+              <h4 className="text-[11px] font-black text-[#102A43] leading-tight">24/7 Support</h4>
+              <p className="text-[8.5px] font-semibold text-[#60758A] leading-tight">Always here to help</p>
             </div>
           </div>
 
           <div className="flex items-center gap-2.5 pt-1 md:pt-0 md:pl-2.5">
-            <div className="w-7.5 h-7.5 rounded-xl bg-teal-50 flex items-center justify-center shrink-0 text-[#0FA596] border border-teal-100/60">
+            <div className="w-7.5 h-7.5 rounded-xl bg-[#F3FBFA] flex items-center justify-center shrink-0 text-[#0FA89C] border border-[#DDE9E8]">
               <Lock className="w-4 h-4" />
             </div>
             <div>
-              <h4 className="text-[11px] font-black text-[#0F172A] leading-tight">Safe &amp; Secure</h4>
-              <p className="text-[8.5px] font-semibold text-slate-500 leading-tight">Your safety, our priority</p>
+              <h4 className="text-[11px] font-black text-[#102A43] leading-tight">Safe &amp; Secure</h4>
+              <p className="text-[8.5px] font-semibold text-[#60758A] leading-tight">Your safety, our priority</p>
             </div>
           </div>
         </div>
@@ -362,24 +362,24 @@ function DesktopWhatWeOffer() {
   ];
 
   return (
-    <section className="py-4 md:py-5 bg-white relative z-0">
-      <div className="max-w-[1320px] mx-auto px-4 md:px-6">
+    <section className="py-5 md:py-6 bg-white relative z-0">
+      <div className="max-w-[1360px] mx-auto px-4 md:px-6 lg:px-8">
         <div className="text-center mb-3 md:mb-3.5">
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-[#0F172A] mb-0.5 tracking-tight">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-[#102A43] mb-0.5 tracking-tight">
             What We Offer
           </h2>
-          <p className="text-[11px] sm:text-xs font-semibold text-slate-500 max-w-xl mx-auto">
+          <p className="text-[11px] sm:text-xs font-semibold text-[#60758A] max-w-xl mx-auto">
             Choose from a variety of accommodation types tailored for students and professionals.
           </p>
         </div>
 
-        {/* 4 Cards Grid — Extended Width to Cover Left & Right Margins */}
+        {/* 4 Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
           {items.map(({ icon: Icon, t, href, image }) => (
             <Link
               key={t}
               to={href}
-              className="group relative h-32 sm:h-34 md:h-36 rounded-[18px] overflow-hidden shadow-md border border-slate-100 hover:shadow-xl transition-all duration-300 block"
+              className="group relative h-32 sm:h-34 md:h-36 rounded-[18px] overflow-hidden shadow-md border border-[#DDE9E8] hover:shadow-xl transition-all duration-300 block"
             >
               <img
                 src={image}
@@ -387,20 +387,20 @@ function DesktopWhatWeOffer() {
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 loading="lazy"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/15 to-transparent"></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-[#102A43]/80 via-[#102A43]/20 to-transparent"></div>
 
               {/* Top Right Counter Badge */}
-              <div className="absolute top-2.5 right-2.5 bg-black/80 backdrop-blur-xs text-white text-[9px] font-black px-2 py-0.5 rounded-md border border-white/20">
+              <div className="absolute top-2.5 right-2.5 bg-black/70 backdrop-blur-xs text-white text-[9px] font-black px-2 py-0.5 rounded-md border border-white/20">
                 1/3
               </div>
 
               {/* Bottom Left White Pill Category Badge */}
-              <div className="absolute bottom-2.5 left-2.5 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-black text-slate-900 flex items-center gap-1.5 shadow-md border border-white/80 group-hover:bg-white transition-all">
-                <div className="w-4 h-4 rounded-full bg-teal-50 flex items-center justify-center text-[#0FA596]">
+              <div className="absolute bottom-2.5 left-2.5 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-black text-[#102A43] flex items-center gap-1.5 shadow-md border border-[#DDE9E8] group-hover:bg-white transition-all">
+                <div className="w-4 h-4 rounded-full bg-[#F3FBFA] flex items-center justify-center text-[#0FA89C]">
                   <Icon className="w-3 h-3" />
                 </div>
                 <span>{t}</span>
-                <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-[#0FA596] group-hover:translate-x-0.5 transition-all" />
+                <ChevronRight className="w-3 h-3 text-[#60758A] group-hover:text-[#0FA89C] group-hover:translate-x-0.5 transition-all" />
               </div>
             </Link>
           ))}
@@ -413,51 +413,45 @@ function DesktopWhatWeOffer() {
 function DesktopHowItWorks({ onOpenVideoModal }) {
   return (
     <DesktopSection title="How Roomhy Works" sub="Find, compare, and book your perfect stay in just a few steps.">
-      <div className="relative mx-auto w-full max-w-[1400px] overflow-hidden rounded-3xl bg-gradient-to-r from-teal-500/15 via-emerald-500/10 to-teal-500/20 border border-teal-200/90 p-6 lg:p-7 shadow-sm text-left flex flex-col lg:flex-row items-center justify-between gap-7">
+      <div className="relative mx-auto w-full overflow-hidden rounded-3xl bg-[#F3FBFA] border border-[#DDE9E8] p-6 lg:p-7 shadow-sm text-left flex flex-col lg:flex-row items-center justify-between gap-7">
         {/* Subtle Decorative Accents */}
-        <div className="absolute -top-12 -right-12 w-80 h-80 bg-teal-400/20 blur-3xl rounded-full pointer-events-none" />
-        <div className="absolute -bottom-12 -left-12 w-80 h-80 bg-emerald-400/20 blur-3xl rounded-full pointer-events-none" />
+        <div className="absolute -top-12 -right-12 w-80 h-80 bg-[#0FA89C]/10 blur-3xl rounded-full pointer-events-none" />
+        <div className="absolute -bottom-12 -left-12 w-80 h-80 bg-[#0FA89C]/10 blur-3xl rounded-full pointer-events-none" />
 
         {/* LEFT SIDE: Features & Text Details */}
         <div className="relative z-10 flex-1 space-y-3.5 max-w-2xl">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-100/90 text-teal-800 text-xs font-extrabold uppercase tracking-wider border border-teal-200 shadow-2xs">
-              <Sparkles className="w-3.5 h-3.5 text-teal-600" /> Roomhy Experience
-            </span>
-          </div>
-
-          <h3 className="font-display text-xl sm:text-2xl lg:text-3xl font-extrabold text-slate-900 tracking-tight leading-snug">
-            Book Your Ideal Stay with Zero Brokerage &amp; Smart Bidding
+          <h3 className="font-display text-xl sm:text-2xl lg:text-3xl font-extrabold text-[#102A43] tracking-tight leading-snug">
+            Book Your Ideal Stay with Smart Bidding
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-            <div className="flex items-start gap-2.5 bg-white/95 backdrop-blur-md p-3 rounded-2xl border border-slate-200/90 shadow-2xs">
-              <div className="w-7 h-7 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center shrink-0 mt-0.5 border border-teal-100">
+            <div className="flex items-start gap-2.5 bg-white p-3 rounded-2xl border border-[#DDE9E8] shadow-2xs">
+              <div className="w-7 h-7 rounded-xl bg-[#F3FBFA] text-[#0FA89C] flex items-center justify-center shrink-0 mt-0.5 border border-[#DDE9E8]">
                 <Search className="w-4 h-4" />
               </div>
               <div>
-                <h4 className="text-xs font-extrabold text-slate-900 leading-none">Search &amp; Filter</h4>
-                <p className="text-[11px] text-slate-500 font-semibold leading-relaxed mt-1.5">Verified PGs, Hostels &amp; Flats with real photos.</p>
+                <h4 className="text-xs font-extrabold text-[#102A43] leading-none">Search &amp; Filter</h4>
+                <p className="text-[11px] text-[#60758A] font-semibold leading-relaxed mt-1.5">Verified PGs, Hostels &amp; Flats with real photos.</p>
               </div>
             </div>
 
-            <div className="flex items-start gap-2.5 bg-white/95 backdrop-blur-md p-3 rounded-2xl border border-slate-200/90 shadow-2xs">
-              <div className="w-7 h-7 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center shrink-0 mt-0.5 border border-teal-100">
+            <div className="flex items-start gap-2.5 bg-white p-3 rounded-2xl border border-[#DDE9E8] shadow-2xs">
+              <div className="w-7 h-7 rounded-xl bg-[#F3FBFA] text-[#0FA89C] flex items-center justify-center shrink-0 mt-0.5 border border-[#DDE9E8]">
                 <Tag className="w-4 h-4" />
               </div>
               <div>
-                <h4 className="text-xs font-extrabold text-slate-900 leading-none">Smart Bidding</h4>
-                <p className="text-[11px] text-slate-500 font-semibold leading-relaxed mt-1.5">Bid directly to lock lower prices with owners.</p>
+                <h4 className="text-xs font-extrabold text-[#102A43] leading-none">Smart Bidding</h4>
+                <p className="text-[11px] text-[#60758A] font-semibold leading-relaxed mt-1.5">Bid directly to lock lower prices with owners.</p>
               </div>
             </div>
 
-            <div className="flex items-start gap-2.5 bg-white/95 backdrop-blur-md p-3 rounded-2xl border border-slate-200/90 shadow-2xs">
-              <div className="w-7 h-7 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center shrink-0 mt-0.5 border border-teal-100">
+            <div className="flex items-start gap-2.5 bg-white p-3 rounded-2xl border border-[#DDE9E8] shadow-2xs">
+              <div className="w-7 h-7 rounded-xl bg-[#F3FBFA] text-[#0FA89C] flex items-center justify-center shrink-0 mt-0.5 border border-[#DDE9E8]">
                 <ShieldCheck className="w-4 h-4" />
               </div>
               <div>
-                <h4 className="text-xs font-extrabold text-slate-900 leading-none">Instant Move-in</h4>
-                <p className="text-[11px] text-slate-500 font-semibold leading-relaxed mt-1.5">Token booking &amp; 100% broker-free transparency.</p>
+                <h4 className="text-xs font-extrabold text-[#102A43] leading-none">Instant Move-in</h4>
+                <p className="text-[11px] text-[#60758A] font-semibold leading-relaxed mt-1.5">Token booking &amp; 100% broker-free transparency.</p>
               </div>
             </div>
           </div>
@@ -465,7 +459,7 @@ function DesktopHowItWorks({ onOpenVideoModal }) {
           <div className="pt-1">
             <button 
               onClick={onOpenVideoModal}
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-extrabold text-xs shadow-md transition-all cursor-pointer group"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#0FA89C] hover:bg-[#0D9388] text-white font-extrabold text-xs shadow-md transition-all cursor-pointer group"
             >
               <PlayCircle className="w-4.5 h-4.5 transition-transform group-hover:scale-110" />
               <span>Watch 1-Min Video Guide</span>
@@ -476,27 +470,27 @@ function DesktopHowItWorks({ onOpenVideoModal }) {
         {/* RIGHT SIDE: Reserved Video Preview Frame */}
         <div 
           onClick={onOpenVideoModal}
-          className="relative z-10 w-full lg:w-[410px] shrink-0 h-[215px] rounded-2xl overflow-hidden border border-slate-200 bg-slate-900 shadow-xl group cursor-pointer flex flex-col justify-end p-3.5"
+          className="relative z-10 w-full lg:w-[410px] shrink-0 h-[215px] rounded-2xl overflow-hidden border border-[#DDE9E8] bg-white shadow-xl group cursor-pointer flex flex-col justify-end p-3.5"
         >
           {/* Video Thumbnail Background Image */}
           <img 
             src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80" 
             alt="Roomhy Video Guide" 
-            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 opacity-85" 
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 opacity-90" 
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#102A43]/80 via-[#102A43]/20 to-transparent" />
 
           {/* Centered Play Button */}
           <div className="absolute inset-0 grid place-items-center">
-            <div className="w-13 h-13 rounded-full bg-teal-600 text-white flex items-center justify-center shadow-lg transition-all duration-300 group-hover:scale-110 group-hover:bg-teal-500">
-              <PlayCircle className="w-7 h-7 fill-white text-teal-600" />
+            <div className="w-13 h-13 rounded-full bg-[#0FA89C] text-white flex items-center justify-center shadow-lg transition-all duration-300 group-hover:scale-110 group-hover:bg-[#0D9388]">
+              <PlayCircle className="w-7 h-7 fill-white text-[#0FA89C]" />
             </div>
           </div>
 
           {/* Video Title Badge */}
           <div className="relative z-10 flex items-center justify-between">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/70 backdrop-blur-md text-white text-[11px] font-bold border border-white/20">
-              <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" /> Official Video Guide
+              <span className="w-1.5 h-1.5 rounded-full bg-[#0FA89C] animate-pulse" /> Official Video Guide
             </span>
             <span className="text-xs font-bold text-white">0:60</span>
           </div>
@@ -541,7 +535,7 @@ function DesktopTrending({ properties }) {
         {/* Floating Left Arrow */}
         <button
           onClick={() => scroll('left')}
-          className="absolute -left-6 md:-left-8 lg:-left-12 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-transparent hover:bg-slate-200/50 text-slate-700 hover:text-teal-600 flex items-center justify-center transition-all hover:scale-125 active:scale-95 cursor-pointer opacity-70 hover:opacity-100"
+          className="absolute -left-6 md:-left-8 lg:-left-12 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white text-[#102A43] hover:text-[#0FA89C] border border-[#DDE9E8] flex items-center justify-center transition-all hover:scale-110 cursor-pointer shadow-md"
           title="Scroll Left"
         >
           <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
@@ -550,7 +544,7 @@ function DesktopTrending({ properties }) {
         {/* Floating Right Arrow */}
         <button
           onClick={() => scroll('right')}
-          className="absolute -right-6 md:-right-8 lg:-right-12 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-transparent hover:bg-slate-200/50 text-slate-700 hover:text-teal-600 flex items-center justify-center transition-all hover:scale-125 active:scale-95 cursor-pointer opacity-70 hover:opacity-100"
+          className="absolute -right-6 md:-right-8 lg:-right-12 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white text-[#102A43] hover:text-[#0FA89C] border border-[#DDE9E8] flex items-center justify-center transition-all hover:scale-110 cursor-pointer shadow-md"
           title="Scroll Right"
         >
           <ChevronRight className="w-6 h-6 stroke-[2.5]" />
@@ -567,7 +561,7 @@ function DesktopTrending({ properties }) {
             return (
               <Link key={c._id || c.id} to={`/website/propertydetails/${c._id || c.id}`} className="w-[240px] shrink-0 group text-left cursor-pointer">
                 {/* TOP IMAGE CONTAINER */}
-                <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl bg-slate-100 mb-2">
+                <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl bg-slate-100 mb-2 border border-[#DDE9E8]">
                   <img src={propImgs[imgIdx]} alt={c.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
                   <span className={`absolute left-2.5 top-2.5 inline-flex items-center gap-1 rounded-full ${BRAND_BG} px-2.5 py-0.5 text-[10px] font-extrabold text-white shadow-xs`}>
                     <BadgeCheck className="h-3 w-3" /> Verified
@@ -594,12 +588,12 @@ function DesktopTrending({ properties }) {
                   )}
                 </div>
 
-                {/* BOTTOM DETAILS CONTAINER (Clean OYO Style — 100% Dynamic Text) */}
+                {/* BOTTOM DETAILS CONTAINER */}
                 <div className="space-y-1 px-0.5">
-                  <h3 className="truncate font-display text-sm font-extrabold text-slate-900 group-hover:text-teal-600 transition-colors leading-tight">
+                  <h3 className="truncate font-display text-sm font-extrabold text-[#102A43] group-hover:text-[#0FA89C] transition-colors leading-tight">
                     {c.name}
                   </h3>
-                  <p className="truncate text-xs text-slate-500 font-medium">
+                  <p className="truncate text-xs text-[#60758A] font-medium">
                     {c.location || c.city || 'Kota'}
                   </p>
 
@@ -612,10 +606,10 @@ function DesktopTrending({ properties }) {
 
                     return (
                       <div className="flex items-center gap-1.5 pt-0.5">
-                        <span className={`inline-flex items-center gap-0.5 rounded-md ${ratingVal > 0 ? 'bg-emerald-600' : 'bg-slate-400'} px-1.5 py-0.5 text-[11px] font-extrabold text-white`}>
+                        <span className={`inline-flex items-center gap-0.5 rounded-md ${ratingVal > 0 ? 'bg-[#0FA89C]' : 'bg-slate-400'} px-1.5 py-0.5 text-[11px] font-extrabold text-white`}>
                           {ratingFormatted} <Star className="h-2.5 w-2.5 fill-white text-white" />
                         </span>
-                        <span className="text-[11px] text-slate-500 font-semibold truncate">
+                        <span className="text-[11px] text-[#60758A] font-semibold truncate">
                           ({reviewCount} {reviewCount === 1 ? 'review' : 'reviews'}) {ratingTag}
                         </span>
                       </div>
@@ -630,17 +624,17 @@ function DesktopTrending({ properties }) {
 
                     return (
                       <div className="flex items-baseline gap-2 pt-0.5">
-                        <span className="text-base font-extrabold text-slate-900">
+                        <span className="text-base font-extrabold text-[#102A43]">
                           ₹{currentRent.toLocaleString('en-IN')}
                         </span>
-                        <span className="text-xs text-slate-500 font-medium">/mo</span>
+                        <span className="text-xs text-[#60758A] font-medium">/mo</span>
                         {origPrice && origPrice > currentRent && (
                           <span className="text-xs text-slate-400 line-through font-medium">
                             ₹{Number(origPrice).toLocaleString('en-IN')}
                           </span>
                         )}
                         {discountVal && (
-                          <span className="text-xs font-extrabold text-orange-500">
+                          <span className="text-xs font-extrabold text-[#0FA89C]">
                             {discountVal}
                           </span>
                         )}
@@ -668,24 +662,24 @@ function DesktopCities() {
   ];
 
   return (
-    <section className={`${BRAND_SOFT} py-6`}>
-      <div className="mx-auto max-w-7xl px-4 lg:px-8">
+    <section className="bg-[#F3FBFA] py-6 md:py-8 border-y border-[#DDE9E8]">
+      <div className="mx-auto max-w-[1360px] px-4 md:px-6 lg:px-8">
         <div className="flex items-end justify-between gap-4">
           <div>
-            <h2 className="font-display text-2xl font-extrabold text-slate-900 md:text-3xl">Browse by Cities</h2>
-            <p className="mt-1 text-sm text-slate-600 font-medium">Explore properties in India's most popular student cities.</p>
+            <h2 className="font-display text-2xl font-extrabold text-[#102A43] md:text-3xl">Browse by Cities</h2>
+            <p className="mt-1 text-sm text-[#60758A] font-medium">Explore properties in India's most popular student cities.</p>
           </div>
           <Link to="/cities" className={`shrink-0 text-sm font-semibold ${BRAND}`}>View all cities →</Link>
         </div>
         <div className="mt-5 grid grid-cols-6 gap-3">
           {cities.map((c) => (
-            <Link to={`/properties-in-${c.n.toLowerCase()}`} key={c.n} className="group overflow-hidden rounded-2xl border border-emerald-100 bg-white transition hover:-translate-y-0.5 hover:shadow-lg">
+            <Link to={`/properties-in-${c.n.toLowerCase()}`} key={c.n} className="group overflow-hidden rounded-2xl border border-[#DDE9E8] bg-white transition hover:-translate-y-0.5 hover:shadow-lg">
               <div className="relative aspect-[5/4] overflow-hidden">
                 <img src={c.img} alt={c.n} className="h-full w-full object-cover transition group-hover:scale-105" />
               </div>
               <div className="p-3">
-                <p className="font-display text-sm font-bold text-slate-800">{c.n}</p>
-                <p className="text-[11px] text-slate-500 font-medium">{c.c} Properties</p>
+                <p className="font-display text-sm font-bold text-[#102A43]">{c.n}</p>
+                <p className="text-[11px] text-[#60758A] font-medium">{c.c} Properties</p>
               </div>
             </Link>
           ))}
@@ -711,23 +705,23 @@ function DesktopPopularAreas() {
     <DesktopSection title="Popular Areas" sub="Find stays in the most preferred localities across top cities." right={<Link to="/localities" className={`text-sm font-semibold ${BRAND}`}>View all localities →</Link>}>
       <div className="grid grid-cols-6 gap-4">
         {data.map((c) => (
-          <div key={c.city} className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-sm hover:shadow-md transition-shadow">
+          <div key={c.city} className="flex flex-col justify-between rounded-2xl border border-[#DDE9E8] bg-white p-4 shadow-sm hover:shadow-md transition-shadow">
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <Building2 className="h-4 w-4 text-emerald-600 shrink-0" />
-                <h3 className="font-display text-sm font-bold text-slate-800">{c.city}</h3>
+                <Building2 className="h-4 w-4 text-[#0FA89C] shrink-0" />
+                <h3 className="font-display text-sm font-bold text-[#102A43]">{c.city}</h3>
               </div>
-              <ul className="space-y-2 text-xs font-medium text-slate-600">
+              <ul className="space-y-2 text-xs font-medium text-[#60758A]">
                 {c.areas.map((area) => (
                   <li key={area}>
-                    <Link to={`/properties-in-${slugify(area)}-${slugify(c.city)}`} className="hover:text-emerald-600 cursor-pointer transition-colors block">
+                    <Link to={`/properties-in-${slugify(area)}-${slugify(c.city)}`} className="hover:text-[#0FA89C] cursor-pointer transition-colors block">
                       {area}
                     </Link>
                   </li>
                 ))}
               </ul>
             </div>
-            <Link to={`/properties-in-${c.city.toLowerCase()}`} className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-emerald-600 hover:underline">
+            <Link to={`/properties-in-${c.city.toLowerCase()}`} className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-[#0FA89C] hover:underline">
               View all →
             </Link>
           </div>
@@ -739,26 +733,26 @@ function DesktopPopularAreas() {
 
 function DesktopWhyChoose() {
   const items = [
-    { icon: ShieldCheck, t: "Smart Bidding", d: "Bid your budget and get instant verified deals.", c: "bg-emerald-100 text-emerald-600" },
-    { icon: BadgeCheck, t: "Verified Properties", d: "Every listing is verified by our team for your safety.", c: "bg-orange-100 text-orange-600" },
-    { icon: Wallet, t: "Best Price Guarantee", d: "Find the best prices compared to other platforms.", c: "bg-purple-100 text-purple-600" },
-    { icon: Sofa, t: "Fully Furnished", d: "Move in with just your suitcase. All essentials included.", c: "bg-amber-100 text-amber-600" },
-    { icon: Headphones, t: "24/7 Support", d: "Our support team is always here to help you anytime.", c: "bg-blue-100 text-blue-600" },
-    { icon: CalendarCheck, t: "Flexible Booking", d: "Book for any duration – short term or long term.", c: "bg-rose-100 text-rose-600" },
-    { icon: Lock, t: "Secure & Safe", d: "Verified owners, safe localities and secure living.", c: "bg-emerald-100 text-emerald-600" },
-    { icon: Tag, t: "Lowest Price", d: "Get the most affordable stays in top locations.", c: "bg-teal-100 text-teal-600" },
+    { icon: ShieldCheck, t: "Smart Bidding", d: "Bid your budget and get instant verified deals.", c: "bg-[#F3FBFA] text-[#0FA89C] border border-[#DDE9E8]" },
+    { icon: BadgeCheck, t: "Verified Properties", d: "Every listing is verified by our team for your safety.", c: "bg-[#F3FBFA] text-[#0FA89C] border border-[#DDE9E8]" },
+    { icon: Wallet, t: "Best Price Guarantee", d: "Find the best prices compared to other platforms.", c: "bg-[#F3FBFA] text-[#0FA89C] border border-[#DDE9E8]" },
+    { icon: Sofa, t: "Fully Furnished", d: "Move in with just your suitcase. All essentials included.", c: "bg-[#F3FBFA] text-[#0FA89C] border border-[#DDE9E8]" },
+    { icon: Headphones, t: "24/7 Support", d: "Our support team is always here to help you anytime.", c: "bg-[#F3FBFA] text-[#0FA89C] border border-[#DDE9E8]" },
+    { icon: CalendarCheck, t: "Flexible Booking", d: "Book for any duration – short term or long term.", c: "bg-[#F3FBFA] text-[#0FA89C] border border-[#DDE9E8]" },
+    { icon: Lock, t: "Secure & Safe", d: "Verified owners, safe localities and secure living.", c: "bg-[#F3FBFA] text-[#0FA89C] border border-[#DDE9E8]" },
+    { icon: Tag, t: "Lowest Price", d: "Get the most affordable stays in top locations.", c: "bg-[#F3FBFA] text-[#0FA89C] border border-[#DDE9E8]" },
   ];
 
   return (
     <DesktopSection title="Why Choose Roomhy?" sub="Built by students, for students. Here's why thousands trust us.">
       <div className="grid grid-cols-8 gap-3">
         {items.map(({ icon: I, t, d, c }) => (
-          <div key={t} className="flex flex-col items-center text-center rounded-2xl border border-slate-100 bg-white p-3.5 transition-all hover:shadow-md hover:-translate-y-1">
+          <div key={t} className="flex flex-col items-center text-center rounded-2xl border border-[#DDE9E8] bg-white p-3.5 transition-all hover:shadow-md hover:-translate-y-1">
             <div className={`grid h-11 w-11 place-items-center rounded-full ${c} mb-2.5`}>
               <I className="h-5 w-5" />
             </div>
-            <h3 className="font-display text-xs font-bold text-slate-800 leading-snug">{t}</h3>
-            <p className="mt-1 text-[10px] leading-tight text-slate-500">{d}</p>
+            <h3 className="font-display text-xs font-bold text-[#102A43] leading-snug">{t}</h3>
+            <p className="mt-1 text-[10px] leading-tight text-[#60758A]">{d}</p>
           </div>
         ))}
       </div>
@@ -768,17 +762,17 @@ function DesktopWhyChoose() {
 
 function DesktopLifeAtRoomhy() {
   const items = [
-    { icon: Utensils, title: "Homemade Food", desc: "Healthy & tasty meals with veg & non-veg options.", img: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&q=80", badgeBg: "bg-emerald-500 text-white" },
-    { icon: Wifi, title: "High Speed WiFi", desc: "Unlimited high speed internet for study, entertainment & work.", img: "https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=600&q=80", badgeBg: "bg-teal-500 text-white" },
-    { icon: Sparkles, title: "Daily Housekeeping", desc: "Clean rooms & common areas for a hassle-free stay.", img: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=600&q=80", badgeBg: "bg-orange-500 text-white" },
-    { icon: Bed, title: "Fully Furnished", desc: "Bed, study table, wardrobe & more. Just move in!", img: "https://images.unsplash.com/photo-1616594039964-ae9021a400a0?w=600&q=80", badgeBg: "bg-purple-500 text-white" }
+    { icon: Utensils, title: "Homemade Food", desc: "Healthy & tasty meals with veg & non-veg options.", img: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&q=80", badgeBg: "bg-[#0FA89C] text-white" },
+    { icon: Wifi, title: "High Speed WiFi", desc: "Unlimited high speed internet for study, entertainment & work.", img: "https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=600&q=80", badgeBg: "bg-[#0FA89C] text-white" },
+    { icon: Sparkles, title: "Daily Housekeeping", desc: "Clean rooms & common areas for a hassle-free stay.", img: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=600&q=80", badgeBg: "bg-[#0FA89C] text-white" },
+    { icon: Bed, title: "Fully Furnished", desc: "Bed, study table, wardrobe & more. Just move in!", img: "https://images.unsplash.com/photo-1616594039964-ae9021a400a0?w=600&q=80", badgeBg: "bg-[#0FA89C] text-white" }
   ];
 
   return (
     <DesktopSection title="Life at Roomhy" sub="More than just a stay – It's a complete experience.">
       <div className="grid grid-cols-4 gap-4">
         {items.map((item) => (
-          <div key={item.title} className="group overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
+          <div key={item.title} className="group overflow-hidden rounded-2xl border border-[#DDE9E8] bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
             <div className="relative h-40 overflow-hidden">
               <img src={item.img} alt={item.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
             </div>
@@ -786,19 +780,19 @@ function DesktopLifeAtRoomhy() {
               <div className={`absolute -top-5 left-4 flex h-9 w-9 items-center justify-center rounded-xl shadow-md ${item.badgeBg}`}>
                 <item.icon className="h-4.5 w-4.5" />
               </div>
-              <h3 className="font-display text-sm font-bold text-slate-800">{item.title}</h3>
-              <p className="mt-1 text-xs text-slate-500 leading-snug">{item.desc}</p>
+              <h3 className="font-display text-sm font-bold text-[#102A43]">{item.title}</h3>
+              <p className="mt-1 text-xs text-[#60758A] leading-snug">{item.desc}</p>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="mt-8 rounded-3xl bg-gradient-to-r from-[#e6f7f2] via-[#eaf8f4] to-[#f2faf7] p-8 flex items-center justify-between gap-6 border border-emerald-100/60 shadow-sm">
+      <div className="mt-8 rounded-3xl bg-[#F3FBFA] p-8 flex items-center justify-between gap-6 border border-[#DDE9E8] shadow-sm">
         <div>
-          <h3 className="font-display text-2xl font-extrabold text-emerald-950 md:text-3xl">
+          <h3 className="font-display text-2xl font-extrabold text-[#102A43] md:text-3xl">
             Your comfort is our priority.
           </h3>
-          <p className="mt-2 text-sm font-medium text-emerald-800/80 max-w-md">
+          <p className="mt-2 text-sm font-medium text-[#60758A] max-w-md">
             From comfort to connectivity, we've got everything you need.
           </p>
         </div>
@@ -817,10 +811,10 @@ function DesktopLifeAtRoomhy() {
 function DesktopFindYourStay() {
   const [cardImgIdx, setCardImgIdx] = React.useState({});
   const cards = [
-    { title: "PG (Paying Guest)", icon: Bed, color: "bg-emerald-500 text-white", bgCard: "bg-emerald-50/50 border-emerald-100", bullets: ["Best for students", "Affordable", "Meals included", "Monthly stay"], images: ["https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?w=500&q=80","https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=500&q=80","https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=500&q=80"], type: "pg" },
-    { title: "Hostels", icon: Building2, color: "bg-orange-500 text-white", bgCard: "bg-orange-50/50 border-orange-100", bullets: ["Best for students", "Budget friendly", "Shared facilities", "Daily / Monthly"], images: ["https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=500&q=80","https://images.unsplash.com/photo-1536376072261-38c75010e6c9?w=500&q=80","https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=500&q=80"], type: "hostel" },
-    { title: "Co-living", icon: Sofa, color: "bg-purple-500 text-white", bgCard: "bg-purple-50/50 border-purple-100", bullets: ["Best for professionals", "Flexible stay", "Community living", "Fully furnished"], images: ["https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=500&q=80","https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=500&q=80","https://images.unsplash.com/photo-1497366216548-37526070297c?w=500&q=80"], type: "co-living" },
-    { title: "Apartments", icon: Home, color: "bg-sky-500 text-white", bgCard: "bg-sky-50/50 border-sky-100", bullets: ["Best for families/pros", "Private & shared", "Long term stay", "Independent living"], images: ["https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=500&q=80","https://images.unsplash.com/photo-1484154218962-a197022b5858?w=500&q=80","https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?w=500&q=80"], type: "apartment" }
+    { title: "PG (Paying Guest)", icon: Bed, color: "bg-[#0FA89C] text-white", bgCard: "bg-white border-[#DDE9E8]", bullets: ["Best for students", "Affordable", "Meals included", "Monthly stay"], images: ["https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?w=500&q=80","https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=500&q=80","https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=500&q=80"], type: "pg" },
+    { title: "Hostels", icon: Building2, color: "bg-[#0FA89C] text-white", bgCard: "bg-white border-[#DDE9E8]", bullets: ["Best for students", "Budget friendly", "Shared facilities", "Daily / Monthly"], images: ["https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=500&q=80","https://images.unsplash.com/photo-1536376072261-38c75010e6c9?w=500&q=80","https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=500&q=80"], type: "hostel" },
+    { title: "Co-living", icon: Sofa, color: "bg-[#0FA89C] text-white", bgCard: "bg-white border-[#DDE9E8]", bullets: ["Best for professionals", "Flexible stay", "Community living", "Fully furnished"], images: ["https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=500&q=80","https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=500&q=80","https://images.unsplash.com/photo-1497366216548-37526070297c?w=500&q=80"], type: "co-living" },
+    { title: "Apartments", icon: Home, color: "bg-[#0FA89C] text-white", bgCard: "bg-white border-[#DDE9E8]", bullets: ["Best for families/pros", "Private & shared", "Long term stay", "Independent living"], images: ["https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=500&q=80","https://images.unsplash.com/photo-1484154218962-a197022b5858?w=500&q=80","https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?w=500&q=80"], type: "apartment" }
   ];
 
   return (
@@ -836,19 +830,19 @@ function DesktopFindYourStay() {
                   <div className={`flex h-8 w-8 items-center justify-center rounded-xl ${c.color}`}>
                     <c.icon className="h-4 w-4" />
                   </div>
-                  <h3 className="font-display text-base font-bold text-slate-800">{c.title}</h3>
+                  <h3 className="font-display text-base font-bold text-[#102A43]">{c.title}</h3>
                 </div>
                 <ul className="space-y-2 mb-6">
                   {c.bullets.map((b) => (
-                    <li key={b} className="flex items-center gap-2 text-xs font-semibold text-slate-700">
-                      <Check className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                    <li key={b} className="flex items-center gap-2 text-xs font-semibold text-[#60758A]">
+                      <Check className="h-3.5 w-3.5 text-[#0FA89C] shrink-0" />
                       <span>{b}</span>
                     </li>
                   ))}
                 </ul>
               </div>
               {/* Image with carousel */}
-              <div className="relative h-32 w-full overflow-hidden rounded-2xl mt-2">
+              <div className="relative h-32 w-full overflow-hidden rounded-2xl mt-2 border border-[#DDE9E8]">
                 <img src={c.images[idx]} alt={c.title} className="h-full w-full object-cover transition-all duration-300" />
                 {/* Left arrow */}
                 <button
@@ -881,21 +875,21 @@ function DesktopFindYourStay() {
 
 function DesktopZeroBrokerageSavings() {
   return (
-    <section className="mx-auto max-w-[1440px] px-4 py-4 md:px-8">
-      <div className="w-full rounded-3xl bg-gradient-to-br from-[#ecf7f4] via-[#f0faf6] to-[#f4fbf8] py-6 lg:py-7 pl-4 lg:pl-6 pr-6 lg:pr-8 border border-emerald-100/80 shadow-sm relative overflow-hidden">
+    <section className="mx-auto max-w-[1360px] px-4 md:px-6 lg:px-8 py-5 md:py-6">
+      <div className="w-full rounded-3xl bg-[#F3FBFA] py-6 lg:py-7 pl-4 lg:pl-6 pr-6 lg:pr-8 border border-[#DDE9E8] shadow-sm relative overflow-hidden">
         <div className="grid grid-cols-12 gap-8 items-center">
           <div className="col-span-4 space-y-4">
-            <h2 className="font-display text-3xl lg:text-4xl font-extrabold text-slate-900 leading-tight">
+            <h2 className="font-display text-3xl lg:text-4xl font-extrabold text-[#102A43] leading-tight">
               Smart Bidding.<br />
-              <span className="text-emerald-600">100% Savings.</span>
+              <span className="text-[#0FA89C]">100% Savings.</span>
             </h2>
-            <p className="text-xs lg:text-sm text-slate-600 font-medium leading-relaxed">
+            <p className="text-xs lg:text-sm text-[#60758A] font-medium leading-relaxed">
               Connect directly with verified property owners and save thousands on brokerage.
             </p>
             <ul className="space-y-2 pt-1">
               {["No Hidden Charges", "Direct Owner Contact", "Transparent Pricing"].map((item) => (
-                <li key={item} className="flex items-center gap-2 text-xs font-bold text-slate-800">
-                  <div className="h-4 w-4 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
+                <li key={item} className="flex items-center gap-2 text-xs font-bold text-[#102A43]">
+                  <div className="h-4 w-4 rounded-full bg-[#0FA89C] text-white flex items-center justify-center shrink-0">
                     <Check className="h-2.5 w-2.5 stroke-[3]" />
                   </div>
                   <span>{item}</span>
@@ -905,52 +899,52 @@ function DesktopZeroBrokerageSavings() {
           </div>
 
           <div className="col-span-6 flex items-center justify-center gap-3 relative">
-            <div className="w-1/2 rounded-2xl bg-white p-4 shadow-sm border border-slate-100 text-center space-y-3">
-              <span className="inline-block rounded-lg bg-rose-500 px-3 py-1 text-xs font-bold text-white shadow-sm">
+            <div className="w-1/2 rounded-2xl bg-white p-4 shadow-sm border border-[#DDE9E8] text-center space-y-3">
+              <span className="inline-block rounded-lg bg-[#60758A] px-3 py-1 text-xs font-bold text-white shadow-sm">
                 Traditional Way
               </span>
-              <ul className="space-y-2 text-xs font-medium text-slate-600 pt-1">
-                <li className="flex items-center justify-center gap-1.5 text-rose-500 font-semibold">
-                  <span className="text-rose-500 font-extrabold">✕</span> Pay Brokerage
+              <ul className="space-y-2 text-xs font-medium text-[#60758A] pt-1">
+                <li className="flex items-center justify-center gap-1.5 text-[#60758A] font-semibold">
+                  <span className="text-[#60758A] font-extrabold">✕</span> Pay Brokerage
                 </li>
-                <li className="flex items-center justify-center gap-1.5 text-slate-500">
-                  <span className="text-rose-500 font-extrabold">✕</span> Extra Charges
+                <li className="flex items-center justify-center gap-1.5 text-[#60758A]">
+                  <span className="text-[#60758A] font-extrabold">✕</span> Extra Charges
                 </li>
-                <li className="flex items-center justify-center gap-1.5 text-slate-500">
-                  <span className="text-rose-500 font-extrabold">✕</span> Multiple Calls
+                <li className="flex items-center justify-center gap-1.5 text-[#60758A]">
+                  <span className="text-[#60758A] font-extrabold">✕</span> Multiple Calls
                 </li>
-                <li className="flex items-center justify-center gap-1.5 text-slate-500">
-                  <span className="text-rose-500 font-extrabold">✕</span> Time Consuming
+                <li className="flex items-center justify-center gap-1.5 text-[#60758A]">
+                  <span className="text-[#60758A] font-extrabold">✕</span> Time Consuming
                 </li>
-                <li className="flex items-center justify-center gap-1.5 text-slate-500">
-                  <span className="text-rose-500 font-extrabold">✕</span> Expensive
+                <li className="flex items-center justify-center gap-1.5 text-[#60758A]">
+                  <span className="text-[#60758A] font-extrabold">✕</span> Expensive
                 </li>
               </ul>
             </div>
 
-            <div className="z-10 h-9 w-9 rounded-full bg-emerald-500 text-white flex items-center justify-center font-extrabold text-xs shadow-md shrink-0">
+            <div className="z-10 h-9 w-9 rounded-full bg-[#0FA89C] text-white flex items-center justify-center font-extrabold text-xs shadow-md shrink-0">
               VS
             </div>
 
-            <div className="w-1/2 rounded-2xl bg-white p-4 shadow-sm border border-emerald-200 text-center space-y-3 relative ring-2 ring-emerald-500/20">
-              <span className="inline-block rounded-lg bg-emerald-600 px-3 py-1 text-xs font-bold text-white shadow-sm">
+            <div className="w-1/2 rounded-2xl bg-white p-4 shadow-sm border border-[#DDE9E8] text-center space-y-3 relative ring-2 ring-[#0FA89C]/20">
+              <span className="inline-block rounded-lg bg-[#0FA89C] px-3 py-1 text-xs font-bold text-white shadow-sm">
                 With Roomhy
               </span>
-              <ul className="space-y-2 text-xs font-medium text-slate-700 pt-1">
-                <li className="flex items-center justify-center gap-1.5 text-emerald-600 font-bold">
-                  <Check className="h-3.5 w-3.5 text-emerald-500 stroke-[3]" /> Smart Bidding
+              <ul className="space-y-2 text-xs font-medium text-[#102A43] pt-1">
+                <li className="flex items-center justify-center gap-1.5 text-[#0FA89C] font-bold">
+                  <Check className="h-3.5 w-3.5 text-[#0FA89C] stroke-[3]" /> Smart Bidding
                 </li>
-                <li className="flex items-center justify-center gap-1.5 text-slate-700 font-semibold">
-                  <Check className="h-3.5 w-3.5 text-emerald-500 stroke-[3]" /> No Hidden Charges
+                <li className="flex items-center justify-center gap-1.5 text-[#102A43] font-semibold">
+                  <Check className="h-3.5 w-3.5 text-[#0FA89C] stroke-[3]" /> No Hidden Charges
                 </li>
-                <li className="flex items-center justify-center gap-1.5 text-slate-700 font-semibold">
-                  <Check className="h-3.5 w-3.5 text-emerald-500 stroke-[3]" /> Direct Owner
+                <li className="flex items-center justify-center gap-1.5 text-[#102A43] font-semibold">
+                  <Check className="h-3.5 w-3.5 text-[#0FA89C] stroke-[3]" /> Direct Owner
                 </li>
-                <li className="flex items-center justify-center gap-1.5 text-slate-700 font-semibold">
-                  <Check className="h-3.5 w-3.5 text-emerald-500 stroke-[3]" /> Quick & Easy
+                <li className="flex items-center justify-center gap-1.5 text-[#102A43] font-semibold">
+                  <Check className="h-3.5 w-3.5 text-[#0FA89C] stroke-[3]" /> Quick & Easy
                 </li>
-                <li className="flex items-center justify-center gap-1.5 text-slate-700 font-semibold">
-                  <Check className="h-3.5 w-3.5 text-emerald-500 stroke-[3]" /> Best Prices
+                <li className="flex items-center justify-center gap-1.5 text-[#102A43] font-semibold">
+                  <Check className="h-3.5 w-3.5 text-[#0FA89C] stroke-[3]" /> Best Prices
                 </li>
               </ul>
             </div>
@@ -997,21 +991,21 @@ function DesktopTestimonials() {
         {/* ROW 1: Scrolls Left */}
         <div className="flex gap-4 animate-scroll-left w-max">
           {duplicatedRow1.map((t, idx) => (
-            <div key={idx} className="w-80 shrink-0 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs hover:shadow-md transition-shadow text-left flex flex-col justify-between">
+            <div key={idx} className="w-80 h-[155px] shrink-0 rounded-2xl border border-[#DDE9E8] bg-white p-4 shadow-2xs hover:shadow-md transition-shadow text-left flex flex-col justify-between">
               <div className="space-y-2">
                 <div className="flex items-center gap-3">
-                  <img src={t.a} alt={t.n} className="h-10 w-10 rounded-full object-cover border border-slate-100 shrink-0" />
+                  <img src={t.a} alt={t.n} className="h-10 w-10 rounded-full object-cover border border-[#DDE9E8] shrink-0" />
                   <div className="min-w-0">
-                    <p className="text-xs font-extrabold text-slate-900 truncate">{t.n}</p>
-                    <p className="text-[11px] text-slate-500 font-semibold truncate">{t.r}</p>
+                    <p className="text-xs font-extrabold text-[#102A43] truncate">{t.n}</p>
+                    <p className="text-[11px] text-[#60758A] font-semibold truncate">{t.r}</p>
                   </div>
                 </div>
                 <div className="flex gap-0.5 pt-0.5">
                   {Array.from({ length: 5 }).map((_, i) => (
-                    <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                    <Star key={i} className="h-3.5 w-3.5 fill-[#0FA89C] text-[#0FA89C]" />
                   ))}
                 </div>
-                <p className="text-xs leading-relaxed text-slate-600 font-medium">"{t.q}"</p>
+                <p className="text-xs leading-relaxed text-[#60758A] font-medium line-clamp-3">"{t.q}"</p>
               </div>
             </div>
           ))}
@@ -1020,21 +1014,21 @@ function DesktopTestimonials() {
         {/* ROW 2: Scrolls Right (Opposite Direction) */}
         <div className="flex gap-4 animate-scroll-right w-max">
           {duplicatedRow2.map((t, idx) => (
-            <div key={idx} className="w-80 shrink-0 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs hover:shadow-md transition-shadow text-left flex flex-col justify-between">
+            <div key={idx} className="w-80 h-[155px] shrink-0 rounded-2xl border border-[#DDE9E8] bg-white p-4 shadow-2xs hover:shadow-md transition-shadow text-left flex flex-col justify-between">
               <div className="space-y-2">
                 <div className="flex items-center gap-3">
-                  <img src={t.a} alt={t.n} className="h-10 w-10 rounded-full object-cover border border-slate-100 shrink-0" />
+                  <img src={t.a} alt={t.n} className="h-10 w-10 rounded-full object-cover border border-[#DDE9E8] shrink-0" />
                   <div className="min-w-0">
-                    <p className="text-xs font-extrabold text-slate-900 truncate">{t.n}</p>
-                    <p className="text-[11px] text-slate-500 font-semibold truncate">{t.r}</p>
+                    <p className="text-xs font-extrabold text-[#102A43] truncate">{t.n}</p>
+                    <p className="text-[11px] text-[#60758A] font-semibold truncate">{t.r}</p>
                   </div>
                 </div>
                 <div className="flex gap-0.5 pt-0.5">
                   {Array.from({ length: 5 }).map((_, i) => (
-                    <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                    <Star key={i} className="h-3.5 w-3.5 fill-[#0FA89C] text-[#0FA89C]" />
                   ))}
                 </div>
-                <p className="text-xs leading-relaxed text-slate-600 font-medium">"{t.q}"</p>
+                <p className="text-xs leading-relaxed text-[#60758A] font-medium line-clamp-3">"{t.q}"</p>
               </div>
             </div>
           ))}
@@ -1074,18 +1068,18 @@ function DesktopLatestBlog() {
   ];
 
   return (
-    <DesktopSection title="Latest from Our Blog" sub="" right={<Link to="/faq" className="text-xs font-bold text-emerald-600 hover:underline">View all blogs →</Link>}>
+    <DesktopSection title="Latest from Our Blog" sub="" right={<Link to="/faq" className="text-xs font-bold text-[#0FA89C] hover:underline">View all blogs →</Link>}>
       <div className="grid grid-cols-4 gap-4">
         {blogs.map((b) => (
-          <div key={b.title} className="group overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md cursor-pointer">
+          <div key={b.title} className="group overflow-hidden rounded-2xl border border-[#DDE9E8] bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md cursor-pointer">
             <div className="relative h-44 overflow-hidden">
               <img src={b.img} alt={b.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
-              <span className="absolute top-3 left-3 rounded-md bg-white/90 px-2 py-1 text-[10px] font-extrabold tracking-wider text-slate-800 shadow-sm backdrop-blur">
+              <span className="absolute top-3 left-3 rounded-md bg-[#F7FAFA] border border-[#DDE9E8] px-2 py-1 text-[10px] font-extrabold tracking-wider text-[#102A43] shadow-sm backdrop-blur">
                 {b.tag}
               </span>
             </div>
             <div className="p-4">
-              <h3 className="font-display text-xs font-bold text-slate-800 group-hover:text-emerald-600 transition-colors leading-snug">
+              <h3 className="font-display text-xs font-bold text-[#102A43] group-hover:text-[#0FA89C] transition-colors leading-snug">
                 {b.title}
               </h3>
             </div>
@@ -1115,15 +1109,15 @@ function DesktopFAQ() {
         {faqs.map((f, i) => {
           const isOpen = open === i;
           return (
-            <div key={f.q} className="rounded-xl bg-slate-100/60 p-4 text-left transition hover:bg-slate-100 border border-slate-200/60">
+            <div key={f.q} className="rounded-xl bg-[#F7FAFA] p-4 text-left transition hover:bg-[#F3FBFA] border border-[#DDE9E8]">
               <button
                 onClick={() => setOpen(isOpen ? null : i)}
-                className="flex items-center justify-between gap-3 w-full text-left font-semibold text-xs text-slate-800"
+                className="flex items-center justify-between gap-3 w-full text-left font-semibold text-xs text-[#102A43]"
               >
                 <span>{f.q}</span>
                 {isOpen ? <Minus className={`h-4 w-4 shrink-0 ${BRAND}`} /> : <Plus className={`h-4 w-4 shrink-0 ${BRAND}`} />}
               </button>
-              {isOpen && <p className="mt-2 text-xs leading-relaxed text-slate-600 font-medium">{f.a}</p>}
+              {isOpen && <p className="mt-2 text-xs leading-relaxed text-[#60758A] font-medium">{f.a}</p>}
             </div>
           );
         })}

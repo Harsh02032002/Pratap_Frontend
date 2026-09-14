@@ -46,16 +46,16 @@ export default function WebsiteFooter() {
   return (
     <footer className="font-sans relative pb-16 md:pb-0">
 
-      {/* ── 1. CARDS STRIP ON WHITE PAGE BACKGROUND ── */}
-      <div className="bg-[#F8FBFA] py-6 border-t border-slate-100">
+      {/* ── 1. CARDS STRIP ON LIGHT NEUTRAL BACKGROUND ── */}
+      <div className="bg-[#F7FAFA] py-6 border-t border-[#DDE9E8]">
         {/* POPULAR SEARCHES STRIP */}
         <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 mb-4">
-          <div className="rounded-2xl bg-white border border-slate-200/90 p-4 lg:p-5 flex flex-col md:flex-row items-start md:items-center gap-3 justify-between shadow-2xs">
+          <div className="rounded-2xl bg-white border border-[#DDE9E8] p-4 lg:p-5 flex flex-col md:flex-row items-start md:items-center gap-3 justify-between shadow-2xs">
             <div className="flex items-center gap-2 shrink-0">
-              <div className="w-7 h-7 rounded-lg bg-[#0FA89D] text-white flex items-center justify-center">
+              <div className="w-7 h-7 rounded-lg bg-[#0FA89C] text-white flex items-center justify-center">
                 <Search className="w-4 h-4" />
               </div>
-              <span className="text-xs font-black text-[#0B2341] uppercase tracking-wider">POPULAR SEARCHES</span>
+              <span className="text-xs font-black text-[#102A43] uppercase tracking-wider">POPULAR SEARCHES</span>
             </div>
 
             <div className="flex flex-wrap gap-2 flex-1">
@@ -63,14 +63,14 @@ export default function WebsiteFooter() {
                 <Link
                   key={item.label}
                   to={item.link}
-                  className="px-3 py-1.5 rounded-full bg-slate-100/90 hover:bg-[#0FA89D] hover:text-white text-[#0B2341] text-xs font-bold border border-slate-200/80 transition-all"
+                  className="px-3 py-1.5 rounded-full bg-[#F7FAFA] hover:bg-[#0FA89C] hover:text-white text-[#102A43] text-xs font-bold border border-[#DDE9E8] transition-all"
                 >
                   {item.label}
                 </Link>
               ))}
             </div>
 
-            <Link to="/properties" className="shrink-0 text-xs font-bold text-[#0FA89D] hover:text-[#0b837b] transition-colors flex items-center gap-1">
+            <Link to="/properties" className="shrink-0 text-xs font-bold text-[#0FA89C] hover:text-[#0D9388] transition-colors flex items-center gap-1">
               View all searches &rarr;
             </Link>
           </div>
@@ -78,100 +78,100 @@ export default function WebsiteFooter() {
 
         {/* TRUST BADGES SUMMARY CARD */}
         <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8">
-          <div className="rounded-2xl bg-white border border-slate-200/90 p-4 lg:p-5 shadow-2xs grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="rounded-2xl bg-white border border-[#DDE9E8] p-4 lg:p-5 shadow-2xs grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-teal-50 text-[#0FA89D] border border-teal-100 flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-xl bg-[#F3FBFA] text-[#0FA89C] border border-[#DDE9E8] flex items-center justify-center shrink-0">
                 <CheckCircle2 className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-xs font-bold text-[#0B2341]">Smart Bidding</p>
-                <p className="text-[11px] font-medium text-slate-500">Best price deals</p>
+                <p className="text-xs font-bold text-[#102A43]">Smart Bidding</p>
+                <p className="text-[11px] font-medium text-[#60758A]">Best price deals</p>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-teal-50 text-[#0FA89D] border border-teal-100 flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-xl bg-[#F3FBFA] text-[#0FA89C] border border-[#DDE9E8] flex items-center justify-center shrink-0">
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-xs font-bold text-[#0B2341]">Verified Listings</p>
-                <p className="text-[11px] font-medium text-slate-500">100% verified properties</p>
+                <p className="text-xs font-bold text-[#102A43]">Verified Listings</p>
+                <p className="text-[11px] font-medium text-[#60758A]">100% verified properties</p>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-teal-50 text-[#0FA89D] border border-teal-100 flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-xl bg-[#F3FBFA] text-[#0FA89C] border border-[#DDE9E8] flex items-center justify-center shrink-0">
                 <Users className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-xs font-bold text-[#0B2341]">50,000+ Students</p>
-                <p className="text-[11px] font-medium text-slate-500">Trust us to find a home</p>
+                <p className="text-xs font-bold text-[#102A43]">50,000+ Students</p>
+                <p className="text-[11px] font-medium text-[#60758A]">Trust us to find a home</p>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-teal-50 text-[#0FA89D] border border-teal-100 flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-xl bg-[#F3FBFA] text-[#0FA89C] border border-[#DDE9E8] flex items-center justify-center shrink-0">
                 <Building2 className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-xs font-bold text-[#0B2341]">10+ Cities</p>
-                <p className="text-[11px] font-medium text-slate-500">Across India</p>
+                <p className="text-xs font-bold text-[#102A43]">10+ Cities</p>
+                <p className="text-[11px] font-medium text-[#60758A]">Across India</p>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── 2. MAIN FOOTER SECTION (#F1F4F3) ───────────────────────── */}
-      <div className="border-t border-[#E2E8E6] bg-[#F1F4F3] text-[#0B2341]">
+      {/* ── 2. MAIN FOOTER SECTION (#F7FAFA) ───────────────────────── */}
+      <div className="border-t border-[#DDE9E8] bg-[#F7FAFA] text-[#102A43]">
         <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 py-10">
           <div className="flex flex-col lg:flex-row gap-8 lg:gap-10 items-start">
 
             {/* LEFT COLUMN: Logo + Features + Social */}
-            <div className="w-full lg:w-[230px] shrink-0 flex flex-col gap-4 border-b lg:border-b-0 lg:border-r border-[#E2E8E6] pb-6 lg:pb-0 lg:pr-6">
-              <div className="h-10 flex items-center border-b border-[#E2E8E6]">
+            <div className="w-full lg:w-[230px] shrink-0 flex flex-col gap-4 border-b lg:border-b-0 lg:border-r border-[#DDE9E8] pb-6 lg:pb-0 lg:pr-6">
+              <div className="h-10 flex items-center border-b border-[#DDE9E8]">
                 <Logo />
               </div>
 
-              <p className="text-xs text-[#0B2341]/80 font-medium leading-relaxed">
+              <p className="text-xs text-[#60758A] font-medium leading-relaxed">
                 India's smart bidding platform for PGs, Hostels, Co-living Spaces &amp; Student Apartments.
               </p>
 
               {/* Feature Badges */}
-              <div className="space-y-2 text-xs font-semibold text-[#0B2341]">
+              <div className="space-y-2 text-xs font-semibold text-[#102A43]">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-[#0FA89D] shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-[#0FA89C] shrink-0" />
                   <span>Smart Bidding</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-[#0FA89D] shrink-0" />
+                  <ShieldCheck className="w-4 h-4 text-[#0FA89C] shrink-0" />
                   <span>Verified Properties</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Bed className="w-4 h-4 text-[#0FA89D] shrink-0" />
+                  <Bed className="w-4 h-4 text-[#0FA89C] shrink-0" />
                   <span>50,000+ Beds</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Star className="w-4 h-4 text-amber-500 fill-amber-400 shrink-0" />
+                  <Star className="w-4 h-4 text-[#0FA89C] fill-[#0FA89C] shrink-0" />
                   <span>Trusted by Students</span>
                 </div>
               </div>
 
               {/* Social */}
               <div className="pt-1">
-                <p className="text-[10px] font-extrabold text-[#0B2341]/70 uppercase tracking-wider mb-2">Follow Us On</p>
+                <p className="text-[10px] font-extrabold text-[#102A43]/70 uppercase tracking-wider mb-2">Follow Us On</p>
                 <div className="flex items-center gap-2.5">
                   <a href="https://www.facebook.com/profile.php?id=61587850180193" target="_blank" rel="noopener noreferrer" aria-label="Facebook"
-                    className="w-8 h-8 rounded-full bg-[#1877F2] text-white flex items-center justify-center hover:opacity-90 transition-opacity shadow-xs">
-                    <Facebook className="w-3.5 h-3.5 fill-white" />
+                    className="w-8 h-8 rounded-full bg-[#F3FBFA] text-[#0FA89C] border border-[#DDE9E8] flex items-center justify-center hover:bg-[#0FA89C] hover:text-white transition-all shadow-xs">
+                    <Facebook className="w-3.5 h-3.5 fill-current" />
                   </a>
                   <a href="https://www.instagram.com/roomhy.com_/" target="_blank" rel="noopener noreferrer" aria-label="Instagram"
-                    className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 text-white flex items-center justify-center hover:opacity-90 transition-opacity shadow-xs">
+                    className="w-8 h-8 rounded-full bg-[#F3FBFA] text-[#0FA89C] border border-[#DDE9E8] flex items-center justify-center hover:bg-[#0FA89C] hover:text-white transition-all shadow-xs">
                     <Instagram className="w-3.5 h-3.5" />
                   </a>
                   <a href="https://www.linkedin.com/company/roomhy-com/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn"
-                    className="w-8 h-8 rounded-full bg-[#0A66C2] text-white flex items-center justify-center hover:opacity-90 transition-opacity shadow-xs">
-                    <Linkedin className="w-3.5 h-3.5 fill-white" />
+                    className="w-8 h-8 rounded-full bg-[#F3FBFA] text-[#0FA89C] border border-[#DDE9E8] flex items-center justify-center hover:bg-[#0FA89C] hover:text-white transition-all shadow-xs">
+                    <Linkedin className="w-3.5 h-3.5 fill-current" />
                   </a>
                 </div>
               </div>
@@ -182,11 +182,11 @@ export default function WebsiteFooter() {
 
               {/* 1. POPULAR CITIES */}
               <div className="space-y-3">
-                <h3 className="h-10 flex items-center gap-1.5 text-xs font-black text-[#0B2341] uppercase tracking-wider border-b border-[#E2E8E6]">
-                  <MapPin className="w-3.5 h-3.5 text-[#0FA89D] shrink-0" />
+                <h3 className="h-10 flex items-center gap-1.5 text-xs font-black text-[#102A43] uppercase tracking-wider border-b border-[#DDE9E8]">
+                  <MapPin className="w-3.5 h-3.5 text-[#0FA89C] shrink-0" />
                   <span>Popular Cities</span>
                 </h3>
-                <ul className="space-y-2 text-xs font-semibold text-[#0B2341]">
+                <ul className="space-y-2 text-xs font-semibold text-[#102A43]">
                   <LinkItem to="/properties-in-kota">PG in Kota</LinkItem>
                   <LinkItem to="/properties-in-jaipur">PG in Jaipur</LinkItem>
                   <LinkItem to="/properties-in-delhi">PG in Delhi</LinkItem>
@@ -194,7 +194,7 @@ export default function WebsiteFooter() {
                   <LinkItem to="/properties-in-bangalore">PG in Bangalore</LinkItem>
                   <LinkItem to="/properties-in-pune">PG in Pune</LinkItem>
                   <li className="pt-1">
-                    <Link to="/cities" className="inline-flex items-center gap-1 text-[#0FA89D] font-bold hover:text-[#0b837b] transition-colors text-xs">
+                    <Link to="/cities" className="inline-flex items-center gap-1 text-[#0FA89C] font-bold hover:text-[#0D9388] transition-colors text-xs">
                       View all cities &rarr;
                     </Link>
                   </li>
@@ -203,11 +203,11 @@ export default function WebsiteFooter() {
 
               {/* 2. PROPERTY TYPES */}
               <div className="space-y-3">
-                <h3 className="h-10 flex items-center gap-1.5 text-xs font-black text-[#0B2341] uppercase tracking-wider border-b border-[#E2E8E6]">
-                  <Building2 className="w-3.5 h-3.5 text-[#0FA89D] shrink-0" />
+                <h3 className="h-10 flex items-center gap-1.5 text-xs font-black text-[#102A43] uppercase tracking-wider border-b border-[#DDE9E8]">
+                  <Building2 className="w-3.5 h-3.5 text-[#0FA89C] shrink-0" />
                   <span>Property Types</span>
                 </h3>
-                <ul className="space-y-2 text-xs font-semibold text-[#0B2341]">
+                <ul className="space-y-2 text-xs font-semibold text-[#102A43]">
                   <LinkItem to="/pg?gender=boys">PG for Boys</LinkItem>
                   <LinkItem to="/pg?gender=girls">PG for Girls</LinkItem>
                   <LinkItem to="/pg">Co-ed PG</LinkItem>
@@ -217,7 +217,7 @@ export default function WebsiteFooter() {
                   <LinkItem to="/co-living">Co-living</LinkItem>
                   <LinkItem to="/apartments">Apartments</LinkItem>
                   <li className="pt-1">
-                    <Link to="/properties" className="inline-flex items-center gap-1 text-[#0FA89D] font-bold hover:text-[#0b837b] transition-colors text-xs">
+                    <Link to="/properties" className="inline-flex items-center gap-1 text-[#0FA89C] font-bold hover:text-[#0D9388] transition-colors text-xs">
                       View all types &rarr;
                     </Link>
                   </li>
@@ -226,22 +226,22 @@ export default function WebsiteFooter() {
 
               {/* 3. HOSTELS & CO-LIVING */}
               <div className="space-y-3">
-                <h3 className="h-10 flex items-center gap-1.5 text-xs font-black text-[#0B2341] uppercase tracking-wider border-b border-[#E2E8E6]">
-                  <Bed className="w-3.5 h-3.5 text-[#0FA89D] shrink-0" />
+                <h3 className="h-10 flex items-center gap-1.5 text-xs font-black text-[#102A43] uppercase tracking-wider border-b border-[#DDE9E8]">
+                  <Bed className="w-3.5 h-3.5 text-[#0FA89C] shrink-0" />
                   <span>Hostels</span>
                 </h3>
-                <ul className="space-y-2 text-xs font-semibold text-[#0B2341]">
+                <ul className="space-y-2 text-xs font-semibold text-[#102A43]">
                   <LinkItem to="/hostels?gender=boys">Hostels for Boys</LinkItem>
                   <LinkItem to="/hostels?gender=girls">Hostels for Girls</LinkItem>
                   <LinkItem to="/hostels">Co-ed Hostels</LinkItem>
                 </ul>
 
                 <div className="pt-2">
-                  <h4 className="flex items-center gap-1.5 text-xs font-black text-[#0B2341] uppercase tracking-wider border-b border-[#E2E8E6] pb-1.5 mb-2">
-                    <Layers className="w-3.5 h-3.5 text-[#0FA89D] shrink-0" />
+                  <h4 className="flex items-center gap-1.5 text-xs font-black text-[#102A43] uppercase tracking-wider border-b border-[#DDE9E8] pb-1.5 mb-2">
+                    <Layers className="w-3.5 h-3.5 text-[#0FA89C] shrink-0" />
                     <span>Co-Living</span>
                   </h4>
-                  <ul className="space-y-2 text-xs font-semibold text-[#0B2341]">
+                  <ul className="space-y-2 text-xs font-semibold text-[#102A43]">
                     <LinkItem to="/co-living?gender=boys">Co-living for Boys</LinkItem>
                     <LinkItem to="/co-living?gender=girls">Co-living for Girls</LinkItem>
                     <LinkItem to="/co-living">Co-ed Co-living</LinkItem>
@@ -251,33 +251,33 @@ export default function WebsiteFooter() {
 
               {/* 4. QUICK LINKS */}
               <div className="space-y-3">
-                <h3 className="h-10 flex items-center gap-1.5 text-xs font-black text-[#0B2341] uppercase tracking-wider border-b border-[#E2E8E6]">
-                  <ArrowRight className="w-3.5 h-3.5 text-[#0FA89D] shrink-0" />
+                <h3 className="h-10 flex items-center gap-1.5 text-xs font-black text-[#102A43] uppercase tracking-wider border-b border-[#DDE9E8]">
+                  <ArrowRight className="w-3.5 h-3.5 text-[#0FA89C] shrink-0" />
                   <span>Quick Links</span>
                 </h3>
-                <ul className="space-y-2 text-xs font-semibold text-[#0B2341]">
-                  <li><Link to="/list-property" className="hover:text-[#0FA89D] transition-colors">List Your Property</Link></li>
-                  <li><Link to="/propertyowner/dashboard" className="hover:text-[#0FA89D] transition-colors">Owner Dashboard</Link></li>
-                  <li><Link to="/website/mystays" className="hover:text-[#0FA89D] transition-colors font-bold text-[#0FA89D]">Tenant Dashboard / My Stays</Link></li>
-                  <li><Link to="/about-us" className="hover:text-[#0FA89D] transition-colors">About Us</Link></li>
-                  <li><Link to="/contact-us" className="hover:text-[#0FA89D] transition-colors">Contact Us</Link></li>
-                  <li><Link to="/faq" className="hover:text-[#0FA89D] transition-colors">FAQ</Link></li>
-                  <li><Link to="/website/login" className="hover:text-[#0FA89D] transition-colors">Login / Register</Link></li>
+                <ul className="space-y-2 text-xs font-semibold text-[#102A43]">
+                  <li><Link to="/list-property" className="hover:text-[#0FA89C] transition-colors">List Your Property</Link></li>
+                  <li><Link to="/propertyowner/dashboard" className="hover:text-[#0FA89C] transition-colors">Owner Dashboard</Link></li>
+                  <li><Link to="/website/mystays" className="hover:text-[#0FA89C] transition-colors font-bold text-[#0FA89C]">Tenant Dashboard / My Stays</Link></li>
+                  <li><Link to="/about-us" className="hover:text-[#0FA89C] transition-colors">About Us</Link></li>
+                  <li><Link to="/contact-us" className="hover:text-[#0FA89C] transition-colors">Contact Us</Link></li>
+                  <li><Link to="/faq" className="hover:text-[#0FA89C] transition-colors">FAQ</Link></li>
+                  <li><Link to="/website/login" className="hover:text-[#0FA89C] transition-colors">Login / Register</Link></li>
                 </ul>
               </div>
 
               {/* 5. POLICIES & LEGAL */}
               <div className="space-y-3">
-                <h3 className="h-10 flex items-center gap-1.5 text-xs font-black text-[#0B2341] uppercase tracking-wider border-b border-[#E2E8E6]">
-                  <FileText className="w-3.5 h-3.5 text-[#0FA89D] shrink-0" />
+                <h3 className="h-10 flex items-center gap-1.5 text-xs font-black text-[#102A43] uppercase tracking-wider border-b border-[#DDE9E8]">
+                  <FileText className="w-3.5 h-3.5 text-[#0FA89C] shrink-0" />
                   <span>Policies &amp; Legal</span>
                 </h3>
-                <ul className="space-y-2 text-xs font-semibold text-[#0B2341]">
-                  <li><Link to="/privacy-policy" className="hover:text-[#0FA89D] transition-colors">Privacy Policy</Link></li>
-                  <li><Link to="/terms-and-conditions" className="hover:text-[#0FA89D] transition-colors">Terms &amp; Conditions</Link></li>
-                  <li><Link to="/refund-policy" className="hover:text-[#0FA89D] transition-colors">Refund Policy</Link></li>
-                  <li><Link to="/cancellation-policy" className="hover:text-[#0FA89D] transition-colors">Cancellation Policy</Link></li>
-                  <li><Link to="/website/refund-request" className="hover:text-[#0FA89D] transition-colors">Refund Request</Link></li>
+                <ul className="space-y-2 text-xs font-semibold text-[#102A43]">
+                  <li><Link to="/privacy-policy" className="hover:text-[#0FA89C] transition-colors">Privacy Policy</Link></li>
+                  <li><Link to="/terms-and-conditions" className="hover:text-[#0FA89C] transition-colors">Terms &amp; Conditions</Link></li>
+                  <li><Link to="/refund-policy" className="hover:text-[#0FA89C] transition-colors">Refund Policy</Link></li>
+                  <li><Link to="/cancellation-policy" className="hover:text-[#0FA89C] transition-colors">Cancellation Policy</Link></li>
+                  <li><Link to="/website/refund-request" className="hover:text-[#0FA89C] transition-colors">Refund Request</Link></li>
                 </ul>
               </div>
 
@@ -286,39 +286,39 @@ export default function WebsiteFooter() {
         </div>
       </div>
 
-      {/* ── 3. BOTTOM COPYRIGHT & COMPANY REGISTRATION BAR (#E5EBEA) ─────── */}
-      <div className="border-t border-[#D8E1DF] bg-[#E5EBEA] py-4 px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-[1400px] flex flex-col md:flex-row items-center justify-between gap-3 text-xs font-semibold text-[#0B2341]">
+      {/* ── 3. BOTTOM COPYRIGHT & COMPANY REGISTRATION BAR (#F7FAFA) ─────── */}
+      <div className="border-t border-[#DDE9E8] bg-[#F7FAFA] py-4 px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-[1400px] flex flex-col md:flex-row items-center justify-between gap-3 text-xs font-semibold text-[#102A43]">
           <p>© {new Date().getFullYear()} Roomhy Technology Pvt. Ltd. All rights reserved.</p>
 
-          <div className="flex items-center gap-1.5 text-[#0B2341]/80">
+          <div className="flex items-center gap-1.5 text-[#60758A]">
             <span>Made with</span>
-            <Heart className="w-3.5 h-3.5 fill-rose-500 text-rose-500 inline" />
+            <Heart className="w-3.5 h-3.5 fill-[#0FA89C] text-[#0FA89C] inline" />
             <span>In India</span>
           </div>
 
-          <div className="flex items-center gap-3 text-[#0B2341]">
-            <a href="mailto:team@roomhy.com" className="flex items-center gap-1 hover:text-[#0FA89D] transition-colors">
-              <Mail className="w-3.5 h-3.5 text-[#0FA89D]" />
+          <div className="flex items-center gap-3 text-[#102A43]">
+            <a href="mailto:team@roomhy.com" className="flex items-center gap-1 hover:text-[#0FA89C] transition-colors">
+              <Mail className="w-3.5 h-3.5 text-[#0FA89C]" />
               <span>team@roomhy.com</span>
             </a>
             <span>|</span>
-            <a href="tel:+918764425030" className="flex items-center gap-1 hover:text-[#0FA89D] transition-colors">
-              <Phone className="w-3.5 h-3.5 text-[#0FA89D]" />
+            <a href="tel:+918764425030" className="flex items-center gap-1 hover:text-[#0FA89C] transition-colors">
+              <Phone className="w-3.5 h-3.5 text-[#0FA89C]" />
               <span>+918764425030</span>
             </a>
           </div>
         </div>
 
         {/* Company Address & GSTIN */}
-        <div className="mx-auto max-w-[1400px] mt-2.5 pt-2.5 border-t border-[#D0DBD9] flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-[#0B2341]/75 font-medium">
+        <div className="mx-auto max-w-[1400px] mt-2.5 pt-2.5 border-t border-[#DDE9E8] flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-[#60758A] font-medium">
           <div className="flex items-center gap-1.5">
-            <MapPin className="w-3.5 h-3.5 text-[#0FA89D] shrink-0" />
+            <MapPin className="w-3.5 h-3.5 text-[#0FA89C] shrink-0" />
             <span>ROOMHY TECHNOLOGY — 847, Balaji Nagar, Rangbari, Near Pani Ki Tanki, Kota, Rajasthan 324005, India</span>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            <FileText className="w-3.5 h-3.5 text-[#0FA89D] shrink-0" />
-            <span>GSTIN: <span className="font-bold text-[#0B2341]">08SLWPS2629G1ZZ</span></span>
+            <FileText className="w-3.5 h-3.5 text-[#0FA89C] shrink-0" />
+            <span>GSTIN: <span className="font-bold text-[#102A43]">08SLWPS2629G1ZZ</span></span>
           </div>
         </div>
       </div>

@@ -2167,18 +2167,7 @@ function PropertyCard({ property, onBookNow }) {
               className="w-full h-full object-cover"
               loading="lazy"
             />
-            {/* Top Right Heart Wishlist Button */}
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setIsLiked(!isLiked);
-                if (window.toast?.success) window.toast.success(isLiked ? 'Removed from Wishlist' : 'Saved to Wishlist!');
-              }}
-              className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/85 backdrop-blur-xs flex items-center justify-center text-slate-500 hover:text-rose-500 shadow-sm z-10"
-            >
-              <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-rose-500 text-rose-500' : ''}`} />
-            </button>
+            {/* Top Right Heart Wishlist Button - REMOVED */}
           </div>
         </div>
 
@@ -2227,43 +2216,15 @@ function PropertyCard({ property, onBookNow }) {
             />
             
             {/* Top Left VERIFIED Badge */}
-            <div className="absolute top-2 left-2 bg-emerald-600 text-white text-[9.5px] font-extrabold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-md uppercase tracking-wider z-10">
+            <div className="absolute top-2 left-2 bg-[#0FA89C] text-white text-[9.5px] font-extrabold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-md uppercase tracking-wider z-10">
               <Check className="w-3 h-3 text-white stroke-[3]" />
               <span>Verified</span>
             </div>
-
-            {/* Top Right Wishlist Heart Button (if single image) */}
-            {displayImages.length <= 1 && (
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setIsLiked(!isLiked);
-                  if (window.toast?.success) window.toast.success(isLiked ? 'Removed from Wishlist' : 'Saved to Wishlist!');
-                }}
-                className="absolute top-2 right-2 w-7.5 h-7.5 rounded-full bg-white/80 hover:bg-white backdrop-blur-xs flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all shadow-md z-10"
-                title="Add to Wishlist"
-              >
-                <Heart className={`w-4 h-4 transition-colors ${isLiked ? 'fill-rose-500 text-rose-500' : ''}`} />
-              </button>
-            )}
           </div>
 
           {/* OYO-Style Right-Side Thumbnails Column */}
           {displayImages.length > 1 && (
             <div className="w-[72px] sm:w-[78px] h-full flex flex-col gap-0.5 shrink-0 relative">
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setIsLiked(!isLiked);
-                  if (window.toast?.success) window.toast.success(isLiked ? 'Removed from Wishlist' : 'Saved to Wishlist!');
-                }}
-                className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-white/80 hover:bg-white backdrop-blur-xs flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all shadow-md z-20"
-                title="Add to Wishlist"
-              >
-                <Heart className={`w-3.5 h-3.5 transition-colors ${isLiked ? 'fill-rose-500 text-rose-500' : ''}`} />
-              </button>
 
               {displayImages.slice(1, 5).map((img, idx) => {
                 const actualIndex = idx + 1;
@@ -2280,12 +2241,12 @@ function PropertyCard({ property, onBookNow }) {
                       setCurrentImageIndex(actualIndex);
                     }}
                     className={`relative flex-1 w-full rounded-md overflow-hidden border transition-all cursor-pointer ${
-                      currentImageIndex === actualIndex ? 'border-teal-500 ring-1 ring-teal-500' : 'border-slate-200 opacity-85 hover:opacity-100'
+                      currentImageIndex === actualIndex ? 'border-[#0FA89C] ring-1 ring-[#0FA89C]' : 'border-[#DDE9E8] opacity-85 hover:opacity-100'
                     }`}
                   >
                     <img src={getOptimizedImageUrl(img, 150)} alt="thumb" className="w-full h-full object-cover" />
                     {isLastItem && extraCount > 0 && (
-                      <div className="absolute inset-0 bg-slate-900/80 text-white font-black text-[10.5px] flex items-center justify-center backdrop-blur-[1px]">
+                      <div className="absolute inset-0 bg-[#102A43]/80 text-white font-black text-[10.5px] flex items-center justify-center backdrop-blur-[1px]">
                         +{extraCount + 1}
                       </div>
                     )}
@@ -2297,79 +2258,88 @@ function PropertyCard({ property, onBookNow }) {
         </div>
 
         {/* Middle Content Details Area */}
-        <div className="flex-1 p-4 flex flex-col justify-between min-w-0 h-full">
+        <div className="flex-1 pt-2 px-4 pb-2.5 flex flex-col justify-between min-w-0 h-full">
           <div>
             {/* Title */}
             <div className="flex items-center justify-between gap-2 mb-2">
               <Link
                 to={detailPath}
                 onClick={() => trackPropertyClick(property.id)}
-                className="text-xl sm:text-2xl font-black text-slate-900 hover:text-[#0FA596] transition-colors line-clamp-1 tracking-tight"
+                className="text-lg sm:text-xl font-bold text-[#102A43] line-clamp-1 tracking-tight"
               >
                 {property.name}
               </Link>
             </div>
 
             {/* Location Subtitle & Nearby Landmark */}
-            <div className="flex items-center gap-2 mb-3 text-sm font-bold text-slate-700 truncate">
+            <div className="flex items-center gap-2 mb-2 text-base font-semibold text-[#60758A] truncate">
               <span className="flex items-center gap-1 truncate shrink-0">
-                <MapPin className="w-4.5 h-4.5 text-[#0FA596] shrink-0" />
+                <MapPin className="w-5 h-5 text-[#0FA89C] shrink-0" />
                 <span>{property.area ? `${property.area}, ` : ''}{property.location || property.city}</span>
               </span>
               {(property.landmark || property.nearInstitute || property.nearby) && (
-                <span className="flex items-center gap-1 text-teal-800 font-black bg-teal-50 border border-teal-200/80 px-3 py-0.5 rounded-md truncate shrink text-xs">
-                  <GraduationCap className="w-4 h-4 text-teal-600 shrink-0" />
+                <span className="flex items-center gap-1 text-[#0FA89C] font-bold bg-[#F3FBFA] border border-[#DDE9E8] px-2.5 py-0.5 rounded-md truncate shrink text-xs">
+                  <GraduationCap className="w-4 h-4 text-[#0FA89C] shrink-0" />
                   <span>{property.landmark || property.nearInstitute || property.nearby}</span>
                 </span>
               )}
             </div>
 
-            {/* Amenity Icons Row & Category Pills */}
-            <div className="flex flex-wrap items-center gap-2 text-[13px] font-black text-slate-700 mb-2">
-              <span className="flex items-center gap-1.5 bg-slate-100/90 border border-slate-200/80 px-3 py-1 rounded-md text-slate-700">
-                <Wifi className="w-4 h-4 text-slate-500" /> WiFi
+            {/* Amenity Icons Row — Clean List */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm font-semibold text-[#102A43] mb-2">
+              <span className="inline-flex items-center gap-1 text-[#102A43]">
+                <Check className="w-4.5 h-4.5 text-[#0FA89C] stroke-[2.5]" /> WiFi
               </span>
-              <span className="flex items-center gap-1.5 bg-slate-100/90 border border-slate-200/80 px-3 py-1 rounded-md text-slate-700">
-                <Wind className="w-4 h-4 text-slate-500" /> AC
+              <span className="inline-flex items-center gap-1 text-[#102A43]">
+                <Check className="w-4.5 h-4.5 text-[#0FA89C] stroke-[2.5]" /> AC
               </span>
-              <span className="flex items-center gap-1.5 bg-slate-100/90 border border-slate-200/80 px-3 py-1 rounded-md text-slate-700">
-                <Utensils className="w-4 h-4 text-slate-500" /> Meals
+              <span className="inline-flex items-center gap-1 text-[#102A43]">
+                <Check className="w-4.5 h-4.5 text-[#0FA89C] stroke-[2.5]" /> Meals
               </span>
-              <span className="flex items-center gap-1.5 bg-slate-100/90 border border-slate-200/80 px-3 py-1 rounded-md text-slate-700">
-                <Tv className="w-4 h-4 text-slate-500" /> TV
+              <span className="inline-flex items-center gap-1 text-[#102A43]">
+                <Check className="w-4.5 h-4.5 text-[#0FA89C] stroke-[2.5]" /> TV
               </span>
+              <span className="inline-flex items-center gap-1 text-[#102A43]">
+                <Check className="w-4.5 h-4.5 text-[#0FA89C] stroke-[2.5]" /> Daily Housekeeping
+              </span>
+            </div>
 
-              <span className="px-3 py-1 rounded-md bg-emerald-50 text-emerald-800 font-black border border-emerald-200/80">
-                {property.category || property.gender || 'Boys PG'}
+            {/* Key Feature Highlights Bar — Neutral Chips with Subtle Borders */}
+            <div className="flex flex-wrap items-center gap-2 text-[13.5px] font-bold text-[#102A43]">
+              <span className="inline-flex items-center gap-1.5 bg-[#F7FAFA] border border-[#DDE9E8] px-3 py-1 rounded-md text-[#102A43]">
+                <Shield className="w-4 h-4 text-[#60758A]" /> {property.category || property.gender || 'Boys PG'}
               </span>
-              <span className="px-3 py-1 rounded-md bg-sky-50 text-sky-800 font-black border border-sky-200/80">
-                {property.sharing || '2 Sharing'}
+              <span className="inline-flex items-center gap-1.5 bg-[#F7FAFA] border border-[#DDE9E8] px-3 py-1 rounded-md text-[#102A43]">
+                <Bed className="w-4 h-4 text-[#60758A]" /> {property.sharing || '2 Sharing'}
               </span>
-              <span className="px-3 py-1 rounded-md bg-purple-50 text-purple-800 font-black border border-purple-200/80">
-                {property.type || 'PG'}
+              <span className="inline-flex items-center gap-1.5 bg-[#F7FAFA] border border-[#DDE9E8] px-3 py-1 rounded-md text-[#102A43]">
+                <Building2 className="w-4 h-4 text-[#60758A]" /> {property.type || 'PG'}
+              </span>
+              <span className="inline-flex items-center gap-1.5 bg-[#F3FBFA] border border-[#DDE9E8] px-3 py-1 rounded-md text-[#0FA89C]">
+                <Zap className="w-4 h-4 text-[#0FA89C] fill-[#0FA89C]" /> Smart Bidding
               </span>
             </div>
           </div>
 
           {/* Trust Badges */}
-          <div className="pt-2 border-t border-slate-100 flex items-center gap-4 text-xs font-black text-slate-600">
-            <div className="flex items-center gap-1.5 text-teal-700">
-              <Check className="w-3.5 h-3.5 stroke-[3] text-teal-600" />
+          <div className="pt-2 border-t border-[#DDE9E8] flex items-center gap-4 text-xs font-bold text-[#60758A]">
+            <div className="flex items-center gap-1.5 text-[#0FA89C]">
+              <Check className="w-3.5 h-3.5 stroke-[3] text-[#0FA89C]" />
               <span>Smart Bidding</span>
             </div>
-            <div className="flex items-center gap-1.5 text-teal-700">
-              <Check className="w-3.5 h-3.5 stroke-[3] text-teal-600" />
+            <div className="flex items-center gap-1.5 text-[#0FA89C]">
+              <Check className="w-3.5 h-3.5 stroke-[3] text-[#0FA89C]" />
               <span>Instant Booking</span>
             </div>
           </div>
         </div>
 
-        {/* Right Side Price & Buttons Section — Pure White 215px Width */}
-        <div className="w-full lg:w-[215px] p-4 bg-white border-t lg:border-t-0 lg:border-l border-slate-100 flex flex-row lg:flex-col justify-between items-center lg:items-end shrink-0 h-full">
+        {/* Right Side Price & Buttons Section */}
+        <div className="w-full lg:w-[215px] p-4 bg-white border-t lg:border-t-0 lg:border-l border-[#DDE9E8] flex flex-row lg:flex-col justify-between items-center lg:items-end shrink-0 h-full">
           {/* Top Right Rating Badge */}
           <div className="w-full flex justify-end">
             {displayRating && (
-              <div className="bg-emerald-500 text-white px-2.5 py-1 rounded-md flex items-center gap-1 text-xs font-black shrink-0 shadow-xs">
+              <div className="bg-[#0FA89C] text-white px-2.5 py-1 rounded-md flex items-center gap-1 text-xs font-black shrink-0 shadow-xs">
                 <span>{displayRating}</span>
                 <Star className="w-3.5 h-3.5 fill-white stroke-none" />
               </div>
@@ -2404,8 +2374,8 @@ function PropertyCard({ property, onBookNow }) {
                 height: '36px',
                 borderRadius: '8px',
                 background: '#FFFFFF',
-                border: '1px solid #CBD8E3',
-                color: '#14213D',
+                border: '1px solid #DDE9E8',
+                color: '#102A43',
                 fontSize: '12px',
                 fontWeight: 800,
                 padding: '0 10px',
@@ -2427,16 +2397,16 @@ function PropertyCard({ property, onBookNow }) {
               style={{
                 height: '36px',
                 borderRadius: '8px',
-                background: '#0FA596',
-                border: '1px solid #0FA596',
+                background: '#0FA89C',
+                border: '1px solid #0FA89C',
                 color: '#FFFFFF',
                 fontSize: '12px',
                 fontWeight: 800,
                 padding: '0 10px',
                 transition: 'all 0.15s ease-in-out',
               }}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 2px 5px rgba(15,165,150,0.25)'; }}
-              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.background = '#0D9388'; e.currentTarget.style.boxShadow = '0 2px 5px rgba(15,168,156,0.25)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = '#0FA89C'; e.currentTarget.style.boxShadow = 'none'; }}
               className="flex-1 flex items-center justify-center text-center whitespace-nowrap cursor-pointer"
             >
               Book Now

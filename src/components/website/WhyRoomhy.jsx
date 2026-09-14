@@ -60,13 +60,13 @@ export default function WhyRoomhy({ title = "Why Choose Roomhy?", subtitle = "Bu
 
   return (
     <section className="bg-white py-2 md:py-4">
-      <div className="max-w-none w-full mx-auto px-4 md:px-8 lg:px-12 mt-2">
+      <div className="max-w-[1360px] w-full mx-auto px-4 md:px-6 lg:px-8 mt-2">
 
         <div className="text-center mb-2 md:mb-4">
-          <h2 className="text-xl md:text-3xl font-bold text-gray-900 mb-1">
+          <h2 className="text-xl md:text-3xl font-bold text-[#102A43] mb-1">
             {title}
           </h2>
-          <p className="text-xs md:text-base text-gray-600 max-w-2xl mx-auto">
+          <p className="text-xs md:text-base text-[#60758A] max-w-2xl mx-auto">
             {subtitle}
           </p>
         </div>
@@ -78,8 +78,8 @@ export default function WhyRoomhy({ title = "Why Choose Roomhy?", subtitle = "Bu
               key={index}
               onClick={() => handleMobileTap(index, point)}
               onDoubleClick={() => setPreviewCard(point)}
-              className={`bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-gray-100 cursor-pointer p-2.5 sm:p-5 ${
-                zoomedCard === index ? 'scale-105 shadow-xl ring-2 ring-teal-300' : ''
+              className={`bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-[#DDE9E8] cursor-pointer p-2.5 sm:p-5 ${
+                zoomedCard === index ? 'scale-105 shadow-xl ring-2 ring-[#0FA89C]/40' : ''
               }`}
             >
               <div className="relative mb-2 sm:mb-4">
@@ -91,16 +91,16 @@ export default function WhyRoomhy({ title = "Why Choose Roomhy?", subtitle = "Bu
                   width="400"
                   height="160"
                 />
-                <div className="absolute -bottom-3 sm:-bottom-4 left-1/2 -translate-x-1/2 bg-teal-500 text-white w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold border-2 sm:border-4 border-white text-[10px] sm:text-sm">
+                <div className="absolute -bottom-3 sm:-bottom-4 left-1/2 -translate-x-1/2 bg-[#0FA89C] text-white w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold border-2 sm:border-4 border-white text-[10px] sm:text-sm">
                   {index + 1}
                 </div>
               </div>
 
-              <h3 className="font-bold text-[11px] leading-tight sm:text-lg text-gray-900 text-center mt-4 sm:mt-0">
+              <h3 className="font-bold text-[11px] leading-tight sm:text-lg text-[#102A43] text-center mt-4 sm:mt-0">
                 {point.title}
               </h3>
 
-              <p className={`text-gray-900 mt-2 leading-relaxed text-center text-[10px] sm:text-sm ${
+              <p className={`text-[#60758A] mt-2 leading-relaxed text-center text-[10px] sm:text-sm ${
                 zoomedCard === index ? 'block' : 'hidden sm:block'
               }`}>
                 {point.description}
@@ -111,8 +111,8 @@ export default function WhyRoomhy({ title = "Why Choose Roomhy?", subtitle = "Bu
         </div>
 
         <div className="mt-4 md:mt-6 text-center">
-          <div className="bg-teal-500 rounded-xl p-3 md:p-6 max-w-2xl mx-auto">
-            <p className="text-white text-sm md:text-lg font-semibold">
+          <div className="bg-[#F3FBFA] border border-[#DDE9E8] rounded-xl p-3 md:p-6 max-w-2xl mx-auto">
+            <p className="text-[#102A43] text-sm md:text-lg font-bold">
               Join 50,000+ students who found their perfect home with Roomhy
             </p>
           </div>
@@ -124,17 +124,17 @@ export default function WhyRoomhy({ title = "Why Choose Roomhy?", subtitle = "Bu
             onClick={() => setPreviewCard(null)}
           >
             <div
-              className="w-full max-w-sm rounded-2xl bg-white overflow-hidden shadow-2xl"
+              className="w-full max-w-sm rounded-2xl bg-white overflow-hidden shadow-2xl border border-[#DDE9E8]"
               onClick={(event) => event.stopPropagation()}
             >
               <img src={previewCard.image} alt={previewCard.title} className="h-56 w-full object-cover" loading="lazy" width="400" height="224" />
               <div className="p-4">
-                <h3 className="text-lg font-bold text-gray-900">{previewCard.title}</h3>
-                <p className="mt-2 text-sm text-gray-600 leading-relaxed">{previewCard.description}</p>
+                <h3 className="text-lg font-bold text-[#102A43]">{previewCard.title}</h3>
+                <p className="mt-2 text-sm text-[#60758A] leading-relaxed">{previewCard.description}</p>
                 <button
                   type="button"
                   onClick={() => setPreviewCard(null)}
-                  className="mt-4 w-full rounded-xl bg-teal-500 py-2.5 text-sm font-semibold text-white"
+                  className="mt-4 w-full rounded-xl bg-[#0FA89C] hover:bg-[#0D9388] py-2.5 text-sm font-semibold text-white transition-colors"
                 >
                   Close Preview
                 </button>

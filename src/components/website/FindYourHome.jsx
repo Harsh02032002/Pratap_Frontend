@@ -50,7 +50,7 @@ export default function FindYourHome() {
           {findHomePoints.map((point, index) => (
             <div
               key={index}
-              className="bg-gray-50 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 p-5 border border-gray-100"
+              className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 p-5 border border-[#DDE9E8]"
             >
               <div className="relative mb-4">
                 <img
@@ -61,16 +61,16 @@ export default function FindYourHome() {
                   width="800"
                   height="160"
                 />
-                <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold border-4 border-white">
+                <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-[#0FA89C] text-white w-8 h-8 rounded-full flex items-center justify-center font-bold border-4 border-white">
                   {index + 1}
                 </div>
               </div>
 
-              <h3 className="font-bold text-lg text-gray-900 text-center">
+              <h3 className="font-bold text-lg text-[#102A43] text-center">
                 {point.title}
               </h3>
 
-              <p className="text-gray-500 mt-2 text-sm leading-relaxed text-center">
+              <p className="text-[#60758A] mt-2 text-sm leading-relaxed text-center">
                 {point.description}
               </p>
             </div>
@@ -79,8 +79,8 @@ export default function FindYourHome() {
         </div>
 
         <div className="mt-12 text-center">
-          <div className="bg-blue-600 rounded-xl p-6 max-w-2xl mx-auto">
-            <p className="text-white text-lg font-semibold">
+          <div className="bg-[#F3FBFA] border border-[#DDE9E8] rounded-xl p-6 max-w-2xl mx-auto">
+            <p className="text-[#102A43] text-lg font-bold">
               Start your search today and find your perfect home
             </p>
           </div>
