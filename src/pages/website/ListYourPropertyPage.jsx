@@ -210,7 +210,7 @@ export default function ListYourPropertyPage() {
             </h1>
 
             <p className="text-xs sm:text-sm text-slate-800 font-bold leading-relaxed">
-              Reach thousands of students searching for verified PGs, Hostels, and Apartments with 100% Zero Brokerage.
+              Reach thousands of students searching for verified PGs, Hostels, and Apartments with Smart Bidding.
             </p>
 
             {/* Trust Indicators Bar */}

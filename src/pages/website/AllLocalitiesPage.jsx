@@ -189,7 +189,7 @@ export default function AllLocalitiesPage() {
               Find PGs in Your <span className="text-teal-600">Preferred Area</span>
             </h2>
             <p className="text-sm text-slate-600 font-semibold leading-relaxed mb-6">
-              Explore PGs in the best localities across top cities. Zero Brokerage. 100% Verified.
+              Explore PGs in the best localities across top cities. Smart Bidding. 100% Verified.
             </p>
 
             {/* Feature Pills */}
@@ -199,7 +199,7 @@ export default function AllLocalitiesPage() {
                   <Shield className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-[11px] font-extrabold text-slate-900 leading-none">Zero Brokerage</div>
+                  <div className="text-[11px] font-extrabold text-slate-900 leading-none">Smart Bidding</div>
                   <div className="text-[9px] text-slate-500 font-medium">No hidden charges</div>
                 </div>
               </div>
@@ -398,7 +398,7 @@ export default function AllLocalitiesPage() {
                 </div>
                 <div className="flex items-center gap-2 bg-white/10 p-2 rounded-xl border border-white/15">
                   <Check className="w-4 h-4 text-emerald-300 shrink-0" />
-                  <span>Zero Brokerage</span>
+                  <span>Smart Bidding</span>
                 </div>
                 <div className="flex items-center gap-2 bg-white/10 p-2 rounded-xl border border-white/15">
                   <Check className="w-4 h-4 text-emerald-300 shrink-0" />

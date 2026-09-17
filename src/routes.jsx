@@ -172,6 +172,9 @@ const routeEntries = [
   ["/propertyowner/settings", "./pages/propertyowner/settings.jsx"],
   ["/propertyowner/tenantrec", "./pages/propertyowner/tenantrec.jsx"],
   ["/propertyowner/tenants", "./pages/propertyowner/tenants.jsx"],
+  ["/propertyowner/support", "./pages/propertyowner/OwnerTicketsPage.jsx"],
+  ["/tenant/support", "./pages/tenant/TenantTicketsPage.jsx"],
+  ["/superadmin/tickets", "./pages/superadmin/SuperAdminTicketsPage.jsx"],
 
   // Staff self-service screens — re-homed INSIDE the single Property Owner Panel.
   // (The former standalone /staff/* panel has been removed; see redirects in App.jsx.)

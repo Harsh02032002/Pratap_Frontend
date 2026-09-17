@@ -27,6 +27,7 @@ import { getStaffPanelNav, filterNotificationsForStaff, hasStaffPermission } fro
 import { cacheGet, cacheSet, cacheInvalidate } from "../../utils/cache";
 import { API_URL } from "../../utils/api";
 import PropertyOwnerMobileLayout from "./PropertyOwnerMobileLayout";
+import { initNotificationManager } from "../../utils/notificationManager";
 
 const DEFAULT_DESKTOP_ITEMS = [
   { href: "/propertyowner/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -163,6 +164,15 @@ export default function PropertyOwnerLayout({
         import('../../utils/api').then(({ getApiBase }) => {
           socket = io(getApiBase(), { transports: ['websocket', 'polling'] });
           socket.emit('join_room', { login_id: owner.loginId, role: 'property_owner', name: owner.name || owner.loginId });
+          socket.on('new_bidding_alert', (data) => {
+            import('../../utils/notificationManager').then(({ showNativeNotification }) => {
+              showNativeNotification(data.title || '💰 New Bid Received!', {
+                body: data.body || 'A new bid was submitted for your property.',
+                icon: '/pwa-192x192.png',
+                clickAction: '/propertyowner/booking_request'
+              });
+            }).catch(() => {});
+          });
           socket.on('account_blocked', () => {
             setIsAccountBlocked(true);
             clearOwnerRuntimeSession();
@@ -190,6 +200,7 @@ export default function PropertyOwnerLayout({
 
   useEffect(() => {
     if (owner?.loginId) {
+      initNotificationManager(owner.loginId);
       fetchOwnerProperties(owner.loginId, true).then(props => {
         setProperties(props || []);
       }).catch(err => console.error("Failed to fetch properties for switcher", err));
@@ -497,8 +508,20 @@ export default function PropertyOwnerLayout({
           notificationOpen ? "block" : "hidden"
         )}
       >
-        <div className="px-4 py-3 border-b border-gray-100">
+        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-gray-800">Notifications</h3>
+          <button
+            type="button"
+            onClick={async () => {
+              const { showNativeNotification } = await import("../../utils/notificationManager");
+              showNativeNotification("Roomhy Test Notification 🔔", {
+                body: "Device push alerts are active and working on your device!"
+              });
+            }}
+            className="text-[11px] font-bold text-teal-600 hover:text-teal-700 bg-teal-50 hover:bg-teal-100 px-2.5 py-1 rounded-md transition-colors cursor-pointer"
+          >
+            Test Push 🔔
+          </button>
         </div>
         <div id="notificationList" className="max-h-96 overflow-y-auto custom-scrollbar">
           {displayNotifications.length === 0 ? (

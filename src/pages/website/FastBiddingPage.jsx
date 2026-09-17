@@ -365,7 +365,7 @@ export default function FastBiddingPage() {
                     <Info className="text-purple-400 w-5 h-5" />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-white">Zero Brokerage Guaranteed</p>
+                    <p className="text-xs font-bold text-white">Smart Bidding Guaranteed</p>
                     <p className="text-[11px] text-gray-300">Save money with transparent direct pricing</p>
                   </div>
                 </div>

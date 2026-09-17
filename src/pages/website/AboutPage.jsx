@@ -143,7 +143,7 @@ export default function AboutPage() {
                 <div className="flex flex-wrap items-center justify-center gap-2.5 pt-3 border-t border-teal-200/80 mt-4">
                   <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border border-teal-200 text-slate-800 text-xs font-extrabold shadow-2xs">
                     <CheckCircle2 className="w-3.5 h-3.5 text-[#0FA596]" />
-                    <span>Zero Brokerage Fees</span>
+                    <span>Smart Bidding Only</span>
                   </div>
                   <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border border-teal-200 text-slate-800 text-xs font-extrabold shadow-2xs">
                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />

@@ -19,7 +19,7 @@ const faqData = [
     id: 1,
     category: 'general',
     question: "What is Roomhy and how does it work?",
-    answer: "Roomhy is India's premier student accommodation platform connecting students directly with verified property owners. You search, shortlist, and book PGs, Hostels, and Apartments with 100% Zero Brokerage. You can also place custom budget bids directly to property owners."
+    answer: "Roomhy is India's premier student accommodation platform connecting students directly with verified property owners. You search, shortlist, and book PGs, Hostels, and Apartments with Smart Bidding. You can also place custom budget bids directly to property owners."
   },
   {
     id: 2,
@@ -166,7 +166,7 @@ export default function FAQPage() {
                   <div className="w-4 h-4 rounded-full bg-emerald-100 flex items-center justify-center">
                     <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                   </div>
-                  <span>Zero Brokerage</span>
+                  <span>Smart Bidding</span>
                 </div>
                 <span className="text-slate-300 hidden sm:inline">|</span>
                 <div className="flex items-center gap-1.5">

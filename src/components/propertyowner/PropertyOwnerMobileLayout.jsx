@@ -13,6 +13,7 @@ import {
 import { SILVER_NAV, GOLD_NAV } from './navConfig';
 import { cacheInvalidate } from "../../utils/cache";
 import { API_URL } from "../../utils/api";
+import { initNotificationManager } from "../../utils/notificationManager";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
@@ -73,12 +74,22 @@ export default function PropertyOwnerMobileLayout({
 
   useEffect(() => {
     if (!owner?.loginId) return;
+    initNotificationManager(owner.loginId);
     let socket;
     try {
       import('socket.io-client').then(({ io }) => {
         import('../../utils/api').then(({ getApiBase }) => {
           socket = io(getApiBase(), { transports: ['websocket', 'polling'] });
           socket.emit('join_room', { login_id: owner.loginId, role: 'property_owner', name: owner.name || owner.loginId });
+          socket.on('new_bidding_alert', (data) => {
+            import('../../utils/notificationManager').then(({ showNativeNotification }) => {
+              showNativeNotification(data.title || '💰 New Bid Received!', {
+                body: data.body || 'A new bid was submitted for your property.',
+                icon: '/pwa-192x192.png',
+                clickAction: '/propertyowner/booking_request'
+              });
+            }).catch(() => {});
+          });
           socket.on('account_blocked', () => {
             setIsAccountBlocked(true);
             import('../../utils/propertyowner').then(({ clearOwnerRuntimeSession }) => {

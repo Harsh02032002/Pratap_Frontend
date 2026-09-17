@@ -46,6 +46,7 @@ import {
 import { fetchRentDashboard } from "../../utils/rentCollectionApi";
 import { cacheGet, cacheSet } from "../../utils/cache";
 import { STAFF_HOME_PATH } from "../../utils/staffAccess";
+import OwnerNotificationPrompt from "../../components/propertyowner/OwnerNotificationPrompt";
 
 const _chartCache = new Map(); // loginId → { thisWeek, growth, timestamp }
 const CHART_CACHE_TTL = 7 * 60 * 1000; // 7 minutes
@@ -677,8 +678,11 @@ export default function Admin() {
           </div>
         )}
 
+        {/* ── Notification Permission Prompt ── */}
+        <OwnerNotificationPrompt loginId={owner?.loginId || null} />
+
         {/* Action errors (e.g. a failed enquiry update). No retry button — it
-            would reload the dashboard rather than redo the action that failed. */}
+             would reload the dashboard rather than redo the action that failed. */}
         {errorMsg && (
           <div className="mb-5 flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-[13px] text-amber-800">
             <AlertCircle className="size-4 shrink-0" />

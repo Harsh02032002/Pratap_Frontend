@@ -82,6 +82,7 @@ export const PROPERTY_OWNER_NAV = [
     icon: Headset,
     href: "/propertyowner/complaints",
     submenus: [
+      { label: "Support Tickets (Ref ID)", href: "/propertyowner/support", goldOnly: false },
       { label: "All Complaints", href: "/propertyowner/complaints", goldOnly: false },
       { label: "Open Tickets", href: "/propertyowner/open-tickets", goldOnly: false },
       { label: "In Progress", href: "/propertyowner/in-progress-complaints", goldOnly: false },

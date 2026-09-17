@@ -13,6 +13,8 @@ import { fetchJson } from "./utils/api";
 import { hasEmployeePermission, getFirstAllowedEmployeeRoute } from "./utils/employeePermissions";
 import { Toaster, toast } from "react-hot-toast";
 import InstallPWA from "./components/InstallPWA";
+import NotificationPromptBanner from "./components/NotificationPromptBanner";
+import { initNotificationManager } from "./utils/notificationManager";
 
 // Global Toast Override for any native browser alert() calls across Roomhy
 if (typeof window !== "undefined") {
@@ -436,6 +438,23 @@ const RouteChromeCleanup = () => {
 };
 
 
+/**
+ * Silently sync push token with backend on app startup
+ * if user has already granted notification permission.
+ */
+const NotificationStartupInit = () => {
+  useEffect(() => {
+    try {
+      const tokenData = JSON.parse(localStorage.getItem('roomhy_user') || '{}');
+      const loginId = tokenData.loginId || tokenData._id || null;
+      initNotificationManager(loginId);
+    } catch (_) {
+      initNotificationManager(null);
+    }
+  }, []);
+  return null;
+};
+
 export default function App() {
   // Categorize routes for nested layout
   const shellRoutes = routes.filter(r => {
@@ -457,6 +476,8 @@ export default function App() {
             <Toaster position="top-right" reverseOrder={false} />
             <DomainGuard />
             <InstallPWA />
+            <NotificationPromptBanner />
+            <NotificationStartupInit />
             <ManagerRouteGuard />
             <RouteRoleGuard />
             <StaffSessionSync />
