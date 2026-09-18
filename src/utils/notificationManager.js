@@ -125,11 +125,33 @@ export async function sendTokenToBackend(token, loginId = null) {
   try {
     const deviceType = getDeviceType();
     let activeLoginId = loginId;
+    let jwtToken = null;
+
     if (!activeLoginId) {
       try {
-        const ownerSession = JSON.parse(localStorage.getItem('owner_session') || sessionStorage.getItem('owner_session') || '{}');
-        const userSession = JSON.parse(localStorage.getItem('roomhy_user') || localStorage.getItem('website_user') || localStorage.getItem('user') || '{}');
-        activeLoginId = ownerSession.loginId || ownerSession.ownerLoginId || userSession.loginId || userSession._id || userSession.phone;
+        const ownerSession = JSON.parse(
+          localStorage.getItem('owner_session') ||
+          sessionStorage.getItem('owner_session') ||
+          '{}'
+        );
+        const userSession = JSON.parse(
+          localStorage.getItem('roomhy_user') ||
+          localStorage.getItem('website_user') ||
+          localStorage.getItem('user') ||
+          '{}'
+        );
+        const tenantSession = JSON.parse(
+          localStorage.getItem('tenant_session') ||
+          sessionStorage.getItem('tenant_session') ||
+          '{}'
+        );
+        activeLoginId =
+          ownerSession.loginId || ownerSession.ownerLoginId ||
+          tenantSession.loginId ||
+          userSession.loginId || userSession._id || userSession.phone;
+        jwtToken =
+          ownerSession.token || tenantSession.token || userSession.token ||
+          localStorage.getItem('roomhy_jwt') || null;
       } catch (_) {}
     }
 
@@ -142,7 +164,7 @@ export async function sendTokenToBackend(token, loginId = null) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': tokenData.token ? `Bearer ${tokenData.token}` : ''
+        ...(jwtToken ? { 'Authorization': `Bearer ${jwtToken}` } : {})
       },
       body: JSON.stringify({ token, deviceType, loginId: activeLoginId })
     });

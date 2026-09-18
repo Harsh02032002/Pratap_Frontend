@@ -626,6 +626,30 @@ export default function PropertyOwnerMobileLayout({
           </div>
         </div>
 
+        {typeof window !== 'undefined' && 'Notification' in window && Notification.permission !== 'granted' && (
+          <div className="p-3.5 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl flex items-center justify-between gap-3 mb-3 shrink-0">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0">
+                <Bell size={16} />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-800">Phone Push Notifications</p>
+                <p className="text-[10px] text-slate-500">Get instant alerts on mobile for new bids & rent</p>
+              </div>
+            </div>
+            <button
+              onClick={async () => {
+                const { requestNotificationPermission } = await import("../../utils/notificationManager");
+                await requestNotificationPermission(owner?.loginId);
+                setNotifDrawerOpen(false);
+              }}
+              className="text-[11px] font-bold bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-xl shadow-sm transition-all shrink-0"
+            >
+              Enable
+            </button>
+          </div>
+        )}
+
         <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2.5">
           {displayNotifications.length === 0 ? (
             <div className="py-16 text-center text-slate-400">

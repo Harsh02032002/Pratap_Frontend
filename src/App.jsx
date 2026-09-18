@@ -441,12 +441,30 @@ const RouteChromeCleanup = () => {
 /**
  * Silently sync push token with backend on app startup
  * if user has already granted notification permission.
+ * Supports Owner, Tenant, Superadmin/Employee, and Website user sessions.
  */
 const NotificationStartupInit = () => {
   useEffect(() => {
     try {
-      const tokenData = JSON.parse(localStorage.getItem('roomhy_user') || '{}');
-      const loginId = tokenData.loginId || tokenData._id || null;
+      let loginId = null;
+      const tryParse = (str) => { try { return JSON.parse(str || '{}'); } catch (_) { return {}; } };
+      // Owner panel
+      const ownerSession = tryParse(localStorage.getItem('owner_session') || sessionStorage.getItem('owner_session'));
+      if (ownerSession.loginId || ownerSession.ownerLoginId) {
+        loginId = ownerSession.loginId || ownerSession.ownerLoginId;
+      }
+      // Tenant panel
+      if (!loginId) {
+        const tenantSession = tryParse(localStorage.getItem('tenant_session') || sessionStorage.getItem('tenant_session'));
+        if (tenantSession.loginId) loginId = tenantSession.loginId;
+      }
+      // Superadmin / Employee / Website user
+      if (!loginId) {
+        const userSession = tryParse(
+          localStorage.getItem('roomhy_user') || localStorage.getItem('user') || localStorage.getItem('website_user')
+        );
+        loginId = userSession.loginId || userSession._id || null;
+      }
       initNotificationManager(loginId);
     } catch (_) {
       initNotificationManager(null);
@@ -455,7 +473,25 @@ const NotificationStartupInit = () => {
   return null;
 };
 
+/**
+ * Helper to resolve the current logged-in user's loginId across all panels.
+ * Used to pass loginId prop to NotificationPromptBanner.
+ */
+function useCurrentLoginId() {
+  try {
+    const tryParse = (str) => { try { return JSON.parse(str || '{}'); } catch (_) { return {}; } };
+    const ownerSession = tryParse(localStorage.getItem('owner_session') || sessionStorage.getItem('owner_session'));
+    if (ownerSession.loginId || ownerSession.ownerLoginId) return ownerSession.loginId || ownerSession.ownerLoginId;
+    const tenantSession = tryParse(localStorage.getItem('tenant_session') || sessionStorage.getItem('tenant_session'));
+    if (tenantSession.loginId) return tenantSession.loginId;
+    const userSession = tryParse(localStorage.getItem('roomhy_user') || localStorage.getItem('user') || localStorage.getItem('website_user'));
+    return userSession.loginId || userSession._id || null;
+  } catch (_) { return null; }
+}
+
 export default function App() {
+  const currentLoginId = useCurrentLoginId();
+
   // Categorize routes for nested layout
   const shellRoutes = routes.filter(r => {
     const isSuperadmin = r.path.startsWith("/superadmin/") && r.path !== "/superadmin/index";
@@ -476,7 +512,7 @@ export default function App() {
             <Toaster position="top-right" reverseOrder={false} />
             <DomainGuard />
             <InstallPWA />
-            <NotificationPromptBanner />
+            <NotificationPromptBanner userLoginId={currentLoginId} />
             <NotificationStartupInit />
             <ManagerRouteGuard />
             <RouteRoleGuard />

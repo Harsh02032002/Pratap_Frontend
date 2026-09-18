@@ -198,7 +198,7 @@ export default function FastBiddingPage() {
 
       if (parsedMin || parsedMax) {
         const rent = parseInt(prop.monthlyRent || prop.rent || propInfo.rent || propInfo.monthlyRent, 10);
-        const bufferedMax = parsedMax ? parsedMax + 3000 : null; // +₹3000 buffer logic
+        const bufferedMax = parsedMax ? parsedMax + 2500 : null; // +₹2500 buffer logic
 
         if (Number.isFinite(rent)) {
           if (parsedMin && rent < parsedMin) return false;

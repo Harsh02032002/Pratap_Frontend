@@ -70,15 +70,17 @@ export default function FastBiddingModal({ isOpen, onClose, initialData = {} }) 
       if (selectedGender && p.gender?.toLowerCase() !== selectedGender.toLowerCase() && p.genderSuitability?.toLowerCase() !== selectedGender.toLowerCase()) {
         return false;
       }
-      // Max Price (Allow +3000 buffer for bidding negotiation)
+      // Max Price (Allow +2500 buffer for bidding negotiation)
       if (maxPrice) {
         const limit = parseInt(maxPrice, 10);
         const rent = parseInt(p.monthlyRent || p.price || 0, 10);
-        if (rent > limit + 3000) return false;
+        if (rent > limit + 2500) return false;
       }
       return true;
     });
   }, [allProperties, selectedCity, selectedArea, selectedType, selectedGender, maxPrice]);
+
+  const [resultModal, setResultModal] = useState(null);
 
   const handleBidSubmit = async (e) => {
     if (e) e.preventDefault();
@@ -86,21 +88,32 @@ export default function FastBiddingModal({ isOpen, onClose, initialData = {} }) 
       setShowLoginPrompt(true);
       return;
     }
-    if (filteredProperties.length === 0) {
-      showToast('No properties found matching your criteria. Try adjusting your filters!', 'warning');
-      return;
+    
+    const parsedMax = parseInt(maxPrice, 10) || 0;
+    const exactMatches = filteredProperties.filter(p => parseInt(p.monthlyRent || p.price || 0, 10) <= parsedMax);
+    const gapMatches = filteredProperties.filter(p => {
+      const r = parseInt(p.monthlyRent || p.price || 0, 10);
+      return r > parsedMax && r <= parsedMax + 2500;
+    });
+
+    let category = 'no_match_active';
+    if (exactMatches.length > 0) {
+      category = 'exact_match';
+    } else if (gapMatches.length > 0) {
+      category = 'slight_gap';
     }
 
     setSubmitting(true);
     try {
-      const parsedMax = parseInt(maxPrice, 10);
       const userId = user?.loginId || user?._id || user?.id || '';
 
-      const bidRequests = filteredProperties.slice(0, 15).map((prop, index) => {
+      const targetProps = filteredProperties.length > 0 ? filteredProperties.slice(0, 15) : [{ _id: 'generic_bid_request', propertyName: 'Active Requirement', monthlyRent: parsedMax }];
+
+      const bidRequests = targetProps.map((prop, index) => {
         const propInfo = prop.propertyInfo || {};
         const propertyId = prop._id || prop.id || prop.visitId || `property-${index}`;
         const ownerId = resolvePropertyOwnerLoginId(prop) || (prop.generatedCredentials && prop.generatedCredentials.loginId) || prop.ownerLoginId || propInfo.ownerLoginId || 'admin';
-        const propRent = parseInt(prop.monthlyRent || prop.rent || prop.price || prop.pricing?.monthlyRent || 0, 10);
+        const propRent = parseInt(prop.monthlyRent || prop.rent || prop.price || prop.pricing?.monthlyRent || parsedMax || 0, 10);
         const budget = (Number.isFinite(parsedMax) && parsedMax > 0) ? parsedMax : 0;
 
         return fetchJson(`${getApiBase()}/api/bids/create`, {
@@ -142,8 +155,29 @@ export default function FastBiddingModal({ isOpen, onClose, initialData = {} }) 
       cacheInvalidate('enquiries:');
       cacheInvalidate('booking-requests:');
       setSubmitting(false);
-      showToast(`⚡ Bid request sent successfully to ${Math.min(filteredProperties.length, 15)} matching property owners!`, 'success');
-      setTimeout(() => onClose(), 2000);
+
+      if (category === 'exact_match') {
+        setResultModal({
+          type: 'exact',
+          title: '✅ Bid Submitted — Exact Budget Match Found!',
+          message: `Matching properties are available right in your budget of ₹${parsedMax.toLocaleString('en-IN')}/month! Property owners have been notified. An owner willing to accept your rent offer can initiate a chat with you directly. You will be notified instantly when an owner responds.`,
+          badges: ['💬 Direct Owner Chat', '🔔 Real-time Alerts', '⌛ 24-Hour Bid Validity']
+        });
+      } else if (category === 'slight_gap') {
+        setResultModal({
+          type: 'gap',
+          title: '⚡ Bid Submitted — Properties Within ₹2,500 Budget Gap',
+          message: `Properties slightly above your budget (up to ₹2,500 gap) are available! Interested owners have been notified that you wish to negotiate. They can initiate a Chat with you directly to offer a lower rate. You will be notified instantly when an owner responds.`,
+          badges: ['💬 Rent Negotiation Chat', '🔔 Notification Enabled', '⌛ 24-Hour Bid Validity']
+        });
+      } else {
+        setResultModal({
+          type: 'none',
+          title: '📌 Requirement Active & Registered!',
+          message: `No matching properties are currently available in this range. Your requirement has been saved as ACTIVE! As soon as a suitable property is added by an owner or admin, you will automatically be notified via In-App, WhatsApp, and Email.`,
+          badges: ['⚡ Auto-Matching Active', '📱 WhatsApp + Email Alerts', '📌 Requirement Saved']
+        });
+      }
     } catch (err) {
       setSubmitting(false);
       showToast('Failed to submit bid requests. Please try again.', 'error');
@@ -467,6 +501,42 @@ export default function FastBiddingModal({ isOpen, onClose, initialData = {} }) 
         </div>
 
       </div>
+
+      {/* Result Informational Modal Overlay */}
+      {resultModal && (
+        <div className="fixed inset-0 z-[130] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-center border border-slate-100 animate-in zoom-in-95 space-y-5">
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto ${
+              resultModal.type === 'exact' ? 'bg-emerald-100 text-emerald-600' : (resultModal.type === 'gap' ? 'bg-amber-100 text-amber-600' : 'bg-teal-100 text-teal-600')
+            }`}>
+              {resultModal.type === 'exact' ? <CheckCircle className="w-8 h-8" /> : (resultModal.type === 'gap' ? <Zap className="w-8 h-8" /> : <Info className="w-8 h-8" />)}
+            </div>
+
+            <div>
+              <h3 className="text-lg font-black text-slate-900 leading-snug">{resultModal.title}</h3>
+              <p className="text-xs text-slate-600 mt-3 leading-relaxed">{resultModal.message}</p>
+            </div>
+
+            <div className="flex flex-wrap gap-2 justify-center pt-2">
+              {resultModal.badges.map((b, idx) => (
+                <span key={idx} className="text-[10px] font-extrabold bg-slate-100 text-slate-700 px-3 py-1 rounded-full border border-slate-200">
+                  {b}
+                </span>
+              ))}
+            </div>
+
+            <button
+              onClick={() => {
+                setResultModal(null);
+                onClose();
+              }}
+              className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition-all"
+            >
+              Got it, Thank You
+            </button>
+          </div>
+        </div>
+      )}
 
     </div>
   );

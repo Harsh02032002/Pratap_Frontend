@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { NavLink, useLocation, Outlet, useNavigate } from "react-router-dom";
 import { resolveSectionFromPath, sharedNavConfig } from "./sharedNavConfig";
-import { Menu, Search, Bell, ChevronRight, X, MessageSquare, Building2, HelpCircle, Plus, ChevronDown, UserPlus, Wallet, AlertCircle, Calendar, Receipt } from "lucide-react";
+import { Menu, Search, Bell, ChevronRight, X, MessageSquare, Building2, HelpCircle, Plus, ChevronDown, UserPlus, Wallet, AlertCircle, Calendar, Receipt, Smartphone } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { fetchJson } from "../utils/api";
+import { requestNotificationPermission } from "../utils/notificationManager";
 
 export default function SharedShell() {
   const location = useLocation();
@@ -167,6 +168,24 @@ export default function SharedShell() {
                           <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{unreadCount} unread</span>
                         )}
                       </div>
+
+                      {typeof window !== 'undefined' && 'Notification' in window && Notification.permission !== 'granted' && (
+                        <div className="p-3 bg-amber-50 border-b border-amber-100 flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <Smartphone className="w-4 h-4 text-amber-600 shrink-0" />
+                            <span className="text-[11px] font-medium text-amber-900">Enable Phone Push Alerts</span>
+                          </div>
+                          <button
+                            onClick={async () => {
+                              await requestNotificationPermission(user?.loginId || 'superadmin');
+                              setNotifDropdownOpen(false);
+                            }}
+                            className="text-[10px] font-bold bg-amber-600 hover:bg-amber-700 text-white px-2.5 py-1 rounded-lg transition-colors shrink-0"
+                          >
+                            Enable
+                          </button>
+                        </div>
+                      )}
                       
                       <div className="max-h-64 overflow-y-auto divide-y divide-slate-50">
                         {notifications.length === 0 ? (

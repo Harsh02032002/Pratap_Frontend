@@ -771,7 +771,7 @@ export default function OurPropertyPage() {
     
     if (maxPrice) {
       const limit = parseInt(maxPrice);
-      const allowedLimit = isBiddingMode ? (limit + 3000) : limit;
+      const allowedLimit = isBiddingMode ? (limit + 2500) : limit;
       filtered = filtered.filter(p => p.price <= allowedLimit);
     }
 

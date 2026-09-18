@@ -41,6 +41,7 @@ export const sharedNavConfig = {
           { label: "Bookings", to: "/superadmin/booking", icon: "calendar-check" },
           { label: "Reviews", to: "/superadmin/reviews", icon: "star" },
           { label: "Complaint History", to: "/superadmin/complaint-history", icon: "alert-circle" },
+          { label: "Support & Ref ID Search", to: "/superadmin/tickets", icon: "life-buoy" },
           { label: "Chat Support", to: "/superadmin/chat-overview", icon: "message-square" }
         ]
       },
@@ -169,7 +170,8 @@ export const sharedNavConfig = {
           { label: "Enquiries", to: "/employee/enquiry", icon: "help-circle" },
           { label: "Bookings", to: "/employee/booking", icon: "calendar-check" },
           { label: "Reviews", to: "/employee/reviews", icon: "star" },
-          { label: "Complaint History", to: "/employee/complaint-history", icon: "alert-circle" }
+          { label: "Complaint History", to: "/employee/complaint-history", icon: "alert-circle" },
+          { label: "Support & Ref ID Search", to: "/employee/tickets", icon: "life-buoy" }
         ]
       },
       {
