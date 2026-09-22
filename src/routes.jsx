@@ -418,6 +418,8 @@ const routeEntries = [
   ["/website/property-rooms/:propertyId", "./pages/website/PropertyRoomsPage.jsx"],
 
   ["/website/fast-bidding", "./pages/website/FastBiddingPage.jsx"],
+  ["/fast-bidding", "./pages/website/FastBiddingPage.jsx"],
+  ["/bidding", "./pages/website/FastBiddingPage.jsx"],
   ["/website/pay", "./pages/website/PaymentCheckout.jsx"],
   ["/payment-status", "./pages/website/PaymentCheckout.jsx"],
   ["/website/payment-status", "./pages/website/PaymentCheckout.jsx"],

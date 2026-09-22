@@ -5,12 +5,13 @@ import { getOwnerRuntimeSession, clearOwnerRuntimeSession, filterByActivePropert
 import { fetchJson } from "../../utils/api";
 import { cacheGet, cacheSet, cacheInvalidate } from "../../utils/cache";
 import { useOwnerLiveUpdates } from "../../hooks/useOwnerLiveUpdates";
+import { exportToCSV, csvDate } from "../../utils/export";
 
 const BOOKING_TTL = 2 * 60 * 1000; // 2 minutes
 import { 
   Inbox, Search, MessageSquare, Phone, Calendar, 
   CheckCircle2, XCircle, Clock, CreditCard, ArrowRight, Loader2,
-  Eye, X, User, Mail, MapPin, Check, AlertTriangle
+  Eye, X, User, Mail, MapPin, Check, AlertTriangle, Download, CheckSquare
 } from "lucide-react";
 
 export default function BookingRequestPage() {
@@ -25,6 +26,8 @@ export default function BookingRequestPage() {
   const [loading, setLoading] = useState(true);
   const [selectedRequestForView, setSelectedRequestForView] = useState(null);
   const [activeTab, setActiveTab] = useState("all");
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false);
 
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [approvingItem, setApprovingItem] = useState(null);
@@ -105,6 +108,55 @@ export default function BookingRequestPage() {
     }
   };
 
+  const handleBulkApprove = async () => {
+    if (selectedIds.size === 0) return;
+    if (!window.confirm(`Approve ${selectedIds.size} booking request(s)?`)) return;
+    setIsBulkProcessing(true);
+    try {
+      await fetchJson("/api/booking/requests/bulk-approve", {
+        method: "PUT",
+        body: JSON.stringify({ ids: Array.from(selectedIds) })
+      });
+      cacheInvalidate(`booking-requests:${owner.loginId}`);
+      setRequests(prev => prev.filter(r => !selectedIds.has(r._id)));
+      setSelectedIds(new Set());
+      toast.success(`${selectedIds.size} booking(s) approved!`);
+    } catch (err) { toast.error(err.message); }
+    finally { setIsBulkProcessing(false); }
+  };
+
+  const handleBulkReject = async () => {
+    if (selectedIds.size === 0) return;
+    if (!window.confirm(`Reject ${selectedIds.size} booking request(s)?`)) return;
+    setIsBulkProcessing(true);
+    try {
+      await fetchJson("/api/booking/requests/bulk-reject", {
+        method: "PUT",
+        body: JSON.stringify({ ids: Array.from(selectedIds) })
+      });
+      cacheInvalidate(`booking-requests:${owner.loginId}`);
+      setRequests(prev => prev.filter(r => !selectedIds.has(r._id)));
+      setSelectedIds(new Set());
+      toast.success(`${selectedIds.size} booking(s) rejected!`);
+    } catch (err) { toast.error(err.message); }
+    finally { setIsBulkProcessing(false); }
+  };
+
+  const handleExportCSV = () => {
+    const headers = ["Name", "Phone", "Email", "Property", "Move-In Date", "Request Type", "Payment Status", "Amount", "Received On"];
+    const rows = filteredRequests.map(r => [
+      r.name || "", r.phone || "", r.email || "", r.property_name || "",
+      csvDate(r.check_in_date), r.request_type || "direct",
+      r.payment_status || "", (r.payment_amount || r.token_paid || 0), csvDate(r.created_at)
+    ]);
+    exportToCSV("booking_requests.csv", headers, rows);
+    toast.success("Exported!");
+  };
+
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
+  };
+
   const filteredRequests = requests.filter(r => {
     const matchesSearch = (r.name || "").toLowerCase().includes(search.toLowerCase()) ||
       (r.property_name || "").toLowerCase().includes(search.toLowerCase());
@@ -129,14 +181,22 @@ export default function BookingRequestPage() {
           <h1 className="font-serif text-[38px] md:text-[44px] leading-[1.05] text-foreground">Booking Requests</h1>
           <p className="mt-1.5 text-[13.5px] text-muted-foreground">Approve incoming reservation requests, verify online token receipts, and allocate rooms.</p>
         </div>
-        <button
-          onClick={() => fetchRequests(true)}
-          disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border bg-card text-[13px] font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50 shrink-0"
-        >
-          <Loader2 size={14} className={loading ? "animate-spin" : ""} />
-          Refresh
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={handleExportCSV}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border bg-card text-[13px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Download size={14}/> Export CSV
+          </button>
+          <button
+            onClick={() => fetchRequests(true)}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border bg-card text-[13px] font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+          >
+            <Loader2 size={14} className={loading ? "animate-spin" : ""} />
+            Refresh
+          </button>
+        </div>
       </div>
 
 
@@ -212,9 +272,35 @@ export default function BookingRequestPage() {
         </div>
       ) : (
         /* Grid of Booking Requests */
+        <>
+        <div className="flex items-center gap-3 mb-4">
+          <label className="flex items-center gap-2 text-[13px] font-medium text-muted-foreground cursor-pointer select-none">
+            <input
+              type="checkbox"
+              className="rounded border-slate-300 cursor-pointer"
+              checked={filteredRequests.length > 0 && filteredRequests.every(r => selectedIds.has(r._id))}
+              onChange={() => {
+                const allSelected = filteredRequests.every(r => selectedIds.has(r._id));
+                setSelectedIds(allSelected ? new Set() : new Set(filteredRequests.map(r => r._id)));
+              }}
+            />
+            Select All ({filteredRequests.length})
+          </label>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {filteredRequests.map((item) => (
-            <div key={item._id} className="rounded-2xl border border-border bg-card p-6 shadow-soft hover:shadow-md transition-all flex flex-col justify-between">
+            <div key={item._id} className={`rounded-2xl border bg-card p-6 shadow-soft hover:shadow-md transition-all flex flex-col justify-between ${selectedIds.has(item._id) ? 'border-blue-400 ring-2 ring-blue-100' : 'border-border'}`}>
+              <div className="flex items-center justify-between mb-2">
+                <label className="flex items-center gap-2 cursor-pointer" onClick={e => e.stopPropagation()}>
+                  <input
+                    type="checkbox"
+                    className="rounded border-slate-300 cursor-pointer w-4 h-4"
+                    checked={selectedIds.has(item._id)}
+                    onChange={() => toggleSelect(item._id)}
+                  />
+                  <span className="text-[11px] text-muted-foreground font-medium">Select</span>
+                </label>
+              </div>
               <div className="space-y-4">
                 <div className="flex justify-between items-start">
                   <div className="size-10 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center">
@@ -332,6 +418,37 @@ export default function BookingRequestPage() {
             </div>
           ))}
         </div>
+        {selectedIds.size > 0 && (
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900/95 text-white px-8 py-4 rounded-3xl border border-slate-800 shadow-2xl flex items-center gap-6 backdrop-blur-md">
+            <div className="flex items-center gap-3 border-r border-slate-700 pr-6">
+              <span className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-[11px] font-black">{selectedIds.size}</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Selected</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                disabled={isBulkProcessing}
+                onClick={handleBulkApprove}
+                className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-lg active:scale-95 transition-all"
+              >
+                {isBulkProcessing ? <Loader2 size={14} className="animate-spin"/> : "Bulk Approve"}
+              </button>
+              <button
+                disabled={isBulkProcessing}
+                onClick={handleBulkReject}
+                className="bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-lg active:scale-95 transition-all"
+              >
+                Bulk Reject
+              </button>
+              <button
+                onClick={() => setSelectedIds(new Set())}
+                className="text-slate-400 hover:text-white text-[10px] font-bold uppercase tracking-widest pl-2 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+        </>
       )}
 
       {selectedRequestForView && (

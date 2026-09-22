@@ -25,6 +25,40 @@ export default function SuperadminWebsiteenq() {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [employees, setEmployees] = useState([]);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
+  const [selectedEnquiryIds, setSelectedEnquiryIds] = useState([]);
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedEnquiryIds(filteredEnquiries.map(item => item._id || item.enquiry_id));
+    } else {
+      setSelectedEnquiryIds([]);
+    }
+  };
+
+  const handleSelectOne = (id) => {
+    setSelectedEnquiryIds(prev => 
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedEnquiryIds.length === 0) return;
+    if (!window.confirm(`Are you sure you want to delete ${selectedEnquiryIds.length} enquiries?`)) return;
+    try {
+      const res = await fetchJson("/api/website-enquiry/bulk-delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enquiryIds: selectedEnquiryIds })
+      });
+      if (res?.success) {
+        setSelectedEnquiryIds([]);
+        loadEnquiries();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
 
   const loadEnquiries = async () => {
     try {
@@ -130,7 +164,17 @@ export default function SuperadminWebsiteenq() {
       {/* Main Table Card */}
       <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-lg shadow-slate-200/50 overflow-hidden">
          <div className="flex items-center justify-between mb-8">
-            <h3 className="text-[10px] font-bold text-slate-800 uppercase tracking-widest leading-none">Awaiting Review</h3>
+            <div className="flex items-center gap-3">
+              <h3 className="text-[10px] font-bold text-slate-800 uppercase tracking-widest leading-none">Awaiting Review</h3>
+              {selectedEnquiryIds.length > 0 && (
+                <button
+                  onClick={handleBulkDelete}
+                  className="bg-rose-600 text-white px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest hover:bg-rose-700 transition-all flex items-center gap-1.5 shadow-sm"
+                >
+                  <Trash2 className="w-3 h-3" /> Bulk Delete ({selectedEnquiryIds.length})
+                </button>
+              )}
+            </div>
             <div className="flex items-center gap-3">
                <div className="relative group w-64">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-300" />
@@ -147,12 +191,21 @@ export default function SuperadminWebsiteenq() {
             <table className="w-full text-left">
                <thead>
                   <tr className="text-slate-400 text-[8px] font-bold uppercase border-b border-slate-50">
+                     <th className="pb-4 w-10">
+                        <input
+                          type="checkbox"
+                          onChange={handleSelectAll}
+                          checked={filteredEnquiries.length > 0 && selectedEnquiryIds.length === filteredEnquiries.length}
+                          className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                        />
+                     </th>
                      <th className="pb-4">Property & Owner</th>
                      <th className="pb-4 text-center">Submitted</th>
                      <th className="pb-4 text-center">Status</th>
                      <th className="pb-4 text-right">Actions</th>
                   </tr>
                </thead>
+
                <tbody className="divide-y divide-slate-50">
                   {loading ? (
                     <tr><td colSpan="4" className="py-12 text-center">
@@ -171,9 +224,20 @@ export default function SuperadminWebsiteenq() {
                   ) : filteredEnquiries.map((e, i) => {
                     const color = getEnquiryColor(e, i);
                     const initial = e.owner_name ? e.owner_name[0].toUpperCase() : "U";
+                    const itemKey = e._id || e.enquiry_id;
+                    const isChecked = selectedEnquiryIds.includes(itemKey);
                     return (
                       <tr key={i} className="group hover:bg-slate-50/80 transition-colors cursor-pointer">
+                         <td className="py-4 w-10" onClick={ev => ev.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => handleSelectOne(itemKey)}
+                              className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                            />
+                         </td>
                          <td className="py-4">
+
                             <div className="flex items-center gap-4">
                                <div className={cn(
                                   "w-10 h-10 rounded-full flex items-center justify-center font-bold text-white text-xs shadow-sm transition-transform group-hover:scale-105",

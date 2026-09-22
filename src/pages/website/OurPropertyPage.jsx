@@ -20,6 +20,16 @@ const seoCache = new Map();
 const propertyCache = new Map();
 const nearbyDataCache = new Map();
 const overpassCollegesCache = new Map(); // cache colleges per city-set to avoid 429 rate limit
+// Pre-seed from localStorage to survive page reloads (24h TTL)
+try {
+  const saved = JSON.parse(localStorage.getItem('__overpassCollegesCache') || '{}');
+  const now = Date.now();
+  Object.entries(saved).forEach(([k, v]) => {
+    if (v && v.data && (now - (v.ts || 0)) < 24 * 60 * 60 * 1000) {
+      overpassCollegesCache.set(k, v.data); // only restore if < 24h old
+    }
+  });
+} catch (_) {}
 
 async function getCachedOrFetch(cacheMap, key, fetcher, ttlMs = 10 * 60 * 1000) {
   const cached = cacheMap.get(key);
@@ -453,6 +463,8 @@ export default function OurPropertyPage() {
   const { user, isAuthenticated } = useAuth();
   const [biddingSubmitting, setBiddingSubmitting] = useState(false);
 
+  const [bidResultModal, setBidResultModal] = useState(null);
+
   const handleDesktopBidSubmit = async () => {
     if (!isAuthenticated) {
       if (window.toast?.info) window.toast.info('Please log in to submit a bid request');
@@ -467,7 +479,7 @@ export default function OurPropertyPage() {
 
     setBiddingSubmitting(true);
     try {
-      const parsedMax = parseInt(maxPrice, 10);
+      const parsedMax = parseInt(maxPrice, 10) || 0;
       const userId = user?.loginId || user?._id || user?.id || '';
 
       const bidRequests = targetProperties.slice(0, 15).map((prop, index) => {
@@ -507,8 +519,78 @@ export default function OurPropertyPage() {
       cacheInvalidate('enquiries:');
       cacheInvalidate('booking-requests:');
       setBiddingSubmitting(false);
-      const count = Math.min(targetProperties.length, 15);
-      toast.success(`⚡ Fast Bid request sent successfully to ${count} matching properties!`);
+
+      const exactMatches = targetProperties.filter(p => parseInt(p.monthlyRent || p.rent || p.price || 0, 10) <= parsedMax);
+      const gapMatches = targetProperties.filter(p => {
+        const r = parseInt(p.monthlyRent || p.rent || p.price || 0, 10);
+        return r > parsedMax && r <= parsedMax + 2500;
+      });
+
+      let category = 'no_match_active';
+      if (exactMatches.length > 0) category = 'exact_match';
+      else if (gapMatches.length > 0) category = 'slight_gap';
+
+      if (category === 'exact_match') {
+        setBidResultModal({
+          type: 'exact',
+          title: '✅ Bid Submitted!',
+          subtitle: 'Properties Available in Your Budget',
+          accentColor: '#059669',
+          bgGradient: 'from-emerald-50 to-teal-50',
+          borderColor: 'border-emerald-200',
+          budgetLabel: `₹${parsedMax.toLocaleString('en-IN')}/month`,
+          matchCount: exactMatches.length,
+          steps: [
+            { icon: '📩', title: 'Owners Notified', desc: 'All matching property owners have received your bid request instantly.' },
+            { icon: '💬', title: 'Owner Will Start Chat', desc: 'An interested owner will open a chat with you directly on the website.' },
+            { icon: '🔔', title: 'You Will Be Notified', desc: 'You\'ll get an instant push + email alert when an owner responds to your bid.' },
+            { icon: '🏠', title: 'Finalize Move-in', desc: 'Chat with the owner, confirm rent & move-in date — all within Roomhy!' },
+          ],
+          badges: ['💬 Direct Owner Chat', '🔔 Real-time Alerts', '⌛ 24-Hour Bid Validity'],
+          ctaLabel: '💬 Open Chat Panel',
+          ctaPath: '/tenant/tenantchat'
+        });
+      } else if (category === 'slight_gap') {
+        setBidResultModal({
+          type: 'gap',
+          title: '⚡ Bid Submitted!',
+          subtitle: `Properties Within ₹2,500 of Your Budget`,
+          accentColor: '#d97706',
+          bgGradient: 'from-amber-50 to-yellow-50',
+          borderColor: 'border-amber-200',
+          budgetLabel: `₹${parsedMax.toLocaleString('en-IN')}/month`,
+          matchCount: gapMatches.length,
+          steps: [
+            { icon: '📩', title: 'Owners Notified', desc: 'Owners of properties within ₹2,500 of your budget have been notified.' },
+            { icon: '💬', title: 'Negotiation Chat', desc: 'If an owner agrees to negotiate rent, they\'ll start a chat with you.' },
+            { icon: '🔔', title: 'Instant Alert', desc: 'You\'ll get a push + email notification the moment an owner responds.' },
+            { icon: '🤝', title: 'Agree & Move-in', desc: 'Negotiate rent directly, finalize a deal & plan your move-in date!' },
+          ],
+          badges: ['💬 Rent Negotiation Chat', '🔔 Instant Notifications', '⌛ 24-Hour Bid Validity'],
+          ctaLabel: '💬 Open Chat Panel',
+          ctaPath: '/tenant/tenantchat'
+        });
+      } else {
+        setBidResultModal({
+          type: 'none',
+          title: '📌 Requirement Registered!',
+          subtitle: 'Auto-Matching is Now Active',
+          accentColor: '#0d9488',
+          bgGradient: 'from-teal-50 to-cyan-50',
+          borderColor: 'border-teal-200',
+          budgetLabel: `₹${parsedMax.toLocaleString('en-IN')}/month`,
+          matchCount: 0,
+          steps: [
+            { icon: '📌', title: 'Requirement Saved', desc: 'No match right now — but your budget requirement is saved as ACTIVE in our system.' },
+            { icon: '⚡', title: 'Auto-Matching ON', desc: 'As soon as a new property matching your budget is added, our system detects it instantly.' },
+            { icon: '📱', title: 'Multi-Channel Alert', desc: 'You will be notified via Push Notification, Email & WhatsApp automatically.' },
+            { icon: '🏠', title: 'Chat & Book', desc: 'Once matched, open chat with the owner and finalize your move-in!' },
+          ],
+          badges: ['⚡ Auto-Matching Active', '📱 Push + WhatsApp Alerts', '📌 Requirement Saved'],
+          ctaLabel: null,
+          ctaPath: null
+        });
+      }
     } catch (err) {
       setBiddingSubmitting(false);
       console.error('Bidding error:', err);
@@ -599,13 +681,22 @@ export default function OurPropertyPage() {
             });
           }
         } catch (e) { /* silent */ }
-        // Wait 1.2s between requests to avoid 429
-        if (!cancelled) await new Promise(r => setTimeout(r, 1200));
+        // Wait 2s between requests to respect Overpass rate limit (1 req/sec public)
+        if (!cancelled) await new Promise(r => setTimeout(r, 2000));
       }
 
       if (!cancelled) {
         const result = Array.from(allFound).sort();
         overpassCollegesCache.set(cacheKey, result); // cache for this session
+        // Persist to localStorage so page reloads don't re-fetch (24h TTL)
+        try {
+          const existing = JSON.parse(localStorage.getItem('__overpassCollegesCache') || '{}');
+          existing[cacheKey] = { data: result, ts: Date.now() };
+          // Keep max 10 entries to avoid bloat
+          const keys = Object.keys(existing);
+          if (keys.length > 10) delete existing[keys[0]];
+          localStorage.setItem('__overpassCollegesCache', JSON.stringify(existing));
+        } catch (_) {}
         setAllColleges(result);
         setCollegesLoading(false);
       }

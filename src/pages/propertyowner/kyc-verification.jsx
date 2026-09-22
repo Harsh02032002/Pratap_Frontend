@@ -4,8 +4,9 @@ import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerTenants, cl
 import { apiFetch } from "../../utils/api";
 import { 
   UserCheck, Search, FileText, CheckCircle2, XCircle, 
-  Clock, ShieldCheck, Eye, Download, AlertTriangle
+  Clock, ShieldCheck, Eye, Download, AlertTriangle, Loader2
 } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function KycVerificationPage() {
   const owner = getOwnerRuntimeSession();
@@ -17,6 +18,8 @@ export default function KycVerificationPage() {
   const [search, setSearch] = useState("");
   const [tenants, setTenants] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false);
 
   const fetchKycData = async () => {
     try {
@@ -65,6 +68,52 @@ export default function KycVerificationPage() {
     }
   };
 
+  const handleBulkApprove = async () => {
+    if (selectedIds.size === 0) return;
+    if (!window.confirm(`Bulk approve KYC for ${selectedIds.size} tenant(s)?`)) return;
+    setIsBulkProcessing(true);
+    try {
+      await apiFetch("/api/tenants/kyc/bulk-approve", {
+        method: "POST",
+        body: JSON.stringify({ tenantIds: Array.from(selectedIds) })
+      });
+      clearOwnerFetchCache(owner.loginId);
+      fetchKycData();
+      setSelectedIds(new Set());
+      toast.success("KYC approved for selected tenants!");
+    } catch (err) {
+      toast.error("Bulk approve failed: " + err.message);
+    } finally { setIsBulkProcessing(false); }
+  };
+
+  const handleBulkReject = async () => {
+    if (selectedIds.size === 0) return;
+    if (!window.confirm(`Bulk reject KYC for ${selectedIds.size} tenant(s)?`)) return;
+    setIsBulkProcessing(true);
+    try {
+      await apiFetch("/api/tenants/kyc/bulk-reject", {
+        method: "POST",
+        body: JSON.stringify({ tenantIds: Array.from(selectedIds), reason: "Bulk rejected by owner" })
+      });
+      clearOwnerFetchCache(owner.loginId);
+      fetchKycData();
+      setSelectedIds(new Set());
+      toast.success("KYC rejected for selected tenants!");
+    } catch (err) {
+      toast.error("Bulk reject failed: " + err.message);
+    } finally { setIsBulkProcessing(false); }
+  };
+
+  const handlePoliceVerificationExport = () => {
+    const url = `/api/tenants/kyc/police-verification-export?ownerLoginId=${encodeURIComponent(owner.loginId)}`;
+    window.open(url, "_blank");
+    toast.success("Police Verification CSV downloading...");
+  };
+
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
+  };
+
   const filteredKyc = tenants.filter(k => 
     (k.name || "").toLowerCase().includes(search.toLowerCase()) ||
     (k.roomNo || k.room?.number || "").includes(search)
@@ -104,6 +153,12 @@ export default function KycVerificationPage() {
           <h1 className="font-serif text-[38px] md:text-[44px] leading-[1.05] text-foreground">KYC Validation & Verification</h1>
           <p className="mt-1.5 text-[13.5px] text-muted-foreground">Verify national identity cards, detect Aadhaar OCR data mismatches, and approve tenant onboarding.</p>
         </div>
+        <button
+          onClick={handlePoliceVerificationExport}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border bg-card text-[13px] font-medium text-muted-foreground hover:text-foreground transition-colors shrink-0"
+        >
+          <Download size={14}/> Police Verification Export
+        </button>
       </div>
 
       {/* Toolbar */}
@@ -125,6 +180,15 @@ export default function KycVerificationPage() {
           <table className="w-full text-[13px]">
             <thead>
               <tr className="text-left text-[11.5px] uppercase tracking-wider text-muted-foreground bg-muted/50">
+                <th className="px-4 py-3.5 w-10">
+                  <input type="checkbox" className="rounded border-slate-300 cursor-pointer"
+                    checked={filteredKyc.length > 0 && filteredKyc.every(k => selectedIds.has(k._id))}
+                    onChange={() => {
+                      const allSel = filteredKyc.every(k => selectedIds.has(k._id));
+                      setSelectedIds(allSel ? new Set() : new Set(filteredKyc.map(k => k._id)));
+                    }}
+                  />
+                </th>
                 <th className="px-6 py-3.5 font-semibold">Tenant Name</th>
                 <th className="px-6 py-3.5 font-semibold">Room</th>
                 <th className="px-6 py-3.5 font-semibold">Document Type</th>
@@ -148,7 +212,13 @@ export default function KycVerificationPage() {
                   const docNo = k.kyc?.aadhaarNumber || k.kyc?.aadhar || "-";
 
                   return (
-                    <tr key={k._id} className="hover:bg-muted/40 transition-colors">
+                    <tr key={k._id} className={`hover:bg-muted/40 transition-colors ${selectedIds.has(k._id) ? 'bg-blue-50/50' : ''}`}>
+                      <td className="px-4 py-3">
+                        <input type="checkbox" className="rounded border-slate-300 cursor-pointer"
+                          checked={selectedIds.has(k._id)}
+                          onChange={() => toggleSelect(k._id)}
+                        />
+                      </td>
                       <td className="px-6 py-4 font-semibold text-foreground">{k.name || k.fullName}</td>
                       <td className="px-6 py-4 font-bold text-foreground">Room {k.roomNo || k.room?.number || "N/A"}</td>
                       <td className="px-6 py-4 text-muted-foreground">{docType}</td>

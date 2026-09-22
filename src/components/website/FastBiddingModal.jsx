@@ -159,23 +159,62 @@ export default function FastBiddingModal({ isOpen, onClose, initialData = {} }) 
       if (category === 'exact_match') {
         setResultModal({
           type: 'exact',
-          title: '✅ Bid Submitted — Exact Budget Match Found!',
-          message: `Matching properties are available right in your budget of ₹${parsedMax.toLocaleString('en-IN')}/month! Property owners have been notified. An owner willing to accept your rent offer can initiate a chat with you directly. You will be notified instantly when an owner responds.`,
-          badges: ['💬 Direct Owner Chat', '🔔 Real-time Alerts', '⌛ 24-Hour Bid Validity']
+          title: '✅ Bid Submitted!',
+          subtitle: 'Properties Available in Your Budget',
+          accentColor: '#059669',
+          bgGradient: 'from-emerald-50 to-teal-50',
+          borderColor: 'border-emerald-200',
+          budgetLabel: `₹${parsedMax.toLocaleString('en-IN')}/month`,
+          matchCount: exactMatches.length,
+          steps: [
+            { icon: '📩', title: 'Owners Notified', desc: 'All matching property owners have received your bid request instantly.' },
+            { icon: '💬', title: 'Owner Will Start Chat', desc: 'An interested owner will open a chat with you directly on the website.' },
+            { icon: '🔔', title: 'You Will Be Notified', desc: 'You\'ll get an instant push + email alert when an owner responds to your bid.' },
+            { icon: '🏠', title: 'Finalize Move-in', desc: 'Chat with the owner, confirm rent & move-in date — all within Roomhy!' },
+          ],
+          badges: ['💬 Direct Owner Chat', '🔔 Real-time Alerts', '⌛ 24-Hour Bid Validity'],
+          ctaLabel: '💬 Open Chat Panel',
+          ctaPath: '/tenant/tenantchat'
         });
       } else if (category === 'slight_gap') {
         setResultModal({
           type: 'gap',
-          title: '⚡ Bid Submitted — Properties Within ₹2,500 Budget Gap',
-          message: `Properties slightly above your budget (up to ₹2,500 gap) are available! Interested owners have been notified that you wish to negotiate. They can initiate a Chat with you directly to offer a lower rate. You will be notified instantly when an owner responds.`,
-          badges: ['💬 Rent Negotiation Chat', '🔔 Notification Enabled', '⌛ 24-Hour Bid Validity']
+          title: '⚡ Bid Submitted!',
+          subtitle: `Properties Within ₹2,500 of Your Budget`,
+          accentColor: '#d97706',
+          bgGradient: 'from-amber-50 to-yellow-50',
+          borderColor: 'border-amber-200',
+          budgetLabel: `₹${parsedMax.toLocaleString('en-IN')}/month`,
+          matchCount: gapMatches.length,
+          steps: [
+            { icon: '📩', title: 'Owners Notified', desc: 'Owners of properties within ₹2,500 of your budget have been notified.' },
+            { icon: '💬', title: 'Negotiation Chat', desc: 'If an owner agrees to negotiate rent, they\'ll start a chat with you.' },
+            { icon: '🔔', title: 'Instant Alert', desc: 'You\'ll get a push + email notification the moment an owner responds.' },
+            { icon: '🤝', title: 'Agree & Move-in', desc: 'Negotiate rent directly, finalize a deal & plan your move-in date!' },
+          ],
+          badges: ['💬 Rent Negotiation Chat', '🔔 Instant Notifications', '⌛ 24-Hour Bid Validity'],
+          ctaLabel: '💬 Open Chat Panel',
+          ctaPath: '/tenant/tenantchat'
         });
       } else {
         setResultModal({
           type: 'none',
-          title: '📌 Requirement Active & Registered!',
-          message: `No matching properties are currently available in this range. Your requirement has been saved as ACTIVE! As soon as a suitable property is added by an owner or admin, you will automatically be notified via In-App, WhatsApp, and Email.`,
-          badges: ['⚡ Auto-Matching Active', '📱 WhatsApp + Email Alerts', '📌 Requirement Saved']
+          title: '📌 Requirement Registered!',
+          subtitle: 'Auto-Matching is Now Active',
+          accentColor: '#0d9488',
+          bgGradient: 'from-teal-50 to-cyan-50',
+          borderColor: 'border-teal-200',
+          budgetLabel: `₹${parsedMax.toLocaleString('en-IN')}/month`,
+          matchCount: 0,
+          steps: [
+            { icon: '📌', title: 'Requirement Saved', desc: 'No match right now — but your budget requirement is saved as ACTIVE in our system.' },
+            { icon: '⚡', title: 'Auto-Matching ON', desc: 'As soon as a new property matching your budget is added, our system detects it instantly.' },
+            { icon: '📱', title: 'Multi-Channel Alert', desc: 'You will be notified via Push Notification, Email & WhatsApp automatically.' },
+            { icon: '🏠', title: 'Chat & Book', desc: 'Once matched, open chat with the owner and finalize your move-in!' },
+          ],
+          badges: ['⚡ Auto-Matching Active', '📱 Push + WhatsApp Alerts', '📌 Requirement Saved'],
+          ctaLabel: null,
+          ctaPath: null
         });
       }
     } catch (err) {
@@ -208,20 +247,13 @@ export default function FastBiddingModal({ isOpen, onClose, initialData = {} }) 
     return map;
   }, [allProperties]);
 
-  useEffect(() => {
-    if (isOpen && window.innerWidth >= 768) {
-      onClose();
-      navigate('/bidding');
-    }
-  }, [isOpen, navigate, onClose]);
-
   if (!isOpen) return null;
 
   const currentAreas = dynamicCitiesMap[selectedCity] || [];
   const filteredAreas = currentAreas.filter(a => a.toLowerCase().includes(areaSearch.toLowerCase()));
 
   return (
-    <div className="fixed inset-0 z-[100] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-hidden animate-in fade-in duration-200 md:hidden">
+    <div className="fixed inset-0 z-[100] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
       
       {/* Login Prompt Overlay */}
       {showLoginPrompt && (
@@ -502,38 +534,88 @@ export default function FastBiddingModal({ isOpen, onClose, initialData = {} }) 
 
       </div>
 
-      {/* Result Informational Modal Overlay */}
+      {/* Result Informational Modal Overlay — Premium "Aage Kya Hoga" */}
       {resultModal && (
-        <div className="fixed inset-0 z-[130] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-center border border-slate-100 animate-in zoom-in-95 space-y-5">
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto ${
-              resultModal.type === 'exact' ? 'bg-emerald-100 text-emerald-600' : (resultModal.type === 'gap' ? 'bg-amber-100 text-amber-600' : 'bg-teal-100 text-teal-600')
-            }`}>
-              {resultModal.type === 'exact' ? <CheckCircle className="w-8 h-8" /> : (resultModal.type === 'gap' ? <Zap className="w-8 h-8" /> : <Info className="w-8 h-8" />)}
+        <div className="fixed inset-0 z-[130] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3">
+          <div className="bg-white rounded-3xl max-w-sm w-full shadow-2xl border border-slate-100 animate-in zoom-in-95 overflow-hidden max-h-[90vh] flex flex-col">
+
+            {/* Top accent bar */}
+            <div className="h-1.5 w-full shrink-0" style={{ background: `linear-gradient(90deg, ${resultModal.accentColor}, ${resultModal.accentColor}99)` }} />
+
+            {/* Header */}
+            <div className={`px-5 pt-5 pb-4 bg-gradient-to-br ${resultModal.bgGradient} border-b ${resultModal.borderColor} shrink-0`}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1">
+                  <h3 className="text-base font-black text-slate-900 leading-tight">{resultModal.title}</h3>
+                  <p className="text-xs font-bold mt-0.5" style={{ color: resultModal.accentColor }}>{resultModal.subtitle}</p>
+                </div>
+                {resultModal.matchCount > 0 && (
+                  <span className="shrink-0 px-2.5 py-1 rounded-xl text-white text-[10px] font-black shadow-sm" style={{ background: resultModal.accentColor }}>
+                    {resultModal.matchCount} Match{resultModal.matchCount !== 1 ? 'es' : ''}
+                  </span>
+                )}
+                {resultModal.matchCount === 0 && (
+                  <span className="shrink-0 px-2.5 py-1 rounded-xl text-white text-[10px] font-black shadow-sm" style={{ background: resultModal.accentColor }}>
+                    Active
+                  </span>
+                )}
+              </div>
+              <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/70 border" style={{ borderColor: `${resultModal.accentColor}40` }}>
+                <span className="text-[10px] font-bold text-slate-500">Your Budget:</span>
+                <span className="text-xs font-black" style={{ color: resultModal.accentColor }}>{resultModal.budgetLabel}</span>
+              </div>
             </div>
 
-            <div>
-              <h3 className="text-lg font-black text-slate-900 leading-snug">{resultModal.title}</h3>
-              <p className="text-xs text-slate-600 mt-3 leading-relaxed">{resultModal.message}</p>
-            </div>
-
-            <div className="flex flex-wrap gap-2 justify-center pt-2">
-              {resultModal.badges.map((b, idx) => (
-                <span key={idx} className="text-[10px] font-extrabold bg-slate-100 text-slate-700 px-3 py-1 rounded-full border border-slate-200">
-                  {b}
-                </span>
+            {/* Steps — Aage Kya Hoga */}
+            <div className="px-5 py-4 overflow-y-auto flex-1 space-y-3">
+              <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">What Happens Next?</p>
+              {resultModal.steps.map((step, idx) => (
+                <div key={idx} className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center text-base shrink-0 bg-slate-50 border border-slate-100">
+                    {step.icon}
+                  </div>
+                  <div className="flex-1 pt-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black rounded-full px-1.5 py-0.5 text-white" style={{ background: resultModal.accentColor }}>{idx + 1}</span>
+                      <p className="text-xs font-extrabold text-slate-800">{step.title}</p>
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">{step.desc}</p>
+                  </div>
+                </div>
               ))}
+
+              {/* Badges */}
+              <div className="flex flex-wrap gap-1.5 pt-2">
+                {resultModal.badges.map((b, idx) => (
+                  <span key={idx} className="text-[10px] font-extrabold px-2.5 py-1 rounded-full border" style={{ color: resultModal.accentColor, borderColor: `${resultModal.accentColor}40`, background: `${resultModal.accentColor}10` }}>
+                    {b}
+                  </span>
+                ))}
+              </div>
             </div>
 
-            <button
-              onClick={() => {
-                setResultModal(null);
-                onClose();
-              }}
-              className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition-all"
-            >
-              Got it, Thank You
-            </button>
+            {/* CTA Buttons */}
+            <div className="px-5 pb-5 pt-3 border-t border-slate-100 shrink-0 flex flex-col gap-2">
+              {resultModal.ctaLabel && resultModal.ctaPath && (
+                <button
+                  onClick={() => {
+                    setResultModal(null);
+                    onClose();
+                    navigate(resultModal.ctaPath);
+                  }}
+                  className="w-full py-3.5 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                  style={{ background: `linear-gradient(135deg, ${resultModal.accentColor}, ${resultModal.accentColor}cc)` }}
+                >
+                  {resultModal.ctaLabel}
+                </button>
+              )}
+              <button
+                onClick={() => { setResultModal(null); onClose(); }}
+                className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer"
+              >
+                Close & Continue Browsing
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -15,6 +15,7 @@ import { Toaster, toast } from "react-hot-toast";
 import InstallPWA from "./components/InstallPWA";
 import NotificationPromptBanner from "./components/NotificationPromptBanner";
 import { initNotificationManager } from "./utils/notificationManager";
+import { isWebsiteLoggedIn, getWebsiteUserId } from "./utils/websiteSession";
 
 // Global Toast Override for any native browser alert() calls across Roomhy
 if (typeof window !== "undefined") {
@@ -439,6 +440,120 @@ const RouteChromeCleanup = () => {
 
 
 /**
+ * Global Bid Notification Listener for Website Users.
+ * Listens to socket events on any page and shows toast popups for:
+ * 1. bid_submitted_confirmation — bid submit ke baad match category ke hisaab se
+ * 2. bid_owner_responded       — owner ne accept kiya / chat enable hua
+ * 3. bid_rejected              — owner ne decline kiya
+ */
+const WebsiteBidNotificationListener = () => {
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!isWebsiteLoggedIn()) return;
+
+    // Wait for global socket to be available (may initialize after App mounts)
+    let retries = 0;
+    const maxRetries = 20;
+    let intervalId = null;
+
+    const attachListeners = (socket) => {
+      // ─── 1. Bid Submit ho gayi — match category ke hisaab se popup ───
+      const handleBidSubmitted = (payload) => {
+        const category = payload?.matchCategory || payload?.data?.matchCategory || 'no_match_active';
+        const propertyName = payload?.propertyName || payload?.meta?.propertyName || 'property';
+        const bidAmt = payload?.bidAmount || payload?.meta?.bidAmount || 0;
+        const amtStr = bidAmt > 0 ? `₹${Number(bidAmt).toLocaleString('en-IN')}` : '';
+
+        if (category === 'exact_match') {
+          toast.success(
+            `✅ Teri budget mein properties hain! Owner interested hoga toh chat shuru karega. ${amtStr ? `Bid: ${amtStr}` : ''}`,
+            {
+              duration: 9000,
+              icon: '🏠',
+              style: { background: '#064e3b', color: '#d1fae5', borderRadius: '12px', maxWidth: '380px', fontSize: '13px' }
+            }
+          );
+        } else if (category === 'slight_gap') {
+          toast(
+            `⚡ ₹2,500 ke andar properties hain! Owners ko request gayi hai — negotiate karke chat shuru kar sakte hain.`,
+            {
+              duration: 9000,
+              icon: '💬',
+              style: { background: '#78350f', color: '#fef3c7', borderRadius: '12px', maxWidth: '380px', fontSize: '13px' }
+            }
+          );
+        } else {
+          toast(
+            `📌 Abhi koi property nahi mili. Teri requirement ACTIVE hai — jab nai property add hogi, notification aayegi!`,
+            {
+              duration: 9000,
+              icon: '🔔',
+              style: { background: '#0c4a6e', color: '#e0f2fe', borderRadius: '12px', maxWidth: '380px', fontSize: '13px' }
+            }
+          );
+        }
+      };
+
+      // ─── 2. Owner ne Accept kiya → Chat enable hua ──────────────────
+      const handleOwnerResponded = (payload) => {
+        const propertyName = payload?.propertyName || '';
+        const msg = propertyName
+          ? `💬 Owner ne "${propertyName}" ke liye teri bid accept ki! Chat shuru karo aur rent finalize karo.`
+          : `💬 Owner ne teri bid accept ki! Chat kholo aur move-in details discuss karo.`;
+        toast.success(msg, {
+          duration: 10000,
+          icon: '🎉',
+          style: { background: '#0f172a', color: '#f0fdf4', borderRadius: '12px', maxWidth: '380px', fontSize: '13px' }
+        });
+      };
+
+      // ─── 3. Owner ne Reject kiya ────────────────────────────────────
+      const handleBidRejected = (payload) => {
+        const propertyName = payload?.propertyName || '';
+        const msg = propertyName
+          ? `⌛ "${propertyName}" owner ne teri bid decline ki. Teri requirement ACTIVE hai — nai property mili toh alert aayega.`
+          : `⌛ Owner ne teri bid decline ki. Teri requirement ACTIVE hai — nai property milegi toh notify karenge.`;
+        toast(msg, {
+          duration: 9000,
+          icon: '🔔',
+          style: { background: '#1c1917', color: '#fef2f2', borderRadius: '12px', maxWidth: '380px', fontSize: '13px' }
+        });
+      };
+
+      socket.on('bid_submitted_confirmation', handleBidSubmitted);
+      socket.on('bid_owner_responded', handleOwnerResponded);
+      socket.on('bid_rejected', handleBidRejected);
+
+      return () => {
+        socket.off('bid_submitted_confirmation', handleBidSubmitted);
+        socket.off('bid_owner_responded', handleOwnerResponded);
+        socket.off('bid_rejected', handleBidRejected);
+      };
+    };
+
+    let cleanup = null;
+
+    intervalId = setInterval(() => {
+      retries++;
+      const socket = window.__roomhySocket;
+      if (socket) {
+        clearInterval(intervalId);
+        cleanup = attachListeners(socket);
+      } else if (retries >= maxRetries) {
+        clearInterval(intervalId);
+      }
+    }, 500);
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+      if (cleanup) cleanup();
+    };
+  }, []);
+
+  return null;
+};
+
+/**
  * Silently sync push token with backend on app startup
  * if user has already granted notification permission.
  * Supports Owner, Tenant, Superadmin/Employee, and Website user sessions.
@@ -514,6 +629,7 @@ export default function App() {
             <InstallPWA />
             <NotificationPromptBanner userLoginId={currentLoginId} />
             <NotificationStartupInit />
+            <WebsiteBidNotificationListener />
             <ManagerRouteGuard />
             <RouteRoleGuard />
             <StaffSessionSync />

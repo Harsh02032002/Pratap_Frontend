@@ -71,14 +71,15 @@ function urlBase64ToUint8Array(base64String) {
 
 /**
  * VAPID Public Key for Web Push Subscriptions.
- * 
- * ⚠️  ACTION REQUIRED:
- * Replace this with your real VAPID public key from Firebase Console:
- * Firebase Console → Project Settings → Cloud Messaging → Web Push certificates → Key pair (copy the Public Key)
- * 
- * OR generate a new VAPID key pair at: https://vapidkeys.com/
+ * Set VITE_VAPID_PUBLIC_KEY in your .env file.
+ * Get it from: Firebase Console → Project Settings → Cloud Messaging → Web Push certificates → Public Key
  */
-const VAPID_PUBLIC_KEY = 'BLsEFQMQ8a6Clz-JS_tXhsotfH8-UlR2NF3Mj-a3pNcGJnfqai58cHqIzah-roBEHGYrvHieb4gQwt5TQ-2-Jo';
+const VAPID_PUBLIC_KEY =
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_VAPID_PUBLIC_KEY) ||
+  'BLsEFQMQ8a6Clz-JS_tXhsotfH8-UlR2NF3Mj-a3pNcGJnfqai58cHqIzah-roBEHGYrvHieb4gQwt5TQ-2-Jo';
+
+// Validate the VAPID key looks like a real Base64url key (≥ 80 chars)
+const isVapidKeyValid = VAPID_PUBLIC_KEY && VAPID_PUBLIC_KEY.length >= 80 && /^[A-Za-z0-9_-]+$/.test(VAPID_PUBLIC_KEY);
 
 /**
  * Subscribe device using native Web Push API with VAPID authentication.
@@ -86,6 +87,12 @@ const VAPID_PUBLIC_KEY = 'BLsEFQMQ8a6Clz-JS_tXhsotfH8-UlR2NF3Mj-a3pNcGJnfqai58cH
  */
 async function subscribeWebPush(swRegistration) {
   if (!swRegistration) return null;
+
+  // Skip silently if VAPID key is not configured or invalid format
+  if (!isVapidKeyValid) {
+    console.info('[NotificationManager] Web Push skipped — VAPID_PUBLIC_KEY not configured. Set VITE_VAPID_PUBLIC_KEY in .env to enable.');
+    return null;
+  }
 
   try {
     // Check if already subscribed
@@ -107,7 +114,8 @@ async function subscribeWebPush(swRegistration) {
     if (err.name === 'NotAllowedError') {
       console.warn('[NotificationManager] Push subscription blocked by browser permissions.');
     } else {
-      console.warn('[NotificationManager] Web Push subscription failed:', err.message);
+      // Log as info, not warn/error — this is a config issue not a runtime error
+      console.info('[NotificationManager] Web Push subscription skipped:', err.message);
     }
     return null;
   }

@@ -17,6 +17,8 @@ export default function WebsiteMystays() {
 
   const apiUrl = useMemo(() => getWebsiteApiUrl(), []);
   const [bookings, setBookings] = useState([]);
+  const [activeBids, setActiveBids] = useState([]);
+  const [activeTab, setActiveTab] = useState('bookings'); // 'bookings' | 'bids'
   const [loading, setLoading] = useState(true);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [requestType, setRequestType] = useState("refund");
@@ -148,9 +150,24 @@ export default function WebsiteMystays() {
     setLoading(false);
   }, [apiUrl]);
 
+  // Fetch active bids for this user
+  const fetchActiveBids = useCallback(async () => {
+    const userId = getWebsiteUserId();
+    if (!userId) return;
+    try {
+      const res = await fetch(`${apiUrl}/api/booking/user/${encodeURIComponent(userId)}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const all = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
+      const bids = all.filter(b => b.request_type === 'bid' && b.status === 'pending' && !b.is_expired);
+      setActiveBids(bids);
+    } catch {}
+  }, [apiUrl]);
+
   useEffect(() => {
     collectBookings();
-  }, [collectBookings]);
+    fetchActiveBids();
+  }, [collectBookings, fetchActiveBids]);
 
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
@@ -485,8 +502,122 @@ export default function WebsiteMystays() {
         </div>
       </div>
       
+        
           <main className="container mx-auto px-4 sm:px-6 py-16">
-              
+
+            {/* ── Tab Switcher ── */}
+            <div className="flex gap-3 mb-8">
+              <button
+                onClick={() => setActiveTab('bookings')}
+                className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                  activeTab === 'bookings'
+                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25'
+                    : 'bg-white text-gray-600 border border-gray-200 hover:border-blue-300'
+                }`}
+              >
+                🏠 My Bookings
+              </button>
+              <button
+                onClick={() => setActiveTab('bids')}
+                className={`relative px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                  activeTab === 'bids'
+                    ? 'bg-teal-600 text-white shadow-lg shadow-teal-500/25'
+                    : 'bg-white text-gray-600 border border-gray-200 hover:border-teal-300'
+                }`}
+              >
+                ⚡ Active Bids
+                {activeBids.length > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center">
+                    {activeBids.length}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {/* ── Active Bids Panel ── */}
+            {activeTab === 'bids' && (
+              <div>
+                {activeBids.length === 0 ? (
+                  <div className="text-center py-16">
+                    <div className="w-16 h-16 bg-teal-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <span className="text-3xl">⚡</span>
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">No Active Bids</h3>
+                    <p className="text-gray-500 text-sm mb-6">Submit a bid from the Fast Bidding page to find your ideal stay.</p>
+                    <a href="/fast-bidding" className="inline-block bg-teal-600 text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-teal-700 transition-colors">
+                      Go to Fast Bidding ⚡
+                    </a>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    {activeBids.map((bid) => {
+                      const matchCat = bid.match_category || 'no_match_active';
+                      const expiryMs = bid.created_at ? new Date(bid.created_at).getTime() + 24 * 60 * 60 * 1000 : null;
+                      const now = Date.now();
+                      const hoursLeft = expiryMs ? Math.max(0, Math.floor((expiryMs - now) / 3600000)) : null;
+                      const minsLeft = expiryMs ? Math.max(0, Math.floor(((expiryMs - now) % 3600000) / 60000)) : null;
+                      const isNearExpiry = hoursLeft !== null && hoursLeft < 2;
+
+                      const catConfig = {
+                        exact_match: { label: '✅ Exact Match', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', desc: 'Matching properties found in your budget! Owner may initiate chat.' },
+                        slight_gap: { label: '⚡ Negotiation Available', color: 'bg-amber-100 text-amber-700 border-amber-200', desc: 'Properties within ₹2,500 of your budget. Owner can offer lower rent.' },
+                        no_match_active: { label: '📌 Auto-Match Active', color: 'bg-teal-100 text-teal-700 border-teal-200', desc: 'Requirement registered. You\'ll be notified when a matching property is added.' }
+                      };
+                      const cat = catConfig[matchCat] || catConfig.no_match_active;
+
+                      return (
+                        <div key={bid._id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+                          <div className={`p-4 border-b ${isNearExpiry ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'}`}>
+                            <div className="flex items-start justify-between gap-2">
+                              <h3 className="text-sm font-bold text-gray-900 line-clamp-1">{bid.property_name}</h3>
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${cat.color}`}>{cat.label}</span>
+                            </div>
+                            {hoursLeft !== null && (
+                              <p className={`text-[10px] font-semibold mt-1.5 ${isNearExpiry ? 'text-red-600' : 'text-gray-500'}`}>
+                                ⌛ Expires in: {hoursLeft}h {minsLeft}m {isNearExpiry ? '— Expiring soon!' : ''}
+                              </p>
+                            )}
+                          </div>
+                          <div className="p-4 space-y-3">
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              <div className="bg-slate-50 rounded-lg p-2">
+                                <p className="text-gray-400 font-medium">Your Bid</p>
+                                <p className="font-black text-gray-900">₹{Number(bid.bid_amount || 0).toLocaleString('en-IN')}/mo</p>
+                              </div>
+                              <div className="bg-slate-50 rounded-lg p-2">
+                                <p className="text-gray-400 font-medium">Property Rent</p>
+                                <p className="font-black text-gray-900">₹{Number(bid.rent_amount || 0).toLocaleString('en-IN')}/mo</p>
+                              </div>
+                            </div>
+                            <p className="text-[11px] text-gray-500 leading-relaxed">{cat.desc}</p>
+                            <div className="flex gap-2 pt-1">
+                              {(matchCat === 'exact_match' || matchCat === 'slight_gap') && (
+                                <a
+                                  href="/tenant/tenantchat"
+                                  className="flex-1 text-center py-2 bg-teal-600 text-white text-xs font-bold rounded-xl hover:bg-teal-700 transition-colors"
+                                >
+                                  💬 Open Chat
+                                </a>
+                              )}
+                              <a
+                                href="/fast-bidding"
+                                className="flex-1 text-center py-2 bg-gray-100 text-gray-700 text-xs font-bold rounded-xl hover:bg-gray-200 transition-colors"
+                              >
+                                ⚡ Rebid
+                              </a>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── Bookings Panel ── */}
+            {activeTab === 'bookings' && (
+              <>
               <div id="loadingState" className={`text-center py-16 ${loading ? "" : "hidden"}`}>
                   <div className="inline-block">
                       <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
@@ -613,8 +744,10 @@ export default function WebsiteMystays() {
                   </a>
               </div>
           </main>
+          </>
+          )}
       
-      
+
       <div id="refundModal" className={`modal fixed inset-0 z-50 ${selectedBooking ? "flex" : "hidden"} bg-black bg-opacity-50 overflow-y-auto`}>
           <div className="flex items-center justify-center min-h-screen px-4">
               <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full">

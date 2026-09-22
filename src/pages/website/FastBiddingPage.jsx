@@ -27,6 +27,7 @@ export default function FastBiddingPage() {
   const [loading, setLoading] = useState(false);
   const propertiesFetched = useRef(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [resultCategory, setResultCategory] = useState(null);
   const [showSignupModal, setShowSignupModal] = useState(false);
   const [signupEmail, setSignupEmail] = useState('');
   const [successCount, setSuccessCount] = useState(0);
@@ -56,6 +57,26 @@ export default function FastBiddingPage() {
       }));
     }
   }, []);
+
+  // ─── Real-time: Owner responded to bid → Show notification toast ───
+  useEffect(() => {
+    if (typeof window === 'undefined' || !isWebsiteLoggedIn()) return;
+    // Use global socket if available (shared from app-level socket init)
+    const socket = window.__roomhySocket;
+    if (!socket) return;
+
+    const handleOwnerResponded = (payload) => {
+      const msg = payload?.title || '💬 Owner responded to your bid! Open Chat to connect.';
+      toast.success(msg, {
+        duration: 8000,
+        icon: '💬',
+        style: { background: '#0f172a', color: '#fff', borderRadius: '12px' }
+      });
+    };
+    socket.on('bid_owner_responded', handleOwnerResponded);
+    return () => socket.off('bid_owner_responded', handleOwnerResponded);
+  }, []);
+  // ──────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     const loadCities = async () => {
@@ -227,6 +248,7 @@ export default function FastBiddingPage() {
     return true;
   };
 
+
   const submitBids = async (e) => {
     e.preventDefault();
 
@@ -240,15 +262,6 @@ export default function FastBiddingPage() {
       setShowSignupModal(true);
       return;
     }
-
-    if (properties.length === 0) {
-      toast.error('No matching properties found in this area');
-      return;
-    }
-
-    // Show success modal immediately, send bids in background
-    setSuccessCount(properties.length);
-    setShowSuccessModal(true);
 
     const userId = getWebsiteUserId() || getWebsiteUser()?.loginId || '';
     const selectedCity = cities.find(c => (c._id || c.id) === form.city);
@@ -264,49 +277,178 @@ export default function FastBiddingPage() {
       else { parsedMax = parseInt(q.replace(/[^0-9]/g, ''), 10); }
     }
 
-    for (const [index, property] of properties.entries()) {
-      try {
-        const propertyId = property._id || property.propertyNumber || property.propertyId || `${property.property_name || property.propertyInfo?.name || 'property'}-${index}`;
-        const ownerId = resolvePropertyOwnerLoginId(property);
-        if (!ownerId) continue;
+    const budgetLimit = parsedMax || parsedMin || 10000;
+    const exactMatches = properties.filter(p => parseInt(p.monthlyRent || p.rent || 0, 10) <= budgetLimit);
+    const gapMatches = properties.filter(p => {
+      const r = parseInt(p.monthlyRent || p.rent || 0, 10);
+      return r > budgetLimit && r <= budgetLimit + 2500;
+    });
 
-        const bidData = {
-          property_id: propertyId,
-          property_name: property.property_name || property.propertyInfo?.name || 'Property',
-          area: property.locality || property.propertyInfo?.area || '',
-          property_type: property.propertyType || property.propertyInfo?.propertyType || 'Property',
-          rent_amount: parseInt(property.monthlyRent || property.rent || property.propertyInfo?.rent || 0, 10),
+    const expiryTime = Date.now() + 24 * 60 * 60 * 1000;
+
+    // ─── NO MATCH CASE — Register requirement then show modal ────────
+    if (properties.length === 0) {
+      // Show modal immediately with no-match content
+      setResultCategory({
+        type: 'none',
+        title: '📌 Requirement Registered!',
+        subtitle: 'Auto-Matching is Now Active',
+        accentColor: '#0d9488',
+        bgGradient: 'from-teal-50 to-cyan-50',
+        borderColor: 'border-teal-200',
+        budgetLabel: parsedMax ? `₹${parsedMax.toLocaleString('en-IN')}/month` : (parsedMin ? `₹${parsedMin.toLocaleString('en-IN')}/month` : ''),
+        matchCount: 0,
+        steps: [
+          { icon: '📌', title: 'Requirement Saved', desc: 'No match right now — but your budget requirement is saved as ACTIVE in our system.' },
+          { icon: '⚡', title: 'Auto-Matching ON', desc: 'As soon as a new property matching your budget is added, our system detects it instantly.' },
+          { icon: '📱', title: 'Multi-Channel Alert', desc: 'You will be notified via Push Notification, Email & WhatsApp automatically.' },
+          { icon: '🏠', title: 'Chat & Book', desc: 'Once matched, open chat with the owner and finalize your move-in!' },
+        ],
+        badges: ['⚡ Auto-Matching Active', '📱 Push + WhatsApp Alerts', '📌 Requirement Saved'],
+        expiryTime,
+        ctaLabel: null,
+        ctaPath: null
+      });
+      setSuccessCount(0);
+      setShowSuccessModal(true);
+
+      // Fire register-requirement in background (don't block modal)
+      fetch(`${apiUrl}/api/booking/register-requirement`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           user_id: userId,
-          owner_id: ownerId,
           name: form.fullName,
           email: form.gmail,
-          phone: '',
-          request_type: 'bid',
-          bid_amount: Number.isFinite(parsedMax) && parsedMax > 0 ? parsedMax : (Number.isFinite(parsedMin) && parsedMin > 0 ? parsedMin : 7000),
-          bid_min: Number.isFinite(parsedMin) && parsedMin > 0 ? parsedMin : null,
-          bid_max: Number.isFinite(parsedMax) && parsedMax > 0 ? parsedMax : null,
-          filter_criteria: {
-            gender: form.gender,
-            city_id: form.city,
-            city: selectedCity?.name || selectedCity?.cityName || '',
-            area_id: form.area,
-            area: selectedArea?.name || selectedArea?.area_name || '',
-            min_price: Number.isFinite(parsedMin) && parsedMin > 0 ? parsedMin : null,
-            max_price: Number.isFinite(parsedMax) && parsedMax > 0 ? parsedMax : null,
-            property_type: property.propertyType || property.propertyInfo?.propertyType || 'Property'
-          },
-          message: `Looking for property with budget: ${form.budgetQuery}, Gender: ${form.gender}`
-        };
-
-        await fetch(`${apiUrl}/api/booking/create`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(bidData)
-        });
-      } catch {
-        // ignore individual failures
-      }
+          city: selectedCity?.name || selectedCity?.cityName || form.city,
+          area: selectedArea?.name || selectedArea?.area_name || form.area,
+          gender: form.gender,
+          budget_min: parsedMin,
+          budget_max: parsedMax || parsedMin,
+          bid_amount: parsedMax || parsedMin || 0,
+          message: `Budget: ${form.budgetQuery}, Gender: ${form.gender}, Area: ${selectedArea?.name || form.area}`
+        })
+      }).catch(() => {});
+      return;
     }
+
+    // ─── COMPUTE CATEGORY INSTANTLY (frontend logic) ──────────────────
+    const frontendCategory = exactMatches.length > 0 ? 'exact_match' : gapMatches.length > 0 ? 'slight_gap' : 'no_match_active';
+
+    let catInfo = {
+      type: 'none',
+      title: '📌 Requirement Registered!',
+      subtitle: 'Auto-Matching is Now Active',
+      accentColor: '#0d9488',
+      bgGradient: 'from-teal-50 to-cyan-50',
+      borderColor: 'border-teal-200',
+      budgetLabel: budgetLimit > 0 ? `₹${budgetLimit.toLocaleString('en-IN')}/month` : '',
+      matchCount: 0,
+      steps: [
+        { icon: '📌', title: 'Requirement Saved', desc: 'No match right now — but your budget requirement is saved as ACTIVE in our system.' },
+        { icon: '⚡', title: 'Auto-Matching ON', desc: 'As soon as a new property matching your budget is added, our system detects it instantly.' },
+        { icon: '📱', title: 'Multi-Channel Alert', desc: 'You will be notified via Push Notification, Email & WhatsApp automatically.' },
+        { icon: '🏠', title: 'Chat & Book', desc: 'Once matched, open chat with the owner and finalize your move-in!' },
+      ],
+      badges: ['⚡ Auto-Matching Active', '📱 WhatsApp + Push Alerts', '📌 Requirement Saved'],
+      expiryTime,
+      ctaLabel: null,
+      ctaPath: null
+    };
+
+    if (frontendCategory === 'exact_match') {
+      catInfo = {
+        type: 'exact',
+        title: '✅ Bid Submitted!',
+        subtitle: 'Properties Available in Your Budget',
+        accentColor: '#059669',
+        bgGradient: 'from-emerald-50 to-teal-50',
+        borderColor: 'border-emerald-200',
+        budgetLabel: `₹${budgetLimit.toLocaleString('en-IN')}/month`,
+        matchCount: exactMatches.length,
+        steps: [
+          { icon: '📩', title: 'Owners Notified', desc: 'All matching property owners have received your bid request instantly.' },
+          { icon: '💬', title: 'Owner Will Start Chat', desc: 'An interested owner will open a chat with you directly on the website.' },
+          { icon: '🔔', title: 'You Will Be Notified', desc: 'You\'ll get an instant push + email alert when an owner responds to your bid.' },
+          { icon: '🏠', title: 'Finalize Move-in', desc: 'Chat with the owner, confirm rent & move-in date — all within Roomhy!' },
+        ],
+        badges: ['💬 Direct Owner Chat', '🔔 Real-time Alerts', '⌛ 24-Hour Bid Validity'],
+        expiryTime,
+        ctaLabel: '💬 Open Chat Panel',
+        ctaPath: '/tenant/tenantchat'
+      };
+    } else if (frontendCategory === 'slight_gap') {
+      catInfo = {
+        type: 'gap',
+        title: '⚡ Bid Submitted!',
+        subtitle: 'Properties Within ₹2,500 of Your Budget',
+        accentColor: '#d97706',
+        bgGradient: 'from-amber-50 to-yellow-50',
+        borderColor: 'border-amber-200',
+        budgetLabel: `₹${budgetLimit.toLocaleString('en-IN')}/month`,
+        matchCount: gapMatches.length,
+        steps: [
+          { icon: '📩', title: 'Owners Notified', desc: 'Owners of properties within ₹2,500 of your budget have been notified.' },
+          { icon: '💬', title: 'Negotiation Chat', desc: 'If an owner agrees to negotiate rent, they\'ll start a chat with you.' },
+          { icon: '🔔', title: 'Instant Alert', desc: 'You\'ll get a push + email notification the moment an owner responds.' },
+          { icon: '🤝', title: 'Agree & Move-in', desc: 'Negotiate rent directly, finalize a deal & plan your move-in date!' },
+        ],
+        badges: ['💬 Rent Negotiation Chat', '🔔 Instant Notifications', '⌛ 24-Hour Bid Validity'],
+        expiryTime,
+        ctaLabel: '💬 Open Chat Panel',
+        ctaPath: '/tenant/tenantchat'
+      };
+    }
+
+    // ─── SHOW MODAL IMMEDIATELY (don't wait for API calls!) ──────────
+    setSuccessCount(properties.length);
+    setResultCategory(catInfo);
+    setShowSuccessModal(true);
+
+    // ─── FIRE ALL BID API CALLS IN PARALLEL (background) ─────────────
+    const bidPromises = properties.map((property, index) => {
+      const propertyId = property._id || property.propertyNumber || property.propertyId || `${property.property_name || property.propertyInfo?.name || 'property'}-${index}`;
+      const ownerId = resolvePropertyOwnerLoginId(property);
+      if (!ownerId) return Promise.resolve();
+
+      const bidData = {
+        property_id: propertyId,
+        property_name: property.property_name || property.propertyInfo?.name || 'Property',
+        area: property.locality || property.propertyInfo?.area || '',
+        city: selectedCity?.name || selectedCity?.cityName || '',
+        property_type: property.propertyType || property.propertyInfo?.propertyType || 'Property',
+        rent_amount: parseInt(property.monthlyRent || property.rent || property.propertyInfo?.rent || 0, 10),
+        user_id: userId,
+        owner_id: ownerId,
+        name: form.fullName,
+        email: form.gmail,
+        phone: getWebsiteUser()?.phone || '',
+        request_type: 'bid',
+        bid_amount: Number.isFinite(parsedMax) && parsedMax > 0 ? parsedMax : (Number.isFinite(parsedMin) && parsedMin > 0 ? parsedMin : 7000),
+        bid_min: Number.isFinite(parsedMin) && parsedMin > 0 ? parsedMin : null,
+        bid_max: Number.isFinite(parsedMax) && parsedMax > 0 ? parsedMax : null,
+        filter_criteria: {
+          gender: form.gender,
+          city_id: form.city,
+          city: selectedCity?.name || selectedCity?.cityName || '',
+          area_id: form.area,
+          area: selectedArea?.name || selectedArea?.area_name || '',
+          min_price: Number.isFinite(parsedMin) && parsedMin > 0 ? parsedMin : null,
+          max_price: Number.isFinite(parsedMax) && parsedMax > 0 ? parsedMax : null,
+          property_type: property.propertyType || property.propertyInfo?.propertyType || 'Property'
+        },
+        message: `Looking for property with budget: ${form.budgetQuery}, Gender: ${form.gender}`
+      };
+
+      return fetch(`${apiUrl}/api/booking/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bidData)
+      }).catch(() => {});
+    });
+
+    // Fire all in parallel — no await, runs in background while modal is already visible
+    Promise.allSettled(bidPromises).catch(() => {});
   };
 
   return (
@@ -514,7 +656,7 @@ export default function FastBiddingPage() {
                   className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 px-4 rounded-2xl transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg shadow-teal-500/25 active:scale-[0.98] text-sm cursor-pointer"
                 >
                   <Send className="w-4 h-4" />
-                  <span>Send Bids ({properties.length} Properties)</span>
+                  <span>{properties.length > 0 ? `Send Bids (${properties.length} Properties)` : 'Register Requirement'}</span>
                 </button>
                 
                 <button
@@ -536,27 +678,105 @@ export default function FastBiddingPage() {
 
       <MobileBottomNav />
 
-      {/* Success Modal */}
-      {showSuccessModal && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in zoom-in-95">
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-600">
-                <CheckCircle className="w-8 h-8" />
+      {/* Success / Category Informational Modal — Premium "Aage Kya Hoga" */}
+      {showSuccessModal && resultCategory && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-50 p-3">
+          <div className="bg-white rounded-3xl max-w-sm w-full shadow-2xl border border-slate-100 animate-in zoom-in-95 overflow-hidden max-h-[92vh] flex flex-col">
+
+            {/* Top accent bar */}
+            <div className="h-1.5 w-full shrink-0" style={{ background: `linear-gradient(90deg, ${resultCategory.accentColor || '#0d9488'}, ${(resultCategory.accentColor || '#0d9488') + '99'})` }} />
+
+            {/* Header */}
+            <div className={`px-5 pt-5 pb-4 bg-gradient-to-br ${resultCategory.bgGradient || 'from-teal-50 to-cyan-50'} border-b ${resultCategory.borderColor || 'border-teal-200'} shrink-0`}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1">
+                  <h2 className="text-base font-black text-slate-900 leading-tight">{resultCategory.title}</h2>
+                  <p className="text-xs font-bold mt-0.5" style={{ color: resultCategory.accentColor || '#0d9488' }}>{resultCategory.subtitle}</p>
+                </div>
+                {(resultCategory.matchCount ?? 0) > 0 ? (
+                  <span className="shrink-0 px-2.5 py-1 rounded-xl text-white text-[10px] font-black shadow-sm" style={{ background: resultCategory.accentColor || '#0d9488' }}>
+                    {resultCategory.matchCount} Match{resultCategory.matchCount !== 1 ? 'es' : ''}
+                  </span>
+                ) : (
+                  <span className="shrink-0 px-2.5 py-1 rounded-xl text-white text-[10px] font-black shadow-sm" style={{ background: resultCategory.accentColor || '#0d9488' }}>
+                    Active
+                  </span>
+                )}
               </div>
-              <h2 className="text-2xl font-bold text-slate-900 mb-1">Bid Sent Successfully!</h2>
-              <p className="text-slate-500 text-xs font-medium">Your budget offer has been dispatched to matching owners.</p>
+              <div className="mt-3 flex items-center gap-3 flex-wrap">
+                {resultCategory.budgetLabel && (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/70 border" style={{ borderColor: `${resultCategory.accentColor || '#0d9488'}40` }}>
+                    <span className="text-[10px] font-bold text-slate-500">Your Budget:</span>
+                    <span className="text-xs font-black" style={{ color: resultCategory.accentColor || '#0d9488' }}>{resultCategory.budgetLabel}</span>
+                  </div>
+                )}
+                {successCount > 0 && (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/70 border border-slate-200">
+                    <span className="text-[10px] font-bold text-slate-500">Bids Sent:</span>
+                    <span className="text-xs font-black text-slate-800">{successCount} Properties</span>
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="bg-emerald-50/80 border border-emerald-100 rounded-xl p-4 mb-6 text-center">
-              <p className="text-xs font-bold text-emerald-900">Bids sent to: <span className="text-base font-black text-emerald-700">{successCount} Properties</span></p>
-              <p className="text-[11px] text-emerald-700 font-medium mt-1">Owners will review your proposal and respond shortly.</p>
+
+            {/* Steps — Aage Kya Hoga */}
+            <div className="px-5 py-4 overflow-y-auto flex-1 space-y-3">
+              <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">What Happens Next?</p>
+              {(resultCategory.steps || []).map((step, idx) => (
+                <div key={idx} className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center text-base shrink-0 bg-slate-50 border border-slate-100">
+                    {step.icon}
+                  </div>
+                  <div className="flex-1 pt-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black rounded-full px-1.5 py-0.5 text-white" style={{ background: resultCategory.accentColor || '#0d9488' }}>{idx + 1}</span>
+                      <p className="text-xs font-extrabold text-slate-800">{step.title}</p>
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">{step.desc}</p>
+                  </div>
+                </div>
+              ))}
+
+              {/* Bid expiry */}
+              {resultCategory.expiryTime && (
+                <div className="flex items-center gap-2 mt-1 p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                  <span className="text-sm">⌛</span>
+                  <span className="text-[11px] text-slate-500 font-medium">Bid valid until: <span className="font-bold text-slate-700">{new Date(resultCategory.expiryTime).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span></span>
+                </div>
+              )}
+
+              {/* Badges */}
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {(resultCategory.badges || []).map((b, idx) => (
+                  <span key={idx} className="text-[10px] font-extrabold px-2.5 py-1 rounded-full border"
+                    style={{ color: resultCategory.accentColor || '#0d9488', borderColor: `${resultCategory.accentColor || '#0d9488'}40`, background: `${resultCategory.accentColor || '#0d9488'}10` }}>
+                    {b}
+                  </span>
+                ))}
+              </div>
             </div>
-            <button
-              onClick={() => setShowSuccessModal(false)}
-              className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-teal-500/25 active:scale-95 transition-all text-xs uppercase tracking-wider cursor-pointer"
-            >
-              Done
-            </button>
+
+            {/* CTA Buttons */}
+            <div className="px-5 pb-5 pt-3 border-t border-slate-100 shrink-0 flex flex-col gap-2">
+              {resultCategory.ctaLabel && resultCategory.ctaPath && (
+                <button
+                  onClick={() => {
+                    setShowSuccessModal(false);
+                    window.location.href = resultCategory.ctaPath;
+                  }}
+                  className="w-full py-3.5 text-white font-black text-xs uppercase tracking-wider rounded-2xl shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  style={{ background: `linear-gradient(135deg, ${resultCategory.accentColor || '#0d9488'}, ${(resultCategory.accentColor || '#0d9488') + 'cc'})` }}
+                >
+                  {resultCategory.ctaLabel}
+                </button>
+              )}
+              <button
+                onClick={() => setShowSuccessModal(false)}
+                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-3 rounded-2xl transition-all text-xs uppercase tracking-wider cursor-pointer"
+              >
+                Close & Continue Browsing
+              </button>
+            </div>
           </div>
         </div>
       )}

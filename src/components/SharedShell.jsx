@@ -5,6 +5,8 @@ import { Menu, Search, Bell, ChevronRight, X, MessageSquare, Building2, HelpCirc
 import { Sidebar } from "./Sidebar";
 import { fetchJson } from "../utils/api";
 import { requestNotificationPermission } from "../utils/notificationManager";
+import NotificationPromptBanner from "./NotificationPromptBanner";
+
 
 export default function SharedShell() {
   const location = useLocation();
@@ -258,6 +260,7 @@ export default function SharedShell() {
             onClick={() => setSidebarOpen(false)}
           />
         )}
+        <NotificationPromptBanner userLoginId={user?.loginId} />
       </div>
     );
   }
@@ -286,7 +289,9 @@ export default function SharedShell() {
         <main className="flex-1 overflow-y-auto">
           <Outlet />
         </main>
+        <NotificationPromptBanner userLoginId={user?.loginId} />
       </div>
     </div>
   );
 }
+

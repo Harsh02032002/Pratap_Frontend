@@ -3,9 +3,10 @@ import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLay
 import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerEmployees, getActiveOwnerPropertyId, fetchOwnerProperties } from "../../utils/propertyowner";
 import { fetchJson } from "../../utils/api";
 import { cacheGet, cacheSet, cacheInvalidate } from "../../utils/cache";
-import { AlertCircle, Search, Loader2, Building2 } from "lucide-react";
+import { AlertCircle, Search, Loader2, Building2, Download } from "lucide-react";
 import { MobileEmptyState } from "../../components/propertyowner/MobileComponents";
 import toast from "react-hot-toast";
+import { exportToCSV, csvDate } from "../../utils/export";
 
 const COMPLAINTS_TTL = 2 * 60 * 1000; // 2 minutes
 
@@ -149,12 +150,10 @@ export default function Complaints() {
 
     setIsBulkProcessing(true);
     try {
-      for (const id of selectedIds) {
-        await fetchJson(`/api/complaints/${id}/status`, {
-          method: "PUT",
-          body: JSON.stringify({ status: "Resolved" })
-        });
-      }
+      await fetchJson("/api/complaints/bulk-resolve", {
+        method: "PUT",
+        body: JSON.stringify({ ids: Array.from(selectedIds), resolution: "Resolved by owner" })
+      });
       cacheInvalidate(`complaints:${owner.loginId}`);
       setComplaints(prev => prev.map(c => selectedIds.has(c._id) ? { ...c, status: "Resolved" } : c));
       setSelectedIds(new Set());
@@ -175,12 +174,10 @@ export default function Complaints() {
 
     setIsBulkProcessing(true);
     try {
-      for (const id of selectedIds) {
-        await fetchJson(`/api/complaints/${id}/assign`, {
-          method: "PATCH",
-          body: JSON.stringify({ assignedStaffId: staffId, assignedStaffName: staffObj?.name || null })
-        });
-      }
+      await fetchJson("/api/complaints/bulk-assign", {
+        method: "PUT",
+        body: JSON.stringify({ ids: Array.from(selectedIds), staffId, staffName: staffObj?.name || null })
+      });
       cacheInvalidate(`complaints:${owner.loginId}`);
       setComplaints(prev => prev.map(c => selectedIds.has(c._id) ? {
         ...c,
@@ -196,6 +193,16 @@ export default function Complaints() {
     } finally {
       setIsBulkProcessing(false);
     }
+  };
+
+  const handleExportCSV = () => {
+    const headers = ["Tenant", "Room", "Category", "Priority", "Status", "Assigned Staff", "Date"];
+    const rows = filtered.map(c => [
+      c.tenantName || "", c.roomNo || "", c.category || "", c.priority || "",
+      c.status || "", c.assignedStaffName || "Unassigned", csvDate(c.createdAt)
+    ]);
+    exportToCSV("complaints.csv", headers, rows);
+    toast.success("Complaints exported!");
   };
 
   const activePropertyId = getActiveOwnerPropertyId();
@@ -278,9 +285,18 @@ export default function Complaints() {
             ))}
           </div>
 
-          <div className="relative mb-4">
-            <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"/>
-            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search complaints…" className="w-full h-10 pl-9 pr-3 rounded-lg bg-card border border-border text-[13px] focus:outline-none focus:ring-2 focus:ring-primary/20"/>
+          <div className="relative mb-4 flex items-center gap-3">
+            <div className="relative flex-1">
+              <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"/>
+              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search complaints…" className="w-full h-10 pl-9 pr-3 rounded-lg bg-card border border-border text-[13px] focus:outline-none focus:ring-2 focus:ring-primary/20"/>
+            </div>
+            <button
+              onClick={handleExportCSV}
+              className="flex items-center gap-2 px-4 h-10 rounded-lg border border-border bg-card text-[12px] font-semibold text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all shrink-0"
+              title="Export to CSV"
+            >
+              <Download size={14}/> Export CSV
+            </button>
           </div>
           <div className="w-full">
             {/* Desktop Table */}
