@@ -1374,20 +1374,46 @@ export default function Visit() {
 
   // ─── List helpers ───────────────────────────────────────────────────────────
 
+  // Same page component serves /superadmin/visit (see everything) and
+  // /employee/visit (own submissions only). The API is asked to scope by
+  // staffId/staffName (loadVisits above), but that param isn't trustworthy
+  // server-side, so we also enforce it here as the real gate for what an
+  // employee can see, matching the owner-side visitor logs' own-id filtering.
+  const currentStaffIdentity = useMemo(() => {
+    if (!isEmployeeView) return null;
+    const storedUser = JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user") || "{}");
+    return {
+      id: String(storedUser.loginId || storedUser.employeeId || "").toLowerCase(),
+      name: String(storedUser.name || "").toLowerCase(),
+    };
+  }, [isEmployeeView]);
+
+  const ownVisits = useMemo(() => {
+    if (!currentStaffIdentity) return visits;
+    const { id, name } = currentStaffIdentity;
+    if (!id && !name) return [];
+    return visits.filter(v => {
+      const staffId = String(v.staffId || v.submittedById || v.staffLoginId || v.submittedByLoginId || "").toLowerCase();
+      const staffName = String(v.staffName || v.submittedBy || "").toLowerCase();
+      if (id && staffId) return staffId === id;
+      return Boolean(name) && staffName === name;
+    });
+  }, [visits, currentStaffIdentity]);
+
   const filteredVisits = useMemo(() => {
     const q = search.toLowerCase();
-    return visits.filter(v => {
+    return ownVisits.filter(v => {
       const propName = (v.propertyName || v.propertyInfo?.name || "").toLowerCase();
       const staffName = (v.staffName || v.submittedBy || "").toLowerCase();
       return propName.includes(q) || staffName.includes(q);
     });
-  }, [visits, search]);
+  }, [ownVisits, search]);
 
   const stats = useMemo(() => {
-    const total = visits.length;
-    const approved = visits.filter(v => v.status === "approved").length;
+    const total = ownVisits.length;
+    const approved = ownVisits.filter(v => v.status === "approved").length;
     return { total, approved, pending: total - approved };
-  }, [visits]);
+  }, [ownVisits]);
 
   // ─── Toggle Pill Component ──────────────────────────────────────────────────
   const TogglePill = ({ label, icon: Icon, active, onClick }) => (
