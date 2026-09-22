@@ -49,8 +49,7 @@ export default function PaymentCheckout() {
       setLoading(true);
       try {
         if (redirectStatus === "SUCCESS" || redirectStatus === "PAID" || redirectStatus === "PAID_SUCCESSFULLY") {
-          setPaymentStatus("success");
-          setLoading(false);
+          navigate(`/website/payment-success?order_id=${encodeURIComponent(orderId || '')}&status=success`);
           return;
         }
 
@@ -63,8 +62,7 @@ export default function PaymentCheckout() {
           ).toUpperCase();
 
           if (rawStatus === "PAID" || rawStatus === "SUCCESS" || rawStatus === "VERIFIED" || rawStatus === "SETTLED") {
-            setPaymentStatus("success");
-            setLoading(false);
+            navigate(`/website/payment-success?order_id=${encodeURIComponent(orderId)}&status=success`);
             return;
           } else if (rawStatus === "FAILED" || rawStatus === "CANCELLED") {
             setPaymentStatus("failed");
@@ -116,7 +114,7 @@ export default function PaymentCheckout() {
 
   const handlePayNow = async () => {
     try {
-      const targetBookingId = extractedBookingId || rawBookingId;
+      const targetBookingId = extractedBookingId || rawBookingId || `PAY_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
       const finalAmount = amount || bookingData?.amount || bookingData?.booking_amount || 0;
       const customerInfo = {
         name: bookingData?.name || "Guest",
