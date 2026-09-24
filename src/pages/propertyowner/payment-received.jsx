@@ -41,7 +41,9 @@ export default function PaymentReceivedPage() {
   const [monthFilter, setMonthFilter] = useState("all");
 
   useEffect(() => {
-    fetchPayments(owner.loginId, 300, getActiveOwnerPropertyId())
+    // Same cache gap as Issued Receipts: force a fresh fetch so a just-recorded
+    // payment doesn't stay hidden behind a stale 60s cache surviving SPA navigation.
+    fetchPayments(owner.loginId, 300, getActiveOwnerPropertyId(), true)
       .then(data => setPayments(data?.payments || []))
       .catch(() => setPayments([]))
       .finally(() => setLoading(false));
