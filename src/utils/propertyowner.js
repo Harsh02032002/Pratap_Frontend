@@ -709,6 +709,24 @@ export const deleteRoom = async (roomId, ownerLoginId) => {
   return response;
 };
 
+export const bulkDeleteRooms = async (roomIds, ownerLoginId) => {
+  const response = await fetchJson('/api/rooms/bulk-delete', {
+    method: 'POST',
+    body: JSON.stringify({ roomIds })
+  });
+  if (ownerLoginId) clearOwnerFetchCache(ownerLoginId);
+  return response;
+};
+
+export const bulkClearRoomTenants = async (roomIds, ownerLoginId) => {
+  const response = await fetchJson('/api/rooms/bulk-clear-tenants', {
+    method: 'POST',
+    body: JSON.stringify({ roomIds })
+  });
+  if (ownerLoginId) clearOwnerFetchCache(ownerLoginId);
+  return response;
+};
+
 export const assignTenant = async (payload) => fetchJson("/api/tenants/assign", {
   method: "POST",
   body: JSON.stringify(payload)

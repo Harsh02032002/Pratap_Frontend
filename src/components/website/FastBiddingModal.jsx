@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { X, MapPin, Zap, Send, Loader, Info, Shield, CheckCircle, AlertTriangle, ChevronDown, Wallet, Building2, Home, Users, Bed, Check, Search, Star, Wind, Utensils, Tv, Filter, RefreshCw } from 'lucide-react';
+import { X, MapPin, Zap, Send, Loader, Info, Shield, CheckCircle, CheckCircle2, AlertTriangle, ChevronDown, Wallet, Building2, Home, Users, Bed, Check, Search, Star, Wind, Utensils, Tv, Filter, RefreshCw, MessageSquare, Bell, Mail, Pin, Clock, Smartphone, Sparkles, Handshake } from 'lucide-react';
 import { fetchCities, fetchProperties, fetchJson, getPropertyDetailsUrl, getApiBase, resolvePropertyOwnerLoginId } from '../../utils/api';
 import { cacheInvalidate } from '../../utils/cache';
 import { useAuth } from '../../contexts/AuthContext';
@@ -159,62 +159,77 @@ export default function FastBiddingModal({ isOpen, onClose, initialData = {} }) 
       if (category === 'exact_match') {
         setResultModal({
           type: 'exact',
-          title: '✅ Bid Submitted!',
-          subtitle: 'Properties Available in Your Budget',
+          headerIcon: CheckCircle2,
+          title: 'Request Sent to Owners!',
+          subtitle: 'Direct Owner Chat & Offer Active',
           accentColor: '#059669',
           bgGradient: 'from-emerald-50 to-teal-50',
           borderColor: 'border-emerald-200',
           budgetLabel: `₹${parsedMax.toLocaleString('en-IN')}/month`,
           matchCount: exactMatches.length,
           steps: [
-            { icon: '📩', title: 'Owners Notified', desc: 'All matching property owners have received your bid request instantly.' },
-            { icon: '💬', title: 'Owner Will Start Chat', desc: 'An interested owner will open a chat with you directly on the website.' },
-            { icon: '🔔', title: 'You Will Be Notified', desc: 'You\'ll get an instant push + email alert when an owner responds to your bid.' },
-            { icon: '🏠', title: 'Finalize Move-in', desc: 'Chat with the owner, confirm rent & move-in date — all within Roomhy!' },
+            { icon: Mail, title: 'Request Sent to Owners', desc: 'Aapki budget request area ke sabhi matching property owners tak bhej di gayi hai.' },
+            { icon: MessageSquare, title: 'Direct Owner Chat', desc: 'Agar koi owner aapko property rent par dena chahta hai, toh aap niche Open Chat Panel se direct baat kar sakte hain.' },
+            { icon: Bell, title: 'Instant Notification Alert', desc: 'Owner ke reply karte hi aapko push notification aur email alert mil jayega.' },
+            { icon: Home, title: 'Confirm & Move-in', desc: 'Owner se chat karke rent finalize karein aur apni move-in date fix karein!' },
           ],
-          badges: ['💬 Direct Owner Chat', '🔔 Real-time Alerts', '⌛ 24-Hour Bid Validity'],
-          ctaLabel: '💬 Open Chat Panel',
-          ctaPath: '/tenant/tenantchat'
+          badges: [
+            { icon: MessageSquare, label: 'Direct Owner Chat' },
+            { icon: Bell, label: 'Real-time Alerts' },
+            { icon: Clock, label: 'Offer Active' }
+          ],
+          ctaLabel: 'Open Chat Panel',
+          ctaPath: '/website/chat'
         });
       } else if (category === 'slight_gap') {
         setResultModal({
           type: 'gap',
-          title: '⚡ Bid Submitted!',
-          subtitle: `Properties Within ₹2,500 of Your Budget`,
+          headerIcon: Zap,
+          title: 'Request Sent to Owners!',
+          subtitle: 'Owner Rent Negotiation & Chat Active',
           accentColor: '#d97706',
           bgGradient: 'from-amber-50 to-yellow-50',
           borderColor: 'border-amber-200',
           budgetLabel: `₹${parsedMax.toLocaleString('en-IN')}/month`,
           matchCount: gapMatches.length,
           steps: [
-            { icon: '📩', title: 'Owners Notified', desc: 'Owners of properties within ₹2,500 of your budget have been notified.' },
-            { icon: '💬', title: 'Negotiation Chat', desc: 'If an owner agrees to negotiate rent, they\'ll start a chat with you.' },
-            { icon: '🔔', title: 'Instant Alert', desc: 'You\'ll get a push + email notification the moment an owner responds.' },
-            { icon: '🤝', title: 'Agree & Move-in', desc: 'Negotiate rent directly, finalize a deal & plan your move-in date!' },
+            { icon: Mail, title: 'Offer Forwarded to Owners', desc: 'Aapki offer request area ke property owners tak pahuncha di gayi hai.' },
+            { icon: MessageSquare, title: 'Chat & Negotiate Rent', desc: 'Agar owner apni property rent par dene ke liye tayyar ho, toh niche Open Chat Panel par click karke direct message karein.' },
+            { icon: Bell, title: 'Instant Response Alert', desc: 'Owner ke response karte hi aapko instant push notification alert milega.' },
+            { icon: Handshake, title: 'Agree & Finalize Deal', desc: 'Owner se chat par rent negotiate karke deal final karein aur move-in plan karein!' },
           ],
-          badges: ['💬 Rent Negotiation Chat', '🔔 Instant Notifications', '⌛ 24-Hour Bid Validity'],
-          ctaLabel: '💬 Open Chat Panel',
-          ctaPath: '/tenant/tenantchat'
+          badges: [
+            { icon: MessageSquare, label: 'Direct Negotiation Chat' },
+            { icon: Bell, label: 'Real-time Alerts' },
+            { icon: Clock, label: 'Offer Active' }
+          ],
+          ctaLabel: 'Open Chat Panel',
+          ctaPath: '/website/chat'
         });
       } else {
         setResultModal({
           type: 'none',
-          title: '📌 Requirement Registered!',
-          subtitle: 'Auto-Matching is Now Active',
+          headerIcon: Pin,
+          title: 'Requirement Registered!',
+          subtitle: 'Owner Match & Chat System Active',
           accentColor: '#0d9488',
           bgGradient: 'from-teal-50 to-cyan-50',
           borderColor: 'border-teal-200',
           budgetLabel: `₹${parsedMax.toLocaleString('en-IN')}/month`,
           matchCount: 0,
           steps: [
-            { icon: '📌', title: 'Requirement Saved', desc: 'No match right now — but your budget requirement is saved as ACTIVE in our system.' },
-            { icon: '⚡', title: 'Auto-Matching ON', desc: 'As soon as a new property matching your budget is added, our system detects it instantly.' },
-            { icon: '📱', title: 'Multi-Channel Alert', desc: 'You will be notified via Push Notification, Email & WhatsApp automatically.' },
-            { icon: '🏠', title: 'Chat & Book', desc: 'Once matched, open chat with the owner and finalize your move-in!' },
+            { icon: Pin, title: 'Requirement Saved', desc: 'Aapki budget requirement humare system mein Active register ho gayi hai.' },
+            { icon: Zap, title: 'Owners Notified', desc: 'Nearby property owners tak aapki request bhej di gayi hai.' },
+            { icon: MessageSquare, title: 'Direct Owner Chat', desc: 'Jise bhi property rent par deni hogi, voh aapke saath chat shuru kar sakta hai. Niche Open Chat Panel par click karein.' },
+            { icon: Home, title: 'Chat & Move-in', desc: 'Owner se baat karke deal confirm karein!' },
           ],
-          badges: ['⚡ Auto-Matching Active', '📱 Push + WhatsApp Alerts', '📌 Requirement Saved'],
-          ctaLabel: null,
-          ctaPath: null
+          badges: [
+            { icon: MessageSquare, label: 'Direct Owner Chat' },
+            { icon: Zap, label: 'Auto-Matching Active' },
+            { icon: Pin, label: 'Requirement Saved' }
+          ],
+          ctaLabel: 'Open Chat Panel',
+          ctaPath: '/website/chat'
         });
       }
     } catch (err) {

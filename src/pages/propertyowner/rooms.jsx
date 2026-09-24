@@ -2,11 +2,11 @@ import { compressImage } from "../../utils/imageCompression";
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
-import { X, Plus, Building2, ChevronDown, UploadCloud, Loader2, Wind, Table as TableIcon, Tv, Bath, LayoutTemplate, Refrigerator, DoorClosed, Armchair, Utensils, Microwave, Flame, Shirt, Video, Fan, Check, Edit2, Trash2, BedDouble, Home, Layers } from "lucide-react";
+import { X, Plus, Building2, ChevronDown, UploadCloud, Loader2, Wind, Table as TableIcon, Tv, Bath, LayoutTemplate, Refrigerator, DoorClosed, Armchair, Utensils, Microwave, Flame, Shirt, Video, Fan, Check, Edit2, Trash2, BedDouble, Home, Layers, UserMinus, CheckSquare } from "lucide-react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getApiBase, getAuthHeader } from "../../utils/api";
+import { getApiBase, getAuthHeader, fetchJson } from "../../utils/api";
 import {
-  assignTenant, clearOwnerFetchCache, clearOwnerRuntimeSession, createRoom, updateRoom, deleteRoom, bulkCreateRooms,
+  assignTenant, clearOwnerFetchCache, clearOwnerRuntimeSession, createRoom, updateRoom, deleteRoom, bulkCreateRooms, bulkDeleteRooms, bulkClearRoomTenants,
   fetchOwnerProperties, fetchOwnerRooms, fetchOwnerTenants, getOwnerRuntimeSession
 } from "../../utils/propertyowner";
 
@@ -136,6 +136,68 @@ export default function Rooms() {
   const [newTenantForm, setNewTenantForm] = useState({ name: "", phone: "", email: "" });
   const [isAssigning, setIsAssigning] = useState(false);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+
+  // ── Bulk selection state ──────────────────────────────────────────────────
+  const [selectedRoomIds, setSelectedRoomIds] = useState(new Set());
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [isBulkClearingTenants, setIsBulkClearingTenants] = useState(false);
+
+  const toggleRoomSelect = (id) => {
+    setSelectedRoomIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedRoomIds.size === 0) return;
+    const count = selectedRoomIds.size;
+    if (!window.confirm(`Are you sure you want to permanently delete ${count} selected room(s)?`)) return;
+    setIsBulkDeleting(true);
+    try {
+      const res = await fetchJson('/api/rooms/bulk-delete', {
+        method: 'POST',
+        body: JSON.stringify({ roomIds: [...selectedRoomIds] })
+      });
+      if (res.success) {
+        setSelectedRoomIds(new Set());
+        clearOwnerFetchCache(owner?.loginId);
+        await load(owner, 1, 500, true);
+        toast.success(`${res.deleted ?? count} room(s) deleted successfully`);
+      } else {
+        toast.error(res.message || 'Failed to delete rooms');
+      }
+    } catch (e) {
+      toast.error(e?.message || 'Failed to delete rooms');
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
+  const handleBulkClearTenants = async () => {
+    if (selectedRoomIds.size === 0) return;
+    if (!window.confirm(`Remove all tenant assignments from ${selectedRoomIds.size} selected room(s)?`)) return;
+    setIsBulkClearingTenants(true);
+    try {
+      const res = await fetchJson('/api/rooms/bulk-clear-tenants', {
+        method: 'POST',
+        body: JSON.stringify({ roomIds: [...selectedRoomIds] })
+      });
+      if (res.success) {
+        setSelectedRoomIds(new Set());
+        clearOwnerFetchCache(owner?.loginId);
+        await load(owner, 1, 500, true);
+        toast.success(`Tenant assignments cleared from ${selectedRoomIds.size} rooms`);
+      } else {
+        toast.error(res.message || 'Failed to clear tenants');
+      }
+    } catch (e) {
+      toast.error(e?.message || 'Failed to clear tenants');
+    } finally {
+      setIsBulkClearingTenants(false);
+    }
+  };
 
   const handleBulkCreate = async (e) => {
     e.preventDefault();
@@ -574,6 +636,45 @@ export default function Rooms() {
       contentClassName="max-w-7xl mx-auto"
     >
 
+      {/* ── Floating Bulk Action Bar — slides in when rooms are selected ── */}
+      {selectedRoomIds.size > 0 && (
+        <div className="sticky top-0 z-50 -mx-4 sm:-mx-6 lg:-mx-8 mb-5">
+          <div className="border-b border-border px-5 py-3 flex items-center justify-between gap-3 shadow-sm">
+            <div className="flex items-center gap-3">
+              <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-foreground text-background text-xs font-black">{selectedRoomIds.size}</span>
+              <span className="text-sm font-semibold text-foreground">
+                room{selectedRoomIds.size !== 1 ? 's' : ''} selected
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleBulkClearTenants}
+                disabled={isBulkClearingTenants || isBulkDeleting}
+                className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-lg border border-border text-xs font-bold text-foreground hover:bg-muted transition-all disabled:opacity-50 active:scale-95"
+              >
+                {isBulkClearingTenants ? <Loader2 size={12} className="animate-spin" /> : <UserMinus size={12} />}
+                Remove Tenants
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                disabled={isBulkDeleting || isBulkClearingTenants}
+                className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-lg border border-border text-xs font-bold text-foreground hover:bg-muted transition-all disabled:opacity-50 active:scale-95"
+              >
+                {isBulkDeleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                Delete Rooms
+              </button>
+              <button
+                onClick={() => setSelectedRoomIds(new Set())}
+                className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-border text-muted-foreground hover:bg-muted transition-all active:scale-95"
+                title="Deselect all"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       {/* Stats Panel */}
       {/* Stats Panel */}
@@ -839,6 +940,18 @@ export default function Rooms() {
 
                         return (
                           <div key={room._id || room.id} className={cn("group rounded-2xl border shadow-sm relative overflow-hidden bg-white hover:shadow-md transition-all w-[85%] md:w-auto shrink-0 snap-start p-4", cardBorderClass)}>
+                            {/* Checkbox — visible always on mobile, on-hover on desktop */}
+                            <div
+                              className="absolute top-2.5 left-2.5 z-10"
+                              onClick={e => e.stopPropagation()}
+                            >
+                              <input
+                                type="checkbox"
+                                className="w-4 h-4 rounded accent-blue-600 cursor-pointer border-slate-300"
+                                checked={selectedRoomIds.has(room._id || room.id)}
+                                onChange={() => toggleRoomSelect(room._id || room.id)}
+                              />
+                            </div>
                             {/* Header Row */}
                             <div className="flex justify-between items-start mb-3">
                               <div className="flex items-center gap-3">

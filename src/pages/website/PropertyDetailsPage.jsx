@@ -358,6 +358,7 @@ export default function PropertyDetailsPage() {
   const [selectedImage, setSelectedImage] = useState(0);
   const [loadingInstitutes, setLoadingInstitutes] = useState(false);
   const [showQuickBookingModal, setShowQuickBookingModal] = useState(false);
+  const [bidResultModal, setBidResultModal] = useState(null);
   const [rooms, setRooms] = useState([]);
 
   // Helper to extract visitId or ObjectId from property slug (e.g. "roomhy-boys-pg-rh1025" -> "RH1025")
@@ -447,15 +448,20 @@ export default function PropertyDetailsPage() {
       throw new Error('This property has no owner assigned yet, so the request cannot be sent. Please contact Roomhy support.');
     }
 
+    const offeredRent = bookingData.bidAmount ? parseInt(bookingData.bidAmount, 10) : parseInt(property?.monthlyRent || property?.price || bookingData.propertyPrice || 0, 10);
+    const propRent = parseInt(property?.monthlyRent || property?.price || bookingData.propertyPrice || 0, 10);
+
     const payload = {
       property_id:   property?._id || property?.id || bookingData.propertyId,
       property_name: property?.name || property?.property_name || bookingData.propertyName,
       owner_id:      ownerLoginId,
-      rent_amount:   property?.monthlyRent || property?.price || bookingData.propertyPrice,
+      rent_amount:   propRent,
+      bid_amount:    offeredRent,
+      offered_amount: offeredRent,
       area:          property?.location || property?.city,
       city:          property?.city,
       property_type: property?.propertyType,
-      request_type:  'direct',
+      request_type:  bookingData.bidAmount ? 'bid' : 'direct',
       user_id:       userId,
       name:          bookingData.name,
       email:         bookingData.email,
@@ -473,7 +479,34 @@ export default function PropertyDetailsPage() {
 
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'Failed to submit booking request');
-    navigate('/website/ourproperty');
+    setShowQuickBookingModal(false);
+
+    const isExact = offeredRent >= propRent;
+    const isGap = !isExact && (propRent <= offeredRent + 2500);
+
+    setBidResultModal({
+      type: isExact ? 'exact' : isGap ? 'gap' : 'none',
+      title: isExact ? '✅ Bid / Request Submitted!' : isGap ? '⚡ Bid Submitted!' : '📌 Requirement Saved!',
+      subtitle: isExact 
+        ? `Request sent for ${property?.name || 'Property'}`
+        : isGap
+        ? `Within ₹2,500 gap of listed rent (₹${propRent.toLocaleString('en-IN')})`
+        : `Your budget requirement is active for auto-matching`,
+      accentColor: isExact ? '#059669' : isGap ? '#d97706' : '#0d9488',
+      bgGradient: isExact ? 'from-emerald-50 to-teal-50' : isGap ? 'from-amber-50 to-yellow-50' : 'from-teal-50 to-cyan-50',
+      borderColor: isExact ? 'border-emerald-200' : isGap ? 'border-amber-200' : 'border-teal-200',
+      budgetLabel: `₹${offeredRent.toLocaleString('en-IN')}/month`,
+      matchCount: 1,
+      steps: [
+        { icon: '📩', title: 'Owner Notified', desc: `Property owner of "${property?.name || 'Property'}" has received your request.` },
+        { icon: '💬', title: 'Owner Will Start Chat', desc: 'An interested owner will open a direct chat with you on the Roomhy platform.' },
+        { icon: '🔔', title: 'Multi-Channel Alert', desc: 'You will get real-time Push, Email & WhatsApp notifications when the owner responds.' },
+        { icon: '⌛', title: '24-Hour Bid Validity', desc: 'Your bid stays active for 24 hours. If unfulfilled, auto-matching remains active!' },
+      ],
+      badges: ['💬 Direct Owner Chat', '🔔 Push + WhatsApp Alerts', '⌛ 24-Hour Bid Validity'],
+      ctaLabel: '💬 Open Chat Panel',
+      ctaPath: '/tenant/tenantchat'
+    });
   };
   
   // Reviews state
@@ -1232,6 +1265,90 @@ export default function PropertyDetailsPage() {
         onClose={() => setShowQuickBookingModal(false)}
         onSubmit={handleQuickBookingSubmit}
       />
+
+      {/* Bid / Requirement Confirmation Result Modal */}
+      {bidResultModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100 flex flex-col max-h-[90vh]">
+            {/* Header */}
+            <div className={`px-6 pt-6 pb-4 bg-gradient-to-br ${bidResultModal.bgGradient} border-b ${bidResultModal.borderColor} relative shrink-0`}>
+              <button
+                onClick={() => setBidResultModal(null)}
+                className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/80 hover:bg-white text-slate-500 flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shadow-sm bg-white shrink-0">
+                  {bidResultModal.type === 'exact' ? '✅' : bidResultModal.type === 'gap' ? '⚡' : '📌'}
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900">{bidResultModal.title}</h3>
+                  <p className="text-xs font-bold mt-0.5" style={{ color: bidResultModal.accentColor }}>{bidResultModal.subtitle}</p>
+                </div>
+              </div>
+              {bidResultModal.budgetLabel && (
+                <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/70 border" style={{ borderColor: `${bidResultModal.accentColor}40` }}>
+                  <span className="text-[10px] font-bold text-slate-500">Your Budget / Offer:</span>
+                  <span className="text-xs font-black" style={{ color: bidResultModal.accentColor }}>{bidResultModal.budgetLabel}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Steps — What Happens Next / Aage Kya Hoga */}
+            <div className="px-6 py-5 overflow-y-auto flex-1 space-y-3.5">
+              <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">What Happens Next?</p>
+              {bidResultModal.steps?.map((step, idx) => (
+                <div key={idx} className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center text-base shrink-0 bg-slate-50 border border-slate-100">
+                    {step.icon}
+                  </div>
+                  <div className="flex-1 pt-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black rounded-full px-1.5 py-0.5 text-white" style={{ background: bidResultModal.accentColor }}>{idx + 1}</span>
+                      <p className="text-xs font-extrabold text-slate-800">{step.title}</p>
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">{step.desc}</p>
+                  </div>
+                </div>
+              ))}
+
+              {/* Badges */}
+              {bidResultModal.badges && (
+                <div className="flex flex-wrap gap-1.5 pt-2">
+                  {bidResultModal.badges.map((b, idx) => (
+                    <span key={idx} className="text-[10px] font-extrabold px-2.5 py-1 rounded-full border" style={{ color: bidResultModal.accentColor, borderColor: `${bidResultModal.accentColor}40`, background: `${bidResultModal.accentColor}10` }}>
+                      {b}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* CTA Buttons */}
+            <div className="px-6 pb-6 pt-3 border-t border-slate-100 shrink-0 flex flex-col gap-2">
+              {bidResultModal.ctaLabel && bidResultModal.ctaPath && (
+                <button
+                  onClick={() => {
+                    setBidResultModal(null);
+                    navigate(bidResultModal.ctaPath);
+                  }}
+                  className="w-full py-3.5 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                  style={{ background: `linear-gradient(135deg, ${bidResultModal.accentColor}, ${bidResultModal.accentColor}cc)` }}
+                >
+                  {bidResultModal.ctaLabel}
+                </button>
+              )}
+              <button
+                onClick={() => setBidResultModal(null)}
+                className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer"
+              >
+                Close & Continue Browsing
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

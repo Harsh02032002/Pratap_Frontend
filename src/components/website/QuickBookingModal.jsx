@@ -8,21 +8,31 @@ export default function QuickBookingModal({ property, isOpen, onClose, onSubmit 
     name: '',
     email: '',
     phone: '',
-    message: ''
+    message: '',
+    bidAmount: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (isOpen && isAuthenticated && user) {
-      setFormData({
-        name: user.name || user.firstName || '',
-        email: user.email || '',
-        phone: user.phone || '',
-        message: ''
-      });
+    if (isOpen && property) {
+      const defaultRent = property.price || property.monthlyRent || property.rent || '';
+      if (isAuthenticated && user) {
+        setFormData({
+          name: user.name || user.firstName || '',
+          email: user.email || '',
+          phone: user.phone || '',
+          message: '',
+          bidAmount: defaultRent ? String(defaultRent) : ''
+        });
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          bidAmount: defaultRent ? String(defaultRent) : ''
+        }));
+      }
     }
-  }, [isOpen, isAuthenticated, user]);
+  }, [isOpen, isAuthenticated, user, property]);
 
   if (!isOpen || !property) return null;
 
@@ -43,13 +53,12 @@ export default function QuickBookingModal({ property, isOpen, onClose, onSubmit 
         ...formData,
         propertyId: property._id || property.id,
         propertyName: property.name || property.title,
-        propertyPrice: property.price,
-        propertyLocation: property.location,
-        bookingType: 'direct'
+        propertyPrice: property.price || property.monthlyRent,
+        propertyLocation: property.location || property.city,
+        bookingType: formData.bidAmount ? 'bid' : 'direct'
       });
       
       // Reset form
-      setFormData({ name: '', email: '', phone: '', message: '' });
       onClose();
     } catch (err) {
       setError(err.message || 'Failed to submit booking');
@@ -136,6 +145,24 @@ export default function QuickBookingModal({ property, isOpen, onClose, onSubmit 
               </div>
 
               <div>
+                <label className="block text-xs font-extrabold text-teal-700 uppercase tracking-wider mb-1 flex items-center justify-between">
+                  <span>Your Offered Rent / Bid Amount (₹)</span>
+                  <span className="text-[10px] text-gray-400 font-normal">Listed: ₹{property.price || property.monthlyRent}/mo</span>
+                </label>
+                <input
+                  type="number"
+                  name="bidAmount"
+                  value={formData.bidAmount}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2.5 border border-teal-300 bg-teal-50/40 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm font-bold text-teal-900"
+                  placeholder={`e.g. ${property.price || property.monthlyRent || 8000}`}
+                />
+                <p className="text-[10px] text-gray-500 mt-1">
+                  💡 Enter your target rent budget. Owner can connect with you via Chat to negotiate.
+                </p>
+              </div>
+
+              <div>
                 <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
                   Special Notes (Optional)
                 </label>
@@ -152,9 +179,9 @@ export default function QuickBookingModal({ property, isOpen, onClose, onSubmit 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 text-white font-bold py-3.5 rounded-xl transition-colors disabled:cursor-not-allowed text-base shadow-lg shadow-orange-500/20 active:scale-[0.98]"
+                className="w-full bg-[#0FA596] hover:bg-teal-700 disabled:bg-gray-300 text-white font-bold py-3.5 rounded-xl transition-colors disabled:cursor-not-allowed text-base shadow-lg shadow-teal-500/20 active:scale-[0.98] cursor-pointer"
               >
-                {loading ? 'Submitting Request...' : 'Confirm Booking'}
+                {loading ? 'Submitting Bid Request...' : 'Submit Bid / Booking Request'}
               </button>
             </div>
           ) : (
@@ -215,6 +242,21 @@ export default function QuickBookingModal({ property, isOpen, onClose, onSubmit 
               </div>
 
               <div>
+                <label className="block text-xs font-extrabold text-teal-700 uppercase tracking-wider mb-1 flex items-center justify-between">
+                  <span>Your Offered Rent / Bid Amount (₹)</span>
+                  <span className="text-[10px] text-gray-400 font-normal">Listed: ₹{property.price || property.monthlyRent}/mo</span>
+                </label>
+                <input
+                  type="number"
+                  name="bidAmount"
+                  value={formData.bidAmount}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2.5 border border-teal-300 bg-teal-50/40 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm font-bold text-teal-900"
+                  placeholder={`e.g. ${property.price || property.monthlyRent || 8000}`}
+                />
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Message (Optional)
                 </label>
@@ -222,7 +264,7 @@ export default function QuickBookingModal({ property, isOpen, onClose, onSubmit 
                   name="message"
                   value={formData.message}
                   onChange={handleInputChange}
-                  rows={3}
+                  rows={2}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                   placeholder="Any special requirements or questions..."
                 />
@@ -231,9 +273,9 @@ export default function QuickBookingModal({ property, isOpen, onClose, onSubmit 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 text-white font-bold py-3 rounded-lg transition-colors disabled:cursor-not-allowed"
+                className="w-full bg-[#0FA596] hover:bg-teal-700 disabled:bg-gray-300 text-white font-bold py-3 rounded-lg transition-colors disabled:cursor-not-allowed cursor-pointer"
               >
-                {loading ? 'Submitting...' : 'Book Now'}
+                {loading ? 'Submitting Bid Request...' : 'Submit Bid / Booking Request'}
               </button>
             </div>
           )}

@@ -5,7 +5,7 @@ import { apiFetch } from "../../utils/api";
 import { toast } from "react-hot-toast";
 import {
   LogOut, Search, Phone, CheckCircle2, AlertTriangle,
-  Clock, XCircle, Loader2, CalendarDays, IndianRupee, CalendarClock, Undo2
+  Clock, XCircle, Loader2, CalendarDays, IndianRupee, CalendarClock, Undo2, CheckSquare, X
 } from "lucide-react";
 
 const fmt = (n) => "₹" + (Number(n) || 0).toLocaleString("en-IN");
@@ -96,6 +96,53 @@ export default function MoveoutRequestsPage() {
   const [cancelModal, setCancelModal]   = useState(null);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling]     = useState(false);
+
+  // ── Bulk approve state ──────────────────────────────────────────
+  const [bulkSelectedIds, setBulkSelectedIds] = useState(new Set());
+  const [isBulkApproving, setIsBulkApproving] = useState(false);
+
+  const toggleBulkSelect = (id) => setBulkSelectedIds(prev => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
+
+  const handleBulkApprove = async () => {
+    if (bulkSelectedIds.size === 0) return;
+    const pendingItems = requests.filter(r => bulkSelectedIds.has(r._id) && viewStatus(r) === 'pending');
+    if (pendingItems.length === 0) {
+      toast.error('No pending requests selected');
+      return;
+    }
+    if (!window.confirm(`Bulk approve ${pendingItems.length} move-out request(s)?\n\nDefault settlement will be applied:\n• Dues: ₹0\n• Full security deposit refunded\n\nYou can adjust individual settlements later.`)) return;
+    setIsBulkApproving(true);
+    let approved = 0;
+    let failed = 0;
+    try {
+      for (const item of pendingItems) {
+        try {
+          await apiFetch('/api/tenants/moveout/approve', {
+            method: 'POST',
+            body: JSON.stringify({
+              tenantId: item._id,
+              duesAtMoveout: 0,
+              refundAmount: item.securityDepositPaid || 0,
+              refundStatus: 'pending'
+            })
+          });
+          approved++;
+        } catch { failed++; }
+      }
+      setBulkSelectedIds(new Set());
+      fetchRequests();
+      if (approved > 0) toast.success(`${approved} move-out request(s) approved. Notice period started.`);
+      if (failed > 0) toast.error(`${failed} request(s) failed. Check individually.`);
+    } catch (err) {
+      toast.error(err?.message || 'Bulk approve failed');
+    } finally {
+      setIsBulkApproving(false);
+    }
+  };
 
   const fetchRequests = async () => {
     try {
@@ -217,6 +264,37 @@ export default function MoveoutRequestsPage() {
       title="Move-out Notices"
       onLogout={() => { clearOwnerRuntimeSession(); window.location.href = "/propertyowner/ownerlogin"; }}
     >
+      {/* ── Floating Bulk Approve Bar — shows when pending requests are selected ── */}
+      {bulkSelectedIds.size > 0 && (
+        <div className="sticky top-0 z-50 -mx-4 sm:-mx-6 lg:-mx-8 mb-5">
+          <div className="border-b border-border px-5 py-3 flex items-center justify-between gap-3 shadow-sm">
+            <div className="flex items-center gap-3">
+              <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-foreground text-background text-xs font-black">{bulkSelectedIds.size}</span>
+              <span className="text-sm font-semibold text-foreground">
+                request{bulkSelectedIds.size !== 1 ? 's' : ''} selected
+              </span>
+              <span className="text-xs text-muted-foreground hidden sm:inline">(₹0 dues, full deposit refund)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleBulkApprove}
+                disabled={isBulkApproving}
+                className="inline-flex items-center gap-1.5 h-8 px-4 rounded-lg border border-border text-xs font-bold text-foreground hover:bg-muted transition-all disabled:opacity-50 active:scale-95"
+              >
+                {isBulkApproving ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
+                {isBulkApproving ? 'Approving...' : 'Bulk Approve & Settle'}
+              </button>
+              <button
+                onClick={() => setBulkSelectedIds(new Set())}
+                className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-border text-muted-foreground hover:bg-muted transition-all active:scale-95"
+                title="Deselect all"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-8">
         <div>
@@ -404,6 +482,16 @@ export default function MoveoutRequestsPage() {
                 {/* Actions */}
                 {isPending && (
                   <div className="flex gap-2 pt-1 border-t border-border/60">
+                    {/* Bulk Select Checkbox */}
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 rounded accent-emerald-600 cursor-pointer"
+                        checked={bulkSelectedIds.has(item._id)}
+                        onChange={() => toggleBulkSelect(item._id)}
+                        title="Select for bulk approve"
+                      />
+                    </div>
                     <button
                       onClick={() => openSettle(item)}
                       className="flex-1 h-10 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[12px] font-bold transition-colors"

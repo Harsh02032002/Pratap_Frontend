@@ -55,7 +55,7 @@ export default function SharedShell() {
 
   const fetchRecentNotifications = async () => {
     try {
-      const loginId = user?.loginId || "superadmin";
+      const loginId = (user?.role === 'superadmin' || user?.role === 'admin') ? "superadmin" : (user?.loginId || "superadmin");
       const data = await fetchJson(`/api/notifications?toLoginId=${encodeURIComponent(loginId)}`);
       if (Array.isArray(data)) {
         const formatted = data.map(n => {
@@ -69,7 +69,7 @@ export default function SharedShell() {
             read: n.read
           };
         });
-        setNotifications(formatted.slice(0, 4));
+        setNotifications(formatted.slice(0, 6));
         setUnreadCount(formatted.filter(n => !n.read).length);
       }
     } catch (err) {
@@ -78,11 +78,10 @@ export default function SharedShell() {
   };
 
   useEffect(() => {
-    if (user?.loginId) {
-      fetchRecentNotifications();
-      const interval = setInterval(fetchRecentNotifications, 30000);
-      return () => clearInterval(interval);
-    }
+    fetchRecentNotifications();
+    requestNotificationPermission().catch(() => null);
+    const interval = setInterval(fetchRecentNotifications, 10000);
+    return () => clearInterval(interval);
   }, [user?.loginId]);
 
   useEffect(() => {

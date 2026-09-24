@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { X, Plus, Zap, RotateCw, Calendar, Edit2, Trash2 } from "lucide-react";
+import React, { useEffect, useState, useMemo } from "react";
+import { X, Plus, Zap, RotateCw, Calendar, Edit2, Trash2, Layers, CheckCircle2, Loader2 } from "lucide-react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
 import { getOwnerRuntimeSession, clearOwnerRuntimeSession, getActiveOwnerPropertyId } from "../../utils/propertyowner";
 import { getApiBase, fetchJson } from "../../utils/api";
@@ -25,6 +25,68 @@ export default function ElectricityReadings() {
     previousReading: ""
   });
   const [saving, setSaving] = useState(false);
+
+  // ── Bulk Entry state ──────────────────────────────────────────
+  const [bulkModalOpen, setBulkModalOpen] = useState(false);
+  const [bulkMonth, setBulkMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [bulkEntries, setBulkEntries] = useState([]);
+  const [bulkSaving, setBulkSaving] = useState(false);
+
+  // Initialise bulk entries whenever rooms change or modal opens
+  const openBulkModal = () => {
+    setBulkEntries(
+      rooms.map(r => ({
+        roomId: r.roomId,
+        roomNo: r.roomNo,
+        propertyId: r.propertyId,
+        prevReading: r.latest?.currentReading ?? 0,
+        curReading: "",
+        skip: false
+      }))
+    );
+    setBulkMonth(new Date().toISOString().slice(0, 7));
+    setBulkModalOpen(true);
+  };
+
+  const updateBulkEntry = (idx, field, value) =>
+    setBulkEntries(prev => prev.map((e, i) => i === idx ? { ...e, [field]: value } : e));
+
+  const handleBulkSave = async () => {
+    const toSave = bulkEntries.filter(e => !e.skip && e.curReading !== "");
+    if (toSave.length === 0) { toast.error("Enter at least one reading"); return; }
+    setBulkSaving(true);
+    try {
+      const readings = toSave.map(entry => ({
+        propertyId: entry.propertyId,
+        roomNo: entry.roomNo,
+        billingMonth: bulkMonth,
+        currentReading: Number(entry.curReading),
+        previousReading: Number(entry.prevReading)
+      }));
+
+      const res = await fetch(`${getApiBase()}/api/electricity/bulk-update`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ readings })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        const saved = data.results?.filter(r => r.success).length ?? toSave.length;
+        const failed = data.results?.filter(r => !r.success).length ?? 0;
+        if (saved > 0) toast.success(`${saved} reading(s) saved successfully!`);
+        if (failed > 0) toast.error(`${failed} reading(s) failed. Check individually.`);
+        setBulkModalOpen(false);
+        await loadRooms(owner.loginId);
+      } else {
+        toast.error(data.message || "Bulk save failed");
+      }
+    } catch (e) {
+      toast.error("Error saving bulk readings");
+    } finally {
+      setBulkSaving(false);
+    }
+  };
 
   useEffect(() => {
     loadRooms(owner.loginId);
@@ -143,9 +205,18 @@ export default function ElectricityReadings() {
             <h1 className="font-serif text-[38px] md:text-[44px] leading-[1.05] text-foreground mb-2">Electricity Readings</h1>
             <p className="text-[13.5px] text-muted-foreground">Log monthly meter readings for rooms automatically.</p>
           </div>
-          <button onClick={() => owner && loadRooms(owner.loginId)} className="inline-flex items-center gap-2 h-10 px-3 rounded-lg border border-border bg-card hover:bg-muted transition-colors text-[13px] font-medium">
-            <RotateCw size={16} className={loading ? "animate-spin" : ""} /> Refresh
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={openBulkModal}
+              disabled={rooms.length === 0}
+              className="inline-flex items-center gap-2 h-10 px-4 rounded-lg border border-border bg-card hover:bg-muted transition-colors text-[13px] font-semibold disabled:opacity-40"
+            >
+              <Layers size={15} /> Bulk Entry
+            </button>
+            <button onClick={() => owner && loadRooms(owner.loginId)} className="inline-flex items-center gap-2 h-10 px-3 rounded-lg border border-border bg-card hover:bg-muted transition-colors text-[13px] font-medium">
+              <RotateCw size={16} className={loading ? "animate-spin" : ""} /> Refresh
+            </button>
+          </div>
         </div>
 
         <div className="max-w-6xl mx-auto">
@@ -393,6 +464,107 @@ export default function ElectricityReadings() {
             </form>
           </div>
         </div>
+
+        {/* ── Bulk Entry Modal ── */}
+        {bulkModalOpen && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-foreground/60 backdrop-blur-sm">
+            <div className="bg-card rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+              {/* Header */}
+              <div className="px-6 py-4 border-b border-border flex items-center justify-between shrink-0">
+                <div>
+                  <h2 className="text-[18px] font-semibold text-foreground flex items-center gap-2">
+                    <Layers size={18} /> Bulk Electricity Entry
+                  </h2>
+                  <p className="text-[12px] text-muted-foreground mt-0.5">Enter readings for all rooms at once</p>
+                </div>
+                <button onClick={() => setBulkModalOpen(false)} className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg">
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Billing Month */}
+              <div className="px-6 py-3 border-b border-border bg-muted/30 shrink-0">
+                <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">Billing Month</label>
+                <input
+                  type="month"
+                  value={bulkMonth}
+                  onChange={e => setBulkMonth(e.target.value)}
+                  className="h-9 px-3 rounded-lg border border-border bg-card text-[13px] text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+
+              {/* Table */}
+              <div className="overflow-y-auto flex-1">
+                <table className="w-full text-[13px]">
+                  <thead className="sticky top-0 bg-muted/80 backdrop-blur-sm">
+                    <tr className="text-left text-[11px] uppercase tracking-wider text-muted-foreground">
+                      <th className="px-5 py-3 font-semibold">Room</th>
+                      <th className="px-3 py-3 font-semibold">Previous</th>
+                      <th className="px-3 py-3 font-semibold">Current Reading</th>
+                      <th className="px-3 py-3 font-semibold text-center">Skip</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {bulkEntries.map((entry, idx) => (
+                      <tr key={entry.roomId} className={entry.skip ? "opacity-40" : ""}>
+                        <td className="px-5 py-3">
+                          <span className="font-semibold text-foreground">Room {entry.roomNo}</span>
+                        </td>
+                        <td className="px-3 py-3 text-muted-foreground">{entry.prevReading}</td>
+                        <td className="px-3 py-3">
+                          <input
+                            type="number"
+                            step="0.01"
+                            disabled={entry.skip}
+                            placeholder="Enter reading"
+                            value={entry.curReading}
+                            onChange={e => updateBulkEntry(idx, "curReading", e.target.value)}
+                            className="w-36 h-8 px-3 rounded-lg border border-border bg-card text-[13px] text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-40"
+                          />
+                          {entry.curReading !== "" && !entry.skip && (
+                            <span className="ml-2 text-[11px] text-emerald-600 font-semibold">
+                              {Math.max(0, Number(entry.curReading) - Number(entry.prevReading))} units
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-3 py-3 text-center">
+                          <input
+                            type="checkbox"
+                            checked={entry.skip}
+                            onChange={e => updateBulkEntry(idx, "skip", e.target.checked)}
+                            className="w-4 h-4 rounded cursor-pointer"
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Footer */}
+              <div className="px-6 py-4 border-t border-border flex items-center justify-between shrink-0">
+                <span className="text-[12px] text-muted-foreground">
+                  {bulkEntries.filter(e => !e.skip && e.curReading !== "").length} of {bulkEntries.length} rooms will be saved
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setBulkModalOpen(false)}
+                    className="h-9 px-4 rounded-lg border border-border text-[13px] font-medium text-muted-foreground hover:bg-muted transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleBulkSave}
+                    disabled={bulkSaving || bulkEntries.filter(e => !e.skip && e.curReading !== "").length === 0}
+                    className="inline-flex items-center gap-1.5 h-9 px-5 rounded-lg bg-foreground text-background text-[13px] font-semibold hover:opacity-90 transition-opacity disabled:opacity-40"
+                  >
+                    {bulkSaving ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><CheckCircle2 size={14} /> Save All Readings</>}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </>
     </PropertyOwnerLayout>
   );

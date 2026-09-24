@@ -552,12 +552,6 @@ export default function WebsiteMystays() {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                     {activeBids.map((bid) => {
                       const matchCat = bid.match_category || 'no_match_active';
-                      const expiryMs = bid.created_at ? new Date(bid.created_at).getTime() + 24 * 60 * 60 * 1000 : null;
-                      const now = Date.now();
-                      const hoursLeft = expiryMs ? Math.max(0, Math.floor((expiryMs - now) / 3600000)) : null;
-                      const minsLeft = expiryMs ? Math.max(0, Math.floor(((expiryMs - now) % 3600000) / 60000)) : null;
-                      const isNearExpiry = hoursLeft !== null && hoursLeft < 2;
-
                       const catConfig = {
                         exact_match: { label: '✅ Exact Match', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', desc: 'Matching properties found in your budget! Owner may initiate chat.' },
                         slight_gap: { label: '⚡ Negotiation Available', color: 'bg-amber-100 text-amber-700 border-amber-200', desc: 'Properties within ₹2,500 of your budget. Owner can offer lower rent.' },
@@ -567,16 +561,11 @@ export default function WebsiteMystays() {
 
                       return (
                         <div key={bid._id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-                          <div className={`p-4 border-b ${isNearExpiry ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'}`}>
+                          <div className="p-4 border-b bg-gray-50 border-gray-100">
                             <div className="flex items-start justify-between gap-2">
                               <h3 className="text-sm font-bold text-gray-900 line-clamp-1">{bid.property_name}</h3>
                               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${cat.color}`}>{cat.label}</span>
                             </div>
-                            {hoursLeft !== null && (
-                              <p className={`text-[10px] font-semibold mt-1.5 ${isNearExpiry ? 'text-red-600' : 'text-gray-500'}`}>
-                                ⌛ Expires in: {hoursLeft}h {minsLeft}m {isNearExpiry ? '— Expiring soon!' : ''}
-                              </p>
-                            )}
                           </div>
                           <div className="p-4 space-y-3">
                             <div className="grid grid-cols-2 gap-2 text-xs">

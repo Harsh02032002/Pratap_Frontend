@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
-import { CheckCircle2, ShieldCheck, ArrowRight, Home, Building2, Calendar, FileText, Download, MessageSquare, PhoneCall } from 'lucide-react';
+import { CheckCircle2, ShieldCheck, ArrowRight, Home, Building2, Calendar, FileText, Download, MessageSquare, PhoneCall, Clock } from 'lucide-react';
 import WebsiteNavbar from '../../components/website/WebsiteNavbar';
 import WebsiteFooter from '../../components/website/WebsiteFooter';
 import MobileBottomNav from '../../components/website/MobileBottomNav';
@@ -16,6 +16,7 @@ export default function PaymentSuccessPage() {
 
   const [loading, setLoading] = useState(true);
   const [paymentDetails, setPaymentDetails] = useState(null);
+  const [countdown, setCountdown] = useState(5);
 
   useEffect(() => {
     let isMounted = true;
@@ -38,6 +39,22 @@ export default function PaymentSuccessPage() {
     loadStatus();
     return () => { isMounted = false; };
   }, [orderId]);
+
+  // Auto-redirect to Tenant Panel Dashboard after 5 seconds
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          navigate('/tenant/tenantdashboard');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [navigate]);
 
   const displayAmount = paymentDetails?.booking_amount || paymentDetails?.amount || amountParam || '1,000';
   const displayPropName = paymentDetails?.property_name || 'Roomhy Verified Stay';
@@ -70,17 +87,32 @@ export default function PaymentSuccessPage() {
               Payment Successful! 🎉
             </h1>
             <p className="text-teal-100 text-xs md:text-sm font-semibold max-w-md mx-auto leading-relaxed">
-              Your transaction has been processed securely via PayU PG. A confirmation has been saved to your account.
+              Your payment receipt has been auto-generated with Online Mode. You are being redirected to your Tenant Panel.
             </p>
 
             <div className="mt-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-[11px] font-extrabold uppercase tracking-widest text-white border border-white/30">
-              <ShieldCheck className="w-3.5 h-3.5" /> 100% Secure Transaction
+              <ShieldCheck className="w-3.5 h-3.5" /> 100% Secure Online Payment
             </div>
           </div>
 
           {/* Details Section */}
           <div className="p-6 md:p-8 space-y-6">
             
+            {/* Auto-redirect Callout Banner */}
+            <div className="bg-teal-50 border border-teal-200 text-teal-800 px-4 py-3 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-bold">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-teal-600 animate-ping"></span>
+                <span>Redirecting to Tenant Panel in <span className="text-sm font-black text-teal-900">{countdown}s</span>...</span>
+              </div>
+              <button 
+                onClick={() => navigate('/tenant/tenantdashboard')}
+                className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-black uppercase transition-all shadow-md shrink-0 flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>Go to Tenant Panel</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
             {/* Amount Callout */}
             <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-5 text-center flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="text-left">
@@ -89,7 +121,7 @@ export default function PaymentSuccessPage() {
               </div>
               <div className="px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-black flex items-center gap-2 shrink-0">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>STATUS: PAID</span>
+                <span>STATUS: PAID (ONLINE)</span>
               </div>
             </div>
 
@@ -127,41 +159,23 @@ export default function PaymentSuccessPage() {
                   <ShieldCheck className="w-4 h-4 text-teal-600 shrink-0 mt-0.5" />
                   <div>
                     <span className="text-[10px] font-bold text-slate-400 block uppercase">Payment Method</span>
-                    <span className="font-extrabold text-slate-900">PayU Payment Gateway</span>
+                    <span className="font-extrabold text-slate-900">Online (PayU PG)</span>
                   </div>
                 </div>
 
               </div>
             </div>
 
-            {/* Action Buttons / CTAs */}
-            <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center gap-3">
-              
-              <Link
-                to="/tenant/tenantchat"
-                className="w-full sm:flex-1 py-3.5 px-5 bg-teal-600 hover:bg-teal-700 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-teal-600/20 active:scale-95 transition-all text-center flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <MessageSquare className="w-4 h-4" />
-                <span>Go to My Messages / Chat</span>
-              </Link>
-
+            {/* Only Print Receipt button - auto-redirect handles navigation */}
+            <div className="pt-4 border-t border-slate-100 flex justify-center">
               <button
                 type="button"
                 onClick={handlePrint}
-                className="w-full sm:w-auto py-3.5 px-5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer"
+                className="py-3 px-6 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Download className="w-4 h-4" />
                 <span>Print Receipt</span>
               </button>
-
-              <Link
-                to="/properties"
-                className="w-full sm:w-auto py-3.5 px-5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <Home className="w-4 h-4" />
-                <span>Browse Properties</span>
-              </Link>
-
             </div>
 
           </div>

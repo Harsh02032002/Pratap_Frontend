@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Zap, ArrowLeft, Send, Loader, CheckCircle, Shield, Info, Sparkles, ShieldCheck, CheckCircle2, PhoneCall } from 'lucide-react';
+import { Zap, ArrowLeft, Send, Loader, CheckCircle, Shield, Info, Sparkles, ShieldCheck, CheckCircle2, PhoneCall, Bell } from 'lucide-react';
 import WebsiteNavbar from "../../components/website/WebsiteNavbar";
 import WebsiteFooter from "../../components/website/WebsiteFooter";
 import MobileBottomNav from "../../components/website/MobileBottomNav";
@@ -284,8 +284,6 @@ export default function FastBiddingPage() {
       return r > budgetLimit && r <= budgetLimit + 2500;
     });
 
-    const expiryTime = Date.now() + 24 * 60 * 60 * 1000;
-
     // ─── NO MATCH CASE — Register requirement then show modal ────────
     if (properties.length === 0) {
       // Show modal immediately with no-match content
@@ -305,7 +303,6 @@ export default function FastBiddingPage() {
           { icon: '🏠', title: 'Chat & Book', desc: 'Once matched, open chat with the owner and finalize your move-in!' },
         ],
         badges: ['⚡ Auto-Matching Active', '📱 Push + WhatsApp Alerts', '📌 Requirement Saved'],
-        expiryTime,
         ctaLabel: null,
         ctaPath: null
       });
@@ -351,7 +348,6 @@ export default function FastBiddingPage() {
         { icon: '🏠', title: 'Chat & Book', desc: 'Once matched, open chat with the owner and finalize your move-in!' },
       ],
       badges: ['⚡ Auto-Matching Active', '📱 WhatsApp + Push Alerts', '📌 Requirement Saved'],
-      expiryTime,
       ctaLabel: null,
       ctaPath: null
     };
@@ -372,8 +368,7 @@ export default function FastBiddingPage() {
           { icon: '🔔', title: 'You Will Be Notified', desc: 'You\'ll get an instant push + email alert when an owner responds to your bid.' },
           { icon: '🏠', title: 'Finalize Move-in', desc: 'Chat with the owner, confirm rent & move-in date — all within Roomhy!' },
         ],
-        badges: ['💬 Direct Owner Chat', '🔔 Real-time Alerts', '⌛ 24-Hour Bid Validity'],
-        expiryTime,
+        badges: ['💬 Direct Owner Chat', '🔔 Real-time Alerts', '⚡ Fast Matching'],
         ctaLabel: '💬 Open Chat Panel',
         ctaPath: '/tenant/tenantchat'
       };
@@ -393,8 +388,7 @@ export default function FastBiddingPage() {
           { icon: '🔔', title: 'Instant Alert', desc: 'You\'ll get a push + email notification the moment an owner responds.' },
           { icon: '🤝', title: 'Agree & Move-in', desc: 'Negotiate rent directly, finalize a deal & plan your move-in date!' },
         ],
-        badges: ['💬 Rent Negotiation Chat', '🔔 Instant Notifications', '⌛ 24-Hour Bid Validity'],
-        expiryTime,
+        badges: ['💬 Rent Negotiation Chat', '🔔 Instant Notifications', '⚡ Rent Negotiation'],
         ctaLabel: '💬 Open Chat Panel',
         ctaPath: '/tenant/tenantchat'
       };
@@ -649,14 +643,37 @@ export default function FastBiddingPage() {
                 </p>
               </div>
 
+              {/* No-match inline info banner */}
+              {properties.length === 0 && form.city && form.area && form.budgetQuery && (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 flex gap-3 items-start">
+                  <span className="text-xl mt-0.5">🔔</span>
+                  <div>
+                    <p className="text-xs font-black text-amber-800 leading-snug">
+                      Aapki budget mein {(() => { const a = areas.find(a => (a._id || a.id) === form.area); return a?.name || 'is area'; })()} mein abhi koi property available nahi hai.
+                    </p>
+                    <p className="text-[11px] text-amber-700 mt-1 leading-relaxed">
+                      Koi baat nahi! Neeche click karke apni requirement register karein — <strong>jab bhi koi matching property add hogi, hum aapko turant Push Notification aur Email se notify karenge.</strong>
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Action Buttons */}
-              <div className="pt-3 space-y-3">
+              <div className="pt-1 space-y-3">
                 <button
                   type="submit"
-                  className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 px-4 rounded-2xl transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg shadow-teal-500/25 active:scale-[0.98] text-sm cursor-pointer"
+                  className={`w-full font-bold py-3.5 px-4 rounded-2xl transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg active:scale-[0.98] text-sm cursor-pointer ${
+                    properties.length > 0
+                      ? 'bg-teal-600 hover:bg-teal-700 text-white shadow-teal-500/25'
+                      : 'bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/25'
+                  }`}
                 >
-                  <Send className="w-4 h-4" />
-                  <span>{properties.length > 0 ? `Send Bids (${properties.length} Properties)` : 'Register Requirement'}</span>
+                  {properties.length > 0 ? <Send className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
+                  <span>
+                    {properties.length > 0
+                      ? `Send Bids (${properties.length} Properties)`
+                      : (form.city && form.area && form.budgetQuery ? 'Notify Karo Jab Property Aaye 🔔' : 'Register Requirement')}
+                  </span>
                 </button>
                 
                 <button
@@ -737,13 +754,7 @@ export default function FastBiddingPage() {
                 </div>
               ))}
 
-              {/* Bid expiry */}
-              {resultCategory.expiryTime && (
-                <div className="flex items-center gap-2 mt-1 p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                  <span className="text-sm">⌛</span>
-                  <span className="text-[11px] text-slate-500 font-medium">Bid valid until: <span className="font-bold text-slate-700">{new Date(resultCategory.expiryTime).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span></span>
-                </div>
-              )}
+
 
               {/* Badges */}
               <div className="flex flex-wrap gap-1.5 pt-1">

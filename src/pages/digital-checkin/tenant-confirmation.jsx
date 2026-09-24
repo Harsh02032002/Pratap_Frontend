@@ -1,16 +1,13 @@
 import React, { useEffect, useMemo } from "react";
 import { useHtmlPage } from "../../utils/htmlPage";
 
-const resolveTenantLoginUrl = () => {
-  const host = window.location.hostname;
-  return host === "localhost" || host === "127.0.0.1"
-    ? "http://localhost:5173/tenant/tenantlogin"
-    : "https://app.roomhy.com/tenant/tenantlogin";
+const resolveTenantDashboardUrl = () => {
+  return "/tenant/tenantdashboard";
 };
 
 export default function DigitalCheckinTenantConfirmation() {
   useHtmlPage({
-    title: "RoomHy - Submission Complete",
+    title: "RoomHy - Agreement Signed Successfully",
     bodyClass: "",
     htmlAttrs: { lang: "en" },
     metas: [
@@ -23,7 +20,7 @@ export default function DigitalCheckinTenantConfirmation() {
     inlineScripts: []
   });
 
-  const nextUrl = useMemo(() => (typeof window === "undefined" ? "" : resolveTenantLoginUrl()), []);
+  const nextUrl = useMemo(() => (typeof window === "undefined" ? "" : resolveTenantDashboardUrl()), []);
 
   useEffect(() => {
     if (!nextUrl) return;
@@ -33,7 +30,7 @@ export default function DigitalCheckinTenantConfirmation() {
       } catch (_) {
         window.location.href = nextUrl;
       }
-    }, 1000);
+    }, 2000);
     return () => clearTimeout(timer);
   }, [nextUrl]);
 
@@ -41,11 +38,13 @@ export default function DigitalCheckinTenantConfirmation() {
     <div className="html-page">
       <div className="card">
         <div className="icon">&#10003;</div>
-        <h1>Welcome to RoomHy</h1>
-        <p>Your tenant agreement has been submitted successfully.</p>
-        <p>We have sent the login link to your registered Gmail.</p>
-        <div className="meta" id="redirectText">Redirecting to login page in 1 second...</div>
-        <a className="btn" href={nextUrl || "../tenant//tenant/tenantlogin"}>Go to Tenant Login Now</a>
+        <h1>Agreement Signed Successfully! 🎉</h1>
+        <p>Your Licence & Subscription Agreement has been digitally signed and recorded.</p>
+        <p style={{ color: '#0d9488', fontWeight: 600, marginTop: 8 }}>
+          📧 The onboarding payment link has been sent to your registered Email address.
+        </p>
+        <div className="meta" id="redirectText" style={{ marginTop: 16 }}>Redirecting to your Tenant Panel in 2 seconds...</div>
+        <a className="btn" href="/tenant/tenantdashboard" style={{ marginTop: 12 }}>Go to Tenant Panel Dashboard</a>
       </div>
     </div>
   );

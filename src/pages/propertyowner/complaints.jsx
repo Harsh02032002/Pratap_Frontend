@@ -265,7 +265,54 @@ export default function Complaints() {
   return (
     <PropertyOwnerLayout owner={owner} title="Complaints" onLogout={() => { clearOwnerRuntimeSession(); window.location.href = "/propertyowner/ownerlogin"; }}>
 
-      
+      {/* ── Floating Bulk Action Bar ── appears at top when checkboxes are clicked */}
+      {selectedIds.size > 0 && (
+        <div className="sticky top-0 z-50 -mx-4 sm:-mx-6 lg:-mx-8 mb-5">
+          <div className="border-b border-border px-5 py-3 flex items-center justify-between gap-3 shadow-sm">
+            <div className="flex items-center gap-3">
+              <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-foreground text-background text-xs font-black">
+                {selectedIds.size}
+              </span>
+              <span className="text-sm font-semibold text-foreground">complaint{selectedIds.size !== 1 ? 's' : ''} selected</span>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                disabled={isBulkProcessing}
+                onClick={handleBulkResolve}
+                className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-lg border border-border text-xs font-bold text-foreground hover:bg-muted disabled:opacity-50 transition-all active:scale-95"
+              >
+                {isBulkProcessing ? <Loader2 size={12} className="animate-spin" /> : null}
+                Resolve Selected
+              </button>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-muted-foreground hidden sm:inline">Assign to:</span>
+                <select
+                  disabled={isBulkProcessing}
+                  value={bulkStaffId}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setBulkStaffId(val);
+                    if (val) handleBulkAssign(val);
+                  }}
+                  className="border border-border text-foreground bg-card text-xs font-bold rounded-lg px-3 h-8 outline-none cursor-pointer"
+                >
+                  <option value="">-- Staff --</option>
+                  {getStaffForSelectedComplaints().map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
+                </select>
+              </div>
+              <button
+                disabled={isBulkProcessing}
+                onClick={() => setSelectedIds(new Set())}
+                className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-border text-muted-foreground hover:bg-muted transition-all active:scale-95"
+                title="Deselect all"
+              >
+                <span className="text-sm leading-none">✕</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="text-center py-12">
           <Loader2 className="size-8 animate-spin mx-auto text-primary" />
@@ -510,44 +557,48 @@ export default function Complaints() {
         </>
       )}
       {selectedIds.size > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900/95 text-white px-8 py-4 rounded-3xl border border-slate-800 shadow-2xl flex items-center gap-6 backdrop-blur-md animate-in slide-in-from-bottom-4 duration-300">
-          <div className="flex items-center gap-3 border-r border-slate-850 pr-6">
-            <span className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-[11px] font-black shadow-lg animate-pulse">
-              {selectedIds.size}
-            </span>
-            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Selected</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              disabled={isBulkProcessing}
-              onClick={handleBulkResolve}
-              className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-emerald-600/20 active:scale-95 transition-all flex items-center gap-2"
-            >
-              Resolve Selected
-            </button>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Assign:</span>
-              <select
-                disabled={isBulkProcessing}
-                value={bulkStaffId}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setBulkStaffId(val);
-                  if (val) handleBulkAssign(val);
-                }}
-                className="bg-slate-800 border border-slate-700 text-white text-[11px] font-bold rounded-xl px-3 py-2 outline-none cursor-pointer"
-              >
-                <option value="">-- Select Staff --</option>
-                {getStaffForSelectedComplaints().map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
-              </select>
+        <div className="sticky top-0 z-50 -mx-4 sm:-mx-6 lg:-mx-8 mb-5">
+          <div className="bg-slate-900 text-white px-5 py-3 flex items-center justify-between gap-3 shadow-2xl border-b border-slate-700">
+            <div className="flex items-center gap-3">
+              <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-blue-500 text-white text-xs font-black animate-pulse">
+                {selectedIds.size}
+              </span>
+              <span className="text-sm font-semibold text-slate-200">complaint{selectedIds.size !== 1 ? 's' : ''} selected</span>
             </div>
-            <button
-              disabled={isBulkProcessing}
-              onClick={() => setSelectedIds(new Set())}
-              className="text-slate-400 hover:text-white text-[10px] font-bold uppercase tracking-widest transition-colors pl-2"
-            >
-              Cancel
-            </button>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                disabled={isBulkProcessing}
+                onClick={handleBulkResolve}
+                className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold transition-all active:scale-95"
+              >
+                {isBulkProcessing ? <Loader2 size={12} className="animate-spin" /> : null}
+                Resolve Selected
+              </button>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-slate-400 hidden sm:inline">Assign to:</span>
+                <select
+                  disabled={isBulkProcessing}
+                  value={bulkStaffId}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setBulkStaffId(val);
+                    if (val) handleBulkAssign(val);
+                  }}
+                  className="bg-slate-800 border border-slate-700 text-white text-xs font-bold rounded-lg px-3 h-8 outline-none cursor-pointer"
+                >
+                  <option value="">-- Staff --</option>
+                  {getStaffForSelectedComplaints().map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
+                </select>
+              </div>
+              <button
+                disabled={isBulkProcessing}
+                onClick={() => setSelectedIds(new Set())}
+                className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 transition-all active:scale-95"
+                title="Deselect all"
+              >
+                <span className="text-sm leading-none">✕</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
