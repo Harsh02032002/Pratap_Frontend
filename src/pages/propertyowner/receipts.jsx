@@ -26,7 +26,9 @@ export default function ReceiptsPage() {
   const [viewing, setViewing] = useState(null);
 
   useEffect(() => {
-    fetchPayments(owner.loginId, 300, getActiveOwnerPropertyId())
+    // Receipts must reflect what was actually just paid — a stale 60s cache surviving
+    // across SPA navigations (no full reload) was hiding brand-new payments here.
+    fetchPayments(owner.loginId, 300, getActiveOwnerPropertyId(), true)
       .then(d => setPayments(d?.payments || []))
       .catch(() => setPayments([]))
       .finally(() => setLoading(false));
@@ -53,7 +55,14 @@ export default function ReceiptsPage() {
     paid: p.amount,
     paymentMethod: p.paymentMethod || p.invoiceId?.paymentMethod || '',
     invoiceStatus: p.invoiceStatus || '',   // PAID / PARTIAL / PENDING — from DB
-    type: (p.advanceChargeAmount || p.advanceCharge) > 0 ? "Rent & Move-in" : p.electricityBill > 0 ? "Rent & Utility" : p.totalPenalty > 0 ? "Rent + Penalty" : "Rent Only",
+    // A tenant's agreement can list an advance/move-in charge that's still outstanding —
+    // that alone doesn't mean THIS payment included it. Only call it "Rent & Move-in" (or
+    // Utility/Penalty) when the amount actually paid is more than plain rent, so a receipt
+    // never claims to cover money that was never actually collected.
+    type: ((p.advanceChargeAmount || p.advanceCharge) > 0 && (p.amount || 0) > (p.rentAmount || 0)) ? "Rent & Move-in"
+      : (p.electricityBill > 0 && (p.amount || 0) > (p.rentAmount || 0)) ? "Rent & Utility"
+      : (p.totalPenalty > 0 && (p.amount || 0) > (p.rentAmount || 0)) ? "Rent + Penalty"
+      : "Rent Only",
     _raw: p,
   })), [payments]);
 

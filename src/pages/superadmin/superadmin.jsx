@@ -356,9 +356,9 @@ export default function SuperadminDashboard() {
 
       {/* ── Row 1: 4 Stat Cards ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <MiniStatCard label="Total Users"      value={fmt(totalUsers)}    sub="+10.5% from last week" icon={Users}      color="blue"   loading={loading} />
-        <MiniStatCard label="Total Properties" value={fmt(totalProps)}    sub="+8.0% from last week"  icon={Building2}  color="green"  loading={loading} />
-        <MiniStatCard label="Total Bookings"   value={fmt(totalBookings)} sub="+15.5% from last week" icon={ShoppingBag} color="purple" loading={loading} />
+        <MiniStatCard label={isSuperadmin ? "Total Users" : "Total Visit Reports"} value={fmt(totalUsers)}    sub="+10.5% from last week" icon={Users}      color="blue"   loading={loading} />
+        <MiniStatCard label={isSuperadmin ? "Total Properties" : "Property Total"} value={fmt(totalProps)}    sub="+8.0% from last week"  icon={Building2}  color="green"  loading={loading} />
+        <MiniStatCard label={isSuperadmin ? "Total Bookings" : "Total Live"}       value={isSuperadmin ? fmt(totalBookings) : fmt(propData?.summary?.approved ?? 0)} sub="+15.5% from last week" icon={ShoppingBag} color="purple" loading={loading} />
         {isSuperadmin && (
           <MiniStatCard label="Admin Revenue"    value={fmtRevenue(totalRevenue)} sub="Commission Earned" icon={Wallet} color="amber" loading={loading} />
         )}
