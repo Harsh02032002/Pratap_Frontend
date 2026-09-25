@@ -620,10 +620,18 @@ export default function Tenantdashboard() {
   // because electricity gets added to the invoice after the initial totalDue is saved.
   const totalPayable = roomRent + totalPenalty + electricityCost || Number(rent?.totalDue || 0);
   const rentAmount = totalPayable;
+  // The backend's outstandingAmount is the authoritative "what's actually left to pay" —
+  // it correctly nets out whatever was already paid, including a charge (e.g. electricity)
+  // added after the tenant had already settled rent + penalty for the month. totalPayable
+  // above is the gross invoice total and is only right to show when nothing has been paid yet.
+  const amountDue = (rent && typeof rent.outstandingAmount === "number")
+    ? Math.max(0, rent.outstandingAmount)
+    : totalPayable;
   const paymentStatus = String(rent?.paymentStatus || "pending").toLowerCase();
   const isPaid = paymentStatus === "paid" || paymentStatus === "completed";
+  const isPartial = !isPaid && String(rent?.status || "").toUpperCase() === "PARTIAL";
   const canRequestCash = !isPaid && !["PENDING_APPROVAL", "OWNER_APPROVED", "OTP_SENT", "VERIFIED"].includes(targetNormalizedCashStatus);
-  const statusLabel = isPaid ? "Paid" : paymentStatus === "overdue" ? "Overdue" : "Unpaid";
+  const statusLabel = isPaid ? "Paid" : paymentStatus === "overdue" ? "Overdue" : isPartial ? "Partial" : "Unpaid";
 
   const docs = useMemo(() => {
     const items = [
@@ -1139,7 +1147,10 @@ export default function Tenantdashboard() {
   // ─── Payment handlers ─────────────────────────────────────────────────────────
   const handleOnlinePayment = async () => {
     const isCurrent = paymentTarget === "current";
-    const paymentAmount = isCurrent ? rentAmount : (Number(selectedPrevMonthData?.due) || 0);
+    // Charge what's actually still outstanding, not the gross invoice total —
+    // rentAmount includes rent+penalty+electricity even when part of that was
+    // already paid earlier (e.g. electricity added after rent+penalty were settled).
+    const paymentAmount = isCurrent ? amountDue : (Number(selectedPrevMonthData?.due) || 0);
     const targetRentId = isCurrent ? rent?._id : prevMonthObj?._id;
 
     if (!tenantUser || paymentAmount <= 0) { setActionMsg("Invalid payment amount."); return; }
@@ -1332,7 +1343,9 @@ export default function Tenantdashboard() {
   const handleCashRequest = async () => {
     const isCurrent = paymentTarget === "current";
     const targetRentObj = isCurrent ? rent : prevMonthObj;
-    const paymentAmount = isCurrent ? rentAmount : (Number(selectedPrevMonthData?.due) || 0);
+    // Same reasoning as handleOnlinePayment — request the real outstanding
+    // balance, not the gross invoice total.
+    const paymentAmount = isCurrent ? amountDue : (Number(selectedPrevMonthData?.due) || 0);
 
     if (!tenant) { setActionMsg("Tenant data not found."); return; }
     if (isPaid && isCurrent) { setActionMsg("This rent is already marked as paid."); return; }
@@ -1841,7 +1854,7 @@ export default function Tenantdashboard() {
                   {/* LEFT COLUMN */}
                   <div className="lg:col-span-2 space-y-6">
                     <HeroRentCard
-                      amountDue={totalPayable}
+                      amountDue={amountDue}
                       isPaid={isPaid}
                       statusLabel={statusLabel}
                       dueText="Due on 5th of this month"

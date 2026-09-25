@@ -408,7 +408,7 @@ export function HeroRentCard({
           </p>
           <div className="mt-2 flex items-center gap-3">
             <span className="text-[44px] leading-none font-black text-slate-900 tabular-nums">
-              {formatINR(isPaid ? 0 : amountDue)}
+              {formatINR(amountDue)}
             </span>
             <span
               className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wide ${
