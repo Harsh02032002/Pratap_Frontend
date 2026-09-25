@@ -42,7 +42,8 @@ export default function InstallPWA() {
   }, []);
 
   useEffect(() => {
-    if (!deferredPrompt) {
+    const activePrompt = deferredPrompt || (typeof window !== 'undefined' ? window.deferredPwaPrompt : null);
+    if (!activePrompt) {
       setShowPrompt(false);
       return;
     }
@@ -117,14 +118,15 @@ export default function InstallPWA() {
   const IconComponent = pwaInfo.icon;
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) {
+    const promptToUse = deferredPrompt || (typeof window !== 'undefined' ? window.deferredPwaPrompt : null);
+    if (!promptToUse) {
       alert("App is already installed or not supported on this browser.");
       setShowPrompt(false);
       return;
     }
     
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
+    promptToUse.prompt();
+    const { outcome } = await promptToUse.userChoice;
     
     if (outcome === 'accepted') {
       console.log('[PWA] User accepted the install prompt');

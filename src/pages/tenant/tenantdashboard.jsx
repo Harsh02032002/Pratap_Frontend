@@ -1156,7 +1156,7 @@ export default function Tenantdashboard() {
 
       const orderData = await fetchJson("/api/payments/payu/create-order", {
         method: "POST",
-        body: JSON.stringify({ bookingId: bookingRef, amount: paymentAmount, customerInfo }),
+        body: JSON.stringify({ bookingId: bookingRef, amount: paymentAmount, customerInfo, paymentSource: "rent_dashboard" }),
       });
 
       if (!orderData?.success || !orderData?.actionUrl || !orderData?.params) {

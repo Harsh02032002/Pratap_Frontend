@@ -186,25 +186,106 @@ export async function sendTokenToBackend(token, loginId = null) {
 }
 
 // ─────────────────────────────────────────────
-// Show Native Browser Notification (Laptop & Mobile)
+// Show Native Browser & In-App Toast Notification
 // ─────────────────────────────────────────────
 /**
- * Show a native browser / OS system notification.
- * Uses ServiceWorker showNotification (required for Android/iOS PWA background)
- * with fallback to the Notification constructor (foreground desktop).
+ * Show a visually guaranteed floating toast notification inside the app window
+ * with Web Audio API chime sound.
+ */
+export function showInAppToast(title, body = '', options = {}) {
+  if (typeof document === 'undefined') return;
+
+  // 🔔 Play pleasant Web Audio API notification chime
+  try {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+    osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.1); // A5
+    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.4);
+  } catch (_) {}
+
+  let container = document.getElementById('roomhy-toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'roomhy-toast-container';
+    container.style.cssText = 'position:fixed;top:1.25rem;right:1.25rem;z-index:999999;display:flex;flex-direction:column;gap:0.75rem;max-width:380px;width:calc(100vw - 2.5rem);pointer-events:none;';
+    document.body.appendChild(container);
+  }
+
+  const safeTitle = String(title).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const safeBody = String(body || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+  const toast = document.createElement('div');
+  toast.style.cssText = 'pointer-events:auto;background:#ffffff;color:#0f172a;border:1px solid #e2e8f0;box-shadow:0 20px 35px -10px rgba(15,23,42,0.15), 0 0 0 1px rgba(15,23,42,0.05);border-radius:1rem;padding:1rem 1.25rem;display:flex;align-items:center;gap:0.875rem;transform:translateY(-20px) scale(0.95);opacity:0;transition:all 0.35s cubic-bezier(0.16,1,0.3,1);font-family:system-ui,-apple-system,sans-serif;';
+
+  toast.innerHTML = `
+    <div style="width:2.5rem;height:2.5rem;border-radius:0.75rem;background:linear-gradient(135deg,#0FA89C,#0C8B81);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 12px rgba(15,168,156,0.3);">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color:#ffffff;">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+      </svg>
+    </div>
+    <div style="flex:1;min-width:0;">
+      <div style="font-weight:700;font-size:0.875rem;line-height:1.25rem;color:#0f172a;margin-bottom:0.125rem;">${safeTitle}</div>
+      ${safeBody ? `<div style="font-size:0.75rem;line-height:1.125rem;color:#475569;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${safeBody}</div>` : ''}
+    </div>
+    <button style="background:none;border:none;color:#94a3b8;cursor:pointer;padding:0.25rem;border-radius:0.375rem;display:flex;align-items:center;justify-content:center;transition:color 0.2s;" onmouseover="this.style.color='#0f172a'" onmouseout="this.style.color='#94a3b8'">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+    </button>
+  `;
+
+  const closeBtn = toast.querySelector('button');
+  const dismiss = () => {
+    toast.style.transform = 'translateY(-20px) scale(0.95)';
+    toast.style.opacity = '0';
+    setTimeout(() => {
+      if (toast.parentNode) toast.parentNode.removeChild(toast);
+    }, 350);
+  };
+
+  closeBtn.addEventListener('click', dismiss);
+  container.appendChild(toast);
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      toast.style.transform = 'translateY(0) scale(1)';
+      toast.style.opacity = '1';
+    });
+  });
+
+  setTimeout(dismiss, 5500);
+}
+
+/**
+ * Show a native browser / OS system notification AND floating in-app popup.
  */
 export async function showNativeNotification(title, options = {}) {
+  // Always trigger visual in-app toast notification first so user ALWAYS sees popup on screen
+  showInAppToast(title, options.body || '', options);
+
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
 
   const notifOptions = {
     icon: '/pwa-192x192.png',
     badge: '/pwa-192x192.png',
+    body: options.body || '',
     ...options
   };
 
+  // Try ServiceWorker first with a 300ms timeout race so desktop doesn't hang
   try {
-    if ('serviceWorker' in navigator) {
-      const reg = await navigator.serviceWorker.ready;
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      const swPromise = navigator.serviceWorker.ready;
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('SW timeout')), 300));
+      const reg = await Promise.race([swPromise, timeoutPromise]);
       if (reg && reg.showNotification) {
         await reg.showNotification(title, notifOptions);
         return;
@@ -212,10 +293,15 @@ export async function showNativeNotification(title, options = {}) {
     }
   } catch (_) { /* fallthrough to Notification constructor */ }
 
+  // Direct Browser Desktop Notification fallback
   try {
-    new Notification(title, notifOptions);
+    const n = new Notification(title, notifOptions);
+    n.onclick = () => {
+      window.focus();
+      if (options.url) window.location.href = options.url;
+    };
   } catch (err) {
-    console.warn('[NotificationManager] Notification display failed:', err.message);
+    console.warn('[NotificationManager] Direct notification error:', err.message);
   }
 }
 
@@ -245,7 +331,8 @@ export async function requestNotificationPermission(loginId = null, autoPrompt =
 
   // If already granted, silently register token
   if (Notification.permission === 'granted') {
-    return await _registerDeviceToken(loginId);
+    await _registerDeviceToken(loginId);
+    return { status: 'granted' };
   }
 
   // 🔔 Show native browser permission dialog
@@ -254,7 +341,8 @@ export async function requestNotificationPermission(loginId = null, autoPrompt =
     const permission = await Notification.requestPermission();
     if (permission === 'granted') {
       console.log('[NotificationManager] ✅ Notification permission GRANTED!');
-      return await _registerDeviceToken(loginId);
+      await _registerDeviceToken(loginId);
+      return { status: 'granted' };
     } else {
       console.log('[NotificationManager] Notification permission DENIED or dismissed.');
       sessionStorage.setItem('roomhy_notif_prompt_dismissed', 'true');
@@ -270,17 +358,18 @@ export async function requestNotificationPermission(loginId = null, autoPrompt =
  * Internal: register ServiceWorker, get Web Push subscription, send token to backend
  */
 async function _registerDeviceToken(loginId = null) {
-  const swReg = await registerServiceWorker();
-  const token = await subscribeWebPush(swReg);
+  try {
+    const swReg = await registerServiceWorker();
+    const token = await subscribeWebPush(swReg);
 
-  if (token) {
-    localStorage.setItem('roomhy_fcm_token', token);
-    await sendTokenToBackend(token, loginId);
-  } else {
-    console.warn('[NotificationManager] ⚠️ Could not obtain push token. Check VAPID_PUBLIC_KEY in notificationManager.js.');
+    if (token) {
+      localStorage.setItem('roomhy_fcm_token', token);
+      await sendTokenToBackend(token, loginId);
+    }
+  } catch (e) {
+    console.warn('[NotificationManager] Device token registration info:', e);
   }
-
-  return { status: 'granted', token };
+  return { status: 'granted' };
 }
 
 // ─────────────────────────────────────────────

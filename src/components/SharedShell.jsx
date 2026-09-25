@@ -4,8 +4,9 @@ import { resolveSectionFromPath, sharedNavConfig } from "./sharedNavConfig";
 import { Menu, Search, Bell, ChevronRight, X, MessageSquare, Building2, HelpCircle, Plus, ChevronDown, UserPlus, Wallet, AlertCircle, Calendar, Receipt, Smartphone } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { fetchJson } from "../utils/api";
-import { requestNotificationPermission } from "../utils/notificationManager";
+import { requestNotificationPermission, showNativeNotification } from "../utils/notificationManager";
 import NotificationPromptBanner from "./NotificationPromptBanner";
+import AdminNotificationPrompt from "./AdminNotificationPrompt";
 
 
 export default function SharedShell() {
@@ -52,6 +53,7 @@ export default function SharedShell() {
   const [notifications, setNotifications] = useState([]);
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [seenNotifIds, setSeenNotifIds] = useState(new Set());
 
   const fetchRecentNotifications = async () => {
     try {
@@ -59,16 +61,65 @@ export default function SharedShell() {
       const data = await fetchJson(`/api/notifications?toLoginId=${encodeURIComponent(loginId)}`);
       if (Array.isArray(data)) {
         const formatted = data.map(n => {
-          const meta = typeof n.meta === 'string' ? JSON.parse(n.meta) : (n.meta || {});
+          const meta = typeof n.meta === 'string' ? (JSON.parse(n.meta) || {}) : (n.meta || {});
+          
+          let title = n.title || n.subject || meta.title || meta.subject || '';
+          let msg = n.message || n.msg || meta.message || meta.body || meta.description || '';
+
+          // Rich fallback title generation based on event type & meta
+          if (!title || title === "System Alert") {
+            if (meta.TicketID || n.type === 'ticket') {
+              title = `🎫 Support Ticket: ${meta.TicketID || 'New Ticket'}`;
+            } else if (n.type === 'visit_report' || meta.VisitID || n.type === 'new_enquiry') {
+              title = `📋 Visit Report: ${meta.propertyName || meta.Property || meta.VisitID || 'Property Visit'}`;
+            } else if (n.type === 'owner_kyc' || n.type === 'new_signup') {
+              title = `🏢 Owner Registration: ${meta.userName || meta.OwnerName || meta.firstName || 'New User'}`;
+            } else if (n.type === 'website_enquiry' || n.type === 'contact_us') {
+              title = `💬 Website Inquiry: ${meta.Name || meta.userName || n.from || 'User Message'}`;
+            } else if (n.type === 'payment_success' || n.type === 'booking') {
+              title = `💳 Payment / Booking: ${meta.Amount || 'Payment Received'}`;
+            } else {
+              title = `🔔 Roomhy ${String(n.type || 'System').toUpperCase()} Alert`;
+            }
+          }
+
+          // Rich fallback message generation based on meta fields
+          if (!msg || msg === "You have a new notification") {
+            const parts = [];
+            if (meta.RaisedBy || meta.userName || meta.Name) parts.push(`By: ${meta.RaisedBy || meta.userName || meta.Name}`);
+            if (meta.Type) parts.push(`Type: ${meta.Type}`);
+            if (meta.Property || meta.propertyName) parts.push(`Property: ${meta.Property || meta.propertyName}`);
+            if (meta.Location || meta.city) parts.push(`Location: ${meta.Location || meta.city}`);
+            if (meta.Amount) parts.push(`Amount: ${meta.Amount}`);
+            if (meta.SubmittedBy) parts.push(`Staff: ${meta.SubmittedBy}`);
+            if (meta.Phone) parts.push(`Phone: ${meta.Phone}`);
+
+            msg = parts.length > 0 ? parts.join(' • ') : `New update received from ${n.from || 'system'}.`;
+          }
+
           return {
             id: n._id,
             type: n.type || "system",
-            title: meta.title || n.title || "System Alert",
-            msg: meta.message || n.message || "You have a new notification",
+            title,
+            msg,
             time: new Date(n.createdAt).toLocaleDateString(),
             read: n.read
           };
         });
+
+        // Live pop-up for brand new unread notifications
+        setSeenNotifIds(prevSeen => {
+          if (prevSeen.size > 0) {
+            const newUnreads = formatted.filter(n => !n.read && !prevSeen.has(n.id));
+            newUnreads.forEach(n => {
+              showNativeNotification(n.title, { body: n.msg });
+            });
+          }
+          const updated = new Set(prevSeen);
+          formatted.forEach(n => updated.add(n.id));
+          return updated;
+        });
+
         setNotifications(formatted.slice(0, 6));
         setUnreadCount(formatted.filter(n => !n.read).length);
       }
@@ -79,7 +130,6 @@ export default function SharedShell() {
 
   useEffect(() => {
     fetchRecentNotifications();
-    requestNotificationPermission().catch(() => null);
     const interval = setInterval(fetchRecentNotifications, 10000);
     return () => clearInterval(interval);
   }, [user?.loginId]);
@@ -133,7 +183,27 @@ export default function SharedShell() {
               </div>
             </div>
 
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-4">
+              {/* Push Notifications Button - Only shown when permission is not granted */}
+              {typeof window !== 'undefined' && 'Notification' in window && Notification.permission !== 'granted' && (
+                <button
+                  onClick={async () => {
+                    const res = await requestNotificationPermission(user?.loginId || 'superadmin');
+                    if (res?.status === 'granted') {
+                      showNativeNotification("🔔 Push Notifications Activated!", {
+                        body: "You will now receive instant push alerts for complaints & updates."
+                      });
+                      window.location.reload();
+                    }
+                  }}
+                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-500/20 active:scale-95 cursor-pointer"
+                  title="Click to allow browser push notifications"
+                >
+                  <Bell size={14} className="animate-bounce" />
+                  <span>Enable Push Notifications</span>
+                </button>
+              )}
+
               {/* Messages */}
               <button onClick={() => navigate(section === "employee" ? "/employee/superchat" : "/superadmin/superchat")} className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all relative group hidden sm:block">
                 <MessageSquare size={20} className="group-hover:scale-110 transition-transform" />

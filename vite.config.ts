@@ -128,6 +128,7 @@ export default defineConfig(({ mode }) => {
 
     // Build optimizations
     build: {
+      modulePreload: false,
       outDir,
       target: 'es2020',
       minify: 'terser',

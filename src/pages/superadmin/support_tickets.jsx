@@ -17,6 +17,7 @@ const getApiUrl = () =>
     ? "http://localhost:5001" : "https://roohmy-backend-xwa9.vercel.app");
 
 export default function VerificationCenter() {
+  const isEmployeeView = typeof window !== "undefined" && window.location.pathname.startsWith("/employee");
   const [activeTab, setActiveTab] = useState("new_properties"); // "new_properties" | "property_edits" | "room_edits"
   const [newProperties, setNewProperties] = useState([]);
   const [propertyEdits, setPropertyEdits] = useState([]);
@@ -358,7 +359,7 @@ export default function VerificationCenter() {
                 <th className="px-5 py-4 text-left">Property / Room Details</th>
                 <th className="px-5 py-4 text-left">Owner Details</th>
                 <th className="px-5 py-4 text-left">Location</th>
-                <th className="px-5 py-4 text-left">Assigned Employee</th>
+                {!isEmployeeView && <th className="px-5 py-4 text-left">Assigned Employee</th>}
                 <th className="px-5 py-4 text-left">Date Requested</th>
                 <th className="px-5 py-4 text-right">Actions</th>
               </tr>
@@ -367,7 +368,7 @@ export default function VerificationCenter() {
               {/* Tab 1: New Properties */}
               {activeTab === "new_properties" && (
                 filteredNewProperties.length === 0 ? (
-                  <tr><td colSpan={6} className="px-6 py-20 text-center text-xs font-bold text-slate-400 uppercase">No property approvals pending</td></tr>
+                  <tr><td colSpan={isEmployeeView ? 5 : 6} className="px-6 py-20 text-center text-xs font-bold text-slate-400 uppercase">No property approvals pending</td></tr>
                 ) : filteredNewProperties.map(p => (
                   <tr key={p._id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-5 py-4">
@@ -388,13 +389,15 @@ export default function VerificationCenter() {
                     <td className="px-5 py-4">
                       <p className="text-xs font-semibold text-slate-600 flex items-center gap-1"><MapPin size={11} className="text-slate-400" /> {p.city || "N/A"}</p>
                     </td>
-                    <td className="px-5 py-4">
-                      {p.assignedToName ? (
-                        <span className="text-[10px] font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5"><User size={11} /> {p.assignedToName}</span>
-                      ) : (
-                        <button onClick={() => setAssignModal({ type: "property", id: p._id })} className="text-[10px] font-bold text-blue-600 hover:underline flex items-center gap-1"><UserPlus size={11} /> Assign Verification</button>
-                      )}
-                    </td>
+                    {!isEmployeeView && (
+                      <td className="px-5 py-4">
+                        {p.assignedToName ? (
+                          <span className="text-[10px] font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5"><User size={11} /> {p.assignedToName}</span>
+                        ) : (
+                          <button onClick={() => setAssignModal({ type: "property", id: p._id })} className="text-[10px] font-bold text-blue-600 hover:underline flex items-center gap-1"><UserPlus size={11} /> Assign Verification</button>
+                        )}
+                      </td>
+                    )}
                     <td className="px-5 py-4 text-xs text-slate-500 font-semibold">
                       {new Date(p.createdAt).toLocaleDateString()}
                     </td>
@@ -415,7 +418,7 @@ export default function VerificationCenter() {
               {/* Tab 2: Property Edits */}
               {activeTab === "property_edits" && (
                 filteredPropertyEdits.length === 0 ? (
-                  <tr><td colSpan={6} className="px-6 py-20 text-center text-xs font-bold text-slate-400 uppercase">No property edit requests pending</td></tr>
+                  <tr><td colSpan={isEmployeeView ? 5 : 6} className="px-6 py-20 text-center text-xs font-bold text-slate-400 uppercase">No property edit requests pending</td></tr>
                 ) : filteredPropertyEdits.map(p => (
                   <tr key={p._id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-5 py-4">
@@ -436,13 +439,15 @@ export default function VerificationCenter() {
                     <td className="px-5 py-4">
                       <p className="text-xs font-semibold text-slate-600 flex items-center gap-1"><MapPin size={11} className="text-slate-400" /> {p.city || "N/A"}</p>
                     </td>
-                    <td className="px-5 py-4">
-                      {p.pendingChanges?.assignedToName ? (
-                        <span className="text-[10px] font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5"><User size={11} /> {p.pendingChanges.assignedToName}</span>
-                      ) : (
-                        <button onClick={() => setAssignModal({ type: "property", id: p._id })} className="text-[10px] font-bold text-blue-600 hover:underline flex items-center gap-1"><UserPlus size={11} /> Assign Verification</button>
-                      )}
-                    </td>
+                    {!isEmployeeView && (
+                      <td className="px-5 py-4">
+                        {p.pendingChanges?.assignedToName ? (
+                          <span className="text-[10px] font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5"><User size={11} /> {p.pendingChanges.assignedToName}</span>
+                        ) : (
+                          <button onClick={() => setAssignModal({ type: "property", id: p._id })} className="text-[10px] font-bold text-blue-600 hover:underline flex items-center gap-1"><UserPlus size={11} /> Assign Verification</button>
+                        )}
+                      </td>
+                    )}
                     <td className="px-5 py-4 text-xs text-slate-500 font-semibold">
                       {p.pendingChanges?.requestedAt ? new Date(p.pendingChanges.requestedAt).toLocaleDateString() : "N/A"}
                     </td>
@@ -463,7 +468,7 @@ export default function VerificationCenter() {
               {/* Tab 3: Room Edits */}
               {activeTab === "room_edits" && (
                 filteredRoomEdits.length === 0 ? (
-                  <tr><td colSpan={6} className="px-6 py-20 text-center text-xs font-bold text-slate-400 uppercase">No room edit requests pending</td></tr>
+                  <tr><td colSpan={isEmployeeView ? 5 : 6} className="px-6 py-20 text-center text-xs font-bold text-slate-400 uppercase">No room edit requests pending</td></tr>
                 ) : filteredRoomEdits.map(r => (
                   <tr key={r._id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-5 py-4">
@@ -484,13 +489,15 @@ export default function VerificationCenter() {
                     <td className="px-5 py-4">
                       <p className="text-xs font-semibold text-slate-600 flex items-center gap-1"><MapPin size={11} className="text-slate-400" /> {r.property?.city || "N/A"}</p>
                     </td>
-                    <td className="px-5 py-4">
-                      {r.pendingChanges?.assignedToName ? (
-                        <span className="text-[10px] font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5"><User size={11} /> {r.pendingChanges.assignedToName}</span>
-                      ) : (
-                        <button onClick={() => setAssignModal({ type: "room", id: r._id })} className="text-[10px] font-bold text-blue-600 hover:underline flex items-center gap-1"><UserPlus size={11} /> Assign Verification</button>
-                      )}
-                    </td>
+                    {!isEmployeeView && (
+                      <td className="px-5 py-4">
+                        {r.pendingChanges?.assignedToName ? (
+                          <span className="text-[10px] font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5"><User size={11} /> {r.pendingChanges.assignedToName}</span>
+                        ) : (
+                          <button onClick={() => setAssignModal({ type: "room", id: r._id })} className="text-[10px] font-bold text-blue-600 hover:underline flex items-center gap-1"><UserPlus size={11} /> Assign Verification</button>
+                        )}
+                      </td>
+                    )}
                     <td className="px-5 py-4 text-xs text-slate-500 font-semibold">
                       {r.pendingChanges?.requestedAt ? new Date(r.pendingChanges.requestedAt).toLocaleDateString() : "N/A"}
                     </td>
@@ -692,7 +699,9 @@ export default function VerificationCenter() {
               
               {selectedItem.type === "new_property" && (
                 <>
-                  <button onClick={() => setAssignModal({ type: "property", id: selectedItem.data._id })} className="px-4 py-2 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-xl text-xs font-bold hover:bg-indigo-100 transition-all flex items-center gap-1.5"><UserPlus size={14} /> Assign Verification</button>
+                  {!isEmployeeView && (
+                    <button onClick={() => setAssignModal({ type: "property", id: selectedItem.data._id })} className="px-4 py-2 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-xl text-xs font-bold hover:bg-indigo-100 transition-all flex items-center gap-1.5"><UserPlus size={14} /> Assign Verification</button>
+                  )}
                   <button onClick={() => handleRejectNewProperty(selectedItem.data._id)} className="px-4 py-2 bg-rose-50 border border-rose-100 text-rose-700 rounded-xl text-xs font-bold hover:bg-rose-100 transition-all">Reject</button>
                   <button onClick={() => handleApproveNewProperty(selectedItem.data._id)} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold hover:shadow-lg transition-all flex items-center gap-1.5"><Check size={14} /> Approve</button>
                 </>
@@ -700,7 +709,9 @@ export default function VerificationCenter() {
 
               {selectedItem.type === "property_edit" && (
                 <>
-                  <button onClick={() => setAssignModal({ type: "property", id: selectedItem.data._id })} className="px-4 py-2 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-xl text-xs font-bold hover:bg-indigo-100 transition-all flex items-center gap-1.5"><UserPlus size={14} /> Assign Verification</button>
+                  {!isEmployeeView && (
+                    <button onClick={() => setAssignModal({ type: "property", id: selectedItem.data._id })} className="px-4 py-2 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-xl text-xs font-bold hover:bg-indigo-100 transition-all flex items-center gap-1.5"><UserPlus size={14} /> Assign Verification</button>
+                  )}
                   <button onClick={() => handleRejectPropertyEdit(selectedItem.data._id)} className="px-4 py-2 bg-rose-50 border border-rose-100 text-rose-700 rounded-xl text-xs font-bold hover:bg-rose-100 transition-all">Reject Changes</button>
                   <button onClick={() => handleApprovePropertyEdit(selectedItem.data._id)} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold hover:shadow-lg transition-all flex items-center gap-1.5"><Check size={14} /> Approve Changes</button>
                 </>
@@ -708,7 +719,9 @@ export default function VerificationCenter() {
 
               {selectedItem.type === "room_edit" && (
                 <>
-                  <button onClick={() => setAssignModal({ type: "room", id: selectedItem.data._id })} className="px-4 py-2 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-xl text-xs font-bold hover:bg-indigo-100 transition-all flex items-center gap-1.5"><UserPlus size={14} /> Assign Verification</button>
+                  {!isEmployeeView && (
+                    <button onClick={() => setAssignModal({ type: "room", id: selectedItem.data._id })} className="px-4 py-2 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-xl text-xs font-bold hover:bg-indigo-100 transition-all flex items-center gap-1.5"><UserPlus size={14} /> Assign Verification</button>
+                  )}
                   <button onClick={() => handleRejectRoomEdit(selectedItem.data._id)} className="px-4 py-2 bg-rose-50 border border-rose-100 text-rose-700 rounded-xl text-xs font-bold hover:bg-rose-100 transition-all">Reject Changes</button>
                   <button onClick={() => handleApproveRoomEdit(selectedItem.data._id)} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold hover:shadow-lg transition-all flex items-center gap-1.5"><Check size={14} /> Approve Changes</button>
                 </>

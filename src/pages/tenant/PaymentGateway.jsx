@@ -114,7 +114,7 @@ const PaymentGateway = () => {
 
             const data = await fetchJson('/api/payments/payu/create-order', {
                 method: 'POST',
-                body: JSON.stringify({ bookingId: bookingRef, amount, customerInfo })
+                body: JSON.stringify({ bookingId: bookingRef, amount, customerInfo, paymentSource: 'rent_onboarding' })
             });
 
             if (!data?.success || !data?.actionUrl || !data?.params) {

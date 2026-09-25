@@ -1,8 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, ShieldCheck, X, Check, Laptop, Smartphone, Settings } from 'lucide-react';
-import { isPushSupported, requestNotificationPermission } from '../utils/notificationManager';
+import { Bell, ShieldCheck, X, Check, Laptop, Smartphone, Settings, ShieldAlert } from 'lucide-react';
+import { isPushSupported, requestNotificationPermission, showNativeNotification } from '../utils/notificationManager';
 import { useLocation } from 'react-router-dom';
 
+/**
+ * NotificationPromptBanner
+ * Independent Floating Bottom-Right Notification Activation Card for Each Panel:
+ * 1. SuperAdmin / Employee Panel -> "Enable SuperAdmin Alerts"
+ * 2. Property Owner Panel -> "Enable Owner Alerts"
+ * 3. Tenant Panel -> "Enable Tenant Alerts"
+ * 4. Main Website -> "Enable Roomhy Alerts"
+ *
+ * Each panel tracks its own independent activation state in localStorage/sessionStorage.
+ */
 export default function NotificationPromptBanner({ userLoginId = null }) {
   const [showPrompt, setShowPrompt] = useState(false);
   const [permissionStatus, setPermissionStatus] = useState('default');
@@ -11,15 +21,64 @@ export default function NotificationPromptBanner({ userLoginId = null }) {
   const [isAnimatingIn, setIsAnimatingIn] = useState(false);
   const location = useLocation();
 
-  // Each panel (owner, admin, tenant, website) has its own dismiss state
-  // so dismissing on the website doesn't suppress the banner on owner panel
-  const getPanelKey = () => {
-    const path = location.pathname || '';
-    if (path.startsWith('/propertyowner')) return 'roomhy_notif_banner_dismissed_owner';
-    if (path.startsWith('/superadmin') || path.startsWith('/employee')) return 'roomhy_notif_banner_dismissed_admin';
-    if (path.startsWith('/tenant')) return 'roomhy_notif_banner_dismissed_tenant';
-    return 'roomhy_notif_banner_dismissed_website';
+  const getPanelConfig = (pathname = '') => {
+    if (pathname.startsWith('/superadmin') || pathname.startsWith('/employee')) {
+      return {
+        key: 'roomhy_notif_panel_admin',
+        title: "Enable SuperAdmin Alerts",
+        description: "Get real-time push alerts on your laptop & phone for new support complaints, ticket assignments & platform updates.",
+        badge: "Admin Push",
+        color: "from-blue-600 via-indigo-600 to-violet-600",
+        btnColor: "linear-gradient(135deg, #2563EB, #4F46E5)",
+        btnShadow: "rgba(37, 99, 235, 0.4)",
+        iconBg: "linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)",
+        iconBorder: "rgba(37, 99, 235, 0.2)",
+        iconColor: "#2563EB"
+      };
+    }
+    if (pathname.startsWith('/propertyowner')) {
+      return {
+        key: 'roomhy_notif_panel_owner',
+        title: "Enable Owner Alerts",
+        description: "Get instant push alerts for new bookings, rent collections, bidding offers & tenant chat messages.",
+        badge: "Owner Push",
+        color: "from-teal-600 via-emerald-600 to-cyan-600",
+        btnColor: "linear-gradient(135deg, #0FA89C, #0C8B81)",
+        btnShadow: "rgba(15, 168, 156, 0.4)",
+        iconBg: "linear-gradient(135deg, #F0FAFA 0%, #E0F7F6 100%)",
+        iconBorder: "rgba(15, 168, 156, 0.2)",
+        iconColor: "#0FA89C"
+      };
+    }
+    if (pathname.startsWith('/tenant')) {
+      return {
+        key: 'roomhy_notif_panel_tenant',
+        title: "Enable Tenant Alerts",
+        description: "Get instant push alerts for rent receipts, gate passes, maintenance updates & owner messages.",
+        badge: "Tenant Push",
+        color: "from-emerald-600 via-teal-600 to-indigo-600",
+        btnColor: "linear-gradient(135deg, #10B981, #059669)",
+        btnShadow: "rgba(16, 185, 129, 0.4)",
+        iconBg: "linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)",
+        iconBorder: "rgba(16, 185, 129, 0.2)",
+        iconColor: "#10B981"
+      };
+    }
+    return {
+      key: 'roomhy_notif_panel_website',
+      title: "Enable Roomhy Alerts",
+      description: "Get real-time updates for top PGs, hostels, co-living spaces & smart bidding price drops.",
+      badge: "Roomhy Push",
+      color: "from-teal-600 via-sky-600 to-indigo-600",
+      btnColor: "linear-gradient(135deg, #0FA89C, #0C8B81)",
+      btnShadow: "rgba(15, 168, 156, 0.4)",
+      iconBg: "linear-gradient(135deg, #F0FAFA 0%, #E0F7F6 100%)",
+      iconBorder: "rgba(15, 168, 156, 0.2)",
+      iconColor: "#0FA89C"
+    };
   };
+
+  const panel = getPanelConfig(location.pathname);
 
   useEffect(() => {
     if (!isPushSupported()) return;
@@ -28,26 +87,26 @@ export default function NotificationPromptBanner({ userLoginId = null }) {
     setPermissionStatus(currentPermission);
     setIsDenied(currentPermission === 'denied');
 
-    if (currentPermission === 'default') {
-      const panelKey = getPanelKey();
-      const isDismissed = sessionStorage.getItem(panelKey);
-      if (!isDismissed) {
-        setShowPrompt(false);
-        setIsAnimatingIn(false);
-        // 2.5s delay after page load / route change
-        const timer = setTimeout(() => {
-          setShowPrompt(true);
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => setIsAnimatingIn(true));
-          });
-        }, 2500);
-        return () => clearTimeout(timer);
-      }
+    // Check if this specific panel was already activated or dismissed for this session
+    const isPanelActive = localStorage.getItem(`${panel.key}_active`) === 'true';
+    const isPanelDismissed = sessionStorage.getItem(`${panel.key}_dismissed`) === 'true';
+
+    if (!isPanelActive && !isPanelDismissed) {
+      setShowPrompt(false);
+      setIsAnimatingIn(false);
+
+      const timer = setTimeout(() => {
+        setShowPrompt(true);
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => setIsAnimatingIn(true));
+        });
+      }, 1000);
+
+      return () => clearTimeout(timer);
     } else {
-      // Already decided — hide any existing prompt
       setShowPrompt(false);
     }
-  }, [location.pathname]); // Re-run whenever route changes
+  }, [location.pathname]);
 
   const handleAllow = async () => {
     setIsSubmitting(true);
@@ -56,30 +115,34 @@ export default function NotificationPromptBanner({ userLoginId = null }) {
 
     if (result.status === 'granted') {
       setPermissionStatus('granted');
+      localStorage.setItem(`${panel.key}_active`, 'true');
       setIsAnimatingIn(false);
+
+      // Trigger instant push alert notification to confirm
+      showNativeNotification(`🔔 ${panel.title} Activated!`, {
+        body: `Instant notifications are now live for ${panel.badge}.`
+      });
+
       setTimeout(() => setShowPrompt(false), 350);
     } else if (result.status === 'denied') {
       setPermissionStatus('denied');
       setIsDenied(true);
-      setIsAnimatingIn(false);
-      setTimeout(() => setShowPrompt(false), 350);
     }
   };
 
   const handleDismiss = () => {
-    sessionStorage.setItem(getPanelKey(), 'true');
+    sessionStorage.setItem(`${panel.key}_dismissed`, 'true');
     setIsAnimatingIn(false);
     setTimeout(() => setShowPrompt(false), 350);
   };
 
   if (!showPrompt) return null;
-  if (permissionStatus !== 'default') return null;
 
   return (
     <>
-      {/* Backdrop overlay on mobile for better visibility */}
+      {/* Mobile backdrop */}
       <div
-        className="fixed inset-0 bg-black/10 z-[9998] md:hidden"
+        className="fixed inset-0 bg-black/15 z-[9998] md:hidden"
         style={{
           opacity: isAnimatingIn ? 1 : 0,
           transition: 'opacity 0.35s ease'
@@ -87,7 +150,7 @@ export default function NotificationPromptBanner({ userLoginId = null }) {
         onClick={handleDismiss}
       />
 
-      {/* Notification Banner */}
+      {/* Floating Bottom-Right Card */}
       <div
         className="fixed z-[9999]"
         style={{
@@ -102,21 +165,20 @@ export default function NotificationPromptBanner({ userLoginId = null }) {
         }}
       >
         <div
-          className="bg-white rounded-2xl overflow-hidden"
+          className="bg-white rounded-2xl overflow-hidden shadow-2xl border border-slate-100"
           style={{
-            boxShadow: '0 24px 48px -12px rgba(15, 168, 156, 0.22), 0 0 0 1px rgba(15, 168, 156, 0.1)',
+            boxShadow: '0 24px 48px -12px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(15, 23, 42, 0.08)'
           }}
         >
-          {/* Top accent bar */}
-          <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg, #0FA89C, #0EA5E9, #6366F1)' }} />
+          {/* Top accent gradient bar */}
+          <div className={`h-1.5 w-full bg-gradient-to-r ${panel.color}`} />
 
           <div className="p-5">
             {/* Dismiss button */}
             <button
               onClick={handleDismiss}
               className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100 transition-colors"
-              title="Dismiss for now"
-              style={{ position: 'absolute' }}
+              title="Dismiss for this session"
             >
               <X className="w-4 h-4" />
             </button>
@@ -125,42 +187,41 @@ export default function NotificationPromptBanner({ userLoginId = null }) {
             <div className="flex items-start gap-3.5">
               {/* Icon */}
               <div
-                className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
+                className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-sm"
                 style={{
-                  background: 'linear-gradient(135deg, #F0FAFA 0%, #E0F7F6 100%)',
-                  border: '1px solid rgba(15, 168, 156, 0.2)'
+                  background: panel.iconBg,
+                  border: `1px solid ${panel.iconBorder}`
                 }}
               >
-                <Bell className="w-5 h-5 text-[#0FA89C]" style={{ animation: 'bellRing 2.5s ease-in-out infinite' }} />
+                <Bell className="w-5 h-5" style={{ color: panel.iconColor, animation: 'bellRing 2.5s ease-in-out infinite' }} />
               </div>
 
               {/* Text */}
               <div className="flex-1 min-w-0 pr-5">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h4 className="font-bold text-[#102A43] text-sm leading-tight">
-                    Enable Instant Alerts
+                  <h4 className="font-extrabold text-slate-900 text-sm leading-tight">
+                    {panel.title}
                   </h4>
                   <span
                     className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                    style={{ background: 'rgba(15,168,156,0.1)', color: '#0FA89C' }}
+                    style={{ background: 'rgba(37,99,235,0.1)', color: panel.iconColor }}
                   >
-                    Free
+                    {panel.badge}
                   </span>
                 </div>
 
-                <p className="text-slate-500 text-xs mt-1 leading-relaxed">
-                  Get real-time alerts on your <strong className="text-slate-700">laptop &amp; phone</strong> for
-                  bookings, rent receipts, bidding offers &amp; gate passes.
+                <p className="text-slate-600 text-xs mt-1 leading-relaxed">
+                  {panel.description}
                 </p>
 
                 {/* Device support badges */}
                 <div className="flex items-center gap-2.5 mt-2.5 flex-wrap">
                   <span className="flex items-center gap-1 text-[11px] text-slate-500 font-medium">
-                    <Laptop className="w-3.5 h-3.5 text-[#0FA89C]" /> Laptop
+                    <Laptop className="w-3.5 h-3.5" style={{ color: panel.iconColor }} /> Laptop
                   </span>
                   <span className="text-slate-300 text-xs">•</span>
                   <span className="flex items-center gap-1 text-[11px] text-slate-500 font-medium">
-                    <Smartphone className="w-3.5 h-3.5 text-[#0FA89C]" /> Phone
+                    <Smartphone className="w-3.5 h-3.5" style={{ color: panel.iconColor }} /> Phone
                   </span>
                   <span className="text-slate-300 text-xs">•</span>
                   <span className="flex items-center gap-1 text-[11px] text-emerald-600 font-medium">
@@ -175,12 +236,10 @@ export default function NotificationPromptBanner({ userLoginId = null }) {
               <button
                 onClick={handleAllow}
                 disabled={isSubmitting}
-                className="flex-1 text-white font-semibold text-xs py-2.5 px-4 rounded-xl shadow-sm transition-all flex items-center justify-center gap-1.5 disabled:opacity-75"
+                className="flex-1 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 disabled:opacity-75 active:scale-95 cursor-pointer"
                 style={{
-                  background: isSubmitting
-                    ? 'linear-gradient(135deg, #0c8b81, #0a7a71)'
-                    : 'linear-gradient(135deg, #0FA89C, #0C8B81)',
-                  boxShadow: '0 4px 12px -2px rgba(15,168,156,0.45)'
+                  background: panel.btnColor,
+                  boxShadow: `0 4px 14px -2px ${panel.btnShadow}`
                 }}
               >
                 {isSubmitting ? (
@@ -193,15 +252,15 @@ export default function NotificationPromptBanner({ userLoginId = null }) {
                   </>
                 ) : (
                   <>
-                    <Check className="w-4 h-4" />
-                    Allow Notifications
+                    <Check className="w-4 h-4 stroke-[3]" />
+                    <span>Allow Notifications</span>
                   </>
                 )}
               </button>
 
               <button
                 onClick={handleDismiss}
-                className="bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium text-xs py-2.5 px-3 rounded-xl transition-all whitespace-nowrap"
+                className="bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium text-xs py-2.5 px-3 rounded-xl transition-all whitespace-nowrap cursor-pointer"
               >
                 Maybe Later
               </button>
@@ -209,16 +268,15 @@ export default function NotificationPromptBanner({ userLoginId = null }) {
 
             {/* Help hint for blocked users */}
             {isDenied && (
-              <p className="mt-3 text-[11px] text-slate-400 flex items-center gap-1">
-                <Settings className="w-3 h-3 shrink-0" />
-                To enable: click the 🔒 lock icon in your browser address bar → Notifications → Allow.
+              <p className="mt-3 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2 flex items-center gap-1.5 leading-tight">
+                <Settings className="w-3.5 h-3.5 shrink-0 text-amber-600" />
+                <span>Notifications Blocked: Click 🔒 lock icon in URL bar → Notifications → set to Allow.</span>
               </p>
             )}
           </div>
         </div>
       </div>
 
-      {/* Bell ring animation keyframes */}
       <style>{`
         @keyframes bellRing {
           0%, 100% { transform: rotate(0deg); }

@@ -5,8 +5,27 @@ import WebsiteFooter from "../../components/website/WebsiteFooter";
 import MobileBottomNav from "../../components/website/MobileBottomNav";
 import { submitEnquiry, fetchJson } from '../../utils/api';
 import { getOwnerRuntimeSession } from '../../utils/propertyowner';
+import { getWebsiteUser } from '../../utils/websiteSession';
+import { getScopedStoredUser } from '../../utils/authScope';
 import useSEO from '../../hooks/useSEO';
 import { toast } from 'react-hot-toast';
+
+const getLoggedInUserSession = () => {
+  const websiteUser = getWebsiteUser();
+  const scopedUser = getScopedStoredUser('/list-property');
+  const owner = getOwnerRuntimeSession();
+  let rawUser = null;
+  try {
+    const w = localStorage.getItem('website_user') || sessionStorage.getItem('website_user');
+    if (w) rawUser = JSON.parse(w);
+  } catch (_) {}
+  try {
+    const u = localStorage.getItem('user') || sessionStorage.getItem('user');
+    if (!rawUser && u) rawUser = JSON.parse(u);
+  } catch (_) {}
+
+  return websiteUser || scopedUser || owner || rawUser || null;
+};
 
 export default function ListYourPropertyPage() {
   useSEO({ 
@@ -14,6 +33,7 @@ export default function ListYourPropertyPage() {
     fallbackTitle: 'List Your Property for Free | Hostels & PGs | Roomhy.com',
     fallbackDescription: 'List your PG, hostel, co-living space, or apartment on Roomhy.com for free. Connect directly with verified student tenants and maximize your occupancy.'
   });
+  const sessionUser = getLoggedInUserSession();
   const owner = getOwnerRuntimeSession();
 
   useEffect(() => {
@@ -23,9 +43,9 @@ export default function ListYourPropertyPage() {
   }, []);
 
   const [formData, setFormData] = useState({
-    ownerName: owner?.name || owner?.fullName || '',
-    email: owner?.email || '',
-    phone: owner?.phone || '',
+    ownerName: sessionUser?.name || sessionUser?.fullName || sessionUser?.ownerName || '',
+    email: sessionUser?.email || sessionUser?.gmail || sessionUser?.userEmail || '',
+    phone: sessionUser?.phone || sessionUser?.mobile || sessionUser?.phoneNumber || '',
     propertyName: '',
     propertyType: '',
     city: '',
@@ -39,6 +59,19 @@ export default function ListYourPropertyPage() {
   const [errors, setErrors] = useState({});
   const [layoutSections, setLayoutSections] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Auto-fill logged in user details if available
+  useEffect(() => {
+    const user = getLoggedInUserSession();
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        ownerName: prev.ownerName || user.name || user.fullName || user.ownerName || '',
+        email: prev.email || user.email || user.gmail || user.userEmail || '',
+        phone: prev.phone || user.phone || user.mobile || user.phoneNumber || ''
+      }));
+    }
+  }, []);
 
   // Fetch page layout settings from DB
   useEffect(() => {
