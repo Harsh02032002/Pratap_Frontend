@@ -49,10 +49,15 @@ export default function ReceiptsPage() {
     period: billingLabel(p.billingMonth),
     amount: p.rentAmount || p.amount,
     penalty: p.totalPenalty || 0,
-    advanceChargeAmount: Number(p.advanceChargeAmount || p.advanceCharge || p.moveInCharges || p.invoiceId?.advanceChargeAmount || p.tenantId?.digitalCheckin?.agreementDetails?.advanceCharge || 0),
+    advanceChargeAmount: Number(p.advanceChargeAmount || p.advanceCharge || p.moveInCharges || p.invoiceId?.advanceChargeAmount || 0),
     electricity: p.electricityBill || 0,
     totalDue: (p.rentAmount || 0) + (p.totalPenalty || 0) + (p.electricityBill || 0) + Number(p.advanceChargeAmount || p.advanceCharge || p.invoiceId?.advanceChargeAmount || 0),
-    paid: p.amount,
+    // Prefer the invoice's cumulative paid-to-date over this single transaction's
+    // amount — otherwise a receipt for a later top-up payment (e.g. electricity paid
+    // after rent was already settled) shows a "balance remaining" that ignores the
+    // earlier payment entirely.
+    paid: p.paidAmount ?? p.amount,
+    txnAmount: p.amount,
     paymentMethod: p.paymentMethod || p.invoiceId?.paymentMethod || '',
     invoiceStatus: p.invoiceStatus || '',   // PAID / PARTIAL / PENDING — from DB
     // A tenant's agreement can list an advance/move-in charge that's still outstanding —
@@ -140,7 +145,7 @@ export default function ReceiptsPage() {
                   <td className="px-6 py-4 font-bold text-foreground">Room {r.room}</td>
                   <td className="px-6 py-4 text-muted-foreground">{r.period}</td>
                   <td className="px-6 py-4 text-muted-foreground">{r.type}</td>
-                  <td className="px-6 py-4 font-bold text-emerald-600">₹{(r.paid || r.amount).toLocaleString("en-IN")}</td>
+                  <td className="px-6 py-4 font-bold text-emerald-600">₹{(r.txnAmount || r.amount).toLocaleString("en-IN")}</td>
                   <td className="px-6 py-4 text-right space-x-2">
                     <button
                       onClick={() => setViewing(r)}
