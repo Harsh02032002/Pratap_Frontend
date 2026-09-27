@@ -11,6 +11,8 @@ export default function MobileBottomNav() {
   const [isVisible, setIsVisible] = useState(false);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
 
+  const [unreadCount, setUnreadCount] = useState(0);
+
   useEffect(() => {
     // Check if mobile
     const checkMobile = () => {
@@ -41,16 +43,6 @@ export default function MobileBottomNav() {
     };
   }, []);
 
-  // Don't show on login/signup pages
-  const hiddenPaths = ['/website/login', '/website/signup', '/login', '/signup'];
-  if (hiddenPaths.includes(location.pathname)) {
-    return null;
-  }
-
-  if (!isVisible || isKeyboardOpen) return null;
-
-  const [unreadCount, setUnreadCount] = useState(0);
-
   useEffect(() => {
     const fetchUnread = async () => {
       try {
@@ -79,6 +71,14 @@ export default function MobileBottomNav() {
     const interval = setInterval(fetchUnread, 3000);
     return () => clearInterval(interval);
   }, [user]);
+
+  // Don't show on login/signup pages
+  const hiddenPaths = ['/website/login', '/website/signup', '/login', '/signup'];
+  if (hiddenPaths.includes(location.pathname)) {
+    return null;
+  }
+
+  if (!isVisible || isKeyboardOpen) return null;
 
   const navItems = [
     { icon: Home, path: '/', label: 'Home' },
