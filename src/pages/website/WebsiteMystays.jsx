@@ -732,9 +732,9 @@ export default function WebsiteMystays() {
                       Browse Properties
                   </a>
               </div>
-          </main>
           </>
           )}
+          </main>
       
 
       <div id="refundModal" className={`modal fixed inset-0 z-50 ${selectedBooking ? "flex" : "hidden"} bg-black bg-opacity-50 overflow-y-auto`}>

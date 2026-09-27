@@ -34,14 +34,8 @@ export const useOwnerTerms = () => {
       );
       if (!acceptResp.success) return alert(acceptResp.message || "Failed to accept terms");
 
-      const submitResp = await postWithFallback(
-        "/api/checkin/owner/final-submit",
-        { loginId, finalVerified: true },
-        apiBases
-      );
-      if (!submitResp.success) return alert(submitResp.message || "Submit failed");
-      const nextUrl = encodeURIComponent(submitResp.dashboardUrl || "/propertyowner/index");
-      window.location.href = `/digital-checkin/owner-success?loginId=${encodeURIComponent(loginId)}&next=${nextUrl}&agreementSigned=1`;
+      // Redirect to Owner-Roomhy Agreement E-Sign page
+      window.location.href = `/digital-checkin/owneragreement?loginId=${encodeURIComponent(loginId)}`;
     } catch (err) {
       alert(`Error: ${err.message}`);
     }

@@ -55,10 +55,10 @@ export default function Agreement() {
       title="Tenant Rental Agreements" 
       onLogout={() => { clearOwnerRuntimeSession(); window.location.href = "/propertyowner/ownerlogin"; }}
     >
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <div>
-          <h1 className="font-serif text-[38px] md:text-[44px] leading-[1.05] text-foreground">Rental Agreements</h1>
-          <p className="mt-1.5 text-[13.5px] text-muted-foreground">Monitor e-signed tenant rental agreements, terms &amp; conditions, and digital compliance.</p>
+          <h1 className="font-serif text-[38px] md:text-[44px] leading-[1.05] text-foreground">Agreements &amp; Contracts</h1>
+          <p className="mt-1.5 text-[13.5px] text-muted-foreground">Manage your RoomHy Hostel Onboarding Agreement and e-signed tenant rental agreements.</p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -78,6 +78,46 @@ export default function Agreement() {
           >
             <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />
           </button>
+        </div>
+      </div>
+
+      {/* Owner-Roomhy Hostel Onboarding Agreement Banner */}
+      <div className="mb-8 p-6 rounded-2xl bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 text-white shadow-xl border border-indigo-500/20 relative overflow-hidden">
+        <div className="absolute right-0 top-0 translate-x-8 -translate-y-8 size-48 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none" />
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+          <div className="flex items-start gap-4">
+            <div className="size-12 rounded-xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center shrink-0">
+              <FileText className="size-6 text-indigo-300" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-lg font-bold text-white tracking-wide">Hostel Onboarding &amp; Service Agreement</h3>
+                <span className="px-2.5 py-0.5 rounded-full text-[10.5px] font-extrabold uppercase tracking-wider bg-indigo-500/30 text-indigo-200 border border-indigo-400/40">
+                  Roomhy &amp; Owner Contract
+                </span>
+              </div>
+              <p className="text-xs text-indigo-200/80 mt-1 max-w-xl leading-relaxed">
+                Official platform access, lead generation, bidding process, and non-circumvention service agreement executed between Roomhy Technology and {owner?.name || "Property Owner"}.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 shrink-0">
+            <a
+              href={`/digital-checkin/owneragreement?loginId=${encodeURIComponent(owner?.loginId || "")}`}
+              className="px-4 py-2.5 rounded-xl bg-white text-indigo-950 font-bold text-xs hover:bg-indigo-50 transition-all flex items-center gap-2 active:scale-95 shadow-md"
+            >
+              <CheckCircle2 size={15} className="text-indigo-600" /> Sign / Edit E-Signature
+            </a>
+            <a
+              href={`/api/checkin/owner/agreement/pdf/${encodeURIComponent(owner?.loginId || "")}`}
+              target="_blank"
+              rel="noreferrer"
+              className="px-4 py-2.5 rounded-xl bg-indigo-600/50 border border-indigo-400/30 text-white font-bold text-xs hover:bg-indigo-600/70 transition-all flex items-center gap-2 active:scale-95"
+            >
+              <Download size={15} /> Download PDF
+            </a>
+          </div>
         </div>
       </div>
 
