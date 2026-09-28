@@ -148,6 +148,13 @@ const humanizeCashError = (err, fallback = "Something went wrong. Please try aga
 import { numberToWords } from "../../components/propertyowner/RentReceiptModal";
 
 function ReceiptTemplate({ receiptRef, tenant, tenantUser, rentItem, loginId, propertyName, roomInfo }) {
+  // The room THIS invoice was billed for, not the tenant's current room — a
+  // tenant who has since transferred must not have old receipts silently
+  // relabeled with their new room. Invoices generated before invoices started
+  // storing their own roomNo have no historical value to show; showing that
+  // honestly beats guessing via the tenant's current room (`roomInfo`),
+  // which is exactly the bug this fixes.
+  const receiptRoomInfo = rentItem?.roomNo ? `Room ${rentItem.roomNo}` : "Room information unavailable";
   const originalRent = Number(rentItem?.rentAmount || tenant?.agreedRent || 0);
   const penalty = Number(rentItem?.totalPenalty || rentItem?.penalty || 0);
   const electricity = Number(rentItem?.electricityBill || rentItem?.electricity || 0);
@@ -251,7 +258,7 @@ function ReceiptTemplate({ receiptRef, tenant, tenantUser, rentItem, loginId, pr
           <div style={{ padding: "10px 14px" }}>
             <p style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{tenantName}</p>
             {[
-              ["Room", roomInfo],
+              ["Room", receiptRoomInfo],
               ...(tenantPhone ? [["Phone", tenantPhone]] : []),
               ...(tenantEmail ? [["Email", tenantEmail]] : [])
             ].map(([lbl, val]) => (
