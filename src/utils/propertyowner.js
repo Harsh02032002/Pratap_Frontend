@@ -736,6 +736,12 @@ export const deleteTenantRecord = async (id) => fetchJson(`/api/tenants/${encode
   method: "DELETE"
 });
 
+export const transferTenant = async (id, { newRoomNo, newBedNo, newAgreedRent, transferDate }) =>
+  fetchJson(`/api/tenants/${encodeURIComponent(id)}/transfer`, {
+    method: "POST",
+    body: JSON.stringify({ newRoomNo, newBedNo, newAgreedRent, transferDate }),
+  });
+
 export const updateTenant = async (id, payload) => fetchJson(`/api/tenants/${encodeURIComponent(id)}`, {
   method: "PATCH",
   body: JSON.stringify(payload)

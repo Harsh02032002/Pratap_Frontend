@@ -1030,7 +1030,7 @@ export default function TenantRec() {
         payload.firstTime = true;
         res = await fetch(`${apiUrl}/api/tenants/assign`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...getAuthHeader() },
           body: JSON.stringify(payload),
         });
       }

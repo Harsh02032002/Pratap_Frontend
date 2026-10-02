@@ -296,7 +296,7 @@ export default function Owner() {
          const res = await fetchJson(`/api/owners/${encodeURIComponent(owner.loginId || owner._id)}/approve`, {
             method: "POST",
             headers: getAuthHeader(),
-            body: JSON.stringify({ password: owner.checkinPassword || owner.password || "Roomhy@123" })
+            body: JSON.stringify({})
          });
          alert(res.message || "✅ Owner approved and credentials email sent successfully!");
          loadOwners();

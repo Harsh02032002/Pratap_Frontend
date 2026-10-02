@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { X, Plus, UserPlus, Key, Trash2, Edit, Shield, CheckCircle, XCircle } from "lucide-react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
 import { clearOwnerRuntimeSession, fetchOwnerProperties, getOwnerRuntimeSession } from "../../utils/propertyowner";
-import { fetchJson, getApiBase } from "../../utils/api";
+import { fetchJson } from "../../utils/api";
 
 const cn = (...c) => c.filter(Boolean).join(" ");
 
@@ -113,12 +113,11 @@ export default function PropertyManagers() {
     if (!confirm(`Are you sure you want to ${action} manager ${manager.name}?`)) return;
     
     try {
-      const response = await fetch(`${getApiBase()}/api/property-managers/${manager._id}/${action}`, {
+      const data = await fetchJson(`/api/property-managers/${manager._id}/${action}`, {
         method: "POST"
       });
-      const data = await response.json();
       if (!data.success) throw new Error(data.message);
-      
+
       await loadData(owner.loginId);
     } catch (e) {
       setErrorMsg(e?.message || `Failed to ${action} manager`);
@@ -127,14 +126,13 @@ export default function PropertyManagers() {
 
   const handleDeleteManager = async (managerId) => {
     if (!confirm("Are you sure you want to delete this manager?")) return;
-    
+
     try {
-      const response = await fetch(`${getApiBase()}/api/property-managers/${managerId}`, {
+      const data = await fetchJson(`/api/property-managers/${managerId}`, {
         method: "DELETE"
       });
-      const data = await response.json();
       if (!data.success) throw new Error(data.message);
-      
+
       await loadData(owner.loginId);
     } catch (e) {
       setErrorMsg(e?.message || "Failed to delete manager");
@@ -143,14 +141,13 @@ export default function PropertyManagers() {
 
   const handleResetPassword = async (managerId) => {
     if (!confirm("Reset password for this manager?")) return;
-    
+
     try {
-      const response = await fetch(`${getApiBase()}/api/property-managers/${managerId}/reset-password`, {
+      const data = await fetchJson(`/api/property-managers/${managerId}/reset-password`, {
         method: "POST"
       });
-      const data = await response.json();
       if (!data.success) throw new Error(data.message);
-      
+
       setResetPasswordModal({ open: true, password: data.newPassword, copied: false });
     } catch (e) {
       setErrorMsg(e?.message || "Failed to reset password");

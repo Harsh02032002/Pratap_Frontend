@@ -13,10 +13,12 @@ import {
   fetchOwnerTenants,
   getOwnerRuntimeSession,
   updateTenant,
+  transferTenant,
   clearOwnerFetchCache,
   fetchOwnerRooms
 } from "../../utils/propertyowner";
 import { API_URL } from "../../utils/api";
+import { cacheInvalidate } from "../../utils/cache";
 import toast from "react-hot-toast";
 
 const getFileUrl = (url) => {
@@ -224,22 +226,35 @@ export default function Tenants() {
     setSaving(true);
     setErrorMsg("");
     try {
-      const updated = await updateTenant(transferringTenant._id || transferringTenant.id, {
-        roomNo: transferForm.roomNo,
-        bedNo: transferForm.bedNo,
-        agreedRent: Number(transferForm.agreedRent),
-        moveInDate: transferForm.transferDate ? new Date(transferForm.transferDate) : undefined
+      // Dedicated transfer endpoint, not updateTenant — this keeps the
+      // current billing period on the old room/rent and only applies the
+      // new one from next month (no proration), and never touches the
+      // tenant's original moveInDate.
+      const { data } = await transferTenant(transferringTenant._id || transferringTenant.id, {
+        newRoomNo: transferForm.roomNo,
+        newBedNo: transferForm.bedNo,
+        newAgreedRent: Number(transferForm.agreedRent),
+        transferDate: transferForm.transferDate || undefined
       });
-      
+      const updated = data?.tenant || data;
+
       // Update tenant in local state
       setTenants(prev => prev.map(t => (t._id === transferringTenant._id || t.id === transferringTenant.id || t._id === updated._id || t.id === updated.id) ? { ...t, ...updated } : t));
       setTransferModalOpen(false);
       setTransferringTenant(null);
-      
-      // Clear owner fetch cache so that re-fetch gives fresh data
+
+      // Clear owner fetch cache (tenants/rooms) so re-fetch gives fresh data,
+      // plus every rent-collection cache that shows room/rent — the room
+      // just changed and none of these has any other trigger tied to a
+      // tenant/room change. `payments:` specifically is what owner receipts
+      // (and security-deposits.jsx, which fetches without `force`) read from —
+      // missing it here was the one gap found during cache verification.
       if (owner?.loginId) {
         clearOwnerFetchCache(owner.loginId);
       }
+      cacheInvalidate('dashboard:');
+      cacheInvalidate('invoices:');
+      cacheInvalidate('payments:');
     } catch (err) {
       setErrorMsg(err?.message || "Failed to transfer room.");
     } finally {
