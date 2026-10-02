@@ -140,24 +140,20 @@ export default function NotificationPromptBanner({ userLoginId = null }) {
 
   return (
     <>
-      {/* Mobile backdrop */}
+      {/* Mobile subtle backdrop */}
       <div
-        className="fixed inset-0 bg-black/15 z-[9998] md:hidden"
+        className="fixed inset-0 bg-black/10 z-[9998] md:hidden pointer-events-none"
         style={{
           opacity: isAnimatingIn ? 1 : 0,
           transition: 'opacity 0.35s ease'
         }}
-        onClick={handleDismiss}
       />
 
-      {/* Floating Bottom-Right Card */}
+      {/* Floating Card: Floating above MobileBottomNav on mobile (bottom-20), bottom-5 on desktop */}
       <div
-        className="fixed z-[9999]"
+        className="fixed z-[9999] bottom-20 md:bottom-5 right-3 left-3 md:right-5 md:left-auto md:max-w-[420px]"
         style={{
-          bottom: '1.25rem',
-          right: '1.25rem',
-          left: 'clamp(1.25rem, 5vw, auto)',
-          maxWidth: 'min(calc(100vw - 2.5rem), 420px)',
+          maxWidth: 'min(calc(100vw - 1.5rem), 420px)',
           transform: isAnimatingIn ? 'translateY(0) scale(1)' : 'translateY(30px) scale(0.95)',
           opacity: isAnimatingIn ? 1 : 0,
           transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease',

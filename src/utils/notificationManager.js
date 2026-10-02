@@ -29,7 +29,7 @@ export function getDeviceType() {
  * Check if Web Push Notifications are supported on current browser
  */
 export function isPushSupported() {
-  return 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
+  return typeof window !== 'undefined' && 'Notification' in window && typeof window.Notification !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window;
 }
 
 // ─────────────────────────────────────────────

@@ -84,8 +84,54 @@ export default defineConfig(({ mode }) => {
       })] : []),
       VitePWA({
         registerType: 'autoUpdate',
+        // Disable the service worker in development — it intercepts F5 requests
+        // and returns stale cached responses, making it impossible to see changes
+        // without a hard refresh. In production the SW is enabled with a
+        // NetworkFirst strategy for HTML navigation to avoid this problem.
         devOptions: {
-          enabled: true
+          enabled: false
+        },
+        workbox: {
+          // Skip waiting so the new SW activates immediately after update,
+          // without requiring the user to close all tabs.
+          skipWaiting: true,
+          // Claim all open clients immediately so the new SW controls the page.
+          clientsClaim: true,
+          // Navigation (HTML page) requests always go to the network first.
+          // Falls back to the cached index.html only if the network is offline.
+          // This ensures F5 always loads a fresh index.html from the server.
+          navigationPreload: false,
+          runtimeCaching: [
+            {
+              // All navigation requests (page loads, F5) → network first
+              urlPattern: ({ request }) => request.mode === 'navigate',
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'navigation-cache',
+                networkTimeoutSeconds: 5,
+                expiration: {
+                  maxAgeSeconds: 24 * 60 * 60, // 1 day fallback only
+                },
+              },
+            },
+            {
+              // Hashed JS/CSS/image assets — safe to cache long-term because
+              // filenames contain a content hash and change on every deploy.
+              urlPattern: /\/assets\/(js|css|images)\//,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'static-assets-cache',
+                expiration: {
+                  maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
+                  maxEntries: 100,
+                },
+              },
+            },
+          ],
+          // Never precache index.html — always fetch from network on F5.
+          globPatterns: ['**/*.{js,css,png,jpg,webp,svg,ico,woff2}'],
+          // Exclude HTML from precache so the SW never serves stale pages.
+          globIgnores: ['**/*.html'],
         },
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
         manifest: {

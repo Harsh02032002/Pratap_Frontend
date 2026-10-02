@@ -9,7 +9,9 @@ import { normalizeTierKey, composeTieredPropertyName } from './propertyTiers';
 // Promise and one cached response for the TTL window.
 // ---------------------------------------------------------------------------
 const _cache = new Map();
-const _CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+// 30 seconds — long enough to deduplicate burst concurrent requests from
+// the same page mount, short enough that F5 always fetches fresh data.
+const _CACHE_TTL_MS = 30 * 1000;
 
 // Second-level cache for the already-formatted properties array.
 // Prevents re-running _formatProperty on every fetchProperties() call
