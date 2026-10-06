@@ -114,6 +114,18 @@ const normalizeMessage = (message) => ({
   created_at: message?.created_at || new Date().toISOString()
 });
 
+/**
+ * True when the thread holds a message from the other side that the server
+ * still has as unread. Used to decide whether a background refresh needs to
+ * call mark-read — the old 3s poll called it every tick whether or not there
+ * was anything to mark.
+ */
+const hasUnreadFromPartner = (list, selfIds) => (
+  Array.isArray(list) && list.some((m) => (
+    m?.is_read === false && !selfIds.some((id) => sameChatParty(m.sender_login_id, id))
+  ))
+);
+
 export default function WebsiteChat() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -130,6 +142,9 @@ export default function WebsiteChat() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [mobileChatOpen, setMobileChatOpen] = useState(false);
+  // While the socket is connected new messages arrive as pushes, so the fast
+  // 3s poll is only needed as a fallback while it is down (see below).
+  const [socketConnected, setSocketConnected] = useState(false);
   
   const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
@@ -227,45 +242,59 @@ export default function WebsiteChat() {
     }
   };
 
-  useEffect(() => {
-    let interval;
-    if (websiteUserId) {
-      loadChats(true);
-      interval = setInterval(() => loadChats(false), 3000);
+  // Mark conversation as read, and reset the unread count locally for that chat.
+  const markThreadRead = async (chatId) => {
+    if (!websiteUserId) return;
+    await fetchJson(`/api/chat/mark-read/${encodeURIComponent(websiteUserId)}`, { method: "POST" });
+    setChats(prev => prev.map(c => c.id === chatId ? { ...c, unread: 0 } : c));
+  };
+
+  // `fresh` = the chat was just opened: always replace the list and mark read
+  // (exactly what the old loader did). Background refreshes only replace the
+  // list when it changed and only mark read when there is something unread.
+  const loadMessages = async (chat, { fresh = false } = {}) => {
+    if (!chat || !websiteUserId) return;
+    try {
+      const list = await fetchJson(
+        `/api/chat/conversation?user1=${encodeURIComponent(websiteUserId)}&user2=${encodeURIComponent(chat.participant_login_id)}`
+      );
+      const next = (Array.isArray(list) ? list : []).map(normalizeMessage);
+      if (fresh) setMessages(next);
+      else setMessages((prev) => (sameThread(prev, next) ? prev : next));
+
+      if (fresh || hasUnreadFromPartner(next, [websiteUserId, userRef.current?.email])) {
+        await markThreadRead(chat.id);
+      }
+    } catch (error) {
+      console.error("Error loading messages:", error);
     }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
+  };
+
+  // Initial loads — unchanged: inbox when the user is known, thread whenever
+  // the open chat changes.
+  useEffect(() => {
+    if (websiteUserId) loadChats(true);
   }, [websiteUserId]);
 
   useEffect(() => {
-    let interval;
-    const loadMessages = async () => {
-      if (!activeChat || !websiteUserId) return;
-      try {
-        const list = await fetchJson(
-          `/api/chat/conversation?user1=${encodeURIComponent(websiteUserId)}&user2=${encodeURIComponent(activeChat.participant_login_id)}`
-        );
-        setMessages((Array.isArray(list) ? list : []).map(normalizeMessage));
-        
-        // Mark conversation as read
-        await fetchJson(`/api/chat/mark-read/${encodeURIComponent(websiteUserId)}`, { method: "POST" });
-        
-        // Reset unread count locally for active chat
-        setChats(prev => prev.map(c => c.id === activeChat.id ? { ...c, unread: 0 } : c));
-      } catch (error) {
-        console.error("Error loading messages:", error);
-      }
-    };
-
-    if (activeChat) {
-      loadMessages();
-      interval = setInterval(loadMessages, 3000);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
+    if (activeChat) loadMessages(activeChat, { fresh: true });
   }, [activeChat, websiteUserId]);
+
+  // The old 3s inbox + 3s thread (+ mark-read) polls ran all the time, even
+  // with a healthy socket — 60+ requests a minute per open chat page, enough to
+  // hit the API rate limit. Now they only run while the socket is down. When
+  // it is up, `receive_message` refreshes instantly and the socket effect
+  // below keeps its 10s/30s safety polls.
+  useEffect(() => {
+    if (socketConnected || !websiteUserId) return undefined;
+    const interval = setInterval(() => {
+      if (document.visibilityState === "hidden") return;
+      loadChats(false);
+      if (activeChatRef.current) loadMessages(activeChatRef.current);
+    }, 3000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [socketConnected, websiteUserId]);
 
   useEffect(() => {
     if (!websiteUserId) return undefined;
@@ -303,11 +332,20 @@ export default function WebsiteChat() {
         // re-ran the scroll-to-bottom effect and made the conversation jump on
         // a timer even when no new message had arrived.
         setMessages((prev) => (sameThread(prev, next) ? prev : next));
+
+        // A message that arrives while its thread is open counts as read —
+        // the old 3s poll used to mark it within 3s; now it happens here.
+        if (hasUnreadFromPartner(next, [websiteUserId, userRef.current?.email])) {
+          await markThreadRead(current.id);
+        }
       } catch (_) {}
     };
 
     socket.on("connect", joinSelfRoom);
     socket.on("reconnect", joinSelfRoom);
+    socket.on("connect", () => setSocketConnected(true));
+    socket.on("disconnect", () => setSocketConnected(false));
+    socket.on("connect_error", () => setSocketConnected(false));
     socket.on("receive_message", async (incoming) => {
       // Accept the push if it is addressed to any form of this user's id, or if
       // it comes from the person whose thread is currently open.
@@ -393,6 +431,7 @@ export default function WebsiteChat() {
       document.removeEventListener("visibilitychange", onVisible);
       socket.disconnect();
       socketRef.current = null;
+      setSocketConnected(false);
     };
     // `user` is a fresh object on every AuthContext render, so depending on it
     // tore the socket down and rebuilt it repeatedly — dropping the room join,

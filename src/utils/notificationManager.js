@@ -379,11 +379,24 @@ async function _registerDeviceToken(loginId = null) {
  * Initialize notification listener on app startup.
  * Silently syncs push subscription with backend if user already granted permission.
  */
+// Both owner layouts call this on mount, and each page mounts its own layout,
+// so without a guard the token was re-registered (a backend write) twice per
+// navigation. A device token does not change between pages — sync it once per
+// loginId per app load. A failed sync is forgotten so the next mount retries.
+const _initDone = new Map();
+
 export async function initNotificationManager(loginId = null) {
   if (!isPushSupported()) return;
 
   if (Notification.permission === 'granted') {
+    const key = loginId || '__anon__';
+    if (_initDone.has(key)) return _initDone.get(key);
     console.log('[NotificationManager] Permission already granted — syncing push token on startup...');
-    await _registerDeviceToken(loginId);
+    const p = Promise.resolve(_registerDeviceToken(loginId)).catch((e) => {
+      _initDone.delete(key);
+      throw e;
+    });
+    _initDone.set(key, p);
+    await p;
   }
 }

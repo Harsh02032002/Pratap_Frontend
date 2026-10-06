@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, Building2, HelpCircle, Info, MessageCircle, ListPlus } from 'lucide-react';
-import { getScopedStoredUser } from '../../utils/authScope';
 import { useAuth } from '../../contexts/AuthContext';
+import { useWebsiteUnread } from '../../hooks/useWebsiteUnread';
+
+// Don't show on login/signup pages
+const hiddenPaths = ['/website/login', '/website/signup', '/login', '/signup'];
 
 export default function MobileBottomNav() {
   const location = useLocation();
@@ -11,7 +14,12 @@ export default function MobileBottomNav() {
   const [isVisible, setIsVisible] = useState(false);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
 
-  const [unreadCount, setUnreadCount] = useState(0);
+  // Shared with FloatingBidNowButton: one socket + 20s fallback poll instead of
+  // a separate 3s inbox poll per component. Only subscribed while the nav can
+  // actually be shown (mobile width, not a login/signup page). The keyboard
+  // toggle is deliberately not part of this so typing doesn't resubscribe.
+  const isHiddenPath = hiddenPaths.includes(location.pathname);
+  const unreadCount = useWebsiteUnread({ user, enabled: isVisible && !isHiddenPath });
 
   useEffect(() => {
     // Check if mobile
@@ -43,38 +51,7 @@ export default function MobileBottomNav() {
     };
   }, []);
 
-  useEffect(() => {
-    const fetchUnread = async () => {
-      try {
-        const userObj = user || getScopedStoredUser() || {};
-        let userId = userObj?.loginId || userObj?.email;
-        if (!userId && userObj?.email) {
-          let hash = 0;
-          const safeEmail = String(userObj.email).trim().toLowerCase();
-          for (let i = 0; i < safeEmail.length; i += 1) {
-            hash = (hash * 31 + safeEmail.charCodeAt(i)) % 1000000;
-          }
-          userId = `roomhyweb${String(hash).padStart(6, "0")}`;
-        }
-        if (!userId) return;
-
-        const { fetchJson } = await import('../../utils/api');
-        const data = await fetchJson(`/api/chat/inbox/${encodeURIComponent(userId)}`).catch(() => null);
-        if (data?.conversations && Array.isArray(data.conversations)) {
-          const total = data.conversations.reduce((acc, c) => acc + (Number(c.unread_count) || 0), 0);
-          setUnreadCount(total);
-        }
-      } catch (_) {}
-    };
-
-    fetchUnread();
-    const interval = setInterval(fetchUnread, 3000);
-    return () => clearInterval(interval);
-  }, [user]);
-
-  // Don't show on login/signup pages
-  const hiddenPaths = ['/website/login', '/website/signup', '/login', '/signup'];
-  if (hiddenPaths.includes(location.pathname)) {
+  if (isHiddenPath) {
     return null;
   }
 

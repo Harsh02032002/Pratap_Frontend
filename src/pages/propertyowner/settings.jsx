@@ -5,7 +5,7 @@ import {
   getOwnerRuntimeSession,
   fetchOwnerProperties,
   fetchOwnerRooms,
-  fetchOwnerTenants,
+  fetchOwnerTenantsLite,
   downloadCsv
 } from "../../utils/propertyowner";
 import { Building, UserCog, Shield, Globe, Lock, Check, Database, Download, Landmark, Eye, EyeOff, X, Loader2, Upload, FileCheck, Paperclip } from "lucide-react";
@@ -101,7 +101,7 @@ export default function Settings() {
       const [propertiesList, roomsResponse, tenantsList, rentsResponse, complaintsResponse] = await Promise.all([
         fetchOwnerProperties(owner.loginId, true),
         fetchOwnerRooms(owner.loginId).catch(() => ({ rooms: [] })),
-        fetchOwnerTenants(owner.loginId),
+        fetchOwnerTenantsLite(owner.loginId), // no tenant images on this page
         fetchJson(`/api/rents/owner/${encodeURIComponent(owner.loginId)}`).catch(() => []),
         fetchJson(`/api/complaints/owner/${encodeURIComponent(owner.loginId)}`).catch(() => [])
       ]);

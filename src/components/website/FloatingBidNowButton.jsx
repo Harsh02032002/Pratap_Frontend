@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { MessageCircle, Zap } from 'lucide-react';
-import { fetchJson } from '../../utils/api';
-import { getScopedStoredUser } from '../../utils/authScope';
 import { useAuth } from '../../contexts/AuthContext';
+import { useWebsiteUnread } from '../../hooks/useWebsiteUnread';
 
 export default function FloatingBidNowButton({ onOpenModal }) {
   const location = useLocation();
@@ -11,7 +10,14 @@ export default function FloatingBidNowButton({ onOpenModal }) {
   const { user } = useAuth();
   const [isScrolledDown, setIsScrolledDown] = useState(false);
   const [lastScrollY, setLastScrollY] = useState(0);
-  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Routes where this button renders nothing (see the early return below).
+  const isHiddenRoute = location.pathname === '/website/chat' || location.pathname === '/properties' || location.pathname.startsWith('/properties') || location.pathname === '/bidding' || location.pathname.startsWith('/bidding');
+
+  // Real-time unread messages count (WhatsApp style badge). Shared with
+  // MobileBottomNav — one socket + one 20s fallback poll for both, and only
+  // while the badge is actually on screen. See hooks/useWebsiteUnread.
+  const unreadCount = useWebsiteUnread({ user, enabled: !isHiddenRoute });
 
   useEffect(() => {
     const handleScroll = () => {
@@ -30,36 +36,7 @@ export default function FloatingBidNowButton({ onOpenModal }) {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
-  // Real-time unread messages count polling (WhatsApp style badge)
-  useEffect(() => {
-    const fetchUnread = async () => {
-      try {
-        const userObj = user || getScopedStoredUser() || {};
-        let userId = userObj?.loginId || userObj?.email;
-        if (!userId && userObj?.email) {
-          let hash = 0;
-          const safeEmail = String(userObj.email).trim().toLowerCase();
-          for (let i = 0; i < safeEmail.length; i += 1) {
-            hash = (hash * 31 + safeEmail.charCodeAt(i)) % 1000000;
-          }
-          userId = `roomhyweb${String(hash).padStart(6, "0")}`;
-        }
-        if (!userId) return;
-
-        const data = await fetchJson(`/api/chat/inbox/${encodeURIComponent(userId)}`).catch(() => null);
-        if (data?.conversations && Array.isArray(data.conversations)) {
-          const total = data.conversations.reduce((acc, c) => acc + (Number(c.unread_count) || 0), 0);
-          setUnreadCount(total);
-        }
-      } catch (_) {}
-    };
-
-    fetchUnread();
-    const interval = setInterval(fetchUnread, 3000);
-    return () => clearInterval(interval);
-  }, [user]);
-
-  if (location.pathname === '/website/chat' || location.pathname === '/properties' || location.pathname.startsWith('/properties') || location.pathname === '/bidding' || location.pathname.startsWith('/bidding')) {
+  if (isHiddenRoute) {
     return null;
   }
 

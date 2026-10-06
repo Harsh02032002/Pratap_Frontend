@@ -1,5 +1,6 @@
 import { fetchPropertiesLocal } from './mockApi';
 import { getScopedAuthToken, clearScopedSession } from './authScope';
+export { getScopedAuthToken, clearScopedSession };
 import { normalizeTierKey, composeTieredPropertyName } from './propertyTiers';
 
 // ---------------------------------------------------------------------------

@@ -430,17 +430,20 @@ export default function Admin() {
     setOwner(session);
     // The dashboard call feeds every number above the fold; the rest fill in
     // panels further down. Firing all six at once is what tripped the backend
-    // rate limiter, so the secondary loaders queue behind the main one. Each
+    // rate limiter, so the main call still goes first. The four secondary
+    // loaders then run together (4 requests, well inside the logged-in limit)
+    // instead of one-by-one, which used to stack their latencies. Each
     // swallows its own errors, so a failure never breaks the chain.
     (async () => {
       await loadDashboard(session.loginId);
-      await loadChartData(session.loginId, chartPeriod);
-      await loadCollectionStats(session._id || session.loginId);
-      await loadMonthlyData(session.loginId);
-      await loadChangeRequests(session.loginId);
-      // Each loader swallows its own fetch errors, but a few read storage
-      // before their try block — a locked-down browser can throw there, and an
-      // unhandled rejection would silently stop the remaining loaders.
+      // allSettled: a few loaders read storage before their try block — a
+      // locked-down browser can throw there, and that must not stop the others.
+      await Promise.allSettled([
+        loadChartData(session.loginId, chartPeriod),
+        loadCollectionStats(session._id || session.loginId),
+        loadMonthlyData(session.loginId),
+        loadChangeRequests(session.loginId)
+      ]);
     })().catch(() => { /* already surfaced by loadDashboard's own handling */ });
   }, []);
 

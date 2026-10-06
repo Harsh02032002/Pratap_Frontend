@@ -3,6 +3,7 @@ import { NavLink, useLocation, Outlet, useNavigate } from "react-router-dom";
 import { resolveSectionFromPath, sharedNavConfig } from "./sharedNavConfig";
 import { Menu, Search, Bell, ChevronRight, X, MessageSquare, Building2, HelpCircle, Plus, ChevronDown, UserPlus, Wallet, AlertCircle, Calendar, Receipt, Smartphone } from "lucide-react";
 import { Sidebar } from "./Sidebar";
+import { SubNavPanel } from "./SubNavPanel";
 import { fetchJson } from "../utils/api";
 import { requestNotificationPermission, showNativeNotification } from "../utils/notificationManager";
 import NotificationPromptBanner from "./NotificationPromptBanner";
@@ -130,8 +131,28 @@ export default function SharedShell() {
 
   useEffect(() => {
     fetchRecentNotifications();
-    const interval = setInterval(fetchRecentNotifications, 10000);
-    return () => clearInterval(interval);
+    // Every 10s while the tab is visible, as before. In a background tab only
+    // every 6th tick (60s) — not stopped entirely, because this poll is also
+    // what raises the native desktop pop-up for new notifications while the
+    // user is on another tab. Coming back to the tab refreshes immediately.
+    let hiddenTicks = 0;
+    const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+        hiddenTicks += 1;
+        if (hiddenTicks % 6 !== 0) return;
+      } else {
+        hiddenTicks = 0;
+      }
+      fetchRecentNotifications();
+    }, 10000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") fetchRecentNotifications();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [user?.loginId]);
 
   useEffect(() => {
@@ -143,16 +164,24 @@ export default function SharedShell() {
     return () => mq.removeEventListener("change", update);
   }, []);
 
+  const [activeModuleId, setActiveModuleId] = useState(null);
+
+  useEffect(() => {
+    setActiveModuleId(null);
+  }, [location.pathname]);
+
   if (isEmbed) return <Outlet />;
   if (!config) return <div className="shared-shell"><Outlet /></div>;
 
   if (section === "superadmin" || section === "employee") {
     return (
-      <div className="flex h-screen w-full bg-white overflow-hidden font-inter">
+      <div className="flex h-screen w-full bg-[#F4F6F8] overflow-hidden font-sans text-[#10242A]">
         <Sidebar 
           open={sidebarOpen} 
           isMobile={isMobile}
           onClose={() => setSidebarOpen(false)} 
+          activeModuleId={activeModuleId}
+          setActiveModuleId={setActiveModuleId}
           onLogout={() => {
             const role = String(user?.role || "").toLowerCase();
             localStorage.clear();
@@ -161,9 +190,12 @@ export default function SharedShell() {
           }}
         />
 
+        {/* Secondary Sub-navigation Sidebar Panel (as shown in PDF) */}
+        {!isMobile && <SubNavPanel activeModuleId={activeModuleId} />}
+
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          {/* Top Global Header - Screenshot Perfect */}
-          <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-100 flex items-center justify-between px-8 z-30 shrink-0">
+          {/* Top Global Header - Screenshot & PDF Perfect */}
+          <header className="h-[72px] bg-white border-b border-[#E1E6EA] flex items-center justify-between px-8 z-30 shrink-0">
             <div className="flex items-center gap-4">
               <button
                 className="lg:hidden p-2 text-slate-500 hover:bg-slate-50 rounded-xl transition-all"
@@ -172,13 +204,13 @@ export default function SharedShell() {
                 <Menu size={24} />
               </button>
               
-              {/* Search Matrix */}
-              <div className="hidden md:flex items-center bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 w-96 group focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-500/5 focus-within:border-blue-500 transition-all">
-                <Search size={18} className="text-slate-400 group-focus-within:text-blue-600" />
+              {/* Search Field - PDF Spec: 44px high, radius 8px, border 1px #CBD3D9 */}
+              <div className="hidden md:flex items-center bg-white border border-[#CBD3D9] rounded-[8px] px-3.5 h-[44px] w-96 focus-within:border-[#0E7C86] focus-within:ring-1 focus-within:ring-[#0E7C86] transition-all">
+                <Search size={18} className="text-[#4A5961] shrink-0" />
                 <input 
                   type="text" 
-                  placeholder="Search anything..." 
-                  className="bg-transparent border-none outline-none text-sm font-medium ml-3 w-full text-slate-700 placeholder:text-slate-400"
+                  placeholder="Search users, properties, bookings..." 
+                  className="bg-transparent border-none outline-none text-sm ml-2.5 w-full text-[#10242A] placeholder:text-[#4A5961]"
                 />
               </div>
             </div>
@@ -301,10 +333,10 @@ export default function SharedShell() {
               {/* Profile Identity - Screenshot Style */}
               <div className="flex items-center gap-4 pl-6 border-l border-slate-100 group cursor-pointer relative">
                 <div className="text-right hidden sm:block">
-                  <p className="text-sm font-bold text-slate-900 leading-none group-hover:text-blue-600 transition-colors">{userName}</p>
+                  <p className="text-sm font-bold text-slate-900 leading-none group-hover:text-[#0E7C86] transition-colors">{userName}</p>
                   <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest opacity-60">{userRole}</p>
                 </div>
-                <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-lg shadow-blue-600/20 group-hover:scale-105 transition-transform">
+                <div className="w-10 h-10 rounded-full bg-[#0F2A2E] text-white flex items-center justify-center font-bold text-lg shadow-md shadow-[#0F2A2E]/20 group-hover:scale-105 transition-transform">
                   {initial}
                 </div>
                 <div className="absolute top-full right-0 mt-4 w-48 bg-white rounded-xl shadow-xl border border-slate-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all -translate-y-2 group-hover:translate-y-0 z-50 overflow-hidden">
@@ -317,8 +349,10 @@ export default function SharedShell() {
             </div>
           </header>
 
-          <main className="flex-1 overflow-y-auto custom-scrollbar p-8">
-            <Outlet />
+          <main className="flex-1 min-w-0 overflow-y-auto custom-scrollbar p-4 md:p-6">
+            <div className="w-full max-w-[1600px] mx-auto">
+              <Outlet />
+            </div>
           </main>
         </div>
 

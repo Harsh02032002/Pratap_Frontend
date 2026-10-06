@@ -350,90 +350,73 @@ export default function Manager() {
       )}
 
       <PageHeader 
-        title="Team Management"
-        subtitle="Manage your team members, departments, and access permissions."
-        breadcrumbs={[
-          { label: "Dashboard" },
-          { label: "Staff Directory", active: true }
-        ]}
+        category="User Management"
+        title="All Staff"
         actions={
-          <button 
-            onClick={() => openModal()}
-            className="bg-slate-900 text-white px-6 py-3 rounded-2xl text-[10px] font-bold uppercase tracking-widest shadow-xl shadow-slate-900/10 hover:bg-black transition-all flex items-center gap-2"
-          >
-            <UserPlus size={14} /> Add Staff
-          </button>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => showNotification("Exporting staff directory CSV...")}
+              className="bg-white border border-[#CBD3D9] hover:bg-slate-50 text-[#10242A] font-semibold text-sm px-4 py-2 rounded-[8px] transition-colors cursor-pointer"
+            >
+              Export
+            </button>
+            <button 
+              onClick={() => openModal()}
+              className="bg-[#0E7C86] hover:bg-[#0B666E] text-white font-semibold text-sm px-4 py-2 rounded-[8px] flex items-center gap-2 transition-colors cursor-pointer"
+            >
+              <UserPlus size={16} />
+              <span>+ Add Staff</span>
+            </button>
+          </div>
         }
       />
 
-      {/* Stats Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCardSmall label="Total Employees" value={stats.total} icon={Users} color="blue" trend="Staff Count" up />
-        <StatCardSmall label="Active Now" value={stats.active} icon={Activity} color="emerald" trend="Currently Active" up />
-        <StatCardSmall label="Marketing Team" value={stats.marketing} icon={Megaphone} color="indigo" trend="Department Staff" up />
-        <StatCardSmall label="Locked Access" value={stats.locked} icon={Lock} color="rose" trend="Disabled Accounts" up={false} />
-      </div>
+      {/* Directory Table Card - PDF Page 3 */}
+      <div className="bg-white rounded-[12px] p-5 border border-[#E1E6EA] shadow-sm">
+        {/* Filter Controls Bar */}
+        <div className="flex flex-col sm:flex-row items-center gap-3 mb-6">
+          <div className="relative flex-1 w-full">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#4A5961]" />
+            <input 
+              value={search} 
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search" 
+              className="w-full h-[44px] bg-white border border-[#CBD3D9] rounded-[8px] pl-10 pr-3.5 text-sm text-[#10242A] placeholder:text-[#4A5961] outline-none focus:border-[#0E7C86]" 
+            />
+          </div>
+          <select 
+            value={currentTeam}
+            onChange={e => setCurrentTeam(e.target.value)}
+            className="h-[44px] bg-white border border-[#CBD3D9] rounded-[8px] px-3.5 text-sm text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] w-full sm:w-40"
+          >
+            <option value="All">Role ▾</option>
+            {standardTeams.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+          <select 
+            value={filterCity}
+            onChange={e => setFilterCity(e.target.value)}
+            className="h-[44px] bg-white border border-[#CBD3D9] rounded-[8px] px-3.5 text-sm text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] w-full sm:w-40"
+          >
+            <option value="">Status ▾</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-        {/* Filters & Directory */}
-        <div className="xl:col-span-12 bg-white rounded-[2rem] p-8 border border-slate-100 shadow-xl shadow-slate-200/40">
-           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
-              <div className="flex items-center gap-6">
-                 <h3 className="text-sm font-bold text-slate-800 uppercase tracking-tight">Staff Directory</h3>
-                 <div className="hidden lg:flex items-center bg-slate-50 p-1 rounded-2xl border border-slate-100">
-                    {["All", "Marketing Team", "Accounts Department", "Maintenance Team", "Custom"].map(team => (
-                      <button 
-                        key={team} 
-                        onClick={() => setCurrentTeam(team)}
-                        className={cn(
-                          "px-4 py-2 rounded-xl text-[9px] font-bold uppercase transition-all",
-                          currentTeam === team ? "bg-white text-blue-600 shadow-md border border-slate-100" : "text-slate-400 hover:text-slate-600"
-                        )}
-                      >
-                         {team === "All" ? "Global" : team.split(" ")[0]}
-                      </button>
-                    ))}
-                 </div>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                 <div className="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-2xl border border-slate-100">
-                    <MapPin size={12} className="text-slate-400" />
-                    <select 
-                      value={filterCity}
-                      onChange={e => { setFilterCity(e.target.value); setFilterArea(""); }}
-                      className="bg-transparent text-[10px] font-bold text-slate-600 outline-none border-none focus:ring-0 w-24"
-                    >
-                       <option value="">All Cities</option>
-                       {cities.map(c => <option key={c.id || c.name} value={c.name}>{c.name}</option>)}
-                    </select>
-                 </div>
-                 <div className="relative group flex-1 md:flex-none">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-                    <input 
-                      value={search} onChange={e => setSearch(e.target.value)}
-                      placeholder="Search employee ID or name..." 
-                      className="bg-slate-50 border border-slate-100 rounded-2xl py-2.5 pl-11 pr-4 text-[10px] font-bold outline-none focus:bg-white focus:ring-4 focus:ring-blue-100/50 transition-all w-full md:w-64" 
-                    />
-                 </div>
-                 <button onClick={loadData} className="p-2.5 rounded-2xl bg-slate-50 text-slate-400 hover:text-blue-600 transition-all border border-slate-100">
-                    <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
-                 </button>
-              </div>
-           </div>
-
-           <div className="overflow-x-auto custom-scrollbar">
-              <table className="w-full text-left min-w-[900px]">
-                 <thead>
-                    <tr className="text-slate-400 text-[9px] font-bold uppercase border-b border-slate-50">
-                       <th className="pb-6 pl-4">Staff Member</th>
-                       <th className="pb-6">Role / Department</th>
-                       <th className="pb-6 text-center">Assigned Area</th>
-                       <th className="pb-6 text-center">Account Status</th>
-                       <th className="pb-6 text-right pr-4">Actions</th>
-                    </tr>
-                 </thead>
-                 <tbody className="divide-y divide-slate-50">
+        {/* Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-[#E1E6EA]">
+                <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Name</th>
+                <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Role</th>
+                <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Phone</th>
+                <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Email</th>
+                <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Status</th>
+                <th className="text-xs font-semibold text-[#4A5961] py-3 px-4 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#E1E6EA] text-sm">
                     {loading ? (
                       <tr><td colSpan="5" className="py-24 text-center">
                          <div className="w-12 h-12 border-4 border-blue-600/10 border-t-blue-600 rounded-full animate-spin mx-auto mb-6" />
@@ -447,83 +430,36 @@ export default function Manager() {
                     ) : filteredEmployees.map((e, i) => {
                        const active = e.isActive !== false;
                        return (
-                        <tr key={i} className="group hover:bg-slate-50/50 transition-all duration-300">
-                           <td className="py-5 pl-4">
-                              <div className="flex items-center gap-4">
-                                 <div className="w-12 h-12 rounded-2xl bg-slate-100 border-2 border-white shadow-sm flex items-center justify-center overflow-hidden shrink-0 group-hover:scale-110 transition-transform">
-                                    {e.photoDataUrl ? (
-                                      <img src={e.photoDataUrl} className="w-full h-full object-cover" alt="" />
-                                    ) : (
-                                      <div className="w-full h-full bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white font-black text-sm uppercase">
-                                        {buildInitials(e.name)}
-                                      </div>
-                                    )}
-                                 </div>
-                                 <div>
-                                    <div className="flex items-center gap-2">
-                                      <p className="text-sm font-bold text-slate-800 leading-none">{e.name || "Unknown Node"}</p>
-                                      {e.parentLoginId && <span className="text-[7px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded uppercase leading-none">Sub</span>}
-                                    </div>
-                                    <div className="flex items-center gap-1.5 mt-2">
-                                      <code className="text-[10px] font-black text-blue-600 tracking-tighter uppercase">{e.loginId}</code>
-                                      <span className="w-1 h-1 rounded-full bg-slate-200" />
-                                      <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">{e.phone || "No Contact"}</p>
-                                    </div>
-                                 </div>
+                        <tr key={i} className="hover:bg-slate-50/50 transition-colors border-b border-[#E1E6EA]">
+                          <td className="py-3.5 px-4 font-medium text-[#10242A]">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-[#E1E6EA] flex items-center justify-center font-bold text-xs text-[#10242A]">
+                                {buildInitials(e.name)}
                               </div>
-                           </td>
-                           <td className="py-5">
-                              <div className="space-y-1.5">
-                                 <p className="text-[11px] font-bold text-slate-700 leading-none">{e.role}</p>
-                                 <p className="text-[9px] font-bold text-slate-400 truncate max-w-[180px] opacity-60 leading-none">{e.email}</p>
-                              </div>
-                           </td>
-                           <td className="py-5 text-center">
-                              <div className="inline-flex flex-col items-center bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100 shadow-sm group-hover:bg-white transition-colors">
-                                 <p className="text-[10px] font-bold text-slate-800 leading-none">{e.area || "HQ"}</p>
-                                 <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest mt-1.5 leading-none opacity-60">{e.city || "Head Office"}</p>
-                              </div>
-                           </td>
-                           <td className="py-5 text-center">
-                              <span className={cn(
-                                 "text-[8px] font-bold px-3 py-1 rounded-xl border uppercase tracking-widest shadow-sm",
-                                 active ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-rose-50 text-rose-600 border-rose-100"
-                              )}>
-                                 {active ? "Active" : "Disabled"}
-                              </span>
-                           </td>
-                           <td className="py-5 text-right pr-4">
-                              <div className="flex items-center justify-end gap-2">
-                                 <button 
-                                   onClick={() => openModal(e)}
-                                   className="p-2.5 rounded-xl bg-slate-50 text-slate-400 hover:text-blue-600 hover:bg-white transition-all border border-slate-100 shadow-sm"
-                                 >
-                                    <Shield size={14} />
-                                 </button>
-                                 <button 
-                                   onClick={() => toggleStatus(e)}
-                                   className={cn(
-                                     "p-2.5 rounded-xl bg-slate-50 transition-all border border-slate-100 shadow-sm",
-                                     active ? "text-slate-400 hover:text-rose-600 hover:bg-white" : "text-emerald-600 hover:bg-white"
-                                   )}
-                                 >
-                                    {active ? <Lock size={14} /> : <Unlock size={14} />}
-                                 </button>
-                                 <button 
-                                   onClick={() => openModal(null, e.loginId)}
-                                   className="p-2.5 rounded-xl bg-slate-50 text-slate-400 hover:text-indigo-600 hover:bg-white transition-all border border-slate-100 shadow-sm"
-                                 >
-                                    <UserPlus size={14} />
-                                 </button>
-                                  <button 
-                                    onClick={() => deleteEmployee(e)}
-                                    className="p-2.5 rounded-xl bg-slate-50 text-slate-400 hover:text-rose-600 hover:bg-white transition-all border border-slate-100 shadow-sm"
-                                    title="Delete Staff Member"
-                                  >
-                                     <Trash2 size={14} />
-                                  </button>
-                              </div>
-                           </td>
+                              <span className="font-medium text-[#10242A]">{e.name || "Staff Member"}</span>
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4 text-[#10242A]">{e.role || "Staff"}</td>
+                          <td className="py-3.5 px-4 text-[#4A5961]">{e.phone || "—"}</td>
+                          <td className="py-3.5 px-4 text-[#4A5961]">{e.email || "—"}</td>
+                          <td className="py-3.5 px-4">
+                            <span className={cn(
+                              "text-xs font-semibold px-2.5 py-1 rounded-full inline-flex items-center",
+                              active ? "bg-[#DDF3E4] text-[#14532D]" : "bg-[#FEE2E2] text-[#991B1B]"
+                            )}>
+                              {active ? "Active" : "Inactive"}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <button onClick={() => openModal(e)} className="border border-[#CBD3D9] hover:bg-slate-50 text-[#10242A] text-xs font-semibold px-3 py-1 rounded-[6px] transition-colors">
+                                View
+                              </button>
+                              <button onClick={() => openModal(e)} className="border border-[#CBD3D9] hover:bg-slate-50 text-[#10242A] text-xs font-semibold px-3 py-1 rounded-[6px] transition-colors">
+                                Edit
+                              </button>
+                            </div>
+                          </td>
                         </tr>
                        );
                     })}
@@ -531,7 +467,6 @@ export default function Manager() {
               </table>
            </div>
         </div>
-      </div>
 
       {/* Modal - Implementation follows same Premium UI patterns */}
       {showModal && (

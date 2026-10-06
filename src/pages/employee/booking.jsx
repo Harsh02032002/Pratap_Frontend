@@ -133,6 +133,7 @@ export default function SuperadminBooking() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotif, setShowNotif] = useState(false);
   const pollRef = useRef(null);
+  const visibilityRef = useRef(null);
 
   useEffect(() => {
     window.lucide?.createIcons();
@@ -146,13 +147,24 @@ export default function SuperadminBooking() {
 
   const startPolling = () => {
     stopPolling();
-    pollRef.current = setInterval(fetchNotifications, 5000);
+    // Badge-only poll: skipped while the tab is hidden (nothing to show), and
+    // refreshed as soon as the tab is visible again.
+    pollRef.current = setInterval(() => {
+      if (document.visibilityState === "hidden") return;
+      fetchNotifications();
+    }, 5000);
+    visibilityRef.current = () => {
+      if (document.visibilityState === "visible") fetchNotifications();
+    };
+    document.addEventListener("visibilitychange", visibilityRef.current);
     fetchNotifications();
   };
 
   const stopPolling = () => {
     if (pollRef.current) clearInterval(pollRef.current);
     pollRef.current = null;
+    if (visibilityRef.current) document.removeEventListener("visibilitychange", visibilityRef.current);
+    visibilityRef.current = null;
   };
 
   const fetchNotifications = async () => {

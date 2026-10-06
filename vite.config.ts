@@ -196,8 +196,16 @@ export default defineConfig(({ mode }) => {
           manualChunks: (id) => {
             // Main website vendor
             if (id.includes('react-router-dom')) return 'vendor-router';
-            if (id.includes('react-dom') || (id.includes('react') && !id.includes('@tanstack') && !id.includes('lucide'))) return 'vendor-react';
-            if (id.includes('lucide-react')) return 'vendor-icons';
+            // Exact package match. The old `id.includes('react')` also caught
+            // every package with "react" in its path (@radix-ui/react-*,
+            // emoji-picker-react, react-hot-toast, …) and shipped them all in
+            // the vendor chunk every website page loads.
+            if (/node_modules[\\/](react|react-dom|scheduler)[\\/]/.test(id)) return 'vendor-react';
+            // lucide-react is intentionally NOT forced into one chunk any more.
+            // A few admin pages look icons up by name (`LucideIcons[key]`), which
+            // keeps all ~1,400 icons; with a single 'vendor-icons' chunk the
+            // website downloaded all of them too. Left to Rollup, each page only
+            // gets the icons it actually uses.
             if (id.includes('leaflet')) return 'vendor-maps';
             if (id.includes('axios') || id.includes('@supabase')) return 'vendor-utils';
 

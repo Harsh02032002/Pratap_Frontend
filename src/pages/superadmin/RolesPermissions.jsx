@@ -8,6 +8,7 @@ import {
   Fingerprint, Loader2, MapPin, Building2, Shield, User, Plus
 } from "lucide-react";
 import { fetchJson, getAuthHeader, getApiBase } from "../../utils/api";
+import { PageHeader } from "../../components/superadmin/PageHeader";
 import { 
   EMPLOYEE_TYPES, 
   ROLES_REQUIRING_ASSIGNED_PROPERTIES, 
@@ -221,88 +222,119 @@ export default function RolesPermissions() {
     (e.loginId || "").toLowerCase().includes(search.toLowerCase())
   );
 
+  const [selectedRole, setSelectedRole] = useState("Admin");
+  const rolesList = ["Admin", "Manager", "Accountant", "Support Agent", "Field Agent"];
+
+  const modulesList = [
+    { name: "User Management", view: true, create: true, edit: true, delete: false },
+    { name: "Property Management", view: true, create: false, edit: true, delete: true },
+    { name: "Accounting", view: true, create: true, edit: true, delete: true },
+    { name: "Chat Management", view: true, create: false, edit: false, delete: false },
+    { name: "Visit Report", view: true, create: true, edit: true, delete: false },
+    { name: "Reports", view: true, create: false, edit: true, delete: false },
+    { name: "Bookings", view: true, create: true, edit: false, delete: false },
+    { name: "Reviews", view: true, create: false, edit: true, delete: false },
+    { name: "Support", view: true, create: true, edit: true, delete: false },
+    { name: "Settings", view: true, create: false, edit: false, delete: false },
+  ];
+
   return (
-    <div className="p-8 space-y-10 bg-[#F8FAFC] min-h-full">
-      {/* Header */}
-      <div className="flex flex-col gap-2">
-         <h1 className="text-4xl font-bold text-slate-800 tracking-tight leading-none">Roles & Permissions</h1>
-      </div>
+    <div className="space-y-6 text-[#10242A]">
+      <PageHeader 
+        category="User Management"
+        title="Roles & Permissions"
+        actions={
+          <button 
+            onClick={() => alert("Creating new role...")}
+            className="bg-[#0E7C86] hover:bg-[#0B666E] text-white font-semibold text-sm px-4 py-2 rounded-[8px] flex items-center gap-2 transition-colors cursor-pointer"
+          >
+            <Plus size={16} />
+            <span>+ New Role</span>
+          </button>
+        }
+      />
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-         <p className="text-sm font-bold text-slate-400 max-w-2xl">Manage staff access levels, personnel details, and operational boundaries. Full administrative controls over every team member.</p>
-         <div className="relative w-full md:w-96">
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-            <input 
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search staff by name or ID..."
-              className="w-full bg-white border border-slate-100 pl-12 pr-6 py-4 rounded-2xl text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-blue-50 transition-all shadow-sm"
-            />
-         </div>
-      </div>
+      {/* Grid - Left ROLES, Right Permissions Matrix (PDF Page 4) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        {/* Left Panel: ROLES */}
+        <div className="lg:col-span-4 bg-white rounded-[12px] p-5 border border-[#E1E6EA] shadow-sm">
+          <h3 className="text-xs font-bold text-[#4A5961] uppercase tracking-wider mb-4">ROLES</h3>
+          <div className="space-y-1">
+            {rolesList.map((role) => {
+              const isActive = role === selectedRole;
+              return (
+                <button
+                  key={role}
+                  onClick={() => setSelectedRole(role)}
+                  className={cn(
+                    "w-full text-left px-4 py-3 rounded-[8px] text-sm font-semibold transition-all flex items-center justify-between cursor-pointer",
+                    isActive 
+                      ? "bg-[#E6F4F5] text-[#0E7C86] font-bold border-l-4 border-[#0E7C86]" 
+                      : "text-[#10242A] hover:bg-slate-50"
+                  )}
+                >
+                  <span>{role}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
-      {/* Staff Grid/Table */}
-      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/50 overflow-hidden">
-         <div className="overflow-x-auto">
-            <table className="w-full text-left min-w-[1000px]">
-               <thead>
-                  <tr className="bg-slate-50/50 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
-                     <th className="px-10 py-8">Personnel Identity</th>
-                     <th className="px-6 py-8">Designated Role</th>
-                     <th className="px-6 py-8">Active Access Modules</th>
-                     <th className="px-10 py-8 text-right">Actions</th>
+        {/* Right Panel: Permissions Table */}
+        <div className="lg:col-span-8 bg-white rounded-[12px] p-5 border border-[#E1E6EA] shadow-sm flex flex-col justify-between">
+          <div>
+            <h3 className="text-base font-bold text-[#10242A] mb-4">Permissions: {selectedRole}</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-[#E1E6EA]">
+                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Module</th>
+                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4 text-center">View</th>
+                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4 text-center">Create</th>
+                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4 text-center">Edit</th>
+                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4 text-center">Delete</th>
                   </tr>
-               </thead>
-               <tbody className="divide-y divide-slate-50">
-                  {loading ? (
-                    <tr><td colSpan="4" className="px-10 py-20 text-center text-slate-400 font-bold uppercase text-[10px]">Synchronizing Access Records...</td></tr>
-                  ) : filteredEmployees.length === 0 ? (
-                    <tr><td colSpan="4" className="px-10 py-20 text-center text-slate-400 font-bold uppercase text-[10px]">No staff records found</td></tr>
-                  ) : filteredEmployees.map((e) => (
-                    <tr key={e.loginId || e._id} className="group hover:bg-slate-50/50 transition-all">
-                       <td className="px-10 py-8">
-                          <div className="flex items-center gap-5">
-                             <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg shadow-sm group-hover:bg-white group-hover:shadow-md transition-all">
-                                {buildInitials(e.name)}
-                             </div>
-                             <div>
-                                <p className="text-base font-bold text-slate-800">{e.name}</p>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{e.loginId}</p>
-                             </div>
-                          </div>
-                       </td>
-                       <td className="px-6 py-8">
-                          <span className="px-4 py-2 bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-widest rounded-xl">
-                             {e.role === "Custom" ? e.customRole || "Custom Access" : e.role}
-                          </span>
-                       </td>
-                       <td className="px-6 py-8 max-w-md">
-                          <div className="flex flex-wrap gap-2">
-                             {(e.permissions || []).length === 0 ? (
-                               <span className="text-[10px] font-bold text-rose-400 uppercase tracking-widest italic opacity-60">No access granted</span>
-                             ) : e.permissions.map(p => {
-                               const label = EMPLOYEE_MODULE_OPTIONS.find(ap => ap.id === p)?.label || p;
-                               return (
-                                 <span key={p} className="px-3 py-1.5 bg-blue-50 text-blue-600 text-[9px] font-bold uppercase tracking-tight rounded-lg border border-blue-100/50">
-                                    {label}
-                                 </span>
-                               );
-                             })}
-                          </div>
-                       </td>
-                       <td className="px-10 py-8 text-right">
-                          <button 
-                            onClick={() => openMatrix(e)}
-                            className="inline-flex items-center gap-2 px-5 py-3 bg-white text-slate-600 border border-slate-100 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-slate-800 hover:text-white hover:border-slate-800 transition-all shadow-sm"
-                          >
-                             <Edit3 className="w-4 h-4" /> Edit Personnel & Matrix
-                          </button>
-                       </td>
+                </thead>
+                <tbody className="divide-y divide-[#E1E6EA] text-sm">
+                  {modulesList.map((m, idx) => (
+                    <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="py-3.5 px-4 text-[#10242A] font-medium">{m.name}</td>
+                      <td className="py-3.5 px-4 text-center">
+                        <div className={`w-5 h-5 rounded flex items-center justify-center mx-auto ${m.view ? 'bg-[#0E7C86] text-white' : 'border border-[#CBD3D9]'}`}>
+                          {m.view && <CheckCircle2 size={14} />}
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4 text-center">
+                        <div className={`w-5 h-5 rounded flex items-center justify-center mx-auto ${m.create ? 'bg-[#0E7C86] text-white' : 'border border-[#CBD3D9]'}`}>
+                          {m.create && <CheckCircle2 size={14} />}
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4 text-center">
+                        <div className={`w-5 h-5 rounded flex items-center justify-center mx-auto ${m.edit ? 'bg-[#0E7C86] text-white' : 'border border-[#CBD3D9]'}`}>
+                          {m.edit && <CheckCircle2 size={14} />}
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4 text-center">
+                        <div className={`w-5 h-5 rounded flex items-center justify-center mx-auto ${m.delete ? 'bg-[#0E7C86] text-white' : 'border border-[#CBD3D9]'}`}>
+                          {m.delete && <CheckCircle2 size={14} />}
+                        </div>
+                      </td>
                     </tr>
                   ))}
-               </tbody>
-            </table>
-         </div>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-[#E1E6EA]">
+            <button className="bg-white border border-[#CBD3D9] hover:bg-slate-50 text-[#10242A] text-sm font-semibold px-4 py-2 rounded-[8px] transition-colors cursor-pointer">
+              Cancel
+            </button>
+            <button className="bg-[#0E7C86] hover:bg-[#0B666E] text-white text-sm font-semibold px-4 py-2 rounded-[8px] transition-colors cursor-pointer">
+              Save changes
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Comprehensive Edit Personnel & Access Control Modal */}

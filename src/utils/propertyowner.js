@@ -46,8 +46,8 @@ const _deleteByPrefix = (...prefixes) => {
 // name. One owner per browser session, so dropping every tenant key is both
 // correct and cheap.
 export const invalidateOwnerTenantCache = () => {
-  // "tenant_" also covers tenant_kyc_<id>.
-  _deleteByPrefix("tenants_", "active_tenants_", "tenant_", "kyc_requests_");
+  // "tenant_" also covers tenant_kyc_<id>; "lite_tenants_" is fetchOwnerTenantsLite.
+  _deleteByPrefix("tenants_", "active_tenants_", "lite_tenants_", "tenant_", "kyc_requests_");
 };
 
 export const clearOwnerFetchCache = (loginId) => {
@@ -603,6 +603,35 @@ export const fetchOwnerTenants = async (loginId, skipCache = false) => {
       _setCached(_cacheKey, tenants);
       return tenants;
     }
+  }
+};
+
+/**
+ * Same tenant list as fetchOwnerTenants, minus inline image blobs (photo, KYC
+ * scans, e-signature) — server-side `?lite=1`. For screens that never render
+ * tenant images (payment, settings, rooms). Much smaller payload per owner.
+ *
+ * Kept deliberately separate from fetchOwnerTenants:
+ *  - its own in-memory cache key, so a lite list is never served to tenants.jsx /
+ *    tenant-docs / kyc-verification, which DO render the images;
+ *  - it never writes "roomhy_tenants" to localStorage, because tenants.jsx and the
+ *    digital-checkin hooks read photos/KYC from that copy.
+ * On any failure it falls back to the full fetch, so callers never get less data
+ * than before.
+ */
+export const fetchOwnerTenantsLite = async (loginId, skipCache = false) => {
+  const _cacheKey = `lite_${_tenantCacheKey(loginId)}`;
+  if (!skipCache) {
+    const _hit = _getCached(_cacheKey);
+    if (_hit) return _hit;
+  }
+  try {
+    const response = await fetchJson(`/api/owners/${encodeURIComponent(loginId)}/tenants?nodues=true&lite=1`);
+    const tenants = filterByActiveProperty(response?.tenants || response?.data || []);
+    _setCached(_cacheKey, tenants);
+    return tenants;
+  } catch (_) {
+    return fetchOwnerTenants(loginId, skipCache);
   }
 };
 

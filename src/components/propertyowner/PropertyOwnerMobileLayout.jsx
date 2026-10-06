@@ -14,6 +14,7 @@ import { SILVER_NAV, GOLD_NAV } from './navConfig';
 import { cacheInvalidate } from "../../utils/cache";
 import { API_URL } from "../../utils/api";
 import { initNotificationManager } from "../../utils/notificationManager";
+import { subscribeOwnerSocket } from "../../utils/ownerSocket";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
@@ -75,44 +76,30 @@ export default function PropertyOwnerMobileLayout({
   useEffect(() => {
     if (!owner?.loginId) return;
     initNotificationManager(owner.loginId);
-    let socket;
-    try {
-      import('socket.io-client').then(({ io }) => {
-        import('../../utils/api').then(({ getApiBase }) => {
-          socket = io(getApiBase(), { transports: ['websocket', 'polling'] });
-          socket.emit('join_room', { login_id: owner.loginId, role: 'property_owner', name: owner.name || owner.loginId });
-          socket.on('new_bidding_alert', (data) => {
-            import('../../utils/notificationManager').then(({ showNativeNotification }) => {
-              showNativeNotification(data.title || '💰 New Bid Received!', {
-                body: data.body || 'A new bid was submitted for your property.',
-                icon: '/pwa-192x192.png',
-                clickAction: '/propertyowner/booking_request'
-              });
-            }).catch(() => {});
-          });
-          socket.on('account_blocked', () => {
-            setIsAccountBlocked(true);
-            import('../../utils/propertyowner').then(({ clearOwnerRuntimeSession }) => {
-              clearOwnerRuntimeSession();
-            }).catch(() => {});
-            let count = 5;
-            setBlockCountdown(count);
-            const t = setInterval(() => {
-              count -= 1;
-              setBlockCountdown(count);
-              if (count <= 0) {
-                clearInterval(t);
-                window.location.href = '/propertyowner/ownerlogin';
-              }
-            }, 1000);
-          });
-        });
-      });
-    } catch (_) {}
+    // This layout is only ever rendered inside PropertyOwnerLayout, which owns
+    // the shared socket and already shows the new-bid notification — listening
+    // for it here too fired every bid alert twice. Only account_blocked is
+    // needed, to drive this layout's own blocked overlay.
+    const unsubscribe = subscribeOwnerSocket(owner, {
+      account_blocked: () => {
+        setIsAccountBlocked(true);
+        import('../../utils/propertyowner').then(({ clearOwnerRuntimeSession }) => {
+          clearOwnerRuntimeSession();
+        }).catch(() => {});
+        let count = 5;
+        setBlockCountdown(count);
+        const t = setInterval(() => {
+          count -= 1;
+          setBlockCountdown(count);
+          if (count <= 0) {
+            clearInterval(t);
+            window.location.href = '/propertyowner/ownerlogin';
+          }
+        }, 1000);
+      },
+    });
 
-    return () => {
-      if (socket) socket.disconnect();
-    };
+    return unsubscribe;
   }, [owner?.loginId]);
 
   // Property Switcher state — use props from parent if provided, else fall back to local state

@@ -70,6 +70,8 @@ export default function OwnerChat() {
   const messagesEndRef = React.useRef(null);
   const fileInputRef = React.useRef(null);
   const socketRef = React.useRef(null);
+  // Drives the poll cadence below: fast 3s polling only while the socket is down.
+  const [socketConnected, setSocketConnected] = useState(false);
   const activeChatRef = React.useRef(null);
   const [debouncedSearch, setDebouncedSearch] = React.useState("");
 
@@ -318,15 +320,21 @@ export default function OwnerChat() {
   };
 
 
-  const fetchMessages = async (targetUserId) => {
+  // `fresh` = the conversation was just opened: always mark it read, as before.
+  // Other calls (socket push, safety poll, after a send) only call mark-read
+  // when the thread really holds an unread message from the other side — the
+  // old code POSTed mark-read on every 3s tick whether or not there was any.
+  const fetchMessages = async (targetUserId, { fresh = false } = {}) => {
     try {
       if (!targetUserId) return;
       // Encoded: a participant id can be an email, and an unencoded one broke
       // the query string for any address containing a '+'.
       const res = await apiFetch(`/api/chat/conversation?user1=${encodeURIComponent(owner.loginId)}&user2=${encodeURIComponent(targetUserId)}`);
       if (res && Array.isArray(res)) {
+        let hasUnreadFromPartner = false;
         const next = res.map(msg => {
           const isMine = sameChatParty(msg.sender_login_id, owner.loginId) || String(msg.sender_login_id || '').toUpperCase() === String(owner.loginId || '').toUpperCase();
+          if (!isMine && msg.is_read === false) hasUnreadFromPartner = true;
           return {
             id: msg._id,
             sender: isMine ? "Me" : (msg.sender_name || "Tenant"),
@@ -343,36 +351,68 @@ export default function OwnerChat() {
 
         setMessages(prev => (sameThread(prev, next) ? prev : next));
         // Mark these messages as read
-        await apiFetch(`/api/chat/mark-read/${encodeURIComponent(owner.loginId)}?sender=${encodeURIComponent(targetUserId)}`, { method: "POST" });
+        if (fresh || hasUnreadFromPartner) {
+          await apiFetch(`/api/chat/mark-read/${encodeURIComponent(owner.loginId)}?sender=${encodeURIComponent(targetUserId)}`, { method: "POST" });
+        }
       }
     } catch (err) {
       console.error(err);
     }
   };
 
-  // Fast inbox poll — 3s interval for instant live updates without page refresh
+  // Initial inbox load.
   React.useEffect(() => {
     fetchInbox(true);
-    const interval = setInterval(() => fetchInbox(false), 3000);
-    return () => clearInterval(interval);
   }, [owner.loginId]);
 
-  // Fast message poll — 3s interval for instant live chat updates
+  // Opening a conversation: load it (and mark it read) + its booking card.
   React.useEffect(() => {
     if (activeChat) {
       setLoadingMessages(true);
-      fetchMessages(activeChat.participant_login_id).finally(() => setLoadingMessages(false));
+      fetchMessages(activeChat.participant_login_id, { fresh: true }).finally(() => setLoadingMessages(false));
 
       fetchAssociatedBooking(activeChat.participant_login_id);
-
-      const interval = setInterval(() => {
-        fetchMessages(activeChat.participant_login_id);
-      }, 3000);
-      return () => clearInterval(interval);
     } else {
       setAssociatedBooking(null);
     }
   }, [activeChat]);
+
+  // Background refresh. The old inbox + thread polls ran every 3s each (plus a
+  // mark-read POST and an owner-tenants fetch per tick) even with a healthy
+  // socket, which on its own could exhaust the API rate limit. Now:
+  //   socket down → 3s, exactly as before (instant-ish updates still work)
+  //   socket up   → pushes do the live work; 10s thread / 30s inbox safety poll
+  // Ticks are skipped while the tab is hidden; returning to it refreshes at once.
+  React.useEffect(() => {
+    const threadMs = socketConnected ? 10000 : 3000;
+    const inboxMs = socketConnected ? 30000 : 3000;
+    const isHidden = () => typeof document !== "undefined" && document.visibilityState === "hidden";
+
+    const threadTimer = setInterval(() => {
+      if (isHidden()) return;
+      const open = activeChatRef.current;
+      if (open?.participant_login_id) fetchMessages(open.participant_login_id);
+    }, threadMs);
+    const inboxTimer = setInterval(() => {
+      if (isHidden()) return;
+      fetchInbox(false);
+    }, inboxMs);
+
+    const onVisible = () => {
+      if (isHidden()) return;
+      const open = activeChatRef.current;
+      if (open?.participant_login_id) fetchMessages(open.participant_login_id);
+      fetchInbox(false);
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      clearInterval(threadTimer);
+      clearInterval(inboxTimer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [socketConnected, owner.loginId]);
 
   // Live delivery. The polls above stay as a fallback for a dropped socket,
   // but without this the owner only saw new messages on the next 10-15s tick
@@ -396,6 +436,11 @@ export default function OwnerChat() {
 
     socket.on("connect", joinOwnRoom);
     socket.on("reconnect", joinOwnRoom);
+    const onConnect = () => setSocketConnected(true);
+    const onDisconnect = () => setSocketConnected(false);
+    socket.on("connect", onConnect);
+    socket.on("disconnect", onDisconnect);
+    socket.on("connect_error", onDisconnect);
 
     socket.on("receive_message", (incoming) => {
       const open = activeChatRef.current;
@@ -409,7 +454,11 @@ export default function OwnerChat() {
       // the next 10s poll.
       if (open?.participant_login_id &&
           sameChatParty(incoming?.sender_login_id, open.participant_login_id)) {
-        fetchMessages(open.participant_login_id);
+        // Sidebar refreshed after the thread fetch, which marks the new
+        // message read — otherwise the open chat would show an unread badge
+        // until the next inbox poll (the old 3s poll used to hide that race).
+        fetchMessages(open.participant_login_id).finally(() => fetchInbox());
+        return;
       }
 
       // Always refresh the sidebar for previews and unread counts.
@@ -445,11 +494,15 @@ export default function OwnerChat() {
     return () => {
       socket.off("connect", joinOwnRoom);
       socket.off("reconnect", joinOwnRoom);
+      socket.off("connect", onConnect);
+      socket.off("disconnect", onDisconnect);
+      socket.off("connect_error", onDisconnect);
       socket.off("receive_message");
       socket.off("message_blocked");
       socket.off("account_blocked");
       socket.disconnect();
       socketRef.current = null;
+      setSocketConnected(false);
     };
   }, [owner?.loginId]);
 

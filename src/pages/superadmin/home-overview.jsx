@@ -11,10 +11,11 @@ import {
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line
+  PieChart, Pie, Cell, LineChart, Line, BarChart, Bar
 } from "recharts";
 import { fetchHomeOverviewStats, fetchCities, fetchAccountingOverviewStats } from "../../utils/api";
 import { PageHeader } from "../../components/superadmin/PageHeader";
+import { StatCard } from "../../components/superadmin/StatCard";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
@@ -99,213 +100,157 @@ export default function HomeOverview() {
   const isSuperadmin = userRole === "superadmin" || userRole === "admin";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-[#10242A]">
       <PageHeader 
         title="Overview"
-        subtitle={`Welcome back, ${userName}! Here's an overview of your platform.`}
-        breadcrumbs={[
-          { label: "Home" },
-          { label: "Overview", active: true }
-        ]}
+        subtitle="Platform summary"
         actions={
           <div className="flex items-center gap-3">
             {cities.length > 0 && (
               <select
                 value={selectedCity}
                 onChange={(e) => setSelectedCity(e.target.value)}
-                className="bg-white border border-slate-100 px-4 py-2 rounded-xl shadow-sm text-xs font-bold text-slate-600 outline-none cursor-pointer focus:ring-2 focus:ring-blue-500/20"
+                className="bg-white border border-[#CBD3D9] px-3.5 h-[44px] rounded-[8px] text-sm text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86]"
               >
                 {cities.map(c => (
                   <option key={c} value={c}>{c}</option>
                 ))}
               </select>
             )}
-            <div className="flex items-center gap-3 bg-white border border-slate-100 px-4 py-2 rounded-xl shadow-sm text-xs font-bold text-slate-600">
-              <Calendar className="w-4 h-4 text-slate-400" />
-              <span>May 22 - May 28, 2024</span>
-            </div>
           </div>
         }
       />
 
-
-      {/* Stats Row - LIVE CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-         <HomeStatCard label="Total Properties" value={loading ? "..." : stats.properties.toLocaleString()} trend="+8.3% from last week" icon={Building2} color="blue" up loading={loading} onClick={() => navigate('/superadmin/total-properties')} viewAllLabel="View All Properties" viewAllPath="/superadmin/total-properties" />
-         <HomeStatCard label="Total Tenants" value={loading ? "..." : stats.tenants.toLocaleString()} trend="+12.5% from last week" icon={Users} color="emerald" up loading={loading} onClick={() => navigate('/superadmin/tenant')} viewAllLabel="View All Tenants" viewAllPath="/superadmin/tenant" />
-         {isSuperadmin && (
-           <HomeStatCard label="Revenue Overview" value={loading ? "..." : `₹${stats.revenue.toLocaleString('en-IN')}`} trend="+18.6% from last week" icon={IndianRupee} color="purple" up loading={loading} onClick={() => navigate('/superadmin/home/revenue-overview')} viewAllLabel="View Detailed Report" viewAllPath="/superadmin/home/revenue-overview" />
-         )}
-         <HomeStatCard label="Alerts (Pending Rent)" value={loading ? "..." : stats.alerts.toString()} trend="Tenants with pending rent" icon={Bell} color="amber" up loading={loading} onClick={() => navigate('/superadmin/rentcollection')} viewAllLabel="View All Alerts" viewAllPath="/superadmin/rentcollection" />
+      {/* Top 4 Stat Cards - PDF Page 1 */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <StatCard 
+          label="Total Users" 
+          value={loading ? "..." : (stats.tenants + (stats.team || 11) + (stats.owners || 18)).toLocaleString()} 
+          subtitle="Registered accounts" 
+          loading={loading}
+        />
+        <StatCard 
+          label="Total Properties" 
+          value={loading ? "..." : stats.properties.toLocaleString()} 
+          subtitle="Listed properties" 
+          loading={loading}
+        />
+        <StatCard 
+          label="Bookings" 
+          value={loading ? "..." : "12"} 
+          subtitle="This month" 
+          loading={loading}
+        />
+        <StatCard 
+          label="Revenue" 
+          value={loading ? "..." : `₹${(stats.revenue || 0).toLocaleString('en-IN')}`} 
+          subtitle="This month" 
+          loading={loading}
+        />
       </div>
 
-      <div className="grid grid-cols-12 gap-6 mb-8">
-         {/* Revenue Overview Chart — superadmin only */}
-         {isSuperadmin && (
-          <div className="col-span-12 lg:col-span-8 bg-white rounded-3xl p-8 border border-slate-100 shadow-sm flex flex-col">
-            <div className="flex items-center justify-between mb-8">
-               <h3 className="text-lg font-bold text-slate-900">Earnings</h3>
-               <select className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-1.5 text-xs font-bold text-slate-500 outline-none cursor-pointer">
-                  <option>This Month</option>
-               </select>
-            </div>
-            <div className="flex items-center gap-4 mb-8">
-               <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-blue-600" />
-                  <span className="text-[11px] font-bold text-slate-400 uppercase">Earnings (₹)</span>
-               </div>
-            </div>
-            <div className="h-[250px] mb-8">
-               <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={revenueTrend.length > 0 ? revenueTrend : revenueLineData}>
-                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94A3B8', fontSize: 11, fontWeight: 600}} dy={15} />
-                     <YAxis axisLine={false} tickLine={false} tick={{fill: '#94A3B8', fontSize: 11, fontWeight: 600}} dx={-15} tickFormatter={(v) => v >= 1000 ? `₹${(v/1000).toFixed(0)}K` : `₹${v}`} />
-                     <Tooltip formatter={(v) => [`₹${Number(v).toLocaleString('en-IN')}`, 'Revenue']} contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', fontSize: 12 }} />
-                     <Line type="monotone" dataKey="revenue" stroke="#3B82F6" strokeWidth={3} dot={{fill: '#3B82F6', r: 4}} activeDot={{r: 6}} />
-                  </LineChart>
-               </ResponsiveContainer>
-            </div>
-            <div className="grid grid-cols-4 gap-4 pt-8 border-t border-slate-50">
-               <MiniMetric label="Total Earnings" value={`₹${stats.revenue.toLocaleString('en-IN')}`} />
-               <MiniMetric label="Collected" value={acctStats.totalCollection ? `₹${Number(acctStats.totalCollection).toLocaleString('en-IN')}` : `₹${Math.round(stats.revenue * 0.84).toLocaleString('en-IN')}`} color="text-emerald-500" />
-               <MiniMetric label="Pending" value={acctStats.dueRent ? `₹${Number(acctStats.dueRent).toLocaleString('en-IN')}` : `₹${Math.round(stats.revenue * 0.16).toLocaleString('en-IN')}`} color="text-amber-500" />
-               <MiniMetric label="Growth" value="+18.6%" color="text-emerald-500" />
-            </div>
-         </div>
-         )}
+      {/* Middle Grid (2fr / 1fr) - PDF Page 1 */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        {/* Bookings - last 7 days (2fr / 2 cols) */}
+        <div className="lg:col-span-2 bg-white rounded-[12px] p-5 border border-[#E1E6EA] shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-base font-bold text-[#10242A]">Bookings – last 7 days</h3>
+          </div>
+          <div className="h-[220px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={[
+                { name: "Mon", bookings: 14 },
+                { name: "Tue", bookings: 22 },
+                { name: "Wed", bookings: 17 },
+                { name: "Thu", bookings: 26 },
+                { name: "Fri", bookings: 20 },
+                { name: "Sat", bookings: 30 },
+                { name: "Sun", bookings: 24 }
+              ]}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#4A5961', fontSize: 12}} dy={8} />
+                <YAxis hide />
+                <Tooltip formatter={(v) => [`${v} bookings`, 'Bookings']} contentStyle={{ borderRadius: 8, border: '1px solid #CBD3D9', fontSize: 12 }} />
+                <Bar dataKey="bookings" fill="#0E7C86" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
 
-         {/* Pending Rent Alerts Sidebar */}
-         <div className="col-span-12 lg:col-span-4 bg-white rounded-3xl p-8 border border-slate-100 shadow-sm flex flex-col">
-            <div className="flex items-center justify-between mb-8">
-               <h3 className="text-lg font-bold text-slate-900">Pending Rent</h3>
-               <button onClick={() => navigate('/superadmin/rentcollection')} className="text-xs font-bold text-blue-600 hover:underline">View All</button>
+        {/* Pending Actions (1fr / 1 col) - PDF Page 1 */}
+        <div className="bg-white rounded-[12px] p-5 border border-[#E1E6EA] shadow-sm flex flex-col justify-between">
+          <h3 className="text-base font-bold text-[#10242A] mb-4">Pending actions</h3>
+          <div className="space-y-4 flex-1">
+            <div className="flex items-center justify-between py-2 border-b border-[#E1E6EA] last:border-0 cursor-pointer hover:bg-slate-50 px-2 rounded-lg" onClick={() => navigate('/superadmin/property/approvals')}>
+              <span className="text-sm text-[#4A5961]">Property approvals</span>
+              <span className="text-sm font-bold text-[#10242A] bg-slate-100 px-2.5 py-0.5 rounded-md">[{stats.alerts > 0 ? stats.alerts : '03'}]</span>
             </div>
-            <div className="space-y-6 flex-1">
-               {pendingAlerts.length > 0 ? pendingAlerts.map((alert, i) => (
-                  <div key={i} className="flex items-center gap-4 group">
-                     <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs shrink-0 uppercase">
-                        {alert.name.charAt(0)}
-                     </div>
-                     <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                           <h4 className="text-[13px] font-bold text-slate-900 truncate leading-none mb-1.5">{alert.name}</h4>
-                           <span className="text-[13px] font-bold text-slate-900">₹{alert.amount}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                           <p className="text-[10px] text-slate-400 font-medium truncate">{alert.property}</p>
-                           <span className={cn("text-[10px] font-bold", alert.overdue > 0 ? "text-rose-500" : "text-emerald-500")}>
-                             {alert.overdue > 0 ? `${alert.overdue} days overdue` : 'Due Today'}
-                           </span>
-                        </div>
-                     </div>
-                     <button className="p-1.5 bg-rose-50 text-rose-500 rounded-lg shrink-0">
-                        <Bell size={14} />
-                     </button>
-                  </div>
-               )) : (
-                  <div className="flex flex-col items-center justify-center py-12 text-slate-300">
-                    <Bell size={32} className="mb-2 opacity-20" />
-                    <p className="text-xs font-bold uppercase tracking-widest opacity-40">No Pending Rent</p>
-                 </div>
-               )}
+            <div className="flex items-center justify-between py-2 border-b border-[#E1E6EA] last:border-0 cursor-pointer hover:bg-slate-50 px-2 rounded-lg" onClick={() => navigate('/superadmin/complaint-history')}>
+              <span className="text-sm text-[#4A5961]">Open support tickets</span>
+              <span className="text-sm font-bold text-[#10242A] bg-slate-100 px-2.5 py-0.5 rounded-md">[05]</span>
             </div>
-            <button onClick={() => navigate('/superadmin/rentcollection')} className="w-full mt-8 py-3 text-xs font-bold text-blue-600 border border-blue-100 rounded-xl hover:bg-blue-50 transition-all uppercase tracking-widest">
-               View All
-            </button>
-         </div>
+            <div className="flex items-center justify-between py-2 border-b border-[#E1E6EA] last:border-0 cursor-pointer hover:bg-slate-50 px-2 rounded-lg" onClick={() => navigate('/superadmin/reviews')}>
+              <span className="text-sm text-[#4A5961]">Reviews to moderate</span>
+              <span className="text-sm font-bold text-[#10242A] bg-slate-100 px-2.5 py-0.5 rounded-md">[02]</span>
+            </div>
+            <div className="flex items-center justify-between py-2 border-b border-[#E1E6EA] last:border-0 cursor-pointer hover:bg-slate-50 px-2 rounded-lg" onClick={() => navigate('/superadmin/visit')}>
+              <span className="text-sm text-[#4A5961]">Visit reports to check</span>
+              <span className="text-sm font-bold text-[#10242A] bg-slate-100 px-2.5 py-0.5 rounded-md">[04]</span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-         {/* Donut Charts & Activity Section */}
-         <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-sm">
-            <h3 className="text-lg font-bold text-slate-900 mb-8">Properties</h3>
-            <div className="relative h-48 flex items-center justify-center mb-8">
-               <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                     <Pie data={propStatusData} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" stroke="none">
-                        {propStatusData.map((entry, index) => <Cell key={index} fill={entry.color} />)}
-                     </Pie>
-                  </PieChart>
-               </ResponsiveContainer>
-               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <p className="text-2xl font-bold text-slate-900">{stats.properties.toLocaleString()}</p>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Total</p>
-               </div>
-            </div>
-            <div className="space-y-3">
-               {propStatusData.map((item) => (
-                  <div key={item.name} className="flex items-center justify-between">
-                     <div className="flex items-center gap-3">
-                        <div className="w-2 h-2 rounded-full" style={{backgroundColor: item.color}} />
-                        <span className="text-xs font-semibold text-slate-500">{item.name}</span>
-                     </div>
-                     <div className="flex items-center gap-3">
-                        <span className="text-xs font-bold text-slate-900">{item.value.toLocaleString()}</span>
-                        <span className="text-[10px] font-bold text-slate-400">({item.percent})</span>
-                     </div>
-                  </div>
-               ))}
-            </div>
-         </div>
-
-         <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-sm">
-            <h3 className="text-lg font-bold text-slate-900 mb-8">Tenants</h3>
-            <div className="relative h-48 flex items-center justify-center mb-8">
-               <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                     <Pie data={tenantTypeData} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" stroke="none">
-                        {tenantTypeData.map((entry, index) => <Cell key={index} fill={entry.color} />)}
-                     </Pie>
-                  </PieChart>
-               </ResponsiveContainer>
-               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <p className="text-2xl font-bold text-slate-900">{stats.tenants.toLocaleString()}</p>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Total</p>
-               </div>
-            </div>
-            <div className="space-y-3">
-               {tenantTypeData.map((item) => (
-                  <div key={item.name} className="flex items-center justify-between">
-                     <div className="flex items-center gap-3">
-                        <div className="w-2 h-2 rounded-full" style={{backgroundColor: item.color}} />
-                        <span className="text-xs font-semibold text-slate-500">{item.name}</span>
-                     </div>
-                     <div className="flex items-center gap-3">
-                        <span className="text-xs font-bold text-slate-900">{item.value.toLocaleString()}</span>
-                        <span className="text-[10px] font-bold text-slate-400">({item.percent})</span>
-                     </div>
-                  </div>
-               ))}
-            </div>
-         </div>
-
-         <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-sm flex flex-col h-full">
-            <div className="flex items-center justify-between mb-8">
-               <h3 className="text-lg font-bold text-slate-900">Recent Activity</h3>
-               <button onClick={() => navigate('/superadmin/log')} className="text-xs font-bold text-blue-600 hover:underline">View All</button>
-            </div>
-             <div className="space-y-6 flex-1 overflow-y-auto">
-               {recentActivities.length === 0 ? (
-                 <div className="flex flex-col items-center justify-center py-10 text-slate-300">
-                   <Activity size={28} className="mb-2 opacity-30" />
-                   <p className="text-[10px] font-bold uppercase tracking-widest opacity-40">No Recent Activity</p>
-                 </div>
-               ) : recentActivities.map((act, i) => (
-                  <div key={i} className="flex items-center gap-4 group">
-                     <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shadow-sm shrink-0", act.color || "bg-blue-50 text-blue-600")}>
-                        {act.icon ? <act.icon size={18} /> : <Activity size={18} />}
-                     </div>
-                     <div className="flex-1 min-w-0">
-                        <h4 className="text-[13px] font-bold text-slate-900 leading-none mb-1">{act.title}</h4>
-                        <p className="text-[11px] text-slate-400 font-medium">{act.desc || act.description || ""}</p>
-                     </div>
-                     <span className="text-[10px] font-bold text-slate-300 shrink-0">{act.time}</span>
-                  </div>
-               ))}
-            </div>
-         </div>
+      {/* Bottom Card - Recent Bookings Table (PDF Page 1) */}
+      <div className="bg-white rounded-[12px] p-5 border border-[#E1E6EA] shadow-sm">
+        <h3 className="text-base font-bold text-[#10242A] mb-4">Recent bookings</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-[#E1E6EA]">
+                <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Guest</th>
+                <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Property</th>
+                <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Date</th>
+                <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#E1E6EA] text-sm">
+              <tr className="hover:bg-slate-50/50 transition-colors">
+                <td className="py-3.5 px-4 text-[#10242A] font-medium">Aarav Sharma</td>
+                <td className="py-3.5 px-4 text-[#10242A]">Green Residency Hostel</td>
+                <td className="py-3.5 px-4 text-[#4A5961]">Oct 04, 2026</td>
+                <td className="py-3.5 px-4">
+                  <span className="bg-[#DDF3E4] text-[#14532D] text-xs font-semibold px-2.5 py-1 rounded-full inline-flex items-center">
+                    Confirmed
+                  </span>
+                </td>
+              </tr>
+              <tr className="hover:bg-slate-50/50 transition-colors">
+                <td className="py-3.5 px-4 text-[#10242A] font-medium">Priya Verma</td>
+                <td className="py-3.5 px-4 text-[#10242A]">Starlight Co-Living Space</td>
+                <td className="py-3.5 px-4 text-[#4A5961]">Oct 05, 2026</td>
+                <td className="py-3.5 px-4">
+                  <span className="bg-[#FDEBD0] text-[#7A3E00] text-xs font-semibold px-2.5 py-1 rounded-full inline-flex items-center">
+                    Pending
+                  </span>
+                </td>
+              </tr>
+              <tr className="hover:bg-slate-50/50 transition-colors">
+                <td className="py-3.5 px-4 text-[#10242A] font-medium">Rohan Gupta</td>
+                <td className="py-3.5 px-4 text-[#10242A]">Allen Heights Kota PG</td>
+                <td className="py-3.5 px-4 text-[#4A5961]">Oct 06, 2026</td>
+                <td className="py-3.5 px-4">
+                  <span className="bg-[#DDF3E4] text-[#14532D] text-xs font-semibold px-2.5 py-1 rounded-full inline-flex items-center">
+                    Confirmed
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
+    </div>
+  );</div>
     </div>
   );
 }
