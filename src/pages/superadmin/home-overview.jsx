@@ -250,8 +250,6 @@ export default function HomeOverview() {
         </div>
       </div>
     </div>
-  );</div>
-    </div>
   );
 }
 
