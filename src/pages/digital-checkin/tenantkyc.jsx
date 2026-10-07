@@ -295,7 +295,8 @@ export default function DigitalCheckinTenantkyc() {
     uploadedUrls, setUploadedUrls, mismatchDetails,
     frontOcr, backOcr, handleImageOcr,
     errors, setErrors,
-    handleStart, handleComplete, handleNext
+    handleStart, handleComplete, handleNext,
+    extToken
   } = useTenantKyc();
 
   const [aadhaarFront, setAadhaarFront] = React.useState("");
@@ -344,6 +345,11 @@ export default function DigitalCheckinTenantkyc() {
   return (
     <div className="html-page">
       <div className="wrap">
+        {extToken && (
+          <div style={{ background: "#e8eaf6", border: "1.5px solid #9fa8da", borderRadius: "10px", padding: "12px 16px", color: "#1a237e", fontSize: "13px", fontWeight: 600, lineHeight: "1.5", marginBottom: "16px" }}>
+            Agreement extension — please re-verify your Aadhaar to continue to your extension agreement.
+          </div>
+        )}
         <h2>Tenant Digital Onboarding — Aadhaar KYC</h2>
         <p style={{ fontSize: "13px", color: "#546e7a", marginTop: "-12px", marginBottom: "20px" }}>
           Verify identity documents for seamless check-in. All pre-filled details are synced from your owner booking.

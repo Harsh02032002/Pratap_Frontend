@@ -22,6 +22,10 @@ export const useTenantKyc = () => {
   const [fetchingProfile, setFetchingProfile]       = useState(false);
   const [errors, setErrors]                         = useState({});
   const [mismatchDetails, setMismatchDetails]       = useState("");
+  // Agreement-extension token from the email link (?ext=...). Empty for the normal flow.
+  const [extToken] = useState(() => {
+    try { return new URLSearchParams(window.location.search).get("ext") || ""; } catch (_) { return ""; }
+  });
 
   const { frontOcr, backOcr, checkImage, resetOcr } = useAadhaarOcr(apiBases, "tenant");
 
@@ -224,7 +228,7 @@ export const useTenantKyc = () => {
         setOtpMsg(
           data?.mockOtp
             ? `OTP sent. Sandbox mock OTP: ${data.mockOtp}`
-            : `OTP sent to ${aadhaarLinkedPhone.trim()}. Enter it below to complete verification.`
+            : `OTP sent to ${aadhaarLinkedPhone.trim()} on WhatsApp and to your email. Enter it below to complete verification.`
         );
       } catch (err) {
         setOtpMsg(`Failed to send OTP: ${err.message}`);
@@ -303,7 +307,8 @@ export const useTenantKyc = () => {
           aadhaarBack:     uploadedUrls.aadhaarBackUrl  || aadhaarBack,
           tenantPhoto:     uploadedUrls.tenantPhotoUrl  || tenantPhoto,
           kycStatus:       targetKycStatus,
-          mismatchReasons: mismatchReasons.join("; ")
+          mismatchReasons: mismatchReasons.join("; "),
+          ...(extToken ? { extensionToken: extToken } : {})
         };
         saveKycState({ otpSent: true });
         await postExpectSuccess("/api/checkin/tenant/kyc/verify-otp", payload, apiBases);
@@ -341,13 +346,14 @@ export const useTenantKyc = () => {
         setOtpMsg(`Verification failed: ${err.message}`);
       }
     },
-    [aadhaarNumber, apiBases, frontOcr, loginId, otp, saveKycState, uploadedUrls]
+    [aadhaarNumber, apiBases, extToken, frontOcr, loginId, otp, saveKycState, uploadedUrls]
   );
 
 
   const handleNext = useCallback(() => {
-    window.location.href = `/digital-checkin/tenantagreement?loginId=${encodeURIComponent(loginId.trim())}`;
-  }, [loginId]);
+    const extQuery = extToken ? `&ext=${encodeURIComponent(extToken)}` : "";
+    window.location.href = `/digital-checkin/tenantagreement?loginId=${encodeURIComponent(loginId.trim())}${extQuery}`;
+  }, [extToken, loginId]);
 
   return {
     loginId, setLoginId,
@@ -361,7 +367,8 @@ export const useTenantKyc = () => {
     uploadedUrls, setUploadedUrls, mismatchDetails,
     frontOcr, backOcr, handleImageOcr,
     errors, setErrors,
-    handleStart, handleComplete, handleNext
+    handleStart, handleComplete, handleNext,
+    extToken
   };
 };
 

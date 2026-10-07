@@ -21,6 +21,19 @@ const resolveUrl = (val) => {
 
 const getFileUrl = (url) => resolveUrl(url) || "#";
 
+// Extension dates are IST "YYYY-MM-DD" strings — formatted as UTC so they never shift a day.
+const fmtYmd = (ymd) => {
+  const [y, m, d] = String(ymd || "").slice(0, 10).split("-").map(Number);
+  if (!y || !m || !d) return "—";
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+};
+
+const EXTENSION_STATUS = {
+  completed: { label: "Signed",           cls: "bg-emerald-50 text-emerald-600 border-emerald-100" },
+  requested: { label: "Awaiting Tenant",  cls: "bg-amber-50 text-amber-600 border-amber-100" },
+  expired:   { label: "Expired Unsigned", cls: "bg-red-50 text-red-600 border-red-100" },
+};
+
 const getStatusStyle = (status) => {
   if (status === "verified")  return { label: "Verified",             cls: "bg-emerald-50 text-emerald-600 border-emerald-100" };
   if (status === "submitted") return { label: "Pending Verification", cls: "bg-amber-50 text-amber-600 border-amber-100" };
@@ -40,6 +53,7 @@ export default function TenantDocsPage() {
   const [loading, setLoading] = useState(true);
   const [page, setPage]       = useState(1);
   const [filter, setFilter]   = useState("all");
+  const [mode, setMode]       = useState("onboarding"); // "onboarding" | "extension"
 
   const fetchDocs = async () => {
     try {
@@ -100,7 +114,7 @@ export default function TenantDocsPage() {
   };
 
   useEffect(() => { fetchDocs(); }, [owner.loginId]);
-  useEffect(() => { setPage(1); }, [search, filter]);
+  useEffect(() => { setPage(1); }, [search, filter, mode]);
 
   const handleVerify = async (tenantId) => {
     try {
@@ -135,13 +149,24 @@ export default function TenantDocsPage() {
     return list;
   }, [tenants, search, filter]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  // One row per agreement extension (Agreement Extension #1, #2 …), newest first.
+  const extensionRows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return tenants
+      .filter(t => !q || (t.name || "").toLowerCase().includes(q) || (t.loginId || "").toLowerCase().includes(q))
+      .flatMap(t => (Array.isArray(t.agreementExtensions) ? t.agreementExtensions : []).map(ext => ({ tenant: t, ext })))
+      .sort((a, b) => new Date(b.ext.requestedAt || 0) - new Date(a.ext.requestedAt || 0));
+  }, [tenants, search]);
+
+  const rows       = mode === "extension" ? extensionRows : filtered;
+  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const paginated  = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const stats = useMemo(() => ({
     total:      tenants.length,
     kycDone:    tenants.filter(t => t.kycStatus === "verified" || t.kycStatus === "submitted").length,
     agreements: tenants.filter(t => t.digitalCheckin?.agreement?.pdfUrl || t.agreementSigned).length,
+    extensions: tenants.reduce((n, t) => n + (t.agreementExtensions || []).filter(e => e.status === "completed").length, 0),
   }), [tenants]);
 
   const TABS = [
@@ -176,8 +201,29 @@ export default function TenantDocsPage() {
             <span className="text-[11px] bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-full px-3 py-1 font-semibold">
               {stats.agreements} Agreements Signed
             </span>
+            <span className="text-[11px] bg-blue-50 text-blue-700 border border-blue-100 rounded-full px-3 py-1 font-semibold">
+              {stats.extensions} Extensions Signed
+            </span>
           </div>
         )}
+      </div>
+
+      {/* Mode switch */}
+      <div className="inline-flex p-1 mb-4 rounded-xl bg-muted border border-border">
+        {[
+          { key: "onboarding", label: "Onboarding Documents" },
+          { key: "extension",  label: "Extension Documents" },
+        ].map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setMode(key)}
+            className={`h-9 px-4 rounded-lg text-[12.5px] font-semibold transition-all ${
+              mode === key ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       {/* Toolbar */}
@@ -187,11 +233,11 @@ export default function TenantDocsPage() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name, login ID, or Aadhaar number..."
+            placeholder={mode === "extension" ? "Search by name or login ID..." : "Search by name, login ID, or Aadhaar number..."}
             className="w-full h-10 pl-9 pr-3 rounded-xl bg-card border border-border text-[13px] focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground"
           />
         </div>
-        <div className="flex gap-2">
+        {mode === "onboarding" && <div className="flex gap-2">
           {TABS.map(({ key, label }) => (
             <button
               key={key}
@@ -205,7 +251,7 @@ export default function TenantDocsPage() {
               {label}
             </button>
           ))}
-        </div>
+        </div>}
       </div>
 
       {/* Table */}
@@ -214,7 +260,87 @@ export default function TenantDocsPage() {
           {loading ? (
             <div className="p-8 text-center text-muted-foreground">Loading documents...</div>
           ) : paginated.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">No tenant documents found.</div>
+            <div className="p-8 text-center text-muted-foreground">
+              {mode === "extension" ? "No agreement extensions yet." : "No tenant documents found."}
+            </div>
+          ) : mode === "extension" ? (
+            <table className="w-full text-[13px]">
+              <thead>
+                <tr className="text-left text-[11.5px] uppercase tracking-wider text-muted-foreground bg-muted/50">
+                  <th className="px-6 py-3.5 font-semibold">Tenant</th>
+                  <th className="px-6 py-3.5 font-semibold">Property &amp; Room</th>
+                  <th className="px-6 py-3.5 font-semibold">Previous Agreement</th>
+                  <th className="px-6 py-3.5 font-semibold">Extension</th>
+                  <th className="px-6 py-3.5 font-semibold">Signed Extension</th>
+                  <th className="px-6 py-3.5 font-semibold">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {paginated.map(({ tenant: d, ext }) => {
+                  const st = EXTENSION_STATUS[ext.status] || EXTENSION_STATUS.requested;
+                  return (
+                    <tr key={`${d._id}-${ext.number}`} className="hover:bg-muted/40 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="size-9 rounded-full bg-blue-500/10 text-blue-600 flex items-center justify-center font-bold text-sm shrink-0">
+                            {(d.name || "T").charAt(0)}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-foreground leading-snug">{d.name}</p>
+                            <p className="text-[11px] text-muted-foreground font-mono">{d.loginId}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="font-medium text-foreground text-[12.5px]">{d.propertyTitle || "—"}</p>
+                        <p className="text-[11.5px] text-muted-foreground">
+                          {d.roomNo ? `Room ${d.roomNo}` : "—"}
+                          {d.bedNo ? ` / Bed ${d.bedNo}` : ""}
+                        </p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="text-[12.5px] text-foreground">{fmtYmd(ext.previousStartDate)} → {fmtYmd(ext.previousEndDate)}</p>
+                        <p className="text-[10.5px] text-muted-foreground">{ext.number === 1 ? "Original agreement" : `Extension #${ext.number - 1}`}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="font-semibold text-foreground text-[12.5px]">Agreement Extension #{ext.number}</p>
+                        <p className="text-[11.5px] text-muted-foreground">
+                          {fmtYmd(ext.newStartDate)} → {fmtYmd(ext.newEndDate)} · {ext.months} {ext.months === 1 ? "month" : "months"}
+                        </p>
+                      </td>
+                      <td className="px-6 py-4">
+                        {ext.status === "completed" && ext.pdfUrl ? (
+                          <div className="flex flex-col gap-1">
+                            <a
+                              href={getFileUrl(ext.pdfUrl)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-[11.5px] text-emerald-700 hover:underline font-semibold"
+                            >
+                              <Download size={11} /> Download
+                            </a>
+                            {ext.tenantSignedAt && (
+                              <span className="text-[10.5px] text-muted-foreground">
+                                {new Date(ext.tenantSignedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                              </span>
+                            )}
+                          </div>
+                        ) : ext.status === "completed" ? (
+                          <span className="text-[11.5px] text-muted-foreground italic">PDF processing</span>
+                        ) : (
+                          <span className="text-[11.5px] text-muted-foreground italic">Not signed</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex px-2.5 py-0.5 rounded-full text-[10.5px] font-bold border ${st.cls}`}>
+                          {st.label}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           ) : (
             <table className="w-full text-[13px]">
               <thead>
@@ -383,7 +509,7 @@ export default function TenantDocsPage() {
       {!loading && totalPages > 1 && (
         <div className="flex items-center justify-between mt-8 pt-4 border-t border-border">
           <span className="text-[13px] text-muted-foreground">
-            Showing {((page - 1) * PAGE_SIZE) + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}
+            Showing {((page - 1) * PAGE_SIZE) + 1}–{Math.min(page * PAGE_SIZE, rows.length)} of {rows.length}
           </span>
           <div className="flex items-center gap-2">
             <button
