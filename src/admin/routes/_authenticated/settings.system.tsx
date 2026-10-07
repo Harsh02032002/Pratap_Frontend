@@ -1,9 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Sliders, Check, Database, Shield, Server, Zap, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { api } from "@/lib/api";
+
+type RedisStatus = "healthy" | "degraded" | "unavailable" | "disabled";
+
+// Live values from GET /api/health instead of hardcoded "Connected"/"Healthy".
+const REDIS_BADGE: Record<RedisStatus | "unknown", { status: string; color: string; bg: string }> = {
+  healthy: { status: "Healthy", color: "text-emerald-600", bg: "bg-emerald-100" },
+  degraded: { status: "Degraded", color: "text-amber-600", bg: "bg-amber-100" },
+  unavailable: { status: "Unavailable", color: "text-red-600", bg: "bg-red-100" },
+  disabled: { status: "Not configured", color: "text-muted-foreground", bg: "bg-muted" },
+  unknown: { status: "Checking…", color: "text-muted-foreground", bg: "bg-muted" },
+};
 
 export const Route = createFileRoute("/_authenticated/settings/system")({
   head: () => ({
@@ -33,9 +45,20 @@ function SystemSettingsPage() {
   const showToast = (msg: string, type: "warn" | "ok" = "ok") => { setToast({ msg, type }); setTimeout(() => setToast(null), 3000); };
   const toggle = (key: keyof typeof config) => setConfig((prev) => ({ ...prev, [key]: !prev[key] }));
 
+  const [health, setHealth] = useState<{ database?: string; redis?: { status?: RedisStatus } } | null>(null);
+  useEffect(() => {
+    let alive = true;
+    api.get("/api/health").then((h) => { if (alive) setHealth(h); }).catch(() => { if (alive) setHealth({}); });
+    return () => { alive = false; };
+  }, []);
+  const redisBadge = REDIS_BADGE[health ? (health.redis?.status ?? "unavailable") : "unknown"];
+  const dbBadge = !health
+    ? REDIS_BADGE.unknown
+    : health.database === "connected" ? REDIS_BADGE.healthy : REDIS_BADGE.unavailable;
+
   const systemHealth = [
-    { label: "Database", status: "Healthy", color: "text-emerald-600", bg: "bg-emerald-100", icon: <Database className="h-4 w-4" /> },
-    { label: "Cache (Redis)", status: "Connected", color: "text-emerald-600", bg: "bg-emerald-100", icon: <Zap className="h-4 w-4" /> },
+    { label: "Database", ...dbBadge, icon: <Database className="h-4 w-4" /> },
+    { label: "Cache (Redis)", ...redisBadge, icon: <Zap className="h-4 w-4" /> },
     { label: "File Storage", status: "97% free", color: "text-blue-600", bg: "bg-blue-100", icon: <Server className="h-4 w-4" /> },
     { label: "SSL Certificate", status: "Valid · 285d", color: "text-emerald-600", bg: "bg-emerald-100", icon: <Shield className="h-4 w-4" /> },
   ];
