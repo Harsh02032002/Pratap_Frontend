@@ -350,19 +350,20 @@ export default function Manager() {
       )}
 
       <PageHeader 
-        category="User Management"
+        category="TEAM MANAGEMENT"
         title="All Staff"
+        subtitle="Manage all team members"
         actions={
           <div className="flex items-center gap-3">
             <button 
               onClick={() => showNotification("Exporting staff directory CSV...")}
-              className="bg-white border border-[#CBD3D9] hover:bg-slate-50 text-[#10242A] font-semibold text-sm px-4 py-2 rounded-[8px] transition-colors cursor-pointer"
+              className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-medium text-xs sm:text-sm px-4 py-2 rounded-xl transition-all shadow-2xs cursor-pointer"
             >
               Export
             </button>
             <button 
               onClick={() => openModal()}
-              className="bg-[#0E7C86] hover:bg-[#0B666E] text-white font-semibold text-sm px-4 py-2 rounded-[8px] flex items-center gap-2 transition-colors cursor-pointer"
+              className="bg-[#095256] hover:bg-[#074043] text-white font-medium text-xs sm:text-sm px-4 py-2 rounded-xl flex items-center gap-2 transition-all shadow-2xs cursor-pointer"
             >
               <UserPlus size={16} />
               <span>+ Add Staff</span>
@@ -371,23 +372,22 @@ export default function Manager() {
         }
       />
 
-      {/* Directory Table Card - PDF Page 3 */}
-      <div className="bg-white rounded-[12px] p-5 border border-[#E1E6EA] shadow-sm">
-        {/* Filter Controls Bar */}
-        <div className="flex flex-col sm:flex-row items-center gap-3 mb-6">
-          <div className="relative flex-1 w-full">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#4A5961]" />
-            <input 
-              value={search} 
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search" 
-              className="w-full h-[44px] bg-white border border-[#CBD3D9] rounded-[8px] pl-10 pr-3.5 text-sm text-[#10242A] placeholder:text-[#4A5961] outline-none focus:border-[#0E7C86]" 
-            />
-          </div>
+      {/* Search & Filter Bar (OUTSIDE Table Card) */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="relative flex-1 w-full max-w-md">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input 
+            value={search} 
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search" 
+            className="w-full py-2.5 pl-10 pr-4 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-[#095256]/20 focus:border-[#095256] shadow-2xs transition-all" 
+          />
+        </div>
+        <div className="flex items-center gap-2.5 w-full sm:w-auto">
           <select 
             value={currentTeam}
             onChange={e => setCurrentTeam(e.target.value)}
-            className="h-[44px] bg-white border border-[#CBD3D9] rounded-[8px] px-3.5 text-sm text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] w-full sm:w-40"
+            className="px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 outline-none cursor-pointer focus:border-[#095256] shadow-2xs w-full sm:w-36"
           >
             <option value="All">Role ▾</option>
             {standardTeams.map(t => <option key={t} value={t}>{t}</option>)}
@@ -395,67 +395,70 @@ export default function Manager() {
           <select 
             value={filterCity}
             onChange={e => setFilterCity(e.target.value)}
-            className="h-[44px] bg-white border border-[#CBD3D9] rounded-[8px] px-3.5 text-sm text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] w-full sm:w-40"
+            className="px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 outline-none cursor-pointer focus:border-[#095256] shadow-2xs w-full sm:w-36"
           >
             <option value="">Status ▾</option>
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
           </select>
         </div>
+      </div>
 
+      {/* Separate Table Card Below */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
         {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-[#E1E6EA]">
-                <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Name</th>
-                <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Role</th>
-                <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Phone</th>
-                <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Email</th>
-                <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Status</th>
-                <th className="text-xs font-semibold text-[#4A5961] py-3 px-4 text-right">Action</th>
+              <tr className="border-b border-slate-200/80 bg-white">
+                <th className="py-3.5 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Name</th>
+                <th className="py-3.5 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Role</th>
+                <th className="py-3.5 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Phone</th>
+                <th className="py-3.5 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Email</th>
+                <th className="py-3.5 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+                <th className="py-3.5 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E1E6EA] text-sm">
+            <tbody className="divide-y divide-slate-100 text-sm">
                     {loading ? (
-                      <tr><td colSpan="5" className="py-24 text-center">
-                         <div className="w-12 h-12 border-4 border-blue-600/10 border-t-blue-600 rounded-full animate-spin mx-auto mb-6" />
-                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Loading staff directory...</p>
+                      <tr><td colSpan="6" className="py-24 text-center">
+                         <div className="w-12 h-12 border-4 border-slate-200 border-t-[#095256] rounded-full animate-spin mx-auto mb-6" />
+                         <p className="text-xs font-semibold text-slate-400">Loading staff directory...</p>
                       </td></tr>
                     ) : filteredEmployees.length === 0 ? (
-                      <tr><td colSpan="5" className="py-24 text-center">
-                         <Users className="w-12 h-12 text-slate-100 mx-auto mb-4" />
-                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">No matching staff found</p>
+                      <tr><td colSpan="6" className="py-24 text-center">
+                         <Users className="w-12 h-12 text-slate-200 mx-auto mb-4" />
+                         <p className="text-xs font-semibold text-slate-400">No matching staff found</p>
                       </td></tr>
                     ) : filteredEmployees.map((e, i) => {
                        const active = e.isActive !== false;
                        return (
-                        <tr key={i} className="hover:bg-slate-50/50 transition-colors border-b border-[#E1E6EA]">
-                          <td className="py-3.5 px-4 font-medium text-[#10242A]">
+                        <tr key={i} className="hover:bg-slate-50/70 transition-colors border-b border-slate-100">
+                          <td className="py-4 px-6 font-medium text-slate-900">
                             <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-full bg-[#E1E6EA] flex items-center justify-center font-bold text-xs text-[#10242A]">
+                              <div className="w-9 h-9 rounded-full bg-slate-200/70 border border-slate-200 flex items-center justify-center font-bold text-xs text-slate-600 shrink-0">
                                 {buildInitials(e.name)}
                               </div>
-                              <span className="font-medium text-[#10242A]">{e.name || "Staff Member"}</span>
+                              <span className="font-semibold text-slate-900 text-sm">{e.name || "Staff Member"}</span>
                             </div>
                           </td>
-                          <td className="py-3.5 px-4 text-[#10242A]">{e.role || "Staff"}</td>
-                          <td className="py-3.5 px-4 text-[#4A5961]">{e.phone || "—"}</td>
-                          <td className="py-3.5 px-4 text-[#4A5961]">{e.email || "—"}</td>
-                          <td className="py-3.5 px-4">
+                          <td className="py-4 px-6 text-slate-700 font-medium">{e.role || "Staff"}</td>
+                          <td className="py-4 px-6 text-slate-600">{e.phone || "—"}</td>
+                          <td className="py-4 px-6 text-slate-600">{e.email || "—"}</td>
+                          <td className="py-4 px-6">
                             <span className={cn(
-                              "text-xs font-semibold px-2.5 py-1 rounded-full inline-flex items-center",
-                              active ? "bg-[#DDF3E4] text-[#14532D]" : "bg-[#FEE2E2] text-[#991B1B]"
+                              "inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold",
+                              active ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
                             )}>
                               {active ? "Active" : "Inactive"}
                             </span>
                           </td>
-                          <td className="py-3.5 px-4 text-right">
+                          <td className="py-4 px-6 text-right">
                             <div className="flex items-center justify-end gap-2">
-                              <button onClick={() => openModal(e)} className="border border-[#CBD3D9] hover:bg-slate-50 text-[#10242A] text-xs font-semibold px-3 py-1 rounded-[6px] transition-colors">
+                              <button onClick={() => openModal(e)} className="px-3.5 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-medium transition shadow-2xs">
                                 View
                               </button>
-                              <button onClick={() => openModal(e)} className="border border-[#CBD3D9] hover:bg-slate-50 text-[#10242A] text-xs font-semibold px-3 py-1 rounded-[6px] transition-colors">
+                              <button onClick={() => openModal(e)} className="px-3.5 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-medium transition shadow-2xs">
                                 Edit
                               </button>
                             </div>
@@ -747,22 +750,15 @@ function StatCardSmall({ label, value, icon: Icon, color, trend, up }) {
     rose: "bg-rose-600 text-white shadow-rose-100"
   };
 
-  const bgLight = {
-    blue: "bg-blue-50 text-blue-600",
-    emerald: "bg-emerald-50 text-emerald-600",
-    indigo: "bg-indigo-50 text-indigo-600",
-    rose: "bg-rose-50 text-rose-600"
-  };
-
   return (
     <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-xl shadow-slate-200/40 group hover:translate-y-[-5px] transition-all duration-500">
-       <div className="flex items-center gap-4 mb-6">
-          <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg transition-transform group-hover:rotate-6", colors[color])}>
+       <div className="flex items-center justify-between gap-4 mb-4">
+          <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg transition-transform group-hover:rotate-6 shrink-0", colors[color])}>
              <Icon size={22} />
           </div>
-          <div>
-             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{label}</p>
-             <p className="text-2xl font-black text-slate-800 tracking-tighter leading-none">{value}</p>
+          <div className="text-right flex-1 min-w-0">
+             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 truncate">{label}</p>
+             <p className="text-2xl font-black text-slate-800 tracking-tighter leading-none truncate">{value}</p>
           </div>
        </div>
        <div className={cn(

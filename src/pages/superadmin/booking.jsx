@@ -216,52 +216,54 @@ export default function BookingOverview() {
 
       {/* TABLES ROW */}
       <div className="grid grid-cols-12 gap-6 mb-8">
-        {/* Recent Leads */}
-        <div className="col-span-12 lg:col-span-7 bg-white rounded-3xl p-8 border border-slate-100 shadow-sm">
+        {/* Recent Leads Card */}
+        <div className="col-span-12 lg:col-span-7 bg-white rounded-[12px] p-5 border border-[#E1E6EA] shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-base font-bold text-slate-900">Recent Leads</h3>
-              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-1">Source: Leads</p>
+              <h3 className="text-sm font-semibold text-[#10242A]">Recent Leads</h3>
+              <p className="text-xs text-[#4A5961]">Source: Leads</p>
             </div>
           </div>
           {recentLeads.length === 0 ? (
-            <div className="w-full py-12 flex items-center justify-center text-xs font-bold text-slate-400 bg-slate-50/50 rounded-2xl">
+            <div className="w-full py-12 flex items-center justify-center text-xs font-semibold text-[#4A5961]">
               No Data Available
             </div>
           ) : (
-            <table className="w-full text-[11px]">
-              <thead>
-                <tr className="text-slate-400 font-bold uppercase tracking-widest text-[9px] border-b border-slate-50">
-                  <th className="text-left py-3">Lead Name</th>
-                  <th className="text-left py-3">Location</th>
-                  <th className="text-left py-3">Source</th>
-                  <th className="text-left py-3">Budget</th>
-                  <th className="text-left py-3">Status</th>
-                  <th className="text-right py-3">Created On</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {recentLeads.map((l, i) => (
-                  <tr key={i} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-[9px] shrink-0">
-                          {l.name ? l.name.split(' ').map(n=>n[0]).join('') : 'UN'}
-                        </div>
-                        <span className="font-bold text-slate-900">{l.name}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 text-slate-400">{l.loc}</td>
-                    <td className="py-3 font-bold text-slate-600">{l.src}</td>
-                    <td className="py-3 font-black text-slate-900">{l.budget}</td>
-                    <td className="py-3">
-                      <span className={cn("px-2 py-0.5 rounded text-[9px] font-bold bg-blue-50 text-blue-600")}>{l.status}</span>
-                    </td>
-                    <td className="py-3 text-right text-slate-300">{l.time}</td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-[#E1E6EA]">
+                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Lead Name</th>
+                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Location</th>
+                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Source</th>
+                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Budget</th>
+                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Status</th>
+                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4 text-right">Created On</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-[#E1E6EA] text-sm">
+                  {recentLeads.map((l, i) => (
+                    <tr key={i} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="py-3.5 px-4 font-medium text-[#10242A]">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-full bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center font-bold text-[10px] shrink-0">
+                            {l.name ? l.name.split(' ').map(n=>n[0]).join('') : 'UN'}
+                          </div>
+                          <span className="font-semibold text-[#10242A]">{l.name}</span>
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4 text-[#4A5961]">{l.loc}</td>
+                      <td className="py-3.5 px-4 font-semibold text-[#10242A]">{l.src}</td>
+                      <td className="py-3.5 px-4 font-semibold text-[#10242A]">{l.budget}</td>
+                      <td className="py-3.5 px-4">
+                        <span className="bg-[#E6F4F5] text-[#0E7C86] text-xs font-semibold px-2.5 py-1 rounded-full inline-flex items-center">{l.status}</span>
+                      </td>
+                      <td className="py-3.5 px-4 text-right text-[#4A5961] text-xs">{l.time}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
 

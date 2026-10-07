@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Ticket, Clock, History, CheckCircle2, AlertCircle, ChevronRight, TrendingUp, Calendar, Search, Filter, Download, MoreVertical, Eye, Trash2, X } from "lucide-react";
 import { fetchJson } from "../../utils/api";
+import { PageHeader } from "../../components/superadmin/PageHeader";
 import toast from "react-hot-toast";
 
 const cn = (...c) => c.filter(Boolean).join(" ");
@@ -74,137 +75,129 @@ export default function TenantComplaints() {
   ];
 
   const iconColors = { 
-    blue: "text-blue-600 bg-blue-50", 
-    emerald: "text-emerald-500 bg-emerald-50", 
-    amber: "text-amber-500 bg-amber-50", 
-    rose: "text-rose-500 bg-rose-50" 
+    blue: "text-[#0E7C86] bg-[#E6F4F5]", 
+    emerald: "text-emerald-700 bg-emerald-50", 
+    amber: "text-amber-700 bg-amber-50", 
+    rose: "text-rose-700 bg-rose-50" 
   };
 
   return (
-    <div className="p-8 bg-[#F8FAFC] min-h-screen font-inter text-slate-900">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-black text-slate-900 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-600/20">
-              <Ticket size={20} />
-            </div>
-            Tenants Complaints
-          </h1>
-          <p className="text-xs text-slate-400 mt-1 ml-13">Manage and track all complaints raised by tenants across properties.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button onClick={fetchComplaints} className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all flex items-center gap-2">
-            <History size={14} /> Refresh
-          </button>
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-all shadow-md flex items-center gap-2">
-            <Download size={14} /> Export CSV
-          </button>
-        </div>
-      </div>
+    <div className="space-y-6 pb-8 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
+      <PageHeader
+        title="Tenants Complaints"
+        subtitle="Manage and track all complaints raised by tenants across properties."
+        actions={
+          <div className="flex items-center gap-2">
+            <button onClick={fetchComplaints} className="px-3.5 py-2 bg-white border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-2 shadow-2xs cursor-pointer">
+              <History size={14} className="text-[#095256]" /> Refresh
+            </button>
+            <button className="px-4 py-2 bg-[#095256] text-white rounded-xl text-xs font-semibold hover:bg-[#073d40] transition-all shadow-2xs flex items-center gap-2 cursor-pointer">
+              <Download size={14} /> Export CSV
+            </button>
+          </div>
+        }
+      />
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {stats.map((s, i) => (
-          <div key={i} className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
-            <div className="flex items-center gap-4">
-              <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center", iconColors[s.c])}>
-                <s.icon size={20} />
+          <div key={i} className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-2xs">
+            <div className="flex items-center gap-3.5">
+              <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", iconColors[s.c])}>
+                <s.icon size={18} />
               </div>
               <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{s.label}</p>
-                <h4 className="text-2xl font-black text-slate-900">{s.val}</h4>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{s.label}</p>
+                <h4 className="text-2xl font-bold text-slate-900">{s.val}</h4>
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Main Content */}
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-        {/* Table Header/Filter */}
-        <div className="p-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-              <input 
-                type="text" 
-                placeholder="Search complaints..." 
-                className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-500/20 outline-none w-64"
-              />
-            </div>
-            <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1">
-              {["All", "Open", "In Progress", "Resolved"].map(s => (
-                <button 
-                  key={s}
-                  onClick={() => setFilter(s)}
-                  className={cn(
-                    "px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all",
-                    filter === s ? "bg-blue-600 text-white shadow-sm" : "text-slate-400 hover:text-slate-600"
-                  )}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-          </div>
-          <button className="flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-slate-600">
-            <Filter size={14} /> More Filters
-          </button>
+      {/* Outside Search & Filters Bar */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-1 bg-white border border-slate-200/80 rounded-xl p-1 shadow-2xs">
+          {["All", "Open", "In Progress", "Resolved"].map(s => (
+            <button 
+              key={s}
+              onClick={() => setFilter(s)}
+              className={cn(
+                "px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                filter === s ? "bg-[#095256] text-white shadow-2xs" : "text-slate-600 hover:text-slate-900"
+              )}
+            >
+              {s}
+            </button>
+          ))}
         </div>
+
+        <div className="relative group w-full sm:w-72">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
+          <input 
+            type="text" 
+            placeholder="Search complaints..." 
+            className="w-full bg-white border border-slate-200/80 rounded-xl py-2 pl-9 pr-4 text-xs font-medium text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-[#095256]/20 focus:border-[#095256] transition-all shadow-2xs"
+          />
+        </div>
+      </div>
+
+      {/* Standalone Table Card */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
 
         {/* Table */}
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full text-xs text-left">
             <thead>
-              <tr className="text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-50">
-                <th className="px-6 py-4 text-left">Tenant Info</th>
-                <th className="px-6 py-4 text-left">Property Details</th>
-                <th className="px-6 py-4 text-left">Category</th>
-                <th className="px-6 py-4 text-left">Status</th>
-                <th className="px-6 py-4 text-left">Priority</th>
-                <th className="px-6 py-4 text-left">Created On</th>
-                <th className="px-6 py-4 text-right">Action</th>
+              <tr className="bg-[#F8FAFC] text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider border-b border-[#E1E6EA]">
+                <th className="px-5 py-3">Tenant Info</th>
+                <th className="px-5 py-3">Property Details</th>
+                <th className="px-5 py-3">Category</th>
+                <th className="px-5 py-3">Status</th>
+                <th className="px-5 py-3">Priority</th>
+                <th className="px-5 py-3">Created On</th>
+                <th className="px-5 py-3 text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
+            <tbody className="divide-y divide-[#E1E6EA]">
               {loading ? (
                 <tr>
-                  <td colSpan="7" className="px-6 py-12 text-center text-slate-400 text-xs font-medium">Loading complaints...</td>
+                  <td colSpan="7" className="px-6 py-12 text-center text-[#4A5961] text-xs font-semibold">Loading complaints...</td>
                 </tr>
               ) : filteredComplaints.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="px-6 py-12 text-center text-slate-400 text-xs font-medium">No complaints found.</td>
+                  <td colSpan="7" className="px-6 py-12 text-center text-[#4A5961] text-xs font-semibold">No complaints found.</td>
                 </tr>
               ) : (
                 filteredComplaints.map((c) => (
-                  <tr key={c._id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-[10px]">
+                  <tr key={c._id} className="hover:bg-[#F4F6F8]/60 transition-colors">
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-full bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center font-bold text-[10px]">
                           {c.tenantName?.[0] || 'U'}
                         </div>
                         <div>
-                          <p className="text-xs font-bold text-slate-900">{c.tenantName}</p>
-                          <p className="text-[10px] text-slate-400 font-medium">{c.tenantPhone}</p>
+                          <p className="text-xs font-bold text-[#10242A]">{c.tenantName}</p>
+                          <p className="text-[10px] text-[#4A5961]">{c.tenantPhone}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <p className="text-xs font-bold text-slate-700">{c.property}</p>
-                      <p className="text-[10px] text-slate-400 font-medium">Room: {c.roomNo} | Bed: {c.bedNo}</p>
+                    <td className="px-5 py-3">
+                      <p className="text-xs font-bold text-[#10242A]">{c.property}</p>
+                      <p className="text-[10px] text-[#4A5961]">Room: {c.roomNo} | Bed: {c.bedNo}</p>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-lg text-[9px] font-black uppercase tracking-wider">{c.category}</span>
+                    <td className="px-5 py-3">
+                      <span className="px-2 py-0.5 bg-[#F4F6F8] text-[#4A5961] border border-[#E1E6EA] rounded-[6px] text-[10px] font-semibold">{c.category}</span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-5 py-3">
                       <select 
                         value={c.status} 
                         onChange={(e) => updateStatus(c._id, e.target.value)}
                         className={cn(
-                          "px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider outline-none cursor-pointer",
-                          c.status === "Open" ? "bg-rose-50 text-rose-600" : 
-                          c.status === "In Progress" ? "bg-amber-50 text-amber-600" : 
-                          "bg-emerald-50 text-emerald-600"
+                          "px-2 py-0.5 rounded-[6px] text-[10px] font-bold outline-none cursor-pointer border",
+                          c.status === "Open" ? "bg-rose-50 text-rose-700 border-rose-200" : 
+                          c.status === "In Progress" ? "bg-amber-50 text-amber-700 border-amber-200" : 
+                          "bg-emerald-50 text-emerald-700 border-emerald-200"
                         )}
                       >
                         <option value="Open">Open</option>
@@ -212,33 +205,32 @@ export default function TenantComplaints() {
                         <option value="Resolved">Resolved</option>
                       </select>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-5 py-3">
                       <span className={cn(
                         "text-[10px] font-bold flex items-center gap-1.5",
-                        c.priority === "High" ? "text-rose-500" : c.priority === "Medium" ? "text-amber-500" : "text-slate-400"
+                        c.priority === "High" ? "text-rose-600" : c.priority === "Medium" ? "text-amber-600" : "text-[#4A5961]"
                       )}>
                         <div className={cn("w-1.5 h-1.5 rounded-full", 
-                          c.priority === "High" ? "bg-rose-500" : c.priority === "Medium" ? "bg-amber-500" : "bg-slate-400"
+                          c.priority === "High" ? "bg-rose-600" : c.priority === "Medium" ? "bg-amber-600" : "bg-slate-400"
                         )} />
                         {c.priority}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
-                      <p className="text-[10px] font-bold text-slate-500">{new Date(c.createdAt).toLocaleDateString()}</p>
-                      <p className="text-[9px] text-slate-300 font-medium">{new Date(c.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                    <td className="px-5 py-3">
+                      <p className="text-[10px] font-semibold text-[#10242A]">{new Date(c.createdAt).toLocaleDateString()}</p>
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                    <td className="px-5 py-3 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
                         <button 
                           onClick={() => setSelectedComplaint(c)}
-                          className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors shadow-sm"
+                          className="p-1.5 bg-[#E6F4F5] text-[#0E7C86] rounded-[6px] hover:bg-[#0E7C86] hover:text-white transition-colors cursor-pointer"
                           title="View Details"
                         >
                           <Eye size={14} />
                         </button>
                         <button 
                           onClick={() => setDeleteConfirmId(c._id)}
-                          className="p-2 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-100 transition-colors shadow-sm"
+                          className="p-1.5 bg-rose-50 text-rose-600 rounded-[6px] hover:bg-rose-100 transition-colors cursor-pointer"
                           title="Delete Ticket"
                         >
                           <Trash2 size={14} />
@@ -255,67 +247,62 @@ export default function TenantComplaints() {
 
       {/* View Modal */}
       {selectedComplaint && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="p-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
-              <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                <Ticket size={16} className="text-blue-600" /> Complaint Details
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-[9999] flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-lg rounded-[16px] shadow-2xl overflow-hidden border border-[#E1E6EA]">
+            <div className="p-4 border-b border-[#E1E6EA] flex items-center justify-between bg-[#F8FAFC]">
+              <h3 className="text-xs font-bold text-[#10242A] uppercase tracking-wider flex items-center gap-2">
+                <Ticket size={16} className="text-[#0E7C86]" /> Complaint Details
               </h3>
-              <button onClick={() => setSelectedComplaint(null)} className="p-2 hover:bg-slate-200 rounded-xl transition-all">
-                <X size={16} className="text-slate-400" />
+              <button onClick={() => setSelectedComplaint(null)} className="p-1 hover:bg-[#E1E6EA] rounded-full transition-all">
+                <X size={16} className="text-[#4A5961]" />
               </button>
             </div>
-            <div className="p-8 space-y-6">
-              <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                <div className="w-12 h-12 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-blue-600 font-black text-lg shadow-sm">
+            <div className="p-6 space-y-5">
+              <div className="flex items-center gap-3 bg-[#F4F6F8] p-3.5 rounded-[12px] border border-[#E1E6EA]">
+                <div className="w-10 h-10 rounded-full bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center font-bold text-sm shrink-0">
                   {selectedComplaint.tenantName?.[0]}
                 </div>
                 <div>
-                  <p className="text-sm font-black text-slate-900">{selectedComplaint.tenantName}</p>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{selectedComplaint.tenantPhone}</p>
+                  <p className="text-sm font-bold text-[#10242A]">{selectedComplaint.tenantName}</p>
+                  <p className="text-xs font-semibold text-[#4A5961]">{selectedComplaint.tenantPhone}</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Property</p>
-                  <p className="text-xs font-bold text-slate-700">{selectedComplaint.property}</p>
+                  <p className="text-[10px] font-bold text-[#4A5961] uppercase tracking-wider mb-0.5">Property</p>
+                  <p className="text-xs font-semibold text-[#10242A]">{selectedComplaint.property}</p>
                 </div>
                 <div>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Location Info</p>
-                  <p className="text-xs font-bold text-slate-700">Room: {selectedComplaint.roomNo} | Bed: {selectedComplaint.bedNo}</p>
+                  <p className="text-[10px] font-bold text-[#4A5961] uppercase tracking-wider mb-0.5">Location Info</p>
+                  <p className="text-xs font-semibold text-[#10242A]">Room: {selectedComplaint.roomNo} | Bed: {selectedComplaint.bedNo}</p>
                 </div>
                 <div>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Category</p>
-                  <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md text-[8px] font-black uppercase tracking-wider">{selectedComplaint.category}</span>
+                  <p className="text-[10px] font-bold text-[#4A5961] uppercase tracking-wider mb-0.5">Category</p>
+                  <span className="px-2 py-0.5 bg-[#F4F6F8] text-[#4A5961] border border-[#E1E6EA] rounded-[4px] text-[10px] font-semibold">{selectedComplaint.category}</span>
                 </div>
                 <div>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Priority</p>
+                  <p className="text-[10px] font-bold text-[#4A5961] uppercase tracking-wider mb-0.5">Priority</p>
                   <span className={cn(
-                    "px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider",
-                    selectedComplaint.priority === "High" ? "bg-rose-50 text-rose-600" : selectedComplaint.priority === "Medium" ? "bg-amber-50 text-amber-600" : "bg-slate-50 text-slate-400"
+                    "px-2 py-0.5 rounded-[4px] text-[10px] font-bold",
+                    selectedComplaint.priority === "High" ? "bg-rose-50 text-rose-700" : selectedComplaint.priority === "Medium" ? "bg-amber-50 text-amber-700" : "bg-slate-100 text-slate-600"
                   )}>
                     {selectedComplaint.priority}
                   </span>
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-slate-50">
-                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2">Detailed Description</p>
-                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 min-h-[100px]">
-                  <p className="text-xs text-slate-600 leading-relaxed font-medium">{selectedComplaint.description}</p>
+              <div className="pt-3 border-t border-[#E1E6EA]">
+                <p className="text-[10px] font-bold text-[#4A5961] uppercase tracking-wider mb-1.5">Detailed Description</p>
+                <div className="bg-[#F4F6F8] rounded-[10px] p-3.5 border border-[#E1E6EA] min-h-[90px]">
+                  <p className="text-xs text-[#4A5961] leading-relaxed font-medium">{selectedComplaint.description}</p>
                 </div>
               </div>
-
-              <div className="flex items-center justify-between text-[9px] font-bold text-slate-300 pt-4 uppercase tracking-[0.2em]">
-                <p>Created: {new Date(selectedComplaint.createdAt).toLocaleString()}</p>
-                <p>Ticket ID: #{selectedComplaint._id.substring(18)}</p>
-              </div>
             </div>
-            <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end">
+            <div className="p-4 bg-[#F8FAFC] border-t border-[#E1E6EA] flex justify-end">
               <button 
                 onClick={() => setSelectedComplaint(null)}
-                className="px-6 py-2.5 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-100 transition-all"
+                className="px-4 py-1.5 bg-[#0E7C86] text-white rounded-[8px] text-xs font-semibold hover:bg-[#09626A] transition-all cursor-pointer"
               >
                 Close View
               </button>
@@ -323,27 +310,28 @@ export default function TenantComplaints() {
           </div>
         </div>
       )}
+
       {/* Delete Confirmation Modal */}
       {deleteConfirmId && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[10000] flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-xs rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="p-8 text-center">
-              <div className="w-16 h-16 bg-rose-50 rounded-2xl flex items-center justify-center text-rose-600 mx-auto mb-4">
-                <Trash2 size={32} />
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-[10000] flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-xs rounded-[16px] shadow-2xl overflow-hidden border border-[#E1E6EA]">
+            <div className="p-6 text-center">
+              <div className="w-12 h-12 bg-rose-50 rounded-full flex items-center justify-center text-rose-600 mx-auto mb-3">
+                <Trash2 size={24} />
               </div>
-              <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-2">Delete Complaint?</h3>
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">This action cannot be undone. Are you sure you want to proceed?</p>
+              <h3 className="text-sm font-bold text-[#10242A] mb-1">Delete Complaint?</h3>
+              <p className="text-xs text-[#4A5961]">This action cannot be undone. Are you sure?</p>
             </div>
-            <div className="p-4 bg-slate-50 border-t border-slate-100 grid grid-cols-2 gap-3">
+            <div className="p-3 bg-[#F8FAFC] border-t border-[#E1E6EA] grid grid-cols-2 gap-2">
               <button 
                 onClick={() => setDeleteConfirmId(null)}
-                className="px-4 py-3 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-100 transition-all"
+                className="px-3 py-2 bg-white border border-[#E1E6EA] rounded-[8px] text-xs font-semibold text-[#4A5961] hover:bg-[#F4F6F8] transition-all cursor-pointer"
               >
                 Cancel
               </button>
               <button 
                 onClick={() => deleteComplaint(deleteConfirmId)}
-                className="px-4 py-3 bg-rose-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all shadow-md shadow-rose-600/20"
+                className="px-3 py-2 bg-rose-600 text-white rounded-[8px] text-xs font-semibold hover:bg-rose-700 transition-all cursor-pointer"
               >
                 Delete
               </button>

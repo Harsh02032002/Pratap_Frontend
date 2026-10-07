@@ -64,7 +64,7 @@ export default function ProfitLossReport() {
   };
 
   return (
-    <div className="p-6 space-y-6 bg-[#F8FAFC] min-h-full">
+    <div className="space-y-6 pb-8 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
       <PageHeader
         title="Profit / Loss Report"
         subtitle="Platform fiscal performance summary, commission earnings vs refunds processing outflows."

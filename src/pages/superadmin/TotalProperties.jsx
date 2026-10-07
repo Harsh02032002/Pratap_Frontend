@@ -15,10 +15,10 @@ import AddPropertyWizard from "./AddPropertyWizard";
 const cn = (...c) => c.filter(Boolean).join(" ");
 
 const STATUS_COLORS = {
-  Published: "bg-emerald-50 text-emerald-700 border border-emerald-200",
-  Pending:   "bg-amber-50 text-amber-700 border border-amber-200",
-  Inactive:  "bg-slate-100 text-slate-500 border border-slate-200",
-  Rejected:  "bg-rose-50 text-rose-700 border border-rose-200",
+  Published: "bg-emerald-100 text-emerald-700 font-semibold px-3 py-1 rounded-full text-xs",
+  Pending:   "bg-amber-100 text-amber-700 font-semibold px-3 py-1 rounded-full text-xs",
+  Inactive:  "bg-rose-100 text-rose-700 font-semibold px-3 py-1 rounded-full text-xs",
+  Rejected:  "bg-rose-100 text-rose-700 font-semibold px-3 py-1 rounded-full text-xs",
 };
 
 const TYPE_MAP = { pg:"PG", hostel:"Hostel", "co-living":"Co-Living", apartment:"Apartment", room:"Room" };
@@ -39,15 +39,14 @@ function Avatar({ name="" }) {
   return <div className={`w-8 h-8 rounded-full ${bg} text-white flex items-center justify-center text-[10px] font-bold shrink-0`}>{i}</div>;
 }
 
-function Stat({ icon:Icon, label, value, color, pct }) {
-  const cfg = { blue:"bg-blue-50 text-blue-600", green:"bg-emerald-50 text-emerald-600", amber:"bg-amber-50 text-amber-600", slate:"bg-slate-100 text-slate-500", rose:"bg-rose-50 text-rose-600" };
+function Stat({ icon:Icon, label, value, color }) {
+  const cfg = { blue:"bg-blue-50 text-blue-600 border border-blue-100", green:"bg-emerald-50 text-emerald-600 border border-emerald-100", amber:"bg-amber-50 text-amber-600 border border-amber-100", slate:"bg-slate-100 text-slate-500 border border-slate-200", rose:"bg-rose-50 text-rose-600 border border-rose-100" };
   return (
-    <div className="flex items-center gap-3 bg-white border border-slate-100 rounded-xl p-4 shadow-sm">
+    <div className="bg-white rounded-[16px] p-5 border border-[#E1E6EA] shadow-xs flex items-center gap-3.5">
       <div className={`w-11 h-11 rounded-xl ${cfg[color]} flex items-center justify-center shrink-0`}><Icon className="w-5 h-5"/></div>
-      <div>
-        <p className="text-xl font-black text-slate-800 leading-none">{value}</p>
-        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mt-0.5">{label}</p>
-        {pct && <p className="text-[9px] text-slate-400 mt-0.5">{pct} of total</p>}
+      <div className="min-w-0 flex-1 flex flex-col justify-center">
+        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1.5 truncate">{label}</p>
+        <p className="text-2xl font-bold text-[#10242A] tracking-tight leading-none truncate">{value}</p>
       </div>
     </div>
   );
@@ -317,25 +316,25 @@ export default function TotalProperties() {
   const pct = (n) => stats.total ? `${((n/stats.total)*100).toFixed(1)}%` : null;
 
   return (
-    <div className="p-6 space-y-5 bg-white min-h-full">
+    <div className="space-y-6 text-[#10242A]">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-800 leading-none">Total Properties</h1>
-          <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mt-1.5">Manage and view all properties listed on the platform.</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Total Properties</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Manage all property listings, statuses and actions</p>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={fetchProps} className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50 shadow-sm transition-all">
-            <RefreshCw className="w-3.5 h-3.5"/> Refresh
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button onClick={fetchProps} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl text-xs sm:text-sm font-medium hover:bg-slate-50 shadow-2xs transition-all cursor-pointer">
+            <RefreshCw className="w-3.5 h-3.5 text-slate-500"/> Refresh
           </button>
-          <button className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50 shadow-sm transition-all">
-            <Download className="w-3.5 h-3.5"/> Export
+          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl text-xs sm:text-sm font-medium hover:bg-slate-50 shadow-2xs transition-all cursor-pointer">
+            <Download className="w-3.5 h-3.5 text-slate-500"/> Export
           </button>
-          <button onClick={()=>setShowMore(v=>!v)} className={cn("flex items-center gap-2 px-4 py-2.5 border rounded-xl text-xs font-bold shadow-sm transition-all", showMore?"bg-blue-600 text-white border-blue-600":"bg-white border-slate-200 text-slate-600 hover:bg-slate-50")}>
+          <button onClick={()=>setShowMore(v=>!v)} className={cn("flex items-center gap-2 px-4 py-2 border rounded-xl text-xs sm:text-sm font-medium shadow-2xs transition-all cursor-pointer", showMore?"bg-[#095256] text-white border-[#095256]":"bg-white border-slate-200 text-slate-700 hover:bg-slate-50")}>
             <SlidersHorizontal className="w-3.5 h-3.5"/> More Filters
           </button>
-          <button onClick={() => { setSelectedProp(null); setEditModalOpen(true); }} className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all">
-            <Plus className="w-3.5 h-3.5"/> Add Property
+          <button onClick={() => { setSelectedProp(null); setEditModalOpen(true); }} className="flex items-center gap-2 px-4 py-2 bg-[#095256] text-white rounded-xl text-xs sm:text-sm font-medium hover:bg-[#074043] shadow-2xs transition-all cursor-pointer">
+            <Plus className="w-4 h-4"/> + Add Property
           </button>
         </div>
       </div>
@@ -343,32 +342,34 @@ export default function TotalProperties() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
         <Stat icon={Building2}    label="Total Properties"  value={stats.total.toLocaleString()}     color="blue"  />
-        <Stat icon={CheckCircle2} label="Published"         value={stats.published.toLocaleString()} color="green" pct={pct(stats.published)} />
-        <Stat icon={Clock}        label="Pending Approval"  value={stats.pending.toLocaleString()}   color="amber" pct={pct(stats.pending)} />
-        <Stat icon={XCircle}      label="Inactive"          value={stats.inactive.toLocaleString()}  color="slate" pct={pct(stats.inactive)} />
-        <Stat icon={AlertCircle}  label="Rejected"          value={stats.rejected.toLocaleString()}  color="rose"  pct={pct(stats.rejected)} />
+        <Stat icon={CheckCircle2} label="Published"         value={stats.published.toLocaleString()} color="green" />
+        <Stat icon={Clock}        label="Pending Approval"  value={stats.pending.toLocaleString()}   color="amber" />
+        <Stat icon={XCircle}      label="Inactive"          value={stats.inactive.toLocaleString()}  color="slate" />
+        <Stat icon={AlertCircle}  label="Rejected"          value={stats.rejected.toLocaleString()}  color="rose"  />
       </div>
 
-      {/* Table Card */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+      {/* Search & Filter Row (OUTSIDE Table Card) */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="relative flex-1 min-w-[240px] max-w-md">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"/>
+          <input 
+            value={search} 
+            onChange={e => setSearch(e.target.value)} 
+            placeholder="Search..."
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-[#095256]/20 focus:border-[#095256] shadow-2xs transition-all"
+          />
+          {search && <button onClick={()=>setSearch("")} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><X className="w-4 h-4"/></button>}
+        </div>
 
-        {/* Main Filter Bar */}
-        <div className="flex flex-wrap items-center gap-2.5 p-4 border-b border-slate-100">
-          <div className="relative flex-1 min-w-[220px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300"/>
-            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by property name..."
-              className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 placeholder:text-slate-400 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"/>
-            {search && <button onClick={()=>setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500"><X className="w-3.5 h-3.5"/></button>}
-          </div>
-
-          <Sel value={fStatus} onChange={setFStatus} placeholder="All Status">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Sel value={fStatus} onChange={setFStatus} placeholder="Status">
             <option value="Published">Published</option>
             <option value="Pending">Pending</option>
             <option value="Inactive">Inactive</option>
             <option value="Rejected">Rejected</option>
           </Sel>
 
-          <Sel value={fType} onChange={setFType} placeholder="All Type">
+          <Sel value={fType} onChange={setFType} placeholder="Type">
             <option value="pg">PG</option>
             <option value="hostel">Hostel</option>
             <option value="co-living">Co-Living</option>
@@ -376,56 +377,51 @@ export default function TotalProperties() {
             <option value="room">Room</option>
           </Sel>
 
-          <Sel value={fTier} onChange={setFTier} placeholder="All Tier">
+          <Sel value={fTier} onChange={setFTier} placeholder="Tier">
             {PROPERTY_TIERS.map(t=><option key={t.key} value={t.key}>{t.label}</option>)}
           </Sel>
 
-          <Sel value={fCity} onChange={v=>{setFCity(v); setFLocation("all");}} placeholder="All City">
+          <Sel value={fCity} onChange={v=>{setFCity(v); setFLocation("all");}} placeholder="City">
             {cities.map(c=><option key={c} value={c}>{c}</option>)}
           </Sel>
 
-          <Sel value={fLocation} onChange={setFLocation} placeholder="All Location">
-            {locations.map(l=><option key={l} value={l}>{l}</option>)}
-          </Sel>
-
-          <Sel value={fOwner} onChange={setFOwner} placeholder="All Owner">
-            {owners.map(o=><option key={o} value={o}>{o}</option>)}
-          </Sel>
-
           {(search||fStatus!=="all"||fType!=="all"||fCity!=="all"||fLocation!=="all"||fOwner!=="all"||fGender!=="all"||fPriceMin||fPriceMax) && (
-            <button onClick={resetAll} className="flex items-center gap-1.5 px-3 py-2.5 text-xs font-bold text-rose-500 bg-rose-50 border border-rose-200 rounded-xl hover:bg-rose-100 transition-all">
-              <X className="w-3 h-3"/> Reset
+            <button onClick={resetAll} className="flex items-center gap-1.5 px-3 py-2.5 text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl hover:bg-rose-100 transition-all cursor-pointer">
+              <X className="w-3.5 h-3.5"/> Reset
             </button>
           )}
         </div>
+      </div>
 
-        {/* More Filters Panel */}
-        {showMore && (
-          <div className="flex flex-wrap items-end gap-4 px-4 py-3 bg-slate-50 border-b border-slate-100">
-            <div>
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Gender</p>
-              <Sel value={fGender} onChange={setFGender} placeholder="All Gender">
-                <option value="male">Boys</option>
-                <option value="female">Girls</option>
-                <option value="any">Unisex</option>
-              </Sel>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Min Price (₹)</p>
-              <input type="number" value={fPriceMin} onChange={e=>setFPriceMin(e.target.value)} placeholder="0"
-                className="w-32 px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:border-blue-400 transition-all"/>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Max Price (₹)</p>
-              <input type="number" value={fPriceMax} onChange={e=>setFPriceMax(e.target.value)} placeholder="Any"
-                className="w-32 px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:border-blue-400 transition-all"/>
-            </div>
-            <p className="text-[10px] text-slate-400 font-medium self-center">
-              Showing <span className="font-bold text-slate-700">{filtered.length}</span> matching properties
-            </p>
+      {/* More Filters Panel */}
+      {showMore && (
+        <div className="flex flex-wrap items-end gap-4 p-4 bg-white border border-slate-200 rounded-xl shadow-2xs">
+          <div>
+            <p className="text-xs font-semibold text-slate-500 mb-1.5">Gender</p>
+            <Sel value={fGender} onChange={setFGender} placeholder="All Gender">
+              <option value="male">Boys</option>
+              <option value="female">Girls</option>
+              <option value="any">Unisex</option>
+            </Sel>
           </div>
-        )}
+          <div>
+            <p className="text-xs font-semibold text-slate-500 mb-1.5">Min Price (₹)</p>
+            <input type="number" value={fPriceMin} onChange={e=>setFPriceMin(e.target.value)} placeholder="0"
+              className="w-32 px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:border-[#095256] transition-all"/>
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-slate-500 mb-1.5">Max Price (₹)</p>
+            <input type="number" value={fPriceMax} onChange={e=>setFPriceMax(e.target.value)} placeholder="Any"
+              className="w-32 px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:border-[#095256] transition-all"/>
+          </div>
+          <p className="text-xs text-slate-500 font-medium self-center">
+            Showing <span className="font-bold text-slate-800">{filtered.length}</span> matching properties
+          </p>
+        </div>
+      )}
 
+      {/* Separate Table Card Below */}
+      <div className="bg-white border border-slate-200/80 rounded-2xl shadow-2xs overflow-hidden">
         {/* Table */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24 gap-3">
@@ -475,14 +471,14 @@ export default function TotalProperties() {
               </div>
             )}
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                    <th className="px-5 py-3.5 w-10">
+                  <tr className="border-b border-[#E1E6EA]">
+                    <th className="px-4 py-3 text-xs font-semibold text-[#4A5961] w-10">
                       <input
                         type="checkbox"
                         disabled={bulkProcessing}
-                        className="rounded border-slate-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="rounded border-[#CBD3D9] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         checked={paginatedProps.length > 0 && paginatedProps.every(p => selectedIds.has(p.id))}
                         onChange={() => {
                           const allSelected = paginatedProps.every(p => selectedIds.has(p.id));
@@ -496,18 +492,18 @@ export default function TotalProperties() {
                         }}
                       />
                     </th>
-                    <th className="text-left px-4 py-3.5">Property Details</th>
-                    <th className="text-left px-4 py-3.5">Owner</th>
-                    <th className="text-left px-4 py-3.5">Type</th>
-                    <th className="text-left px-4 py-3.5">Location</th>
-                    <th className="text-left px-4 py-3.5">Price</th>
-                    <th className="text-left px-4 py-3.5">Status</th>
-                    <th className="text-center px-4 py-3.5">Website Live</th>
-                    <th className="text-left px-4 py-3.5">Listed On</th>
-                    <th className="px-4 py-3.5 text-right w-48 min-w-[190px]">Actions</th>
+                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Property Details</th>
+                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Owner</th>
+                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Type</th>
+                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Location</th>
+                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Price</th>
+                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Status</th>
+                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4 text-center">Website Live</th>
+                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Listed On</th>
+                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
+                <tbody className="divide-y divide-[#E1E6EA] text-sm">
                   {paginatedProps.map(p => (
                     <tr key={p.id} className="group hover:bg-slate-50/80 transition-colors">
                       <td className="px-5 py-4">

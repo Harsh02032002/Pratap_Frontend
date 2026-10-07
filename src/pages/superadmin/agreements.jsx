@@ -72,59 +72,60 @@ export default function Agreements() {
 
    return (
       <div className="space-y-6 text-[#10242A]">
-         {/* Page Header - PDF Page 12 Spec */}
+         {/* Page Header */}
          <PageHeader
             title="Agreements"
             subtitle="Owner contracts and signatures"
             actions={
                <button
                   onClick={() => alert("Create New Agreement action triggered")}
-                  className="bg-[#0E7C86] hover:bg-[#0B666E] text-white font-semibold text-sm px-4 py-2 rounded-[8px] flex items-center gap-2 transition-colors cursor-pointer"
+                  className="bg-[#095256] hover:bg-[#073d40] text-white font-semibold text-xs px-4 py-2 rounded-xl flex items-center gap-2 transition-colors cursor-pointer shadow-2xs"
                >
                   <Plus className="w-4 h-4" /> + New Agreement
                </button>
             }
          />
 
-         {/* 3 Top Stat Cards - PDF Page 12 Spec */}
+         {/* 3 Top Stat Cards */}
          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            <div className="bg-white rounded-[12px] border border-[#E1E6EA] p-5 shadow-sm">
-               <p className="text-xs font-semibold text-[#4A5961] mb-1">Active</p>
-               <p className="text-3xl font-bold text-[#10242A]">[{String(stats.active).padStart(2, '0')}]</p>
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs">
+               <p className="text-xs font-semibold text-slate-500 mb-1">Active</p>
+               <p className="text-3xl font-bold text-slate-900">{String(stats.active).padStart(2, '0')}</p>
             </div>
-            <div className="bg-white rounded-[12px] border border-[#E1E6EA] p-5 shadow-sm">
-               <p className="text-xs font-semibold text-[#4A5961] mb-1">Awaiting Signature</p>
-               <p className="text-3xl font-bold text-[#10242A]">[{String(stats.awaitingSignature).padStart(2, '0')}]</p>
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs">
+               <p className="text-xs font-semibold text-slate-500 mb-1">Awaiting Signature</p>
+               <p className="text-3xl font-bold text-slate-900">{String(stats.awaitingSignature).padStart(2, '0')}</p>
             </div>
-            <div className="bg-white rounded-[12px] border border-[#E1E6EA] p-5 shadow-sm">
-               <p className="text-xs font-semibold text-[#4A5961] mb-1">Expiring Soon</p>
-               <p className="text-3xl font-bold text-[#10242A]">[{String(stats.expiringSoon).padStart(2, '0')}]</p>
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs">
+               <p className="text-xs font-semibold text-slate-500 mb-1">Expiring Soon</p>
+               <p className="text-3xl font-bold text-slate-900">{String(stats.expiringSoon).padStart(2, '0')}</p>
             </div>
          </div>
 
-         {/* Agreements Table Card */}
-         <div className="bg-white rounded-[12px] p-5 border border-[#E1E6EA] shadow-sm">
-            {/* Filter Bar (Search & Status ▾ as per PDF Page 12) */}
-            <div className="flex flex-col sm:flex-row items-center gap-3 mb-6">
-               <div className="relative flex-1 w-full">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#4A5961]" />
-                  <input
-                     value={search}
-                     onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
-                     placeholder="Search"
-                     className="w-full h-[44px] bg-white border border-[#CBD3D9] rounded-[8px] pl-10 pr-3.5 text-sm text-[#10242A] placeholder:text-[#4A5961] outline-none focus:border-[#0E7C86]"
-                  />
-               </div>
-               <select
-                  value={statusFilter}
-                  onChange={e => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-                  className="h-[44px] bg-white border border-[#CBD3D9] rounded-[8px] px-3.5 text-sm text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] w-full sm:w-44"
-               >
-                  <option value="all">Status ▾</option>
-                  <option value="active">Active</option>
-                  <option value="awaiting">Awaiting signature</option>
-               </select>
+         {/* Outside Filter Bar */}
+         <div className="flex flex-col sm:flex-row items-center gap-3">
+            <div className="relative flex-1 w-full">
+               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+               <input
+                  value={search}
+                  onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
+                  placeholder="Search owner or property..."
+                  className="w-full bg-white border border-slate-200/80 rounded-xl pl-10 pr-4 py-2 text-xs font-medium text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-[#095256]/20 focus:border-[#095256] transition-all shadow-2xs"
+               />
             </div>
+            <select
+               value={statusFilter}
+               onChange={e => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+               className="bg-white border border-slate-200/80 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-700 outline-none cursor-pointer shadow-2xs w-full sm:w-44"
+            >
+               <option value="all">Status ▾</option>
+               <option value="active">Active</option>
+               <option value="awaiting">Awaiting signature</option>
+            </select>
+         </div>
+
+         {/* Agreements Table Card */}
+         <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
 
             <div className="overflow-x-auto">
                <table className="w-full text-left border-collapse">

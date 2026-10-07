@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react';
-import { ListPlus, Send, CheckCircle, Loader, Building2, User, Mail, Phone, MapPin, Home, Sparkles, ShieldCheck, CheckCircle2, PhoneCall } from 'lucide-react';
+import { 
+  ListPlus, Send, CheckCircle, Loader, Building2, User, Mail, Phone, MapPin, 
+  Home, Sparkles, ShieldCheck, CheckCircle2, PhoneCall,
+  FileText, Landmark, Upload, BadgeCheck, Lock
+} from 'lucide-react';
 import WebsiteNavbar from "../../components/website/WebsiteNavbar";
 import WebsiteFooter from "../../components/website/WebsiteFooter";
 import MobileBottomNav from "../../components/website/MobileBottomNav";
@@ -92,7 +96,8 @@ export default function ListYourPropertyPage() {
   }, []);
 
   const isSectionVisible = (id) => {
-    if (id === 'list-form') return true; // Form is mandatory on List Your Property page
+    if (id === 'list-form') return true; 
+    if (id === 'how-it-works') return true;
     if (layoutSections.length === 0) return true;
     const sec = layoutSections.find(s => s.id === id);
     return sec ? sec.visible !== false : true;
@@ -220,15 +225,12 @@ export default function ListYourPropertyPage() {
         className="relative border-b border-slate-200/80 text-slate-900 py-6 sm:py-8 px-4 sm:px-8 lg:px-14 overflow-hidden flex items-center min-h-[260px] sm:min-h-[280px] bg-cover bg-center md:bg-[center_right]"
         style={{ backgroundImage: `url('https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=1980&auto=format&fit=crop')` }}
       >
-        {/* Rich White Opacity Overlay for 100% text readability & background visibility */}
         <div 
           className="absolute inset-0 z-0"
           style={{ background: 'linear-gradient(90deg, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.90) 50%, rgba(255,255,255,0.35) 100%)' }}
         ></div>
 
         <div className="w-full max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
-          
-          {/* Left Column: Heading */}
           <div className="w-full md:max-w-[500px] lg:max-w-[540px] text-left space-y-2.5 text-slate-900">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 backdrop-blur-md border border-teal-200 text-[#0FA596] text-[10px] sm:text-xs font-black tracking-wide shadow-2xs">
               <Sparkles className="w-3.5 h-3.5 text-[#0FA596] animate-pulse" />
@@ -246,7 +248,6 @@ export default function ListYourPropertyPage() {
               Reach thousands of students searching for verified PGs, Hostels, and Apartments with Smart Bidding.
             </p>
 
-            {/* Trust Indicators Bar */}
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-2.5 border-t border-slate-300/80 text-[11px] font-black text-slate-800 tracking-wide uppercase">
               <div className="flex items-center gap-1.5">
                 <div className="w-4 h-4 rounded-full bg-teal-100 flex items-center justify-center">
@@ -270,10 +271,6 @@ export default function ListYourPropertyPage() {
               </div>
             </div>
           </div>
-
-          {/* Right Column: Open space */}
-          <div className="hidden md:block w-full md:w-1/2"></div>
-
         </div>
       </section>
     );
@@ -296,9 +293,9 @@ export default function ListYourPropertyPage() {
             { icon: User, title: 'Direct Contact', desc: 'Connect directly' },
             { icon: Home, title: 'Verified Tenants', desc: 'Pre-verified students' }
           ].map((benefit, i) => (
-            <div key={i} className="bg-white rounded-xl p-3 md:p-6 shadow-sm border border-gray-100 text-center">
-              <div className="w-8 h-8 md:w-12 md:h-12 bg-blue-50 md:bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                <benefit.icon className="w-4 h-4 md:w-6 md:h-6 text-blue-600" />
+            <div key={i} className="bg-white rounded-xl p-3 md:p-6 shadow-sm border border-gray-100 text-center hover:shadow-md transition-shadow">
+              <div className="w-8 h-8 md:w-12 md:h-12 bg-teal-50 md:bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                <benefit.icon className="w-4 h-4 md:w-6 md:h-6 text-[#0FA596]" />
               </div>
               <h3 className="text-[10px] md:text-base font-bold text-gray-900 mb-0.5">{benefit.title}</h3>
               <p className="text-gray-500 text-[9px] md:text-sm hidden sm:block">{benefit.desc}</p>
@@ -309,13 +306,81 @@ export default function ListYourPropertyPage() {
     );
   };
 
+  const renderHowItWorks = () => {
+    return (
+      <section key="how-it-works" className="mb-10 md:mb-16">
+        <div className="text-center mb-8">
+          <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">How Partner Onboarding Works</h2>
+          <p className="text-sm text-slate-500 mt-2">Complete a simple 100% digital KYC and start accepting rent directly via PayU.</p>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {/* Step 1 */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-lg transition-all hover:-translate-y-1">
+            <div className="absolute top-0 right-0 w-16 h-16 bg-blue-50 rounded-bl-[100px] -z-10 group-hover:scale-110 transition-transform"></div>
+            <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center mb-4">
+              <User className="w-6 h-6" />
+            </div>
+            <span className="text-xs font-bold text-blue-600 mb-2 block uppercase tracking-wider">Step 1</span>
+            <h3 className="text-lg font-bold text-slate-900 mb-2">Basic Details</h3>
+            <p className="text-sm text-slate-600 leading-relaxed">Register with your name, official email, and verify your 10-digit mobile number via OTP.</p>
+          </div>
+
+          {/* Step 2 */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-lg transition-all hover:-translate-y-1">
+            <div className="absolute top-0 right-0 w-16 h-16 bg-indigo-50 rounded-bl-[100px] -z-10 group-hover:scale-110 transition-transform"></div>
+            <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center mb-4">
+              <FileText className="w-6 h-6" />
+            </div>
+            <span className="text-xs font-bold text-indigo-600 mb-2 block uppercase tracking-wider">Step 2</span>
+            <h3 className="text-lg font-bold text-slate-900 mb-2">PAN & Identity</h3>
+            <p className="text-sm text-slate-600 leading-relaxed">Provide your legal name and PAN number. Upload your PAN card image for quick KYC verification.</p>
+          </div>
+
+          {/* Step 3 */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-lg transition-all hover:-translate-y-1">
+            <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-50 rounded-bl-[100px] -z-10 group-hover:scale-110 transition-transform"></div>
+            <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center mb-4">
+              <Landmark className="w-6 h-6" />
+            </div>
+            <span className="text-xs font-bold text-emerald-600 mb-2 block uppercase tracking-wider">Step 3</span>
+            <h3 className="text-lg font-bold text-slate-900 mb-2">Bank Account</h3>
+            <p className="text-sm text-slate-600 leading-relaxed">Enter your Bank Account Number and IFSC Code. Upload a cancelled cheque for seamless payout settlements.</p>
+          </div>
+
+          {/* Step 4 */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-lg transition-all hover:-translate-y-1">
+            <div className="absolute top-0 right-0 w-16 h-16 bg-amber-50 rounded-bl-[100px] -z-10 group-hover:scale-110 transition-transform"></div>
+            <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center mb-4">
+              <ShieldCheck className="w-6 h-6" />
+            </div>
+            <span className="text-xs font-bold text-amber-600 mb-2 block uppercase tracking-wider">Step 4</span>
+            <h3 className="text-lg font-bold text-slate-900 mb-2">Ownership Proof</h3>
+            <p className="text-sm text-slate-600 leading-relaxed">Upload an Electricity Bill or Property Tax receipt to prove property ownership and gain a Verified Badge.</p>
+          </div>
+        </div>
+        
+        {/* PayU Info Box */}
+        <div className="mt-6 p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center gap-4 max-w-3xl mx-auto justify-center">
+          <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center shrink-0">
+            <Lock className="w-5 h-5 text-[#0FA596]" />
+          </div>
+          <p className="text-sm text-slate-700 font-medium text-left">
+            Roomhy is fully integrated with <strong className="text-slate-900">PayU Payment Gateway</strong>. Your KYC details are 256-bit encrypted and used strictly for merchant onboarding and rent settlement processing.
+          </p>
+        </div>
+      </section>
+    );
+  };
+
   const renderForm = () => {
     return (
       <section key="list-form" className="bg-white rounded-2xl shadow-md p-4 md:p-8">
         <div className="flex items-center gap-3 mb-4 md:mb-6">
-          <ListPlus className="w-6 h-6 md:w-8 md:h-8 text-blue-600" />
-          <h2 className="text-xl md:text-2xl font-bold text-gray-900">Property Details</h2>
+          <ListPlus className="w-6 h-6 md:w-8 md:h-8 text-[#0FA596]" />
+          <h2 className="text-xl md:text-2xl font-bold text-gray-900">Submit an Inquiry to Start</h2>
         </div>
+        <p className="text-sm text-slate-500 mb-6">Fill out this quick form and our partner desk will reach out to help you complete your onboarding and property setup.</p>
 
         <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
           <div className="border-b border-gray-200 pb-4 md:pb-6">
@@ -331,7 +396,7 @@ export default function ListYourPropertyPage() {
                     value={formData.ownerName}
                     onChange={handleChange}
                     placeholder="Enter your full name"
-                    className={`w-full pl-10 pr-4 py-2 md:py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 text-sm md:text-base ${errors.ownerName ? 'border-red-500' : 'border-gray-300'}`}
+                    className={`w-full pl-10 pr-4 py-2 md:py-3 border rounded-lg focus:ring-2 focus:ring-[#0FA596] text-sm md:text-base ${errors.ownerName ? 'border-red-500' : 'border-gray-300'}`}
                   />
                 </div>
                 {errors.ownerName && <p className="text-red-500 text-xs mt-1">{errors.ownerName}</p>}
@@ -347,7 +412,7 @@ export default function ListYourPropertyPage() {
                     value={formData.email}
                     onChange={handleChange}
                     placeholder="your@email.com"
-                    className={`w-full pl-10 pr-4 py-2 md:py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 text-sm md:text-base ${errors.email ? 'border-red-500' : 'border-gray-300'}`}
+                    className={`w-full pl-10 pr-4 py-2 md:py-3 border rounded-lg focus:ring-2 focus:ring-[#0FA596] text-sm md:text-base ${errors.email ? 'border-red-500' : 'border-gray-300'}`}
                   />
                 </div>
                 {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
@@ -363,7 +428,7 @@ export default function ListYourPropertyPage() {
                     value={formData.phone}
                     onChange={handleChange}
                     placeholder="10-digit phone number"
-                    className={`w-full pl-10 pr-4 py-2 md:py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 text-sm md:text-base ${errors.phone ? 'border-red-500' : 'border-gray-300'}`}
+                    className={`w-full pl-10 pr-4 py-2 md:py-3 border rounded-lg focus:ring-2 focus:ring-[#0FA596] text-sm md:text-base ${errors.phone ? 'border-red-500' : 'border-gray-300'}`}
                   />
                 </div>
                 {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
@@ -372,7 +437,7 @@ export default function ListYourPropertyPage() {
           </div>
 
           <div className="border-b border-gray-200 pb-4 md:pb-6">
-            <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-3 md:mb-4">Property Information</h3>
+            <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-3 md:mb-4">Basic Property Info</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
               <div className="md:col-span-2">
                 <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1">Property Name *</label>
@@ -384,7 +449,7 @@ export default function ListYourPropertyPage() {
                     value={formData.propertyName}
                     onChange={handleChange}
                     placeholder="e.g., Sunshine PG, Royal Hostel"
-                    className={`w-full pl-10 pr-4 py-2 md:py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 text-sm md:text-base ${errors.propertyName ? 'border-red-500' : 'border-gray-300'}`}
+                    className={`w-full pl-10 pr-4 py-2 md:py-3 border rounded-lg focus:ring-2 focus:ring-[#0FA596] text-sm md:text-base ${errors.propertyName ? 'border-red-500' : 'border-gray-300'}`}
                   />
                 </div>
                 {errors.propertyName && <p className="text-red-500 text-xs mt-1">{errors.propertyName}</p>}
@@ -396,7 +461,7 @@ export default function ListYourPropertyPage() {
                   name="propertyType"
                   value={formData.propertyType}
                   onChange={handleChange}
-                  className={`w-full px-3 md:px-4 py-2 md:py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 text-sm md:text-base bg-white ${errors.propertyType ? 'border-red-500' : 'border-gray-300'}`}
+                  className={`w-full px-3 md:px-4 py-2 md:py-3 border rounded-lg focus:ring-2 focus:ring-[#0FA596] text-sm md:text-base bg-white ${errors.propertyType ? 'border-red-500' : 'border-gray-300'}`}
                 >
                   <option value="">Select property type</option>
                   {propertyTypes.map(type => (
@@ -414,7 +479,7 @@ export default function ListYourPropertyPage() {
                   value={formData.rent}
                   onChange={handleChange}
                   placeholder="e.g., 8000"
-                  className={`w-full px-3 md:px-4 py-2 md:py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 text-sm md:text-base ${errors.rent ? 'border-red-500' : 'border-gray-300'}`}
+                  className={`w-full px-3 md:px-4 py-2 md:py-3 border rounded-lg focus:ring-2 focus:ring-[#0FA596] text-sm md:text-base ${errors.rent ? 'border-red-500' : 'border-gray-300'}`}
                 />
                 {errors.rent && <p className="text-red-500 text-xs mt-1">{errors.rent}</p>}
               </div>
@@ -429,7 +494,7 @@ export default function ListYourPropertyPage() {
                     value={formData.city}
                     onChange={handleChange}
                     placeholder="e.g., Kota, Indore"
-                    className={`w-full pl-10 pr-4 py-2 md:py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 text-sm md:text-base ${errors.city ? 'border-red-500' : 'border-gray-300'}`}
+                    className={`w-full pl-10 pr-4 py-2 md:py-3 border rounded-lg focus:ring-2 focus:ring-[#0FA596] text-sm md:text-base ${errors.city ? 'border-red-500' : 'border-gray-300'}`}
                   />
                 </div>
                 {errors.city && <p className="text-red-500 text-xs mt-1">{errors.city}</p>}
@@ -443,7 +508,7 @@ export default function ListYourPropertyPage() {
                   value={formData.area}
                   onChange={handleChange}
                   placeholder="e.g., Vijay Nagar, Main Market"
-                  className="w-full px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
+                  className="w-full px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0FA596] text-sm md:text-base"
                 />
               </div>
 
@@ -455,7 +520,7 @@ export default function ListYourPropertyPage() {
                   onChange={handleChange}
                   rows={2}
                   placeholder="Enter complete address with landmarks"
-                  className="w-full px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none text-sm md:text-base"
+                  className="w-full px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0FA596] resize-none text-sm md:text-base"
                 />
               </div>
 
@@ -467,7 +532,7 @@ export default function ListYourPropertyPage() {
                   onChange={handleChange}
                   rows={3}
                   placeholder="Describe your property - number of rooms, amenities, nearby facilities, etc."
-                  className="w-full px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none text-sm md:text-base"
+                  className="w-full px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0FA596] resize-none text-sm md:text-base"
                 />
               </div>
             </div>
@@ -495,7 +560,7 @@ export default function ListYourPropertyPage() {
             <button
               type="submit"
               disabled={loadingForm}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 rounded-xl flex items-center justify-center gap-2 transition-colors disabled:opacity-70"
+              className="flex-1 bg-[#0FA596] hover:bg-teal-700 text-white font-semibold py-4 rounded-xl flex items-center justify-center gap-2 transition-colors shadow-lg shadow-[#0FA596]/30 disabled:opacity-70"
             >
               {loadingForm ? (
                 <>
@@ -505,7 +570,7 @@ export default function ListYourPropertyPage() {
               ) : (
                 <>
                   <Send className="w-5 h-5" />
-                  Submit Listing
+                  Submit Inquiry
                 </>
               )}
             </button>
@@ -515,13 +580,16 @@ export default function ListYourPropertyPage() {
     );
   };
 
-  const defaultOrder = ['list-hero', 'owner-benefits', 'list-form'];
+  const defaultOrder = ['list-hero', 'owner-benefits', 'how-it-works', 'list-form'];
   let activeOrder = layoutSections.length > 0
     ? layoutSections.map(s => s.id)
     : defaultOrder;
 
   if (!activeOrder.includes('list-form')) {
     activeOrder.push('list-form');
+  }
+  if (!activeOrder.includes('how-it-works')) {
+    activeOrder.splice(2, 0, 'how-it-works'); // Insert after benefits
   }
 
   return (
@@ -534,14 +602,14 @@ export default function ListYourPropertyPage() {
         </div>
       ) : (
         <>
-          {/* Full Width Hero Section Edge-to-Edge Right Under Navbar */}
           {isSectionVisible('list-hero') && renderHero()}
 
-          <main className="flex-grow max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-10 w-full">
+          <main className="flex-grow max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-12 w-full">
             {activeOrder.map(sectionId => {
               if (sectionId === 'list-hero' || !isSectionVisible(sectionId)) return null;
               switch (sectionId) {
                 case 'owner-benefits': return renderBenefits();
+                case 'how-it-works': return renderHowItWorks();
                 case 'list-form': return renderForm();
                 default: return null;
               }
@@ -569,18 +637,18 @@ export default function ListYourPropertyPage() {
       <MobileBottomNav />
 
       {showSuccess && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="w-8 h-8 text-green-600" />
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-8 text-center shadow-2xl">
+            <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="w-8 h-8 text-emerald-600" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Listing Submitted!</h2>
-            <p className="text-gray-600 mb-6">
-              Thank you for listing your property. Our team will review your submission and get in touch with you within 24 hours.
+            <h2 className="text-2xl font-black text-slate-900 mb-2">Inquiry Submitted!</h2>
+            <p className="text-slate-600 mb-6 text-sm">
+              Thank you for showing interest in listing your property. Our partner onboarding team will review your submission and contact you shortly to complete KYC.
             </p>
             <button
               onClick={() => setShowSuccess(false)}
-              className="w-full bg-blue-600 text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition-colors"
+              className="w-full bg-[#0FA596] text-white font-bold py-3.5 rounded-xl hover:bg-teal-700 transition-colors shadow-lg shadow-[#0FA596]/30"
             >
               Done
             </button>
@@ -590,6 +658,3 @@ export default function ListYourPropertyPage() {
     </div>
   );
 }
-
-
-

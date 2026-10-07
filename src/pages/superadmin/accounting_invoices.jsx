@@ -414,19 +414,25 @@ export default function Invoices() {
   };
 
   return (
-    <div className="p-6 space-y-6 bg-[#F8FAFC] min-h-full">
+    <div className="space-y-6 pb-8 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
       {/* Header Area */}
-      <div className="flex items-center justify-between">
-         <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-bold text-slate-800 tracking-tight leading-none">Billing Center</h1>
-            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Fiscal Documentation & Automated Accounts Receivable Ledger</p>
-         </div>
-         <div className="flex items-center gap-3">
-            <button className="bg-blue-600 text-white px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-lg shadow-blue-600/10 hover:bg-blue-700 transition-all flex items-center gap-2">
-               <Plus className="w-3.5 h-3.5" /> Create Invoice
+      <PageHeader
+        title="Billing Center"
+        subtitle="Fiscal documentation & automated accounts receivable ledger."
+        actions={
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={loadInvoices}
+              className="bg-white text-[#4A5961] border border-[#E1E6EA] px-3.5 py-2 rounded-xl text-xs font-semibold hover:bg-slate-50 transition-all flex items-center gap-2 shadow-2xs cursor-pointer"
+            >
+              <RefreshCw className="w-3.5 h-3.5 text-[#095256]" /> Refresh
             </button>
-         </div>
-      </div>
+            <button className="bg-[#095256] text-white px-4 py-2 rounded-xl text-xs font-semibold shadow-2xs hover:bg-[#073d40] transition-all flex items-center gap-2 cursor-pointer">
+              <Plus className="w-4 h-4" /> Create Invoice
+            </button>
+          </div>
+        }
+      />
 
       {/* Metrics Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -436,20 +442,21 @@ export default function Invoices() {
         <StatCardHorizontal label="Overdue Alerts" value={stats.overdueAlerts} trend="Risk" up={false} icon={AlertCircle} color="rose" />
       </div>
 
-      {/* Main Table Card */}
-      <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-lg shadow-slate-200/50 overflow-hidden">
-         <div className="flex items-center justify-between mb-8">
-            <h3 className="text-[10px] font-bold text-slate-800 uppercase tracking-widest leading-none">Billing Registry</h3>
-            <div className="flex items-center gap-3">
-               <div className="relative group w-48">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-300" />
-                  <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search invoices..." className="w-full bg-slate-50 border-none rounded-xl py-2 pl-9 pr-3 text-[10px] font-bold outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all shadow-sm" />
-               </div>
-               <button onClick={loadInvoices} className="p-2 rounded-lg bg-slate-50 text-slate-400 hover:text-blue-600 transition-all border border-slate-100 shadow-sm">
-                  <RefreshCw className="w-3.5 h-3.5" />
-               </button>
-            </div>
-         </div>
+      {/* Outside Search Bar */}
+      <div className="flex justify-end">
+        <div className="relative group w-full sm:w-72">
+           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+           <input 
+             value={search} 
+             onChange={e => setSearch(e.target.value)} 
+             placeholder="Search invoices..." 
+             className="w-full bg-white border border-slate-200/80 rounded-xl py-2 pl-9 pr-4 text-xs font-medium text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-[#095256]/20 focus:border-[#095256] transition-all shadow-2xs" 
+           />
+        </div>
+      </div>
+
+      {/* Standalone Table Card */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
 
          <div className="overflow-x-auto">
             <table className="w-full text-left">

@@ -24,6 +24,8 @@ import {
   classifyAccuracy,
 } from "../../utils/deviceLocation";
 
+import { PageHeader } from "../../components/superadmin/PageHeader";
+
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
 const INDIAN_STATES_CITIES = [
@@ -1437,26 +1439,26 @@ export default function Visit() {
   // ═══════════════════════════════════════════════════════════════════════════
 
   return (
-    <div className="p-6 space-y-6 bg-[#F8FAFC] min-h-full">
+    <div className="space-y-6 pb-8 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
       {/* Header Area */}
-      <div className="flex items-center justify-between">
-         <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-bold text-slate-800 tracking-tight leading-none">Visit Reports</h1>
-            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">View and manage property visit reports</p>
-         </div>
-         <div className="flex items-center gap-3">
+      <PageHeader 
+        title="Visit Reports"
+        subtitle="View and manage property visit reports"
+        actions={
+          <div className="flex items-center gap-3">
             {currentView === "list" && !(window.location.pathname.toLowerCase().includes('/superadmin')) && (
-              <button onClick={() => setCurrentView("addOwner")} className="bg-slate-800 text-white px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-lg shadow-slate-800/10 hover:bg-slate-900 transition-all flex items-center gap-2">
-                 <Plus className="w-3.5 h-3.5" /> Add New Visit
+              <button onClick={() => setCurrentView("addOwner")} className="bg-[#0E7C86] hover:bg-[#0B656D] text-white px-4 py-2 rounded-[12px] text-xs font-semibold shadow-xs transition-all flex items-center gap-2 cursor-pointer">
+                 <Plus className="w-4 h-4" /> Add New Visit
               </button>
             )}
             {currentView === "addOwner" && (
-              <button onClick={() => { resetForm(); setCurrentView("list"); }} className="bg-white text-slate-600 border border-slate-100 shadow-slate-200 px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-lg transition-all flex items-center gap-2">
-                 <RefreshCw className="w-3.5 h-3.5" /> Back to Visits
+              <button onClick={() => { resetForm(); setCurrentView("list"); }} className="bg-white text-[#4A5961] border border-[#E1E6EA] hover:bg-[#F4F6F8] px-4 py-2 rounded-[12px] text-xs font-semibold shadow-xs transition-all flex items-center gap-2 cursor-pointer">
+                 <RefreshCw className="w-3.5 h-3.5 text-[#0E7C86]" /> Back to Visits
               </button>
             )}
-         </div>
-      </div>
+          </div>
+        }
+      />
 
       {currentView === "addOwner" ? (
         /* ═══ ADD PROPERTY OWNER — COMPREHENSIVE FORM ═══ */
@@ -2177,53 +2179,53 @@ export default function Visit() {
         /* ═══ VISITS LIST VIEW ═══ */
         <div className="space-y-6">
           {/* Stats Bar */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-white p-5 rounded-[16px] border border-[#E1E6EA] shadow-xs flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Visit Reports</p>
-                <h3 className="text-2xl font-bold text-slate-800 mt-1">{stats.total}</h3>
+                <p className="text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider">Total Visit Reports</p>
+                <h3 className="text-2xl font-bold text-[#10242A] mt-0.5">{stats.total}</h3>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                <Building2 size={24} />
+              <div className="w-11 h-11 rounded-[12px] bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center shrink-0">
+                <Building2 size={22} />
               </div>
             </div>
-            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+            <div className="bg-white p-5 rounded-[16px] border border-[#E1E6EA] shadow-xs flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Approved / Onboarded</p>
-                <h3 className="text-2xl font-bold text-emerald-600 mt-1">{stats.approved}</h3>
+                <p className="text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider">Approved / Onboarded</p>
+                <h3 className="text-2xl font-bold text-emerald-600 mt-0.5">{stats.approved}</h3>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                <CheckCircle2 size={24} />
+              <div className="w-11 h-11 rounded-[12px] bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                <CheckCircle2 size={22} />
               </div>
             </div>
-            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+            <div className="bg-white p-5 rounded-[16px] border border-[#E1E6EA] shadow-xs flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Pending Review</p>
-                <h3 className="text-2xl font-bold text-amber-600 mt-1">{stats.pending}</h3>
+                <p className="text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider">Pending Review</p>
+                <h3 className="text-2xl font-bold text-amber-600 mt-0.5">{stats.pending}</h3>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                <Clock size={24} />
+              <div className="w-11 h-11 rounded-[12px] bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                <Clock size={22} />
               </div>
             </div>
           </div>
 
           {/* Search & Actions */}
-          <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between gap-4">
+          <div className="bg-white p-4 rounded-[16px] border border-[#E1E6EA] shadow-xs flex items-center justify-between gap-4">
             <div className="flex-1 relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-[#4A5961] absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by property name or staff member..."
-                className="w-full bg-slate-50 border border-slate-100 rounded-xl pl-11 pr-4 py-3 text-xs font-bold text-slate-700 outline-none focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all placeholder:text-slate-300" />
+                className="w-full bg-[#F4F6F8] border border-[#E1E6EA] rounded-[8px] pl-10 pr-4 py-2 text-xs font-medium text-[#10242A] outline-none focus:border-[#0E7C86] transition-all placeholder:text-[#4A5961]" />
             </div>
-            <button onClick={loadVisits} className="p-3 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl border border-slate-100 transition-all">
-              <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
+            <button onClick={loadVisits} className="p-2 bg-white hover:bg-[#F4F6F8] text-[#4A5961] rounded-[8px] border border-[#E1E6EA] transition-all cursor-pointer">
+              <RefreshCw className={cn("w-4 h-4 text-[#0E7C86]", loading && "animate-spin")} />
             </button>
           </div>
 
           {/* Table */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-x-auto">
+          <div className="bg-white rounded-[16px] border border-[#E1E6EA] shadow-xs overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[1300px]">
               <thead>
-                <tr className="bg-slate-50/50 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">
+                <tr className="bg-[#F4F6F8] border-b border-[#E1E6EA] text-[11px] font-bold text-[#4A5961] uppercase tracking-wider whitespace-nowrap">
                   <th className="p-4 pl-6 min-w-[200px]">Property / Owner</th>
                   <th className="p-4 min-w-[160px]">Location</th>
                   <th className="p-4 min-w-[140px]">Type / Rent</th>

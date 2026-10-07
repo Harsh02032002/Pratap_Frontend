@@ -65,7 +65,7 @@ export default function TransactionsReport() {
   };
 
   return (
-    <div className="p-6 space-y-6 bg-[#F8FAFC] min-h-full">
+    <div className="space-y-6 pb-8 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
       <PageHeader
         title="Transaction Reports"
         subtitle="Full log database of razorpay tenant collections, platform commission splits, and payouts tracking."

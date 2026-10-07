@@ -11,12 +11,12 @@ const cn = (...classes) => classes.filter(Boolean).join(" ");
 
 function StatCard({ label, value, subtitle, loading }) {
   return (
-    <div className="bg-white rounded-[12px] p-5 border border-[#E1E6EA] shadow-sm flex flex-col justify-between">
-      <p className="text-xs font-semibold text-[#4A5961] uppercase tracking-wider">{label}</p>
-      <div className="mt-3">
-        <h3 className="text-3xl font-bold text-[#10242A] tracking-tight">{loading ? "..." : (value ?? "[00]")}</h3>
-        {subtitle && <p className="text-xs text-[#4A5961] mt-1">{subtitle}</p>}
+    <div className="bg-white rounded-[16px] p-6 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
+      <div className="text-[13px] font-medium text-[#4A5961]">{label}</div>
+      <div className="text-[32px] font-bold text-[#10242A] tracking-tight my-1">
+        {loading ? "..." : (value ?? "0")}
       </div>
+      {subtitle && <div className="text-[12px] text-[#708088]">{subtitle}</div>}
     </div>
   );
 }

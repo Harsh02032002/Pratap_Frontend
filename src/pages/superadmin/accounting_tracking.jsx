@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { fetchJson } from "../../utils/api";
 import useSEO from "../../hooks/useSEO";
+import { PageHeader } from "../../components/superadmin/PageHeader";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
@@ -75,22 +76,20 @@ export default function AccountingPaymentTracking() {
   }, [payments]);
 
   return (
-    <div className="p-6 space-y-6 bg-[#F8FAFC] min-h-full">
+    <div className="space-y-6 pb-8 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
       {/* Header Area */}
-      <div className="flex items-center justify-between">
-         <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-bold text-slate-800 tracking-tight leading-none">Payment Tracking</h1>
-            <p className="text-xs font-semibold text-slate-500 mt-1">Audit trail and signature verification for payment gateway transactions.</p>
-         </div>
-         <div className="flex items-center gap-3">
-            <button 
-              onClick={loadData}
-              className="bg-white text-slate-400 border border-slate-100 px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center gap-2"
-            >
-               <RefreshCw className="w-3.5 h-3.5" /> Refresh Data
-            </button>
-         </div>
-      </div>
+      <PageHeader
+        title="Payment Tracking"
+        subtitle="Audit trail and signature verification for payment gateway transactions."
+        actions={
+          <button 
+            onClick={loadData}
+            className="bg-white text-[#4A5961] border border-[#E1E6EA] px-3.5 py-2 rounded-[12px] text-xs font-semibold hover:bg-[#F4F6F8] transition-all flex items-center gap-2 shadow-xs cursor-pointer"
+          >
+             <RefreshCw className="w-3.5 h-3.5 text-[#0E7C86]" /> Refresh Data
+          </button>
+        }
+      />
 
       {/* Metrics Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

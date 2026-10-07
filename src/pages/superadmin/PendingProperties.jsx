@@ -81,16 +81,16 @@ export default function PendingProperties() {
   );
 
   return (
-    <div className="p-6 space-y-6 bg-[#F8FAFC] min-h-full">
+    <div className="space-y-6 text-[#10242A]">
       {/* Header Area */}
-      <div className="flex items-center justify-between">
-         <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-bold text-slate-800 tracking-tight leading-none">Pending Properties</h1>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Review and approve new property listings.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+         <div>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Pending Properties</h1>
+            <p className="text-sm text-slate-500 mt-0.5">Review and approve new property listings submitted by owners</p>
          </div>
          <div className="flex items-center gap-3">
-            <button onClick={fetchPendingProperties} className="bg-slate-800 text-white px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-lg shadow-slate-800/10 hover:bg-slate-900 transition-all flex items-center gap-2">
-               <RefreshCw className={cn("w-3.5 h-3.5", loading && "animate-spin")} /> Refresh Queue
+            <button onClick={fetchPendingProperties} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl text-xs sm:text-sm font-medium hover:bg-slate-50 shadow-2xs transition-all cursor-pointer">
+               <RefreshCw className={cn("w-3.5 h-3.5 text-slate-500", loading && "animate-spin")} /> Refresh Queue
             </button>
          </div>
       </div>
@@ -104,33 +104,30 @@ export default function PendingProperties() {
       </div>
 
       {/* Main Table Card */}
-      <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-lg shadow-slate-200/50 overflow-hidden">
-         <div className="flex items-center justify-between mb-8">
-            <h3 className="text-[10px] font-bold text-slate-800 uppercase tracking-widest leading-none">Awaiting Review</h3>
-            <div className="flex items-center gap-3">
-               <div className="relative group w-64">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-300" />
-                  <input 
-                    value={searchTerm} 
-                    onChange={e => setSearchTerm(e.target.value)} 
-                    placeholder="Search properties or owners..." 
-                    className="w-full bg-slate-50 border-none rounded-xl py-2.5 pl-9 pr-3 text-[10px] font-bold outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all shadow-sm" 
-                  />
-               </div>
+      <div className="bg-white rounded-[12px] p-5 border border-[#E1E6EA] shadow-sm">
+         <div className="flex flex-col sm:flex-row items-center gap-3 mb-6">
+            <div className="relative flex-1 w-full">
+               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#4A5961]" />
+               <input 
+                 value={searchTerm} 
+                 onChange={e => setSearchTerm(e.target.value)} 
+                 placeholder="Search properties or owners..." 
+                 className="w-full h-[44px] bg-white border border-[#CBD3D9] rounded-[8px] pl-10 pr-3.5 text-sm text-[#10242A] placeholder:text-[#4A5961] outline-none focus:border-[#0E7C86]" 
+               />
             </div>
          </div>
 
          <div className="overflow-x-auto">
-            <table className="w-full text-left">
+            <table className="w-full text-left border-collapse">
                <thead>
-                  <tr className="text-slate-400 text-[8px] font-bold uppercase border-b border-slate-50">
-                     <th className="pb-4">Property & Owner</th>
-                     <th className="pb-4 text-center">Submitted</th>
-                     <th className="pb-4 text-center">Status</th>
-                     <th className="pb-4 text-right">Actions</th>
+                  <tr className="border-b border-[#E1E6EA]">
+                     <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Property & Owner</th>
+                     <th className="text-xs font-semibold text-[#4A5961] py-3 px-4 text-center">Submitted</th>
+                     <th className="text-xs font-semibold text-[#4A5961] py-3 px-4 text-center">Status</th>
+                     <th className="text-xs font-semibold text-[#4A5961] py-3 px-4 text-right">Actions</th>
                   </tr>
                </thead>
-               <tbody className="divide-y divide-slate-50">
+               <tbody className="divide-y divide-[#E1E6EA] text-sm">
                   {loading ? (
                     <tr>
                       <td colSpan="4" className="py-12 text-center">
@@ -150,45 +147,36 @@ export default function PendingProperties() {
                       </td>
                     </tr>
                   ) : filteredQueue.map((q, i) => (
-                    <tr key={i} className="group hover:bg-slate-50/80 transition-colors cursor-pointer">
-                       <td className="py-4">
-                          <div className="flex items-center gap-4">
-                             <div className={cn(
-                                "w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white text-xs shadow-sm transition-transform group-hover:scale-105",
-                                q.color === "blue" ? "bg-blue-600 shadow-blue-50" :
-                                q.color === "indigo" ? "bg-indigo-600 shadow-indigo-50" :
-                                q.color === "emerald" ? "bg-emerald-600 shadow-emerald-50" :
-                                q.color === "amber" ? "bg-amber-600 shadow-amber-50" :
-                                q.color === "rose" ? "bg-rose-600 shadow-rose-50" : "bg-slate-600 shadow-slate-50"
-                             )}>
+                    <tr key={i} className="hover:bg-slate-50/50 transition-colors cursor-pointer">
+                       <td className="py-3.5 px-4 font-medium text-[#10242A]">
+                          <div className="flex items-center gap-3">
+                             <div className="w-8 h-8 rounded-full bg-[#E1E6EA] flex items-center justify-center font-bold text-xs text-[#10242A] shrink-0">
                                 {q.initial}
                              </div>
                              <div className="min-w-0">
-                                <p className="text-[12px] font-bold text-slate-800 leading-tight truncate max-w-[250px]">{q.title}</p>
-                                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1.5 flex items-center gap-1.5">
-                                   <MapPin className="w-2.5 h-2.5" /> {q.raw.city || "Indore"} • <User className="w-2.5 h-2.5" /> {q.owner}
-                                </p>
+                                <span className="font-semibold text-[#10242A] block truncate max-w-[250px]">{q.title}</span>
+                                <span className="text-xs text-[#4A5961] block truncate">{q.raw.city || "Indore"} • {q.owner}</span>
                              </div>
                           </div>
                        </td>
-                       <td className="py-4 text-center">
-                          <span className="text-[10px] font-bold text-slate-500">{q.submitted}</span>
+                       <td className="py-3.5 px-4 text-center text-[#4A5961]">
+                          <span className="text-xs font-medium text-[#4A5961]">{q.submitted}</span>
                        </td>
-                       <td className="py-4 text-center">
+                       <td className="py-3.5 px-4 text-center">
                           <span className={cn(
-                             "text-[8px] font-bold px-2.5 py-1 rounded-lg border uppercase tracking-wider shadow-sm",
-                             q.status === "Priority Review" ? "bg-rose-50 text-rose-600 border-rose-100" : "bg-amber-50 text-amber-600 border-amber-100"
+                             "text-xs font-semibold px-2.5 py-1 rounded-full inline-flex items-center",
+                             q.status === "Priority Review" ? "bg-[#FEE2E2] text-[#991B1B]" : "bg-[#FDEBD0] text-[#7A3E00]"
                           )}>
                              {q.status}
                           </span>
                        </td>
-                        <td className="py-4 text-right">
+                        <td className="py-3.5 px-4 text-right">
                           <div className="flex items-center justify-end gap-2">
-                             <button onClick={() => handleApprove(q.id)} className="flex items-center gap-1.5 bg-emerald-600 text-white px-4 py-2 rounded-xl text-[9px] font-bold uppercase hover:bg-emerald-700 transition-all shadow-md shadow-emerald-600/10 active:scale-95">
+                             <button onClick={() => handleApprove(q.id)} className="bg-[#0E7C86] hover:bg-[#0B666E] text-white text-xs font-semibold px-3 py-1 rounded-[6px] transition-colors cursor-pointer inline-flex items-center gap-1">
                                 <Check className="w-3.5 h-3.5" /> Approve
                              </button>
-                             <button onClick={() => setSelectedProperty(q)} className="p-2 rounded-xl bg-white text-slate-400 hover:text-blue-600 transition-all border border-slate-100 shadow-sm hover:border-blue-100 hover:bg-blue-50/50">
-                                <Eye className="w-4 h-4" />
+                             <button onClick={() => setSelectedProperty(q)} className="border border-[#CBD3D9] hover:bg-slate-50 text-[#10242A] text-xs font-semibold px-3 py-1 rounded-[6px] transition-colors cursor-pointer">
+                                View Details
                              </button>
                           </div>
                        </td>
@@ -298,16 +286,18 @@ function StatCardHorizontal({ label, value, trend, icon: Icon, color }) {
   };
   
   return (
-    <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex items-start gap-4 group hover:translate-y-[-2px] transition-all">
-      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border shadow-sm transition-transform group-hover:scale-110", bgColors[color])}>
+    <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex items-center gap-3.5 group hover:translate-y-[-2px] transition-all">
+      <div className={cn("w-11 h-11 rounded-xl flex items-center justify-center shrink-0 border shadow-sm transition-transform group-hover:scale-105", bgColors[color])}>
          <Icon className="w-5 h-5" />
       </div>
-      <div className="min-w-0">
-         <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 leading-none">{label}</p>
-         <p className="text-xl font-bold text-slate-800 tracking-tight leading-none mb-2">{value}</p>
-         <div className="flex items-center gap-1.5 text-[8px] font-bold text-slate-400 uppercase tracking-tight">
-            {trend}
-         </div>
+      <div className="min-w-0 flex-1 flex flex-col justify-center">
+         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1.5 truncate">{label}</p>
+         <p className="text-xl sm:text-2xl font-bold text-slate-800 tracking-tight leading-none truncate">{value}</p>
+         {trend && (
+           <div className="flex items-center gap-1 text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-1.5 truncate">
+              {trend}
+           </div>
+         )}
       </div>
     </div>
   );

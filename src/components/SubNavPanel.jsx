@@ -92,7 +92,7 @@ const SUB_NAV_CONFIG = {
         header: "OVERVIEW",
         items: [
           { label: "Overview", path: "/superadmin/accounting" },
-          { label: "Revenue Overview", path: "/superadmin/home/revenue-overview" },
+          { label: "Revenue Overview", path: "/superadmin/accounting-overview" },
         ],
       },
       {
@@ -234,43 +234,53 @@ const SUB_NAV_CONFIG = {
 };
 
 function detectActiveModuleId(pathname, activeModuleIdProp) {
-  if (activeModuleIdProp && SUB_NAV_CONFIG[activeModuleIdProp]) {
-    return activeModuleIdProp;
-  }
   const path = (pathname || "").toLowerCase();
   
-  if (path.includes("user") || path.includes("owner") || path.includes("tenant") || path.includes("roles") || path.includes("log") || path.includes("manager") || path.includes("add-tenant") || path.includes("kyc") || path.includes("attendance") || path.includes("agreements") || path.includes("add-owner")) {
-    return "user_management";
+  if (path.includes("complaint") || path.includes("support") || path.includes("tickets") || path.includes("website-queries") || path.includes("resolution")) {
+    return "support";
   }
-  if (path.includes("property") || path.includes("total-properties") || path.includes("rooms") || path.includes("enquiry") || path.includes("add-property")) {
-    return "property_management";
-  }
-  if (path.includes("accounting") || path.includes("refund") || path.includes("revenue") || path.includes("payout") || path.includes("cashflow") || path.includes("profit-loss")) {
-    return "accounting";
+  if (path.includes("review") || path.includes("reviews")) {
+    return "review";
   }
   if (path.includes("superchat") || path.includes("chat")) {
     return "chat_management";
   }
   if (path.includes("visit")) {
-    return "visits";
+    return null; // Visit Report has no sub-modules
   }
-  if (path.includes("reports") || path.includes("report")) {
+  if (
+    path.startsWith("/superadmin/accounting") || 
+    path.includes("accounting") ||
+    path.includes("refund") || 
+    path.includes("payout") || 
+    path.includes("cashflow") || 
+    path.includes("profit-loss")
+  ) {
+    return "accounting";
+  }
+  if (path.startsWith("/superadmin/reports") || path.includes("/reports/")) {
     return "report_analytics";
   }
   if (path.includes("booking") || path.includes("direct-bookings")) {
     return "booking_leads";
   }
-  if (path.includes("review") || path.includes("reviews")) {
-    return "review";
+  if (path.includes("reports") || path.includes("report")) {
+    return "report_analytics";
   }
-  if (path.includes("complaint") || path.includes("support") || path.includes("tickets") || path.includes("resolution")) {
-    return "support";
+  if (path.includes("property") || path.includes("total-properties") || path.includes("rooms") || path.includes("enquiry") || path.includes("add-property") || path.includes("amenities")) {
+    return "property_management";
+  }
+  if (path.includes("user") || path.includes("owner") || path.includes("tenant") || path.includes("roles") || path.includes("log") || path.includes("manager") || path.includes("add-tenant") || path.includes("kyc") || path.includes("attendance") || path.includes("agreements") || path.includes("add-owner")) {
+    return "user_management";
   }
   if (path.includes("setting") || path.includes("settings")) {
     return "settings";
   }
   if (path.includes("home") || path.includes("rentcollection")) {
     return "home";
+  }
+  if (activeModuleIdProp && SUB_NAV_CONFIG[activeModuleIdProp]) {
+    return activeModuleIdProp;
   }
   return null;
 }
@@ -291,11 +301,7 @@ export function SubNavPanel({ activeModuleId }) {
       <div className="flex-1 overflow-y-auto px-3 pt-5 pb-4 space-y-5 custom-sidebar-scrollbar">
         {moduleConfig.sections.map((section, sIdx) => (
           <div key={sIdx} className="space-y-1">
-            {section.header && (
-              <div className="text-[11px] font-bold text-[#4A5961] uppercase tracking-[0.05em] px-3 py-1">
-                {section.header}
-              </div>
-            )}
+
             <div className="space-y-[2px]">
               {section.items.map((item, iIdx) => {
                 const isActive =

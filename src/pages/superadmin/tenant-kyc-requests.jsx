@@ -141,77 +141,82 @@ export default function TenantKycRequestsPage() {
         }
       />
 
-      <div className="relative max-w-xs">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search tenant name..."
-          className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40"
-        />
-      </div>
+      <div className="bg-white rounded-[12px] p-5 border border-[#E1E6EA] shadow-sm">
+        <div className="flex flex-col sm:flex-row items-center gap-3 mb-6">
+          <div className="relative flex-1 w-full max-w-sm">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#4A5961]" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search tenant name..."
+              className="w-full h-[44px] bg-white border border-[#CBD3D9] rounded-[8px] pl-10 pr-3.5 text-sm text-[#10242A] placeholder:text-[#4A5961] outline-none focus:border-[#0E7C86]"
+            />
+          </div>
+        </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-xs font-black text-slate-500 uppercase tracking-wider">
-                <th className="px-6 py-4">Date</th>
-                <th className="px-6 py-4">Tenant</th>
-                <th className="px-6 py-4">Owner ID</th>
-                <th className="px-6 py-4">Proof Type</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 text-right">Actions</th>
+              <tr className="border-b border-[#E1E6EA]">
+                <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Date</th>
+                <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Tenant</th>
+                <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Owner ID</th>
+                <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Proof Type</th>
+                <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Status</th>
+                <th className="text-xs font-semibold text-[#4A5961] py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[#E1E6EA] text-sm">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-sm font-medium text-slate-400">Loading requests...</td>
+                  <td colSpan={6} className="py-12 text-center text-[#4A5961]">Loading requests...</td>
                 </tr>
               ) : filteredRequests.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-sm font-medium text-slate-400">
+                  <td colSpan={6} className="py-12 text-center text-[#4A5961]">
                     {search.trim() ? `No tenants matching "${search}".` : `No ${filter.toLowerCase()} requests found.`}
                   </td>
                 </tr>
               ) : (
                 deduplicatedRequests.map(req => (
                   <tr key={req._id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-4 text-sm font-medium text-slate-600">
+                    <td className="py-3.5 px-4 text-[#4A5961]">
                       {new Date(req.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
                     </td>
-                    <td className="px-6 py-4 text-sm font-bold text-slate-800">{req.tenantName}</td>
-                    <td className="px-6 py-4 text-sm font-medium text-slate-600">{req.ownerLoginId}</td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider bg-purple-50 text-purple-700 border border-purple-100">
+                    <td className="py-3.5 px-4 font-semibold text-[#10242A]">{req.tenantName}</td>
+                    <td className="py-3.5 px-4 text-[#4A5961]">{req.ownerLoginId}</td>
+                    <td className="py-3.5 px-4">
+                      <span className="bg-[#E6F4F5] text-[#0E7C86] text-xs font-semibold px-2.5 py-1 rounded-full inline-flex items-center">
                         {req.proofType}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${
-                        req.status === 'Approved' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
-                        req.status === 'Rejected' ? 'bg-rose-50 text-rose-700 border border-rose-100' :
-                        'bg-amber-50 text-amber-700 border border-amber-100'
-                      }`}>
+                    <td className="py-3.5 px-4">
+                      <span className={cn(
+                        "text-xs font-semibold px-2.5 py-1 rounded-full inline-flex items-center",
+                        req.status === 'Approved' ? 'bg-[#DDF3E4] text-[#14532D]' :
+                        req.status === 'Rejected' ? 'bg-[#FEE2E2] text-[#991B1B]' :
+                        'bg-[#FDEBD0] text-[#7A3E00]'
+                      )}>
                         {req.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right space-x-2">
-                      <button onClick={() => setViewModal(req)} className="p-1.5 text-slate-500 hover:bg-slate-100 rounded transition-colors" title="View document">
-                        <Eye size={18} />
-                      </button>
-                      {req.status === "Pending" && (
-                        <>
-                          <button onClick={() => openApprove(req)} className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded transition-colors" title="Approve">
-                            <CheckCircle size={18} />
-                          </button>
-                          <button onClick={() => openReject(req)} className="p-1.5 text-rose-600 hover:bg-rose-50 rounded transition-colors" title="Reject">
-                            <XCircle size={18} />
-                          </button>
-                        </>
-                      )}
+                    <td className="py-3.5 px-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button onClick={() => setViewModal(req)} className="border border-[#CBD3D9] hover:bg-slate-50 text-[#10242A] text-xs font-semibold px-3 py-1 rounded-[6px] transition-colors cursor-pointer">
+                          View
+                        </button>
+                        {req.status === "Pending" && (
+                          <>
+                            <button onClick={() => openApprove(req)} className="bg-[#0E7C86] hover:bg-[#0B666E] text-white text-xs font-semibold px-3 py-1 rounded-[6px] transition-colors cursor-pointer">
+                              Approve
+                            </button>
+                            <button onClick={() => openReject(req)} className="border border-[#CBD3D9] hover:bg-slate-50 text-[#991B1B] text-xs font-semibold px-3 py-1 rounded-[6px] transition-colors cursor-pointer">
+                              Reject
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))

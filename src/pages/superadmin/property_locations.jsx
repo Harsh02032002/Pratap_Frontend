@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { 
   MapPin, Plus, Edit, Trash2, TrendingUp, X, Loader2,
-  Globe, Search, ChevronRight, LayoutGrid, Building2,
-  RefreshCw, Map, Sparkles, Navigation, ArrowUpRight,
-  ArrowDownRight, Layers, Activity
+  Globe, Search, Building2, RefreshCw, Activity, Navigation
 } from "lucide-react";
-
 import { fetchJson, getAuthHeader } from "../../utils/api";
+import { PageHeader } from "../../components/superadmin/PageHeader";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
@@ -15,15 +13,6 @@ const getApiUrl = () =>
   (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
     ? "http://localhost:5001"
     : "https://roohmy-backend-xwa9.vercel.app");
-
-const colorStyles = [
-  "bg-blue-600 shadow-blue-50",
-  "bg-emerald-600 shadow-emerald-50",
-  "bg-indigo-600 shadow-indigo-50",
-  "bg-amber-600 shadow-amber-50",
-  "bg-rose-600 shadow-rose-50",
-  "bg-purple-600 shadow-purple-50",
-];
 
 export default function Locations() {
   const [locations, setLocations] = useState([]);
@@ -38,11 +27,15 @@ export default function Locations() {
 
   const fetchLocations = async () => {
     try {
+      setLoading(true);
       const res = await fetch(`${getApiUrl()}/api/locations/cities`, { headers: getAuthHeader() });
       const data = await res.json();
-      if (data.success) setLocations(data.data);
-    } catch (err) { console.error("Error:", err); }
-    finally { setLoading(false); }
+      if (data.success) setLocations(data.data || []);
+    } catch (err) { 
+      console.error("Error fetching locations:", err); 
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -51,20 +44,29 @@ export default function Locations() {
     try {
       const url = editingId ? `${getApiUrl()}/api/locations/cities/${editingId}` : `${getApiUrl()}/api/locations/cities`;
       const method = editingId ? "PUT" : "POST";
-      const res = await fetch(url, { method, headers: { "Content-Type": "application/json", ...getAuthHeader() }, body: JSON.stringify(formData) });
+      const res = await fetch(url, { 
+        method, 
+        headers: { "Content-Type": "application/json", ...getAuthHeader() }, 
+        body: JSON.stringify(formData) 
+      });
       const data = await res.json();
       if (data.success) { fetchLocations(); closeModal(); }
-    } catch (err) { console.error(err); }
-    finally { setSaving(false); }
+    } catch (err) { 
+      console.error("Error saving location:", err); 
+    } finally { 
+      setSaving(false); 
+    }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Delete this location?")) return;
+    if (!confirm("Are you sure you want to delete this location?")) return;
     try {
       const res = await fetch(`${getApiUrl()}/api/locations/cities/${id}`, { method: "DELETE", headers: getAuthHeader() });
       const data = await res.json();
       if (data.success) fetchLocations();
-    } catch (err) { console.error(err); }
+    } catch (err) { 
+      console.error("Error deleting location:", err); 
+    }
   };
 
   const openModal = (item = null) => {
@@ -80,123 +82,192 @@ export default function Locations() {
 
   const closeModal = () => { setShowModal(false); setEditingId(null); };
 
-  const filteredLocations = locations.filter(l => l.name.toLowerCase().includes(search.toLowerCase()));
+  const filteredLocations = locations.filter(l => (l.name || "").toLowerCase().includes(search.toLowerCase()) || (l.state || "").toLowerCase().includes(search.toLowerCase()));
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-[600px] gap-4">
-        <div className="w-12 h-12 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
-        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Loading Cities & Locations...</p>
+      <div className="p-12 space-y-6 flex flex-col items-center justify-center py-40 font-['Plus_Jakarta_Sans',sans-serif]">
+        <div className="w-12 h-12 border-4 border-[#0E7C86]/20 border-t-[#0E7C86] rounded-full animate-spin mb-4" />
+        <p className="text-xs font-semibold text-[#4A5961] uppercase tracking-wider">Accessing Location Wise Intelligence...</p>
       </div>
     );
   }
 
+  const totalProps = locations.reduce((s, l) => s + (l.propertyCount || 0), 0);
+  const uniqueStates = new Set(locations.map(l => l.state)).size;
+  const avgProps = locations.length > 0 ? Math.round(totalProps / locations.length) : 0;
+
   return (
-    <div className="p-6 space-y-6 bg-[#F8FAFC] min-h-full">
+    <div className="space-y-6 pb-8 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
       {/* Header Area */}
-      <div className="flex items-center justify-between">
-         <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-bold text-slate-800 tracking-tight leading-none">Location Wise Data</h1>
-            <p className="text-xs font-semibold text-slate-400 mt-1">View active cities, states, and property distribution across locations.</p>
-         </div>
-         <div className="flex items-center gap-3">
+      <PageHeader 
+        title="Location Wise Data"
+        subtitle="Active cities, states, and property distribution matrix across operational zones."
+        actions={
+          <div className="flex items-center gap-3">
             <div className="relative group w-64">
-               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-300" />
+               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#4A5961]" />
                <input 
                  value={search} onChange={e => setSearch(e.target.value)}
                  placeholder="Search cities, states..." 
-                 className="w-full bg-white border border-slate-100 rounded-xl py-2 pl-9 pr-3 text-xs font-bold shadow-sm outline-none focus:ring-2 focus:ring-blue-100 transition-all" 
+                 className="w-full bg-white border border-[#E1E6EA] rounded-[12px] py-2 pl-10 pr-4 text-xs font-medium text-[#10242A] shadow-xs outline-none focus:border-[#0E7C86] transition-all placeholder:text-[#4A5961]" 
                />
             </div>
-            <button onClick={() => openModal()} className="bg-slate-800 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider shadow-lg shadow-slate-800/10 hover:bg-slate-900 transition-all flex items-center gap-2">
-               <MapPin className="w-3.5 h-3.5" /> Add City / Location
+            <button 
+              onClick={() => openModal()} 
+              className="bg-[#0E7C86] hover:bg-[#0B656D] text-white px-4 py-2 rounded-[12px] text-xs font-semibold shadow-xs transition-all flex items-center gap-2 cursor-pointer"
+            >
+               <Plus className="w-4 h-4" />
+               <span>Add City / Location</span>
             </button>
-         </div>
-      </div>
+          </div>
+        }
+      />
 
       {/* Metrics Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCardHorizontal label="Active Cities" value={locations.length} trend="Active Cities" up icon={Map} color="blue" />
-        <StatCardHorizontal label="States Covered" value={new Set(locations.map(l => l.state)).size} trend="States" up icon={Globe} color="emerald" />
-        <StatCardHorizontal label="Avg Properties / City" value={Math.round(locations.reduce((s, l) => s + (l.propertyCount || 0), 0) / (locations.length || 1))} trend="Average" up icon={Building2} color="indigo" />
-        <StatCardHorizontal label="Total Properties" value={locations.reduce((s, l) => s + (l.propertyCount || 0), 0)} trend="Live Properties" up icon={Activity} color="amber" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white p-5 rounded-[16px] border border-[#E1E6EA] shadow-xs flex items-center gap-4">
+          <div className="w-11 h-11 rounded-[12px] bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center shrink-0">
+            <MapPin size={22} />
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider">Active Cities</p>
+            <h4 className="text-2xl font-bold text-[#10242A] mt-0.5">{locations.length}</h4>
+          </div>
+        </div>
+
+        <div className="bg-white p-5 rounded-[16px] border border-[#E1E6EA] shadow-xs flex items-center gap-4">
+          <div className="w-11 h-11 rounded-[12px] bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+            <Globe size={22} />
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider">States Covered</p>
+            <h4 className="text-2xl font-bold text-[#10242A] mt-0.5">{uniqueStates}</h4>
+          </div>
+        </div>
+
+        <div className="bg-white p-5 rounded-[16px] border border-[#E1E6EA] shadow-xs flex items-center gap-4">
+          <div className="w-11 h-11 rounded-[12px] bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+            <Building2 size={22} />
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider">Avg Props / City</p>
+            <h4 className="text-2xl font-bold text-[#10242A] mt-0.5">{avgProps}</h4>
+          </div>
+        </div>
+
+        <div className="bg-white p-5 rounded-[16px] border border-[#E1E6EA] shadow-xs flex items-center gap-4">
+          <div className="w-11 h-11 rounded-[12px] bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+            <Activity size={22} />
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider">Total Live Properties</p>
+            <h4 className="text-2xl font-bold text-[#10242A] mt-0.5">{totalProps}</h4>
+          </div>
+        </div>
       </div>
 
       {/* Territory Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6 pb-10">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         {filteredLocations.map((l, idx) => (
-          <div key={l._id} className="bg-white rounded-2xl p-5 border border-slate-100 shadow-md flex flex-col group relative hover:translate-y-[-4px] transition-all duration-300">
-            <div className="flex items-start justify-between mb-5">
-               <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm transition-transform group-hover:scale-105 group-hover:rotate-3", colorStyles[idx % colorStyles.length])}>
+          <div key={l._id} className="bg-white rounded-[16px] p-5 border border-[#E1E6EA] shadow-xs flex flex-col group relative hover:border-[#0E7C86] transition-all">
+            <div className="flex items-start justify-between mb-4">
+               <div className="w-10 h-10 rounded-[10px] bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center shrink-0">
                   <MapPin className="w-5 h-5" />
                </div>
-               <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                  <button onClick={() => openModal(l)} className="p-1.5 rounded-lg bg-slate-50 text-slate-400 hover:text-blue-600 transition-all border border-slate-100 shadow-sm"><Edit className="w-3.5 h-3.5" /></button>
-                  <button onClick={() => handleDelete(l._id)} className="p-1.5 rounded-lg bg-slate-50 text-slate-400 hover:text-rose-600 transition-all border border-slate-100 shadow-sm"><Trash2 className="w-3.5 h-3.5" /></button>
+               <div className="flex gap-1">
+                  <button onClick={() => openModal(l)} className="p-1.5 rounded-[8px] bg-[#F4F6F8] text-[#4A5961] hover:text-[#0E7C86] hover:bg-[#E6F4F5] transition-all border border-[#E1E6EA] cursor-pointer"><Edit className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => handleDelete(l._id)} className="p-1.5 rounded-[8px] bg-[#F4F6F8] text-[#4A5961] hover:text-rose-600 hover:bg-rose-50 transition-all border border-[#E1E6EA] cursor-pointer"><Trash2 className="w-3.5 h-3.5" /></button>
                </div>
             </div>
             
             <div className="space-y-0.5">
-               <h3 className="text-[13px] font-bold text-slate-800 tracking-tight leading-tight truncate">{l.name}</h3>
-               <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider truncate leading-none mt-0.5">{l.state}, {l.country}</p>
+               <h3 className="text-sm font-bold text-[#10242A] tracking-tight leading-tight truncate">{l.name}</h3>
+               <p className="text-[11px] font-semibold text-[#4A5961] mt-0.5 truncate">{l.state}, {l.country}</p>
             </div>
 
-            <div className="mt-6 pt-4 border-t border-slate-50 flex items-end justify-between">
+            <div className="mt-5 pt-3 border-t border-[#E1E6EA] flex items-end justify-between">
                <div>
-                  <p className="text-xl font-black text-slate-900 tracking-tight leading-none">{l.propertyCount || 0}</p>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-wider leading-none">Properties</p>
+                  <p className="text-lg font-bold text-[#10242A] leading-none">{l.propertyCount || 0}</p>
+                  <p className="text-[10px] font-semibold text-[#4A5961] uppercase mt-1">Properties</p>
                </div>
-               <div className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-lg border border-emerald-100 text-[8px] font-bold uppercase shadow-sm">
-                  <TrendingUp className="w-2.5 h-2.5" />
+               <div className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-[6px] border border-emerald-100 text-[10px] font-bold">
+                  <TrendingUp className="w-3 h-3" />
                   Active
                </div>
             </div>
           </div>
         ))}
-        <button onClick={() => openModal()} className="bg-slate-50 border-2 border-dashed border-slate-100 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 hover:border-slate-800 hover:bg-white hover:shadow-lg transition-all group min-h-[160px]">
-           <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-slate-300 group-hover:bg-slate-800 group-hover:text-white transition-all shadow-sm">
+        <button 
+          onClick={() => openModal()} 
+          className="bg-[#F4F6F8] border-2 border-dashed border-[#E1E6EA] rounded-[16px] p-5 flex flex-col items-center justify-center gap-2 hover:border-[#0E7C86] hover:bg-white transition-all group min-h-[150px] cursor-pointer"
+        >
+           <div className="w-9 h-9 rounded-[10px] bg-white border border-[#E1E6EA] flex items-center justify-center text-[#4A5961] group-hover:bg-[#0E7C86] group-hover:text-white group-hover:border-[#0E7C86] transition-all">
               <Plus className="w-5 h-5" />
            </div>
            <div className="text-center">
-              <p className="text-xs font-bold uppercase tracking-wider leading-none">Add New City</p>
-              <p className="text-[9px] text-slate-400 mt-1 uppercase tracking-tight font-semibold">Add Location</p>
+              <p className="text-xs font-bold text-[#10242A]">Add New City</p>
+              <p className="text-[11px] font-semibold text-[#4A5961] mt-0.5">Expand territory</p>
            </div>
         </button>
       </div>
 
-      {/* Modern Modal */}
+      {/* Add / Edit Location Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200">
-           <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-              <div className="px-6 py-4 border-b border-slate-50 flex items-center justify-between bg-white shrink-0">
+        <div className="fixed inset-0 bg-[#10242A]/40 backdrop-blur-xs flex items-center justify-center z-[100] p-4">
+           <div className="bg-white rounded-[20px] w-full max-w-md border border-[#E1E6EA] shadow-xl overflow-hidden">
+              <div className="px-6 py-4 border-b border-[#E1E6EA] flex items-center justify-between bg-white shrink-0">
                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100 shadow-sm"><Navigation className="w-4 h-4" /></div>
-                    <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">{editingId ? "Edit City Details" : "Add New City"}</h3>
+                    <div className="w-8 h-8 rounded-[8px] bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center border border-[#0E7C86]/20">
+                      <Navigation className="w-4 h-4" />
+                    </div>
+                    <h3 className="text-sm font-bold text-[#10242A] uppercase tracking-wider">{editingId ? "Edit City Details" : "Add New City"}</h3>
                  </div>
-                 <button onClick={closeModal} className="p-1.5 rounded-lg hover:bg-slate-50 text-slate-400 transition-all"><X className="w-4 h-4" /></button>
+                 <button onClick={closeModal} className="p-1.5 rounded-[8px] hover:bg-[#F4F6F8] text-[#4A5961] transition-all cursor-pointer"><X className="w-4 h-4" /></button>
               </div>
               <form onSubmit={handleSubmit} className="p-6 space-y-4">
                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1.5 tracking-wider leading-none pl-1">City Name</label>
-                    <input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl py-2.5 px-4 text-xs font-bold outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all shadow-sm" placeholder="e.g. Jaipur" required />
+                    <label className="block text-[11px] font-semibold text-[#4A5961] uppercase mb-1.5 tracking-wider">City Name</label>
+                    <input 
+                      value={formData.name} 
+                      onChange={e => setFormData({...formData, name: e.target.value})} 
+                      className="w-full bg-[#F4F6F8] border border-[#E1E6EA] rounded-[10px] py-2.5 px-3.5 text-xs font-semibold text-[#10242A] outline-none focus:border-[#0E7C86] focus:bg-white transition-all" 
+                      placeholder="e.g. Jaipur" 
+                      required 
+                    />
                  </div>
                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                       <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1.5 tracking-wider leading-none pl-1">State</label>
-                       <input value={formData.state} onChange={e => setFormData({...formData, state: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl py-2.5 px-4 text-xs font-bold outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all shadow-sm" placeholder="e.g. Rajasthan" required />
+                       <label className="block text-[11px] font-semibold text-[#4A5961] uppercase mb-1.5 tracking-wider">State</label>
+                       <input 
+                         value={formData.state} 
+                         onChange={e => setFormData({...formData, state: e.target.value})} 
+                         className="w-full bg-[#F4F6F8] border border-[#E1E6EA] rounded-[10px] py-2.5 px-3.5 text-xs font-semibold text-[#10242A] outline-none focus:border-[#0E7C86] focus:bg-white transition-all" 
+                         placeholder="e.g. Rajasthan" 
+                         required 
+                       />
                     </div>
                     <div>
-                       <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1.5 tracking-wider leading-none pl-1">Country</label>
-                       <input value={formData.country} onChange={e => setFormData({...formData, country: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl py-2.5 px-4 text-xs font-bold outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all shadow-sm" />
+                       <label className="block text-[11px] font-semibold text-[#4A5961] uppercase mb-1.5 tracking-wider">Country</label>
+                       <input 
+                         value={formData.country} 
+                         onChange={e => setFormData({...formData, country: e.target.value})} 
+                         className="w-full bg-[#F4F6F8] border border-[#E1E6EA] rounded-[10px] py-2.5 px-3.5 text-xs font-semibold text-[#10242A] outline-none focus:border-[#0E7C86] focus:bg-white transition-all" 
+                       />
                     </div>
                  </div>
                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1.5 tracking-wider leading-none pl-1">Total Properties</label>
-                    <input type="number" value={formData.propertyCount} onChange={e => setFormData({...formData, propertyCount: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl py-2.5 px-4 text-xs font-bold outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all shadow-sm" />
+                    <label className="block text-[11px] font-semibold text-[#4A5961] uppercase mb-1.5 tracking-wider">Total Properties</label>
+                    <input 
+                      type="number" 
+                      value={formData.propertyCount} 
+                      onChange={e => setFormData({...formData, propertyCount: e.target.value})} 
+                      className="w-full bg-[#F4F6F8] border border-[#E1E6EA] rounded-[10px] py-2.5 px-3.5 text-xs font-semibold text-[#10242A] outline-none focus:border-[#0E7C86] focus:bg-white transition-all" 
+                    />
                  </div>
                  <div className="flex gap-3 pt-4">
-                    <button type="button" onClick={closeModal} className="flex-1 py-2.5 rounded-xl bg-slate-50 text-xs font-bold capitalize text-slate-600 hover:bg-slate-100 transition-all">Cancel</button>
-                    <button type="submit" disabled={saving} className="flex-[2] py-2.5 rounded-xl bg-slate-800 text-xs font-bold uppercase text-white shadow-lg shadow-slate-800/10 hover:bg-black transition-all flex items-center justify-center gap-2">
+                    <button type="button" onClick={closeModal} className="flex-1 py-2.5 rounded-[10px] bg-[#F4F6F8] text-xs font-bold text-[#4A5961] hover:bg-[#E1E6EA] transition-all cursor-pointer">Cancel</button>
+                    <button type="submit" disabled={saving} className="flex-[2] py-2.5 rounded-[10px] bg-[#0E7C86] hover:bg-[#0B656D] text-xs font-bold text-white transition-all flex items-center justify-center gap-2 cursor-pointer">
                        {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                        {editingId ? "Save Changes" : "Add City"}
                     </button>
@@ -205,34 +276,6 @@ export default function Locations() {
            </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function StatCardHorizontal({ label, value, trend, up, icon: Icon, color }) {
-  const bgColors = { 
-    blue: "bg-blue-50 text-blue-600 border-blue-100", 
-    emerald: "bg-emerald-50 text-emerald-600 border-emerald-100", 
-    indigo: "bg-indigo-50 text-indigo-600 border-indigo-100", 
-    amber: "bg-amber-50 text-amber-600 border-amber-100" 
-  };
-  
-  return (
-    <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-md flex items-start gap-3 group hover:translate-y-[-2px] transition-all">
-      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border shadow-sm transition-transform group-hover:scale-105", bgColors[color])}>
-         <Icon className="w-5 h-5" />
-      </div>
-      <div className="min-w-0">
-         <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1 leading-none truncate">{label}</p>
-         <p className="text-xl font-bold text-slate-800 tracking-tight leading-none mb-2">{value}</p>
-         <div className={cn(
-           "flex items-center gap-1 text-[7px] font-bold uppercase",
-           up ? "text-emerald-600" : "text-rose-600"
-         )}>
-            {up ? <ArrowUpRight className="w-2.5 h-2.5" /> : <ArrowDownRight className="w-2.5 h-2.5" />}
-            {trend}
-         </div>
-      </div>
     </div>
   );
 }

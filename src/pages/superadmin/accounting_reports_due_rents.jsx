@@ -62,7 +62,7 @@ export default function DueRentsReport() {
   };
 
   return (
-    <div className="p-6 space-y-6 bg-[#F8FAFC] min-h-full">
+    <div className="space-y-6 pb-8 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
       <PageHeader
         title="Due Rents"
         subtitle="Outstanding tenant balances, overdue aging logs, and active payment collections mapping."

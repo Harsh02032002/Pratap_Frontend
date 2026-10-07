@@ -250,18 +250,18 @@ export default function Tenant() {
     <div className="space-y-6 pb-8">
       <PageHeader 
         title={currentView === "agreements" ? "Tenant Agreements" : "View All Tenants"}
-        subtitle={currentView === "agreements" ? "View digital agreement status for all tenants." : "Manage and view all tenant records and occupancy."}
+        subtitle={currentView === "agreements" ? "View digital agreement status for all tenants" : "Manage and view all tenant records and occupancy"}
         actions={
           <div className="flex items-center gap-3">
             <button 
               onClick={exportToExcel}
-              className="bg-white border border-[#CBD3D9] hover:bg-slate-50 text-[#10242A] font-semibold text-sm px-4 py-2 rounded-[8px] transition-colors cursor-pointer"
+              className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-medium text-xs sm:text-sm px-4 py-2 rounded-xl transition-all shadow-2xs cursor-pointer"
             >
                Export
             </button>
             <button 
               onClick={() => navigate("/superadmin/add-tenant")}
-              className="bg-[#0E7C86] hover:bg-[#0B666E] text-white font-semibold text-sm px-4 py-2 rounded-[8px] flex items-center gap-2 transition-colors cursor-pointer"
+              className="bg-[#095256] hover:bg-[#074043] text-white font-medium text-xs sm:text-sm px-4 py-2 rounded-xl flex items-center gap-2 transition-all shadow-2xs cursor-pointer"
             >
                <Plus className="w-4 h-4" /> + Add Tenant
             </button>
@@ -269,175 +269,137 @@ export default function Tenant() {
         }
       />
 
-
-
-      {/* Main Ledger Card */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-         <div className="p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-               <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                  <Users className="w-5 h-5" />
-               </div>
-               <div>
-                  <h3 className="font-bold text-base text-slate-900">Tenant Registry</h3>
-                  <p className="text-xs text-slate-400">View active and pending tenants</p>
-               </div>
-            </div>
-            
-            <div className="flex items-center gap-3">
-               <div className="relative w-72">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input 
-                    value={search} onChange={e => setSearch(e.target.value)}
-                    placeholder="Search tenants..." 
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pl-10 pr-4 text-xs font-semibold text-slate-700 outline-none focus:bg-white focus:border-blue-400 transition-all" 
-                  />
-               </div>
-               
-               <button 
-                onClick={loadTenants} 
-                className="p-2 rounded-xl bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-blue-600 border border-slate-200 transition-all"
-                title="Refresh"
-               >
-                  <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
-               </button>
-            </div>
+      {/* Search & Filter Bar (OUTSIDE Table Card) */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+         <div className="relative flex-1 w-full max-w-md">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input 
+              value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Search" 
+              className="w-full py-2.5 pl-10 pr-4 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-[#095256]/20 focus:border-[#095256] shadow-2xs transition-all" 
+            />
          </div>
+         <div className="flex items-center gap-2.5">
+            <button 
+             onClick={loadTenants} 
+             className="px-4 py-2.5 rounded-xl bg-white text-slate-700 hover:bg-slate-50 border border-slate-200 transition-all flex items-center gap-2 text-sm font-medium shadow-2xs cursor-pointer"
+             title="Refresh"
+            >
+               <RefreshCw className={cn("w-4 h-4 text-slate-500", loading && "animate-spin")} /> Refresh
+            </button>
+         </div>
+      </div>
 
+      {/* Separate Table Card Below */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
          <div className="overflow-x-auto">
-            <table className="w-full text-left">
+            <table className="w-full text-left border-collapse">
                <thead>
-                  <tr className="bg-slate-50/80 text-slate-400 text-[10px] font-bold uppercase tracking-wider border-b border-slate-100">
-                     <th className="px-5 py-3.5">Tenant Name</th>
-                     <th className="px-5 py-3.5">Property Name</th>
-                     <th className="px-5 py-3.5 text-center">Contact Details</th>
-                     <th className="px-5 py-3.5 text-center">{currentView === "agreements" ? "Agreement Status" : "KYC Status"}</th>
-                     <th className="px-5 py-3.5 text-right">Actions</th>
+                  <tr className="border-b border-slate-200/80 bg-white">
+                     <th className="py-3.5 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Tenant</th>
+                     <th className="py-3.5 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Property</th>
+                     <th className="py-3.5 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Phone</th>
+                     <th className="py-3.5 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">{currentView === "agreements" ? "Agreement Status" : "KYC Status"}</th>
+                     <th className="py-3.5 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+                     <th className="py-3.5 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Action</th>
                   </tr>
                </thead>
-               <tbody className="divide-y divide-slate-50">
+               <tbody className="divide-y divide-slate-100 text-sm">
                   {loading ? (
-                    <tr><td colSpan="5" className="py-20 text-center">
-                       <div className="w-10 h-10 border-3 border-blue-600/20 border-t-blue-600 rounded-full animate-spin mx-auto mb-4" />
-                       <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Loading tenant data...</p>
+                    <tr><td colSpan="6" className="py-12 text-center text-slate-400">
+                       <div className="w-8 h-8 border-2 border-[#095256] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                       <p className="text-xs font-semibold text-slate-400">Loading tenant data...</p>
                     </td></tr>
                   ) : filteredTenants.length === 0 ? (
-                    <tr><td colSpan="5" className="py-20 text-center">
-                       <div className="w-14 h-14 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-300">
-                          <Users size={28} />
+                    <tr><td colSpan="6" className="py-12 text-center text-slate-400">
+                       <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-2 text-slate-300">
+                          <Users size={24} />
                        </div>
-                       <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">No tenants found</p>
+                       <p className="text-xs font-semibold text-slate-400">No tenants found.</p>
                     </td></tr>
                   ) : paginatedTenants.map((t, i) => (
-                    <tr key={i} className="group hover:bg-slate-50/60 transition-colors cursor-pointer" onClick={() => setSelectedTenant(t)}>
-                       <td className="px-5 py-4">
+                    <tr key={i} className="hover:bg-slate-50/70 transition-colors cursor-pointer" onClick={() => setSelectedTenant(t)}>
+                       <td className="py-4 px-6 font-medium text-slate-900">
                           <div className="flex items-center gap-3">
-                             <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 font-bold text-sm flex items-center justify-center shrink-0">
+                             <div className="w-9 h-9 rounded-full bg-slate-200/70 border border-slate-200 flex items-center justify-center font-bold text-xs text-slate-600 shrink-0">
                                 {t.profile.name.charAt(0).toUpperCase()}
                              </div>
                              <div>
-                                <p className="text-sm font-bold text-slate-900">{t.profile.name}</p>
-                                <div className="flex items-center gap-2 mt-0.5">
-                                   <span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md">{t.loginId || "ID-GEN"}</span>
-                                   <span className={cn(
-                                       "text-[10px] font-bold px-2 py-0.5 rounded-md uppercase",
-                                       t.status === "suspended" ? "bg-rose-50 text-rose-600" :
-                                       t.status === "active" ? "bg-emerald-50 text-emerald-600" :
-                                       "bg-slate-100 text-slate-600"
-                                    )}>
-                                       {t.status || "pending"}
-                                    </span>
-                                   <span className="text-[10px] font-medium text-slate-400">Moved in: {formatDate(t.profile.moveInDate)}</span>
-                                </div>
+                                <span className="font-semibold text-slate-900 text-sm block">{t.profile.name}</span>
+                                <span className="text-xs text-slate-500">{t.loginId || "—"}</span>
                              </div>
                           </div>
                        </td>
-                       <td className="px-5 py-4">
+                       <td className="py-4 px-6 text-slate-600">
                           <div className="space-y-0.5">
-                             <p className="text-xs font-bold text-slate-800 truncate max-w-[220px]">{t.profile.propertyText}</p>
-                             <div className="flex items-center gap-1.5">
-                                <Building2 className="w-3 h-3 text-slate-400" />
-                                <span className="text-[11px] font-medium text-slate-500">Unit {t.profile.roomNo} • {t.profile.bedNo} Bed</span>
-                             </div>
+                             <p className="text-sm font-semibold text-slate-900 truncate max-w-[220px]">{t.profile.propertyText}</p>
+                             <p className="text-xs text-slate-500">Unit {t.profile.roomNo} • {t.profile.bedNo} Bed</p>
                           </div>
                        </td>
-                       <td className="px-5 py-4 text-center">
-                          <div className="inline-flex flex-col items-center">
-                             <p className="text-xs font-bold text-slate-800">{t.profile.phone}</p>
-                             <span className="text-[11px] text-slate-400 truncate max-w-[140px]">{t.profile.email}</span>
-                          </div>
+                       <td className="py-4 px-6 text-slate-600">
+                          <p className="text-sm font-medium text-slate-900">{t.profile.phone}</p>
+                          <p className="text-xs text-slate-500 truncate max-w-[140px]">{t.profile.email}</p>
                        </td>
-                       <td className="px-5 py-4 text-center">
+                       <td className="py-4 px-6">
                           {currentView === "agreements" ? (() => {
                             const signed = t.profile.agreementSigned || t.profile.agreementStatus === "signed";
                             return (
-                              <div className="inline-flex flex-col items-center gap-1">
-                                <span className={cn(
-                                  "text-[10px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider",
-                                  signed ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-amber-50 text-amber-600 border border-amber-100"
-                                )}>
-                                  {signed ? "Signed" : "Pending"}
-                                </span>
-                                {t.profile.agreementSignedAt && (
-                                  <span className="text-[9px] text-slate-400">{formatDate(t.profile.agreementSignedAt)}</span>
-                                )}
-                              </div>
+                              <span className={cn(
+                                "inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold",
+                                signed ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+                              )}>
+                                {signed ? "Signed" : "Pending"}
+                              </span>
                             );
                           })() : (
                             <span className={cn(
-                               "text-[10px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider",
-                               t.kyc.status === "verified" ? "bg-emerald-50 text-emerald-600 border border-emerald-100" :
-                               t.kyc.status === "submitted" ? "bg-amber-50 text-amber-600 border border-amber-100" :
-                               "bg-slate-100 text-slate-500 border border-slate-200"
+                               "inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold",
+                               t.kyc.status === "verified" ? "bg-emerald-100 text-emerald-700" :
+                               t.kyc.status === "submitted" ? "bg-amber-100 text-amber-700" :
+                               "bg-rose-100 text-rose-700"
                             )}>
-                               {t.kyc.status}
+                               {t.kyc.status === "verified" ? "Verified" : t.kyc.status === "submitted" ? "Pending" : "Missing"}
                             </span>
                           )}
                        </td>
-                        <td className="px-5 py-4 text-right" onClick={(e) => e.stopPropagation()}>
-                           <div className="flex items-center justify-end gap-1.5">
-                              {currentView === "agreements" && (
-                                <a
-                                  href={t.profile.agreementPdfUrl
-                                    ? (t.profile.agreementPdfUrl.startsWith("http") ? t.profile.agreementPdfUrl : `${API_URL}${t.profile.agreementPdfUrl}`)
-                                    : `${API_URL}/api/checkin/tenant/agreement/pdf/${encodeURIComponent(t.loginId || "")}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  title="View Signed Agreement PDF"
-                                  className="px-2.5 py-1.5 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all border border-blue-200 shadow-sm active:scale-95 flex items-center gap-1 text-xs font-bold shrink-0"
-                                >
-                                  <FileText className="w-3.5 h-3.5" />
-                                  <span>View Agreement</span>
-                                </a>
-                              )}
-                              <button 
-                                 onClick={() => handleToggleDeactivate(t)} 
-                                 title={t.status === "suspended" ? "Reactivate Account" : "Deactivate Account"} 
-                                 className={cn(
-                                    "w-8 h-8 rounded-xl border flex items-center justify-center transition-all",
-                                    t.status === "suspended" 
-                                       ? "bg-rose-50 text-rose-600 border-rose-100 hover:bg-rose-100" 
-                                       : "bg-slate-50 text-slate-500 border-slate-100 hover:text-slate-700 hover:bg-slate-100"
-                                 )}
+                       <td className="py-3.5 px-4">
+                          <span className={cn(
+                             "text-xs font-semibold px-2.5 py-1 rounded-full inline-flex items-center",
+                             t.status === "suspended" ? "bg-[#FEE2E2] text-[#991B1B]" :
+                             t.status === "active" ? "bg-[#DDF3E4] text-[#14532D]" :
+                             "bg-[#FDEBD0] text-[#7A3E00]"
+                          )}>
+                             {t.status === "active" ? "Active" : t.status === "suspended" ? "Suspended" : "Pending"}
+                          </span>
+                       </td>
+                       <td className="py-3.5 px-4 text-right" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-2">
+                             {currentView === "agreements" && (
+                               <a
+                                 href={t.profile.agreementPdfUrl
+                                   ? (t.profile.agreementPdfUrl.startsWith("http") ? t.profile.agreementPdfUrl : `${API_URL}${t.profile.agreementPdfUrl}`)
+                                   : `${API_URL}/api/checkin/tenant/agreement/pdf/${encodeURIComponent(t.loginId || "")}`}
+                                 target="_blank"
+                                 rel="noopener noreferrer"
+                                 className="border border-[#CBD3D9] hover:bg-slate-50 text-[#10242A] text-xs font-semibold px-3 py-1 rounded-[6px] transition-colors inline-flex items-center gap-1"
                                >
-                                 <Shield className={cn("w-4 h-4", t.status === "suspended" && "animate-pulse")} />
-                               </button>
-                              <button 
+                                 <FileText className="w-3.5 h-3.5 text-[#0E7C86]" /> PDF
+                               </a>
+                             )}
+                             <button 
                                 onClick={() => setSelectedTenant(t)} 
-                                title="View Details"
-                                className="w-8 h-8 rounded-xl bg-slate-50 text-slate-500 hover:bg-blue-50 hover:text-blue-600 border border-slate-100 flex items-center justify-center transition-all"
-                              >
-                                <Eye className="w-4 h-4" />
-                              </button>
-                              <button 
-                                onClick={() => handleDeleteTenant(t)} 
-                                title="Delete Tenant"
-                                className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-100 flex items-center justify-center transition-all"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                           </div>
-                        </td>
+                                className="border border-[#CBD3D9] hover:bg-slate-50 text-[#10242A] text-xs font-semibold px-3 py-1 rounded-[6px] transition-colors cursor-pointer"
+                             >
+                                View
+                             </button>
+                             <button 
+                                onClick={() => handleToggleDeactivate(t)} 
+                                className="border border-[#CBD3D9] hover:bg-slate-50 text-[#10242A] text-xs font-semibold px-3 py-1 rounded-[6px] transition-colors cursor-pointer"
+                             >
+                                {t.status === "suspended" ? "Activate" : "Block"}
+                             </button>
+                          </div>
+                       </td>
                     </tr>
                   ))}
                </tbody>

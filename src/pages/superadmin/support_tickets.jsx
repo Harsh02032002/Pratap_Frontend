@@ -18,19 +18,17 @@ const getApiUrl = () =>
 
 export default function VerificationCenter() {
   const isEmployeeView = typeof window !== "undefined" && window.location.pathname.startsWith("/employee");
-  const [activeTab, setActiveTab] = useState("new_properties"); // "new_properties" | "property_edits" | "room_edits"
+  const [activeTab, setActiveTab] = useState("new_properties");
   const [newProperties, setNewProperties] = useState([]);
   const [propertyEdits, setPropertyEdits] = useState([]);
   const [roomEdits, setRoomEdits] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedItem, setSelectedItem] = useState(null); // { type, data }
-  const [assignModal, setAssignModal] = useState(null); // { type, id }
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [assignModal, setAssignModal] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [fullscreenImage, setFullscreenImage] = useState(null); // { url, index }
 
   const loadData = async () => {
-    // Check for authentication token
     const token = sessionStorage.getItem("token") || localStorage.getItem("token");
     if (!token) {
       console.error("No authentication token found");
@@ -40,32 +38,27 @@ export default function VerificationCenter() {
 
     setLoading(true);
     try {
-      // 1. Fetch new property requests (status: pending_approval)
       const newPropsRes = await fetchJson("/api/properties?pendingApproval=true&limit=1000");
       if (newPropsRes.success) {
         setNewProperties(newPropsRes.properties || []);
       }
 
-      // 2. Fetch property edit requests (pendingChanges.status: pending)
       const propEditsRes = await fetchJson("/api/properties?pendingChanges=true&limit=1000");
       if (propEditsRes.success) {
         setPropertyEdits(propEditsRes.properties || []);
       }
 
-      // 3. Fetch room edit requests (pendingChanges.status: pending)
       const roomEditsRes = await fetchJson("/api/rooms/all?pendingChanges=true&limit=1000");
       if (roomEditsRes.success) {
         setRoomEdits(roomEditsRes.rooms || []);
       }
 
-      // 4. Fetch employees
       const empRes = await fetchJson("/api/employees");
       if (empRes.success) {
         setEmployees(empRes.data || []);
       }
     } catch (err) {
       console.error("Failed to load verification center data:", err);
-      // If auth error, redirect to login
       if (err?.message?.includes("Not authorized") || err?.status === 401) {
         window.location.href = "/superadmin/login";
       }
@@ -79,7 +72,6 @@ export default function VerificationCenter() {
     loadData();
   }, []);
 
-  // Quick Action Handlers
   const handleApproveNewProperty = async (id) => {
     try {
       const res = await fetch(`${getApiUrl()}/api/properties/${id}/publish`, {
@@ -239,7 +231,6 @@ export default function VerificationCenter() {
       if (data.success || res.ok) {
         toast.success(`Successfully assigned to ${employeeName}`);
         
-        // Refresh local lists
         if (activeTab === "new_properties") {
           setNewProperties(prev => prev.map(p => p._id === itemId ? { ...p, assignedTo: employeeId, assignedToName: employeeName } : p));
         } else if (activeTab === "property_edits") {
@@ -251,16 +242,12 @@ export default function VerificationCenter() {
           setRoomEdits(prev => prev.map(r => r._id === itemId ? {
             ...r,
             pendingChanges: { ...r.pendingChanges, assignedTo: employeeId, assignedToName: employeeName }
-          } : p));
+          } : r));
         }
 
         setSelectedItem(null);
         setAssignModal(null);
         loadData();
-      } else if (data.autoAssignFailed) {
-        // Auto-assignment failed - show message and keep modal open for manual selection
-        toast.error(data.message || "No employee of that area, you can assign");
-        // Don't close modal - let user manually select an employee
       } else {
         toast.error(data.message || "Assignment failed");
       }
@@ -270,7 +257,6 @@ export default function VerificationCenter() {
     }
   };
 
-  // Searching logic
   const searchFilter = (items, keySelector) => {
     if (!searchQuery) return items;
     const query = searchQuery.toLowerCase();
@@ -290,41 +276,40 @@ export default function VerificationCenter() {
   }, [roomEdits, searchQuery]);
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto p-4 md:p-6 min-h-full">
+    <div className="space-y-6 pb-8 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
       <PageHeader
         title="Verification & Approvals Center"
         subtitle="Manage pending property approvals, and track room/property picture modification requests."
-        breadcrumbs={[{ label: "Support" }, { label: "Verification System", active: true }]}
         actions={
-          <button onClick={loadData} className="p-2.5 rounded-xl bg-white text-slate-500 hover:text-blue-600 transition-all border border-slate-200 shadow-sm flex items-center gap-2 font-bold text-xs">
-            <RefreshCw className={cn("w-3.5 h-3.5", loading && "animate-spin")} /> Refresh
+          <button onClick={loadData} className="px-3.5 py-2 rounded-xl bg-white border border-slate-200/80 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-2 shadow-2xs cursor-pointer">
+            <RefreshCw className={cn("w-3.5 h-3.5 text-[#095256]", loading && "animate-spin")} /> Refresh
           </button>
         }
       />
 
       {/* Stats Quick Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
-          { key: "new_properties", label: "New Property Approvals", count: newProperties.length, color: "blue", icon: Building2 },
-          { key: "property_edits", label: "Property Edit Requests", count: propertyEdits.length, color: "indigo", icon: FileText },
-          { key: "room_edits", label: "Room Edit Requests", count: roomEdits.length, color: "purple", icon: ImageIcon }
+          { key: "new_properties", label: "New Property Approvals", count: newProperties.length, icon: Building2 },
+          { key: "property_edits", label: "Property Edit Requests", count: propertyEdits.length, icon: FileText },
+          { key: "room_edits", label: "Room Edit Requests", count: roomEdits.length, icon: ImageIcon }
         ].map(tab => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
             className={cn(
-              "p-6 rounded-3xl border text-left transition-all duration-300 relative overflow-hidden group shadow-sm flex items-center justify-between",
+              "p-5 rounded-2xl border text-left transition-all duration-200 cursor-pointer flex items-center justify-between shadow-2xs",
               activeTab === tab.key
-                ? "bg-white border-blue-500 ring-2 ring-blue-500/10"
-                : "bg-white border-slate-100 hover:border-slate-300"
+                ? "bg-white border-[#095256] ring-2 ring-[#095256]/10"
+                : "bg-white border-slate-200/80 hover:border-slate-300"
             )}
           >
-            <div className="space-y-2">
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">{tab.label}</span>
-              <p className="text-3xl font-black text-slate-900 leading-none">{tab.count}</p>
+            <div className="space-y-1">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">{tab.label}</span>
+              <p className="text-2xl font-bold text-slate-900 leading-none">{tab.count}</p>
             </div>
-            <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border shadow-sm",
-              activeTab === tab.key ? "bg-blue-50 text-blue-600 border-blue-100" : "bg-slate-50 text-slate-400 border-slate-100"
+            <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border",
+              activeTab === tab.key ? "bg-[#095256]/10 text-[#095256] border-[#095256]/20" : "bg-slate-50 text-slate-500 border-slate-200/80"
             )}>
               <tab.icon className="w-5 h-5" />
             </div>
@@ -332,18 +317,22 @@ export default function VerificationCenter() {
         ))}
       </div>
 
-      {/* Control Bar */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[280px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
+      {/* Outside Search Bar */}
+      <div className="flex justify-end">
+        <div className="relative group w-full sm:w-80">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
           <input
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             placeholder="Search by title, owner details, location..."
-            className="w-full bg-slate-50 rounded-xl pl-9 pr-4 py-2.5 text-xs outline-none border-none focus:ring-2 focus:ring-blue-100 transition-all font-medium text-slate-700"
+            className="w-full bg-white border border-slate-200/80 rounded-xl pl-9 pr-4 py-2 text-xs font-medium text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-[#095256]/20 focus:border-[#095256] transition-all shadow-2xs"
           />
         </div>
-        <span className="text-xs font-bold text-slate-400 ml-auto">
+      </div>
+
+      {/* Standalone Table Card */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
+        <span className="text-xs font-semibold text-[#4A5961] ml-auto">
           {activeTab === "new_properties" && `${filteredNewProperties.length} pending properties`}
           {activeTab === "property_edits" && `${filteredPropertyEdits.length} property edits`}
           {activeTab === "room_edits" && `${filteredRoomEdits.length} room edits`}
@@ -351,62 +340,62 @@ export default function VerificationCenter() {
       </div>
 
       {/* List Ledger */}
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-[16px] border border-[#E1E6EA] shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
+          <table className="w-full text-xs text-left">
+            <thead className="bg-[#F8FAFC] text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider border-b border-[#E1E6EA]">
               <tr>
-                <th className="px-5 py-4 text-left">Property / Room Details</th>
-                <th className="px-5 py-4 text-left">Owner Details</th>
-                <th className="px-5 py-4 text-left">Location</th>
-                {!isEmployeeView && <th className="px-5 py-4 text-left">Assigned Employee</th>}
-                <th className="px-5 py-4 text-left">Date Requested</th>
-                <th className="px-5 py-4 text-right">Actions</th>
+                <th className="px-5 py-3">Property / Room Details</th>
+                <th className="px-5 py-3">Owner Details</th>
+                <th className="px-5 py-3">Location</th>
+                {!isEmployeeView && <th className="px-5 py-3">Assigned Employee</th>}
+                <th className="px-5 py-3">Date Requested</th>
+                <th className="px-5 py-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
+            <tbody className="divide-y divide-[#E1E6EA]">
               {/* Tab 1: New Properties */}
               {activeTab === "new_properties" && (
                 filteredNewProperties.length === 0 ? (
-                  <tr><td colSpan={isEmployeeView ? 5 : 6} className="px-6 py-20 text-center text-xs font-bold text-slate-400 uppercase">No property approvals pending</td></tr>
+                  <tr><td colSpan={isEmployeeView ? 5 : 6} className="px-6 py-12 text-center text-xs font-semibold text-[#4A5961]">No property approvals pending</td></tr>
                 ) : filteredNewProperties.map(p => (
-                  <tr key={p._id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
-                          <Building2 size={16} />
+                  <tr key={p._id} className="hover:bg-[#F4F6F8]/60 transition-colors">
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-[8px] bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center shrink-0">
+                          <Building2 size={15} />
                         </div>
                         <div>
-                          <p className="font-bold text-slate-800 text-xs">{p.title || "No Title"}</p>
-                          <p className="text-[9px] text-slate-400 font-bold uppercase mt-0.5">{p.propertyType || "Property"}</p>
+                          <p className="font-bold text-[#10242A] text-xs">{p.title || "No Title"}</p>
+                          <p className="text-[10px] text-[#4A5961] mt-0.5">{p.propertyType || "Property"}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-4">
-                      <p className="text-xs font-bold text-slate-700">{p.ownerName || "Unknown Owner"}</p>
-                      <p className="text-[10px] text-slate-400 font-medium font-mono mt-0.5">{p.ownerLoginId || "N/A"}</p>
+                    <td className="px-5 py-3">
+                      <p className="text-xs font-bold text-[#10242A]">{p.ownerName || "Unknown Owner"}</p>
+                      <p className="text-[10px] text-[#4A5961] font-mono mt-0.5">{p.ownerLoginId || "N/A"}</p>
                     </td>
-                    <td className="px-5 py-4">
-                      <p className="text-xs font-semibold text-slate-600 flex items-center gap-1"><MapPin size={11} className="text-slate-400" /> {p.city || "N/A"}</p>
+                    <td className="px-5 py-3">
+                      <p className="text-xs font-semibold text-[#4A5961] flex items-center gap-1"><MapPin size={11} className="text-[#0E7C86]" /> {p.city || "N/A"}</p>
                     </td>
                     {!isEmployeeView && (
-                      <td className="px-5 py-4">
+                      <td className="px-5 py-3">
                         {p.assignedToName ? (
-                          <span className="text-[10px] font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5"><User size={11} /> {p.assignedToName}</span>
+                          <span className="text-[10px] font-semibold text-[#10242A] bg-[#F4F6F8] border border-[#E1E6EA] px-2 py-0.5 rounded-[4px] inline-flex items-center gap-1"><User size={11} /> {p.assignedToName}</span>
                         ) : (
-                          <button onClick={() => setAssignModal({ type: "property", id: p._id })} className="text-[10px] font-bold text-blue-600 hover:underline flex items-center gap-1"><UserPlus size={11} /> Assign Verification</button>
+                          <button onClick={() => setAssignModal({ type: "property", id: p._id })} className="text-[11px] font-semibold text-[#0E7C86] hover:underline flex items-center gap-1 cursor-pointer"><UserPlus size={11} /> Assign</button>
                         )}
                       </td>
                     )}
-                    <td className="px-5 py-4 text-xs text-slate-500 font-semibold">
+                    <td className="px-5 py-3 text-xs text-[#4A5961]">
                       {new Date(p.createdAt).toLocaleDateString()}
                     </td>
-                    <td className="px-5 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button onClick={() => setSelectedItem({ type: "new_property", data: p })} className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl text-[10px] font-black uppercase transition-all flex items-center gap-1">
+                    <td className="px-5 py-3 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button onClick={() => setSelectedItem({ type: "new_property", data: p })} className="px-2.5 py-1 bg-[#F4F6F8] hover:bg-[#E6F4F5] text-[#10242A] border border-[#E1E6EA] rounded-[6px] text-[10px] font-semibold transition-all flex items-center gap-1 cursor-pointer">
                           <Eye size={12} /> View
                         </button>
-                        <button onClick={() => handleApproveNewProperty(p._id)} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase transition-all">
+                        <button onClick={() => handleApproveNewProperty(p._id)} className="px-2.5 py-1 bg-[#0E7C86] hover:bg-[#09626A] text-white rounded-[6px] text-[10px] font-semibold transition-all cursor-pointer">
                           Approve
                         </button>
                       </div>
@@ -418,45 +407,45 @@ export default function VerificationCenter() {
               {/* Tab 2: Property Edits */}
               {activeTab === "property_edits" && (
                 filteredPropertyEdits.length === 0 ? (
-                  <tr><td colSpan={isEmployeeView ? 5 : 6} className="px-6 py-20 text-center text-xs font-bold text-slate-400 uppercase">No property edit requests pending</td></tr>
+                  <tr><td colSpan={isEmployeeView ? 5 : 6} className="px-6 py-12 text-center text-xs font-semibold text-[#4A5961]">No property edit requests pending</td></tr>
                 ) : filteredPropertyEdits.map(p => (
-                  <tr key={p._id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100">
-                          <FileText size={16} />
+                  <tr key={p._id} className="hover:bg-[#F4F6F8]/60 transition-colors">
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-[8px] bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center shrink-0">
+                          <FileText size={15} />
                         </div>
                         <div>
-                          <p className="font-bold text-slate-800 text-xs">{p.title || "No Title"}</p>
-                          <p className="text-[9px] text-slate-400 font-bold uppercase mt-0.5">Edit Request</p>
+                          <p className="font-bold text-[#10242A] text-xs">{p.title || "No Title"}</p>
+                          <p className="text-[10px] text-[#4A5961] mt-0.5">Edit Request</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-4">
-                      <p className="text-xs font-bold text-slate-700">{p.ownerName || "Unknown Owner"}</p>
-                      <p className="text-[10px] text-slate-400 font-medium font-mono mt-0.5">{p.ownerLoginId || "N/A"}</p>
+                    <td className="px-5 py-3">
+                      <p className="text-xs font-bold text-[#10242A]">{p.ownerName || "Unknown Owner"}</p>
+                      <p className="text-[10px] text-[#4A5961] font-mono mt-0.5">{p.ownerLoginId || "N/A"}</p>
                     </td>
-                    <td className="px-5 py-4">
-                      <p className="text-xs font-semibold text-slate-600 flex items-center gap-1"><MapPin size={11} className="text-slate-400" /> {p.city || "N/A"}</p>
+                    <td className="px-5 py-3">
+                      <p className="text-xs font-semibold text-[#4A5961] flex items-center gap-1"><MapPin size={11} className="text-[#0E7C86]" /> {p.city || "N/A"}</p>
                     </td>
                     {!isEmployeeView && (
-                      <td className="px-5 py-4">
+                      <td className="px-5 py-3">
                         {p.pendingChanges?.assignedToName ? (
-                          <span className="text-[10px] font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5"><User size={11} /> {p.pendingChanges.assignedToName}</span>
+                          <span className="text-[10px] font-semibold text-[#10242A] bg-[#F4F6F8] border border-[#E1E6EA] px-2 py-0.5 rounded-[4px] inline-flex items-center gap-1"><User size={11} /> {p.pendingChanges.assignedToName}</span>
                         ) : (
-                          <button onClick={() => setAssignModal({ type: "property", id: p._id })} className="text-[10px] font-bold text-blue-600 hover:underline flex items-center gap-1"><UserPlus size={11} /> Assign Verification</button>
+                          <button onClick={() => setAssignModal({ type: "property", id: p._id })} className="text-[11px] font-semibold text-[#0E7C86] hover:underline flex items-center gap-1 cursor-pointer"><UserPlus size={11} /> Assign</button>
                         )}
                       </td>
                     )}
-                    <td className="px-5 py-4 text-xs text-slate-500 font-semibold">
-                      {p.pendingChanges?.requestedAt ? new Date(p.pendingChanges.requestedAt).toLocaleDateString() : "N/A"}
+                    <td className="px-5 py-3 text-xs text-[#4A5961]">
+                      {new Date(p.updatedAt || p.createdAt).toLocaleDateString()}
                     </td>
-                    <td className="px-5 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button onClick={() => setSelectedItem({ type: "property_edit", data: p })} className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl text-[10px] font-black uppercase transition-all flex items-center gap-1">
-                          <Eye size={12} /> Compare
+                    <td className="px-5 py-3 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button onClick={() => setSelectedItem({ type: "property_edit", data: p })} className="px-2.5 py-1 bg-[#F4F6F8] hover:bg-[#E6F4F5] text-[#10242A] border border-[#E1E6EA] rounded-[6px] text-[10px] font-semibold transition-all flex items-center gap-1 cursor-pointer">
+                          <Eye size={12} /> Review
                         </button>
-                        <button onClick={() => handleApprovePropertyEdit(p._id)} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase transition-all">
+                        <button onClick={() => handleApprovePropertyEdit(p._id)} className="px-2.5 py-1 bg-[#0E7C86] hover:bg-[#09626A] text-white rounded-[6px] text-[10px] font-semibold transition-all cursor-pointer">
                           Approve
                         </button>
                       </div>
@@ -468,45 +457,45 @@ export default function VerificationCenter() {
               {/* Tab 3: Room Edits */}
               {activeTab === "room_edits" && (
                 filteredRoomEdits.length === 0 ? (
-                  <tr><td colSpan={isEmployeeView ? 5 : 6} className="px-6 py-20 text-center text-xs font-bold text-slate-400 uppercase">No room edit requests pending</td></tr>
+                  <tr><td colSpan={isEmployeeView ? 5 : 6} className="px-6 py-12 text-center text-xs font-semibold text-[#4A5961]">No room edit requests pending</td></tr>
                 ) : filteredRoomEdits.map(r => (
-                  <tr key={r._id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center border border-purple-100">
-                          <ImageIcon size={16} />
+                  <tr key={r._id} className="hover:bg-[#F4F6F8]/60 transition-colors">
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-[8px] bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center shrink-0">
+                          <ImageIcon size={15} />
                         </div>
                         <div>
-                          <p className="font-bold text-slate-800 text-xs">Room: {r.title || "No Title"}</p>
-                          <p className="text-[9px] text-slate-400 font-bold uppercase mt-0.5">{r.property?.title || "Property"}</p>
+                          <p className="font-bold text-[#10242A] text-xs">{r.title || "Room"}</p>
+                          <p className="text-[10px] text-[#4A5961] mt-0.5">{r.property?.title || "Property"}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-4">
-                      <p className="text-xs font-bold text-slate-700">Owner ID</p>
-                      <p className="text-[10px] text-slate-400 font-medium font-mono mt-0.5">{r.property?.ownerLoginId || "N/A"}</p>
+                    <td className="px-5 py-3">
+                      <p className="text-xs font-bold text-[#10242A]">{r.property?.ownerName || "Unknown Owner"}</p>
+                      <p className="text-[10px] text-[#4A5961] font-mono mt-0.5">{r.property?.ownerLoginId || "N/A"}</p>
                     </td>
-                    <td className="px-5 py-4">
-                      <p className="text-xs font-semibold text-slate-600 flex items-center gap-1"><MapPin size={11} className="text-slate-400" /> {r.property?.city || "N/A"}</p>
+                    <td className="px-5 py-3">
+                      <p className="text-xs font-semibold text-[#4A5961] flex items-center gap-1"><MapPin size={11} className="text-[#0E7C86]" /> {r.property?.city || "N/A"}</p>
                     </td>
                     {!isEmployeeView && (
-                      <td className="px-5 py-4">
+                      <td className="px-5 py-3">
                         {r.pendingChanges?.assignedToName ? (
-                          <span className="text-[10px] font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5"><User size={11} /> {r.pendingChanges.assignedToName}</span>
+                          <span className="text-[10px] font-semibold text-[#10242A] bg-[#F4F6F8] border border-[#E1E6EA] px-2 py-0.5 rounded-[4px] inline-flex items-center gap-1"><User size={11} /> {r.pendingChanges.assignedToName}</span>
                         ) : (
-                          <button onClick={() => setAssignModal({ type: "room", id: r._id })} className="text-[10px] font-bold text-blue-600 hover:underline flex items-center gap-1"><UserPlus size={11} /> Assign Verification</button>
+                          <button onClick={() => setAssignModal({ type: "room", id: r._id })} className="text-[11px] font-semibold text-[#0E7C86] hover:underline flex items-center gap-1 cursor-pointer"><UserPlus size={11} /> Assign</button>
                         )}
                       </td>
                     )}
-                    <td className="px-5 py-4 text-xs text-slate-500 font-semibold">
-                      {r.pendingChanges?.requestedAt ? new Date(r.pendingChanges.requestedAt).toLocaleDateString() : "N/A"}
+                    <td className="px-5 py-3 text-xs text-[#4A5961]">
+                      {new Date(r.updatedAt || r.createdAt).toLocaleDateString()}
                     </td>
-                    <td className="px-5 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button onClick={() => setSelectedItem({ type: "room_edit", data: r })} className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl text-[10px] font-black uppercase transition-all flex items-center gap-1">
-                          <Eye size={12} /> Compare
+                    <td className="px-5 py-3 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button onClick={() => setSelectedItem({ type: "room_edit", data: r })} className="px-2.5 py-1 bg-[#F4F6F8] hover:bg-[#E6F4F5] text-[#10242A] border border-[#E1E6EA] rounded-[6px] text-[10px] font-semibold transition-all flex items-center gap-1 cursor-pointer">
+                          <Eye size={12} /> Review
                         </button>
-                        <button onClick={() => handleApproveRoomEdit(r._id)} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase transition-all">
+                        <button onClick={() => handleApproveRoomEdit(r._id)} className="px-2.5 py-1 bg-[#0E7C86] hover:bg-[#09626A] text-white rounded-[6px] text-[10px] font-semibold transition-all cursor-pointer">
                           Approve
                         </button>
                       </div>
@@ -519,261 +508,23 @@ export default function VerificationCenter() {
         </div>
       </div>
 
-      {/* Gorgeous Side-by-Side Comparison & View Details Modal */}
-      {selectedItem && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            {/* Modal Header */}
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0">
-              <div>
-                <h3 className="text-base font-black text-slate-900">
-                  {selectedItem.type === "new_property" && `Property Verification: ${selectedItem.data.title}`}
-                  {selectedItem.type === "property_edit" && `Modify Request: ${selectedItem.data.title}`}
-                  {selectedItem.type === "room_edit" && `Room Verification: ${selectedItem.data.title}`}
-                </h3>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">
-                  Requested by: {selectedItem.type === "new_property" ? selectedItem.data.ownerLoginId : selectedItem.data.pendingChanges?.requestedBy}
-                </p>
-              </div>
-              <button onClick={() => setSelectedItem(null)} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all"><X size={18} /></button>
-            </div>
-
-            {/* Modal Body */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              {/* Type 1: New Property Details */}
-              {selectedItem.type === "new_property" && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Images & Details */}
-                  <div className="space-y-4">
-                    <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">Property Media</h4>
-                     <div className="grid grid-cols-2 gap-2">
-                       {selectedItem.data.images?.length > 0 ? (
-                         selectedItem.data.images.map((img, i) => <img key={i} src={img} alt="" className="w-full h-32 object-cover rounded-xl border border-slate-100" loading="lazy" onError={(e) => { e.currentTarget.style.display = 'none'; }} />)
-                       ) : (
-                         <div className="col-span-2 py-8 bg-slate-50 rounded-xl text-center text-xs font-bold text-slate-400 uppercase">No images uploaded</div>
-                       )}
-                     </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">Details & Credentials</h4>
-                    <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 space-y-3.5">
-                      {[
-                        { label: "Property Name", val: selectedItem.data.title },
-                        { label: "City", val: selectedItem.data.city },
-                        { label: "Locality", val: selectedItem.data.locality },
-                        { label: "Full Address", val: selectedItem.data.address },
-                        { label: "Monthly Rent", val: `₹${selectedItem.data.monthlyRent || 0}` },
-                        { label: "Furnishing status", val: selectedItem.data.propertyDetails?.propertyAge || "Standard" }
-                      ].map(f => (
-                        <div key={f.label} className="flex justify-between text-xs items-start">
-                          <span className="text-slate-400 font-bold shrink-0">{f.label}:</span>
-                          <span className="text-slate-800 font-bold text-right ml-4">{f.val}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Type 2: Property Changes (Side-by-Side comparison) */}
-              {selectedItem.type === "property_edit" && (
-                <div className="space-y-6">
-                  <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5"><Info size={14} className="text-indigo-500" /> Requested Modifications (Old vs New)</h4>
-                  
-                  <div className="border border-slate-100 rounded-2xl overflow-hidden shadow-inner">
-                    <table className="w-full text-xs">
-                      <thead className="bg-slate-50 font-bold text-slate-400 uppercase tracking-wider text-[9px] border-b border-slate-100">
-                        <tr>
-                          <th className="px-4 py-3 text-left">Field</th>
-                          <th className="px-4 py-3 text-left">Current Live Value</th>
-                          <th className="px-4 py-3 text-left bg-blue-50/30 text-blue-600">Requested Edit Value</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {Object.keys(selectedItem.data.pendingChanges?.data || {}).map(field => {
-                          const liveVal = selectedItem.data[field];
-                          const requestedVal = selectedItem.data.pendingChanges.data[field];
-                          
-                          if (field === 'images') {
-                            return (
-                              <tr key={field}>
-                                <td className="px-4 py-4 font-bold text-slate-400 uppercase tracking-wider text-[9px]">Gallery Images</td>
-                                <td className="px-4 py-4">
-                                   <div className="flex gap-1.5 overflow-x-auto max-w-[260px] pb-1">
-                                     {(liveVal || []).map((img, i) => <img key={i} src={img} className="w-12 h-10 object-cover rounded-lg" loading="lazy" onError={(e) => { e.currentTarget.style.display = 'none'; }} />)}
-                                   </div>
-                                </td>
-                                <td className="px-4 py-4 bg-blue-50/10">
-                                <div className="flex gap-1.5 overflow-x-auto max-w-[260px] pb-1">
-                                  {(requestedVal || []).map((img, i) => <img key={i} src={img} className="w-12 h-10 object-cover rounded-lg border border-blue-200" loading="lazy" onError={(e) => { e.currentTarget.style.display = 'none'; }} />)}
-                                </div>
-                                </td>
-                              </tr>
-                            );
-                          }
-
-                          return (
-                            <tr key={field}>
-                              <td className="px-4 py-3 font-bold text-slate-400 uppercase tracking-wider text-[9px]">{field}</td>
-                              <td className="px-4 py-3 font-semibold text-slate-500">{typeof liveVal === 'object' ? JSON.stringify(liveVal) : String(liveVal || '—')}</td>
-                              <td className="px-4 py-3 font-black text-blue-600 bg-blue-50/10">{typeof requestedVal === 'object' ? JSON.stringify(requestedVal) : String(requestedVal || '—')}</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              {/* Type 3: Room Changes (Side-by-Side comparison) */}
-              {selectedItem.type === "room_edit" && (
-                <div className="space-y-6">
-                  <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5"><Info size={14} className="text-purple-500" /> Requested Room Modifications (Old vs New)</h4>
-
-                  <div className="border border-slate-100 rounded-2xl overflow-hidden shadow-inner">
-                    <table className="w-full text-xs">
-                      <thead className="bg-slate-50 font-bold text-slate-400 uppercase tracking-wider text-[9px] border-b border-slate-100">
-                        <tr>
-                          <th className="px-4 py-3 text-left">Field</th>
-                          <th className="px-4 py-3 text-left">Current Live Value</th>
-                          <th className="px-4 py-3 text-left bg-blue-50/30 text-blue-600">Requested Edit Value</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {Object.keys(selectedItem.data.pendingChanges?.data || {}).map(field => {
-                          const liveVal = selectedItem.data[field];
-                          const requestedVal = selectedItem.data.pendingChanges.data[field];
-
-                          if (field === 'media' || field === 'images') {
-                            return (
-                              <tr key={field}>
-                                <td className="px-4 py-4 font-bold text-slate-400 uppercase tracking-wider text-[9px]">Room Media</td>
-                                <td className="px-4 py-4">
-                                  <div className="flex gap-1.5 overflow-x-auto max-w-[260px] pb-1">
-                                    {(liveVal || []).map((img, i) => (
-                                      <img 
-                                        key={i} 
-                                        src={typeof img === 'object' ? img.url : img} 
-                                        className="w-12 h-10 object-cover rounded-lg cursor-pointer hover:scale-110 transition-transform"
-                                        onClick={() => setFullscreenImage({ url: typeof img === 'object' ? img.url : img, index: i })}
-                                      />
-                                    ))}
-                                  </div>
-                                </td>
-                                <td className="px-4 py-4 bg-blue-50/10">
-                                  <div className="flex gap-1.5 overflow-x-auto max-w-[260px] pb-1">
-                                    {(requestedVal || []).map((img, i) => (
-                                      <img 
-                                        key={i} 
-                                        src={typeof img === 'object' ? img.url : img} 
-                                        className="w-12 h-10 object-cover rounded-lg border border-blue-200 cursor-pointer hover:scale-110 transition-transform"
-                                        onClick={() => setFullscreenImage({ url: typeof img === 'object' ? img.url : img, index: i })}
-                                      />
-                                    ))}
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          }
-
-                          return (
-                            <tr key={field}>
-                              <td className="px-4 py-3 font-bold text-slate-400 uppercase tracking-wider text-[9px]">{field}</td>
-                              <td className="px-4 py-3 font-semibold text-slate-500">{typeof liveVal === 'object' ? JSON.stringify(liveVal) : String(liveVal || '—')}</td>
-                              <td className="px-4 py-3 font-black text-blue-600 bg-blue-50/10">{typeof requestedVal === 'object' ? JSON.stringify(requestedVal) : String(requestedVal || '—')}</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Modal Footer Actions */}
-            <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex gap-3 justify-end shrink-0">
-              <button onClick={() => setSelectedItem(null)} className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-50 transition-all">Cancel</button>
-              
-              {selectedItem.type === "new_property" && (
-                <>
-                  {!isEmployeeView && (
-                    <button onClick={() => setAssignModal({ type: "property", id: selectedItem.data._id })} className="px-4 py-2 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-xl text-xs font-bold hover:bg-indigo-100 transition-all flex items-center gap-1.5"><UserPlus size={14} /> Assign Verification</button>
-                  )}
-                  <button onClick={() => handleRejectNewProperty(selectedItem.data._id)} className="px-4 py-2 bg-rose-50 border border-rose-100 text-rose-700 rounded-xl text-xs font-bold hover:bg-rose-100 transition-all">Reject</button>
-                  <button onClick={() => handleApproveNewProperty(selectedItem.data._id)} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold hover:shadow-lg transition-all flex items-center gap-1.5"><Check size={14} /> Approve</button>
-                </>
-              )}
-
-              {selectedItem.type === "property_edit" && (
-                <>
-                  {!isEmployeeView && (
-                    <button onClick={() => setAssignModal({ type: "property", id: selectedItem.data._id })} className="px-4 py-2 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-xl text-xs font-bold hover:bg-indigo-100 transition-all flex items-center gap-1.5"><UserPlus size={14} /> Assign Verification</button>
-                  )}
-                  <button onClick={() => handleRejectPropertyEdit(selectedItem.data._id)} className="px-4 py-2 bg-rose-50 border border-rose-100 text-rose-700 rounded-xl text-xs font-bold hover:bg-rose-100 transition-all">Reject Changes</button>
-                  <button onClick={() => handleApprovePropertyEdit(selectedItem.data._id)} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold hover:shadow-lg transition-all flex items-center gap-1.5"><Check size={14} /> Approve Changes</button>
-                </>
-              )}
-
-              {selectedItem.type === "room_edit" && (
-                <>
-                  {!isEmployeeView && (
-                    <button onClick={() => setAssignModal({ type: "room", id: selectedItem.data._id })} className="px-4 py-2 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-xl text-xs font-bold hover:bg-indigo-100 transition-all flex items-center gap-1.5"><UserPlus size={14} /> Assign Verification</button>
-                  )}
-                  <button onClick={() => handleRejectRoomEdit(selectedItem.data._id)} className="px-4 py-2 bg-rose-50 border border-rose-100 text-rose-700 rounded-xl text-xs font-bold hover:bg-rose-100 transition-all">Reject Changes</button>
-                  <button onClick={() => handleApproveRoomEdit(selectedItem.data._id)} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold hover:shadow-lg transition-all flex items-center gap-1.5"><Check size={14} /> Approve Changes</button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Fullscreen Image Modal */}
-      {fullscreenImage && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[200] flex items-center justify-center p-4" onClick={() => setFullscreenImage(null)}>
-          <button 
-            onClick={() => setFullscreenImage(null)}
-            className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all"
-          >
-            <X size={24} />
-          </button>
-          <img 
-            src={fullscreenImage.url} 
-            alt="Fullscreen view" 
-            className="max-w-full max-h-full object-contain rounded-lg"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      )}
-
-      {/* Assign Employee Popup Modal */}
+      {/* Assign Modal */}
       {assignModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[80vh]">
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <h4 className="text-sm font-black text-slate-800">Assign Verification Task</h4>
-              <button onClick={() => setAssignModal(null)} className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg"><X size={16} /></button>
-            </div>
-            
-            <div className="p-4 overflow-y-auto space-y-2 flex-1">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center" onClick={() => setAssignModal(null)}>
+          <div className="bg-white rounded-[16px] shadow-2xl p-5 w-72 border border-[#E1E6EA] flex flex-col" onClick={e => e.stopPropagation()}>
+            <h4 className="text-sm font-bold text-[#10242A] mb-3 shrink-0">Assign Verification Staff</h4>
+            <div className="space-y-1.5 overflow-y-auto max-h-60 flex-1">
               {employees.length === 0 ? (
-                <p className="text-xs font-bold text-slate-400 text-center py-6">No active employees found.</p>
+                <p className="text-xs text-[#4A5961] text-center py-4">No employees registered.</p>
               ) : (
                 employees.map(emp => (
-                  <button
-                    key={emp._id}
-                    onClick={() => handleAssignVerification(assignModal.id, emp._id, emp.name)}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:border-blue-500 hover:bg-blue-50/40 transition-all text-left group"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-slate-100 group-hover:bg-blue-100 text-slate-600 group-hover:text-blue-600 flex items-center justify-center text-[10px] font-black shrink-0">
+                  <button key={emp._id} onClick={() => handleAssignVerification(assignModal.id, emp.loginId, emp.name)} className="w-full text-left px-3 py-2 text-xs font-semibold text-[#10242A] hover:bg-[#E6F4F5] hover:text-[#0E7C86] rounded-[8px] transition-all flex items-center gap-2 cursor-pointer">
+                    <div className="w-6 h-6 rounded-full bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center text-[9px] font-bold shrink-0">
                       {emp.name?.split(" ").map(n=>n[0]).join("")}
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-slate-800">{emp.name}</p>
-                      <p className="text-[10px] text-slate-400 font-mono mt-0.5">{emp.loginId} • {emp.role}</p>
+                      <p className="font-bold text-[#10242A] leading-tight">{emp.name}</p>
+                      <p className="text-[10px] text-[#4A5961]">{emp.loginId}</p>
                     </div>
                   </button>
                 ))

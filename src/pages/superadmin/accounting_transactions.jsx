@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { fetchJson } from "../../utils/api";
 import useSEO from "../../hooks/useSEO";
+import { PageHeader } from "../../components/superadmin/PageHeader";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
@@ -308,22 +309,20 @@ export default function Transactions() {
   const currentData = getFilteredData();
 
   return (
-    <div className="p-6 space-y-6 bg-[#F8FAFC] min-h-full">
+    <div className="space-y-6 pb-8 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
       {/* Header Area */}
-      <div className="flex items-center justify-between">
-         <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-bold text-slate-800 tracking-tight leading-none">Financial Ledger</h1>
-            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Global Transaction History & Audit-Ready Fiscal Flows</p>
-         </div>
-         <div className="flex items-center gap-3">
-            <button 
-              onClick={loadData}
-              className="bg-white text-slate-400 border border-slate-100 px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center gap-2"
-            >
-               <RefreshCw className="w-3.5 h-3.5" /> Refresh
-            </button>
-         </div>
-      </div>
+      <PageHeader
+        title="Financial Ledger"
+        subtitle="Global transaction history and audit-ready fiscal flows."
+        actions={
+          <button 
+            onClick={loadData}
+            className="bg-white text-[#4A5961] border border-[#E1E6EA] px-3.5 py-2 rounded-[12px] text-xs font-semibold hover:bg-[#F4F6F8] transition-all flex items-center gap-2 shadow-xs cursor-pointer"
+          >
+             <RefreshCw className="w-3.5 h-3.5 text-[#0E7C86]" /> Refresh
+          </button>
+        }
+      />
 
       {/* Metrics Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -361,58 +360,58 @@ export default function Transactions() {
         />
       </div>
 
-      {/* Main Ledger Card */}
-      <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-lg shadow-slate-200/50 overflow-hidden">
-         {/* Tab Headers and Filter Actions */}
-         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 border-b border-slate-50 pb-4">
-            <div className="flex flex-wrap items-center gap-2">
-               {[
-                 { id: "all", label: "All Payments", cls: "bg-blue-600 shadow-blue-500/10" },
-                 { id: "onboarding", label: "First-time / Onboarding", cls: "bg-teal-600 shadow-teal-500/10" },
-                 { id: "monthly", label: "Monthly Rent (Online)", cls: "bg-emerald-600 shadow-emerald-500/10" },
-                 { id: "cash", label: "Cash Payments", cls: "bg-amber-600 shadow-amber-500/10" },
-                 { id: "commissions", label: "Commission Splits", cls: "bg-indigo-600 shadow-indigo-500/10" },
-                 { id: "payouts", label: "Owner Payouts", cls: "bg-rose-600 shadow-rose-500/10" }
-               ].map(tab => (
-                 <button
-                   key={tab.id}
-                   onClick={() => {
-                     setActiveTab(tab.id);
-                     setSearchQuery("");
-                   }}
-                   className={cn(
-                     "px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all",
-                     activeTab === tab.id ? `${tab.cls} text-white shadow-md` : "bg-slate-50 text-slate-500 hover:bg-slate-100"
-                   )}
-                 >
-                   {tab.label}
-                 </button>
-               ))}
-            </div>
-            
-            <div className="flex items-center gap-3">
-               <div className="relative group w-48">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-300" />
-                  <input 
-                    placeholder="Search by ID, Name..." 
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-slate-50 border-none rounded-xl py-2 pl-9 pr-3 text-[10px] font-bold outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all shadow-sm" 
-                  />
-               </div>
-            </div>
-         </div>
+      {/* Outside Search & Tabs Bar */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-2">
+           {[
+             { id: "all", label: "All Payments" },
+             { id: "onboarding", label: "First-time / Onboarding" },
+             { id: "monthly", label: "Monthly Rent (Online)" },
+             { id: "cash", label: "Cash Payments" },
+             { id: "commissions", label: "Commission Splits" },
+             { id: "payouts", label: "Owner Payouts" }
+           ].map(tab => (
+             <button
+               key={tab.id}
+               onClick={() => {
+                 setActiveTab(tab.id);
+                 setSearchQuery("");
+               }}
+               className={cn(
+                 "px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer",
+                 activeTab === tab.id 
+                   ? "bg-[#095256] text-white shadow-2xs" 
+                   : "bg-white border border-slate-200/80 text-slate-600 hover:bg-slate-50"
+               )}
+             >
+               {tab.label}
+             </button>
+           ))}
+        </div>
+        
+        <div className="relative group w-full lg:w-72">
+           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+           <input 
+             placeholder="Search by ID, Name..." 
+             value={searchQuery}
+             onChange={(e) => setSearchQuery(e.target.value)}
+             className="w-full bg-white border border-slate-200/80 rounded-xl py-2 pl-9 pr-4 text-xs font-medium text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-[#095256]/20 focus:border-[#095256] transition-all shadow-2xs" 
+           />
+        </div>
+      </div>
 
+      {/* Standalone Table Card */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
          {loading ? (
            <div className="py-12 flex flex-col items-center justify-center gap-3">
-             <RefreshCw className="w-8 h-8 text-slate-300 animate-spin" />
-             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Loading dynamic fiscal records...</p>
+             <RefreshCw className="w-8 h-8 text-[#095256] animate-spin" />
+             <p className="text-xs font-semibold text-slate-400">Loading dynamic fiscal records...</p>
            </div>
          ) : currentData.length === 0 ? (
            <div className="py-16 text-center">
-              <FileText className="w-12 h-12 text-slate-200 mx-auto mb-3" />
-              <p className="text-sm font-bold text-slate-500">No Data Available</p>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Check settings or verify payments collection</p>
+              <FileText className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+              <p className="text-sm font-bold text-slate-700">No Data Available</p>
+              <p className="text-xs text-slate-400 mt-1">Check settings or verify payments collection</p>
            </div>
          ) : (
            <div className="overflow-x-auto">

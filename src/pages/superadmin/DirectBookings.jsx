@@ -9,6 +9,7 @@ import {
   CalendarCheck, User, Info, Check, X, Globe
 } from "lucide-react";
 import { fetchJson, getAuthHeader } from "../../utils/api";
+import { PageHeader } from "../../components/superadmin/PageHeader";
 import * as XLSX from 'xlsx';
 
 const cn = (...c) => c.filter(Boolean).join(" ");
@@ -108,24 +109,22 @@ export default function DirectBookings() {
   };
 
   return (
-    <div className="p-8 bg-[#F8FAFC] min-h-full font-inter text-slate-900">
+    <div className="space-y-6 text-[#10242A]">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
-        <div>
-          <h1 className="text-4xl font-bold text-slate-900 tracking-tight">Direct Bookings</h1>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-2">Verified Direct Reservations & Guest Stay Intelligence Hub</p>
-        </div>
-        <div className="flex items-center gap-4">
+      <PageHeader
+        title="Direct Bookings"
+        subtitle="Verified direct reservations and guest stay intelligence hub."
+        actions={
           <button 
             onClick={exportToExcel}
-            className="bg-white text-slate-600 border border-slate-100 px-8 py-4 rounded-2xl text-[10px] font-bold uppercase tracking-widest shadow-xl shadow-slate-200 transition-all flex items-center gap-3 active:scale-95"
+            className="bg-white border border-slate-200/80 text-slate-700 px-4 py-2 rounded-xl text-xs font-semibold shadow-2xs hover:bg-slate-50 transition-all flex items-center gap-2 cursor-pointer"
           >
-            <Sheet size={16} /> Export Fiscal Audit
+            <Sheet size={14} /> Export Fiscal Audit
           </button>
-        </div>
-      </div>
+        }
+      />
 
-      <div className="space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
+      <div className="space-y-6">
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard icon={CalendarCheck} label="Total Bookings" val={stats.total} color="blue" trend="+12% Delta" up />
@@ -134,66 +133,59 @@ export default function DirectBookings() {
           <StatCard icon={Banknote} label="Gross Value" val={`₹${(stats.revenue / 100000).toFixed(1)}L`} color="indigo" trend="Revenue Flow" up />
         </div>
 
-        {/* Ledger Card */}
-        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-2xl shadow-slate-200/50 overflow-hidden">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 p-10">
-              <div className="flex items-center gap-6">
-                <div className="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-lg">
-                  <LayoutGrid size={20} />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-slate-800">Booking Registry</h3>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Real-time database of property reservations</p>
-                </div>
-              </div>
-
-              {/* TABS SWITCHER */}
-              <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
-                {[
-                  { id: "direct", label: "Direct Bookings", icon: Users },
-                  { id: "online", label: "Online Requests", icon: Globe }
-                ].map(t => (
-                  <button
-                    key={t.id}
-                    onClick={() => setActiveTab(t.id)}
-                    className={cn(
-                      "flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all",
-                      activeTab === t.id ? "bg-white text-blue-600 shadow-md" : "text-slate-400 hover:text-slate-600"
-                    )}
-                  >
-                    <t.icon size={14} />
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-              
-              <div className="flex items-center gap-4">
-              <div className="flex items-center gap-3 bg-slate-50 px-6 py-3.5 rounded-2xl border border-slate-100">
-                <Filter size={14} className="text-slate-400" />
-                <select 
-                  value={statusFilter}
-                  onChange={e => setStatusFilter(e.target.value)}
-                  className="bg-transparent text-[10px] font-bold text-slate-600 outline-none uppercase tracking-widest border-none p-0 focus:ring-0 cursor-pointer"
+        {/* Outside Controls Bar */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Tabs switcher */}
+            <div className="flex bg-white border border-slate-200/80 p-1 rounded-xl shadow-2xs">
+              {[
+                { id: "direct", label: "Direct Bookings", icon: Users },
+                { id: "online", label: "Online Requests", icon: Globe }
+              ].map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => setActiveTab(t.id)}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                    activeTab === t.id ? "bg-[#095256] text-white shadow-2xs" : "text-slate-600 hover:text-slate-900"
+                  )}
                 >
-                  <option value="all">All States</option>
-                  <option value="confirmed">Confirmed</option>
-                  <option value="pending">Pending</option>
-                  <option value="rejected">Rejected</option>
-                </select>
-              </div>
-              <div className="relative w-64 group">
-                <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-blue-500 transition-colors" />
-                <input 
-                  value={search} onChange={e => setSearch(e.target.value)}
-                  placeholder="Search Guests, Properties..." 
-                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-12 pr-6 text-xs font-bold text-slate-700 outline-none focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all shadow-sm" 
-                />
-              </div>
-              <button onClick={loadBookings} className="p-4 rounded-2xl bg-white text-slate-400 hover:text-blue-600 transition-all border border-slate-100 shadow-md active:scale-95">
-                <RefreshCw className={cn("w-5 h-5", loading && "animate-spin")} />
-              </button>
+                  <t.icon size={13} />
+                  {t.label}
+                </button>
+              ))}
             </div>
+
+            {/* Filter */}
+            <select 
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+              className="bg-white border border-slate-200/80 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-700 outline-none shadow-2xs cursor-pointer"
+            >
+              <option value="all">All States</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="pending">Pending</option>
+              <option value="rejected">Rejected</option>
+            </select>
           </div>
+
+          <div className="flex items-center gap-3">
+            <div className="relative group w-full lg:w-72">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input 
+                value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="Search Guests, Properties..." 
+                className="w-full bg-white border border-slate-200/80 rounded-xl py-2 pl-9 pr-4 text-xs font-medium text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-[#095256]/20 focus:border-[#095256] transition-all shadow-2xs" 
+              />
+            </div>
+            <button onClick={loadBookings} className="p-2 rounded-xl bg-white text-slate-500 hover:text-[#095256] transition-all border border-slate-200/80 shadow-2xs cursor-pointer">
+              <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
+            </button>
+          </div>
+        </div>
+
+        {/* Standalone Table Card */}
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
 
           <div className="overflow-x-auto">
             <table className="w-full text-left">

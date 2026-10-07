@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { PieChart, ArrowLeft, Loader2, CheckCircle2, ShieldAlert } from "lucide-react";
 import { fetchJson } from "../../utils/api";
 import { Link } from "react-router-dom";
+import { PageHeader } from "../../components/superadmin/PageHeader";
 
 export default function PartialRefundPage() {
   const [transactionId, setTransactionId] = useState("");
@@ -44,25 +45,16 @@ export default function PartialRefundPage() {
   };
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <div className="max-w-4xl mx-auto space-y-6">
-        
-        {/* Header */}
-        <div className="flex items-center justify-between bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-blue-50 text-blue-600 rounded-2xl">
-              <PieChart size={24} />
-            </div>
-            <div>
-              <h1 className="text-2xl font-black text-gray-900">Partial Refund System</h1>
-              <p className="text-sm text-gray-500">Issue custom partial refunds directly to tenant bank accounts</p>
-            </div>
-          </div>
-
-          <Link to="/superadmin/accounting" className="px-4 py-2.5 text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-2xl transition-all flex items-center gap-2">
-            <ArrowLeft size={16} /> Back to Accounting
+    <div className="space-y-6 pb-8 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
+      <PageHeader
+        title="Partial Refund System"
+        subtitle="Issue custom partial refunds directly to tenant bank accounts."
+        actions={
+          <Link to="/superadmin/accounting" className="px-3.5 py-2 text-xs font-semibold text-[#4A5961] bg-white border border-[#E1E6EA] rounded-[12px] hover:bg-[#F4F6F8] transition-all flex items-center gap-2 shadow-xs">
+            <ArrowLeft size={14} className="text-[#0E7C86]" /> Back to Accounting
           </Link>
-        </div>
+        }
+      />
 
         {/* Card Form */}
         <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
@@ -131,8 +123,6 @@ export default function PartialRefundPage() {
 
           </form>
         </div>
-
-      </div>
     </div>
   );
 }

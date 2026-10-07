@@ -338,70 +338,73 @@ export default function Owner() {
 
    return (
       <div className="space-y-6 text-[#10242A]">
-         {/* Page Header matching PDF Page 8 Spec */}
-         <PageHeader
-            title="View All Owners"
-            subtitle="Manage and view all registered property owners."
-            actions={
-               <div className="flex items-center gap-3">
-                  <button
-                     onClick={exportToExcel}
-                     className="bg-white border border-[#CBD3D9] hover:bg-slate-50 text-[#10242A] font-semibold text-sm px-4 py-2 rounded-[8px] transition-colors cursor-pointer"
-                  >
-                     Export
-                  </button>
-                  <button
-                     onClick={() => navigate("/superadmin/add-owner")}
-                     className="bg-[#0E7C86] hover:bg-[#0B666E] text-white font-semibold text-sm px-4 py-2 rounded-[8px] flex items-center gap-2 transition-colors cursor-pointer"
-                  >
-                     <Plus className="w-4 h-4" /> + Add Owner
-                  </button>
-               </div>
-            }
-         />
-         {/* Standard List View Table Card (PDF Page 8) */}
-         <div className="bg-white rounded-[12px] p-5 border border-[#E1E6EA] shadow-sm">
-            {/* Filter Bar */}
-            <div className="flex flex-col sm:flex-row items-center gap-3 mb-6">
-               <div className="relative flex-1 w-full">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#4A5961]" />
-                  <input
-                     value={search} onChange={e => setSearch(e.target.value)}
-                     placeholder="Search"
-                     className="w-full h-[44px] bg-white border border-[#CBD3D9] rounded-[8px] pl-10 pr-3.5 text-sm text-[#10242A] placeholder:text-[#4A5961] outline-none focus:border-[#0E7C86]"
-                  />
-               </div>
-               <select className="h-[44px] bg-white border border-[#CBD3D9] rounded-[8px] px-3.5 text-sm text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] w-full sm:w-36">
-                  <option value="">KYC status ▾</option>
-                  <option value="verified">Verified</option>
-                  <option value="pending">Pending</option>
-               </select>
-               <select className="h-[44px] bg-white border border-[#CBD3D9] rounded-[8px] px-3.5 text-sm text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] w-full sm:w-36">
-                  <option value="">Subscription ▾</option>
-                  <option value="basic">Basic</option>
-                  <option value="standard">Standard</option>
-                  <option value="premium">Premium</option>
-               </select>
-               <select className="h-[44px] bg-white border border-[#CBD3D9] rounded-[8px] px-3.5 text-sm text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] w-full sm:w-36">
-                  <option value="">Status ▾</option>
-                  <option value="approved">Approved</option>
-                  <option value="pending">Pending</option>
-               </select>
-            </div>
+          {/* Page Header */}
+          <PageHeader
+             title="View All Owners"
+             subtitle="Manage and view all registered property owners"
+             actions={
+                <div className="flex items-center gap-3">
+                   <button
+                      onClick={exportToExcel}
+                      className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-medium text-xs sm:text-sm px-4 py-2 rounded-xl transition-all shadow-2xs cursor-pointer"
+                   >
+                      Export
+                   </button>
+                   <button
+                      onClick={() => navigate("/superadmin/add-owner")}
+                      className="bg-[#095256] hover:bg-[#074043] text-white font-medium text-xs sm:text-sm px-4 py-2 rounded-xl flex items-center gap-2 transition-all shadow-2xs cursor-pointer"
+                   >
+                      <Plus className="w-4 h-4" /> + Add Owner
+                   </button>
+                </div>
+             }
+          />
 
-            <div className="overflow-x-auto">
-               <table className="w-full text-left border-collapse">
-                  <thead>
-                     <tr className="border-b border-[#E1E6EA]">
-                        <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Owner</th>
-                        <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Properties</th>
-                        <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Phone</th>
-                        <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">KYC</th>
-                        <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Subscription</th>
-                        <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Status</th>
-                        <th className="text-xs font-semibold text-[#4A5961] py-3 px-4 text-right">Action</th>
-                     </tr>
-                  </thead>
+          {/* Search & Filter Bar (OUTSIDE Table Card) */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+             <div className="relative flex-1 w-full max-w-md">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                   value={search} onChange={e => setSearch(e.target.value)}
+                   placeholder="Search"
+                   className="w-full py-2.5 pl-10 pr-4 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-[#095256]/20 focus:border-[#095256] shadow-2xs transition-all"
+                />
+             </div>
+             <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                <select className="px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 outline-none cursor-pointer focus:border-[#095256] shadow-2xs w-full sm:w-36">
+                   <option value="">KYC status ▾</option>
+                   <option value="verified">Verified</option>
+                   <option value="pending">Pending</option>
+                </select>
+                <select className="px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 outline-none cursor-pointer focus:border-[#095256] shadow-2xs w-full sm:w-36">
+                   <option value="">Subscription ▾</option>
+                   <option value="basic">Basic</option>
+                   <option value="standard">Standard</option>
+                   <option value="premium">Premium</option>
+                </select>
+                <select className="px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 outline-none cursor-pointer focus:border-[#095256] shadow-2xs w-full sm:w-36">
+                   <option value="">Status ▾</option>
+                   <option value="approved">Approved</option>
+                   <option value="pending">Pending</option>
+                </select>
+             </div>
+          </div>
+
+          {/* Separate Table Card Below */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
+             <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                   <thead>
+                      <tr className="border-b border-slate-200/80 bg-white">
+                         <th className="py-3.5 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Owner</th>
+                         <th className="py-3.5 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Properties</th>
+                         <th className="py-3.5 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Phone</th>
+                         <th className="py-3.5 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">KYC</th>
+                         <th className="py-3.5 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Subscription</th>
+                         <th className="py-3.5 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+                         <th className="py-3.5 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Action</th>
+                      </tr>
+                   </thead>
                   <tbody className="divide-y divide-[#E1E6EA] text-sm">
                      {loading ? (
                         <tr><td colSpan="7" className="py-12 text-center text-[#4A5961]">Loading Property Owners...</td></tr>
@@ -412,47 +415,47 @@ export default function Owner() {
                         const isApproved = o.status === "approved" || o.isApproved;
 
                         return (
-                           <tr key={i} className="hover:bg-slate-50/50 transition-colors">
-                              <td className="py-3.5 px-4 font-medium text-[#10242A]">
+                           <tr key={i} className="hover:bg-slate-50/70 transition-colors border-b border-slate-100">
+                              <td className="py-4 px-6 font-medium text-slate-900">
                                  <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-[#E1E6EA] flex items-center justify-center font-bold text-xs text-[#10242A]">
+                                    <div className="w-9 h-9 rounded-full bg-slate-200/70 border border-slate-200 flex items-center justify-center font-bold text-xs text-slate-600 shrink-0">
                                        {(o.name || "U").charAt(0).toUpperCase()}
                                     </div>
                                     <div>
-                                       <span className="font-semibold text-[#10242A] block">{o.name || "Owner"}</span>
-                                       <span className="text-xs text-[#4A5961]">{o.loginId || "—"}</span>
+                                       <span className="font-semibold text-slate-900 text-sm block">{o.name || "Owner"}</span>
+                                       <span className="text-xs text-slate-500">{o.loginId || "—"}</span>
                                     </div>
                                  </div>
                               </td>
-                              <td className="py-3.5 px-4 text-[#4A5961]">{o.propertyCount || 1} Properties</td>
-                              <td className="py-3.5 px-4 text-[#4A5961]">{o.phone || o.profile?.phone || "—"}</td>
-                              <td className="py-3.5 px-4">
+                              <td className="py-4 px-6 text-slate-700 font-medium">{o.propertyCount || 1} Properties</td>
+                              <td className="py-4 px-6 text-slate-600">{o.phone || o.profile?.phone || "—"}</td>
+                              <td className="py-4 px-6">
                                  <span className={cn(
-                                    "text-xs font-semibold px-2.5 py-1 rounded-full inline-flex items-center",
-                                    kycStat === "verified" ? "bg-[#DDF3E4] text-[#14532D]" : kycStat === "docs_missing" ? "bg-[#FEE2E2] text-[#991B1B]" : "bg-[#FDEBD0] text-[#7A3E00]"
+                                    "inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold",
+                                    kycStat === "verified" ? "bg-emerald-100 text-emerald-700" : kycStat === "docs_missing" ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-700"
                                  )}>
                                     {kycStat === "verified" ? "Verified" : kycStat === "docs_missing" ? "Docs missing" : "Pending"}
                                  </span>
                               </td>
-                              <td className="py-3.5 px-4">
-                                 <span className="bg-[#E6F4F5] text-[#0E7C86] text-xs font-semibold px-2.5 py-1 rounded-full inline-flex items-center">
+                              <td className="py-4 px-6">
+                                 <span className="bg-sky-100 text-sky-700 text-xs font-semibold px-3 py-1 rounded-full inline-flex items-center">
                                     Trial Active
                                  </span>
                               </td>
-                              <td className="py-3.5 px-4">
+                              <td className="py-4 px-6">
                                  <span className={cn(
-                                    "text-xs font-semibold px-2.5 py-1 rounded-full inline-flex items-center",
-                                    isApproved ? "bg-[#DDF3E4] text-[#14532D]" : "bg-[#FDEBD0] text-[#7A3E00]"
+                                    "inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold",
+                                    isApproved ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
                                  )}>
                                     {isApproved ? "Approved" : "Pending"}
                                  </span>
                               </td>
-                              <td className="py-3.5 px-4 text-right">
+                              <td className="py-4 px-6 text-right">
                                  <div className="flex items-center justify-end gap-2">
-                                    <button onClick={() => { setSelectedOwner(o); setIsEditingOwner(false); }} className="border border-[#CBD3D9] hover:bg-slate-50 text-[#10242A] text-xs font-semibold px-3 py-1 rounded-[6px] transition-colors cursor-pointer">
+                                    <button onClick={() => { setSelectedOwner(o); setIsEditingOwner(false); }} className="px-3.5 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-medium transition shadow-2xs cursor-pointer">
                                        View
                                     </button>
-                                    <button onClick={() => { setSelectedOwner(o); setIsEditingOwner(true); }} className="border border-[#CBD3D9] hover:bg-slate-50 text-[#10242A] text-xs font-semibold px-3 py-1 rounded-[6px] transition-colors cursor-pointer">
+                                    <button onClick={() => { setSelectedOwner(o); setIsEditingOwner(true); }} className="px-3.5 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-medium transition shadow-2xs cursor-pointer">
                                        Edit
                                     </button>
                                  </div>

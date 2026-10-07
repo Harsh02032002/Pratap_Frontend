@@ -14,6 +14,7 @@ import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell
 } from "recharts";
 import { fetchJson } from "../../utils/api";
+import { PageHeader } from "../../components/superadmin/PageHeader";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
@@ -75,36 +76,31 @@ export default function SuperadminAccountingDashboard() {
   ];
 
   const revenueDistData = [
-    { name: "Service Fees", value: stats.commissionEarned > 0 ? 45 : 0, color: "#2563eb" },
+    { name: "Service Fees", value: stats.commissionEarned > 0 ? 45 : 0, color: "#0E7C86" },
     { name: "Rent Commission", value: stats.commissionEarned > 0 ? 35 : 0, color: "#10b981" },
     { name: "Other Charges", value: stats.commissionEarned > 0 ? 20 : 100, color: "#f59e0b" },
   ];
 
   if (loading) {
-    return <div className="p-6 flex justify-center items-center h-full text-slate-400 font-bold">Loading dashboard...</div>;
+    return <div className="p-6 flex justify-center items-center h-full text-[#4A5961] font-bold">Loading dashboard...</div>;
   }
 
   return (
-    <div className="p-6 space-y-6 bg-[#F8FAFC] min-h-full">
+    <div className="space-y-6 pb-8 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
       {/* Header */}
-      <div className="flex items-center justify-between">
-         <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-bold text-slate-800 tracking-tight leading-none">Overview</h1>
-            <p className="text-xs font-semibold text-slate-500 mt-1">
-               Track collections, payouts, and earnings across all {stats.totalTransactions || 0} transactions.
-            </p>
-         </div>
-         <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-100 shadow-sm">
-               <Calendar className="w-3.5 h-3.5 text-slate-400" />
-               <span className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">Live Database</span>
-            </div>
-            <button onClick={loadDashboard} className="p-2 rounded-xl bg-slate-800 text-white shadow-lg shadow-slate-800/10 hover:bg-slate-900 transition-all"><RefreshCw className="w-3.5 h-3.5" /></button>
-         </div>
-      </div>
+      <PageHeader 
+        title="Accounting Overview"
+        subtitle={`Track collections, payouts, and earnings across all ${stats.totalTransactions || 0} transactions.`}
+        actions={
+          <button onClick={loadDashboard} className="flex items-center gap-2 bg-white px-3.5 py-2 rounded-[12px] border border-[#E1E6EA] shadow-xs text-xs font-semibold text-[#4A5961] hover:bg-[#F4F6F8] transition-all cursor-pointer">
+            <RefreshCw className="w-3.5 h-3.5 text-[#0E7C86]" />
+            <span>Refresh Data</span>
+          </button>
+        }
+      />
 
       {/* Metrics Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCardHorizontal label="Collections" value={`₹${(stats.totalRevenue || 0).toLocaleString('en-IN')}`} trend="Total" up icon={IndianRupee} color="blue" />
         <StatCardHorizontal label="Payouts" value={`₹${(stats.paidPayouts || 0).toLocaleString('en-IN')}`} trend="Settled" up icon={Wallet} color="rose" />
         <StatCardHorizontal label="Revenue" value={`₹${(stats.commissionEarned || 0).toLocaleString('en-IN')}`} trend="Commission" up icon={BarChart3} color="emerald" />
@@ -114,12 +110,12 @@ export default function SuperadminAccountingDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Trend Area */}
-        <div className="lg:col-span-8 bg-white rounded-2xl p-6 border border-slate-100 shadow-lg shadow-slate-200/50">
-           <div className="flex items-center justify-between mb-8">
-              <h3 className="text-[10px] font-bold text-slate-800 uppercase tracking-widest">Revenue & Payouts Trend</h3>
+        <div className="lg:col-span-8 bg-white rounded-[16px] p-6 border border-[#E1E6EA] shadow-xs">
+           <div className="flex items-center justify-between mb-6">
+              <h3 className="text-sm font-bold text-[#10242A] uppercase tracking-wider">Revenue & Payouts Trend</h3>
               <div className="flex items-center gap-3">
-                 <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-blue-600" /><span className="text-[8px] font-bold text-slate-400 uppercase">Collections</span></div>
-                 <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-rose-600" /><span className="text-[8px] font-bold text-slate-400 uppercase">Payouts</span></div>
+                 <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-[#0E7C86]" /><span className="text-[10px] font-semibold text-[#4A5961] uppercase">Collections</span></div>
+                 <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-[#E11D48]" /><span className="text-[10px] font-semibold text-[#4A5961] uppercase">Payouts</span></div>
               </div>
            </div>
            <div className="h-64">

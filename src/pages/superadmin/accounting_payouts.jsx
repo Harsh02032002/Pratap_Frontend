@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { fetchJson } from "../../utils/api";
 import useSEO from "../../hooks/useSEO";
-
+import { PageHeader } from "../../components/superadmin/PageHeader";
 
 const cn = (...c) => c.filter(Boolean).join(" ");
 const fmt = (n) => Number(n || 0).toLocaleString("en-IN");
@@ -481,7 +481,7 @@ export default function Payouts() {
   const w = wallet || {};
 
   return (
-    <div className="p-6 space-y-6 bg-[#F8FAFC] min-h-full">
+    <div className="space-y-6 pb-8 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
       {/* Toast */}
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
@@ -510,28 +510,26 @@ export default function Payouts() {
       )}
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-slate-800 tracking-tight leading-none">Settlement Hub</h1>
-          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-            Manual Rent Collection · Owner Disbursement · Audit Trail
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setShowRecordModal(true)}
-            className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-md shadow-emerald-200"
-          >
-            <PlusCircle size={14} /> Record Payment
-          </button>
-          <button
-            onClick={loadData}
-            className="bg-white text-slate-400 border border-slate-100 px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center gap-2"
-          >
-            <RefreshCw size={13} /> Refresh
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Settlement Hub"
+        subtitle="Manual rent collection, owner disbursement, and audit trail."
+        actions={
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowRecordModal(true)}
+              className="flex items-center gap-2 bg-[#095256] text-white px-4 py-2 rounded-xl text-xs font-semibold hover:bg-[#073d40] transition-all shadow-2xs cursor-pointer"
+            >
+              <PlusCircle size={14} /> Record Payment
+            </button>
+            <button
+              onClick={loadData}
+              className="bg-white text-[#4A5961] border border-[#E1E6EA] px-3.5 py-2 rounded-xl text-xs font-semibold hover:bg-slate-50 transition-all flex items-center gap-2 shadow-2xs cursor-pointer"
+            >
+              <RefreshCw size={13} className="text-[#095256]" /> Refresh
+            </button>
+          </div>
+        }
+      />
 
       {/* ── Wallet Stats ─────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -542,47 +540,45 @@ export default function Payouts() {
         <StatCard label="Remaining Liability" value={fmt(w.pendingPayouts)} sub="To be transferred" icon={CreditCard} color="amber" />
       </div>
 
-      {/* ── Table Card ───────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-lg shadow-slate-200/50">
-        {/* Table header controls */}
-        <div className="flex flex-wrap items-center justify-between mb-6 gap-3">
-          <div className="flex items-center gap-3">
-            <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-widest">Settlement Registry</h3>
-            {/* Status filter */}
-            <div className="flex bg-slate-100 p-0.5 rounded-lg">
-              {["Pending", "Paid", "All"].map(s => (
-                <button key={s} onClick={() => { setFilterStatus(s); setSelectedIds(new Set()); }}
-                  className={cn("px-3 py-1 rounded-md text-[9px] font-black uppercase tracking-widest transition-all",
-                    filterStatus === s ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600")}>
-                  {s}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {/* Bulk transfer button */}
-            {selectedIds.size > 0 && (
-              <button
-                onClick={() => setShowBulkModal(true)}
-                className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-md shadow-blue-200 animate-in slide-in-from-right-2"
-              >
-                <ArrowRightCircle size={13} />
-                Transfer {selectedIds.size} Selected · ₹{fmt(bulkTotal)}
+      {/* ── Outside Controls Bar ────────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          {/* Status filter */}
+          <div className="flex bg-white border border-slate-200/80 p-1 rounded-xl shadow-2xs">
+            {["Pending", "Paid", "All"].map(s => (
+              <button key={s} onClick={() => { setFilterStatus(s); setSelectedIds(new Set()); }}
+                className={cn("px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                  filterStatus === s ? "bg-[#095256] text-white shadow-2xs" : "text-slate-600 hover:text-slate-900")}>
+                {s}
               </button>
-            )}
-            {/* Search */}
-            <div className="relative w-44">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-300" />
-              <input
-                placeholder="Search owner..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-50 border-none rounded-xl py-2 pl-9 pr-3 text-[10px] font-bold outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all shadow-sm"
-              />
-            </div>
+            ))}
           </div>
+          {/* Bulk transfer button */}
+          {selectedIds.size > 0 && (
+            <button
+              onClick={() => setShowBulkModal(true)}
+              className="flex items-center gap-2 bg-[#095256] text-white px-4 py-2 rounded-xl text-xs font-semibold hover:bg-[#073d40] transition-all shadow-2xs animate-in slide-in-from-right-2 cursor-pointer"
+            >
+              <ArrowRightCircle size={14} />
+              Transfer {selectedIds.size} Selected · ₹{fmt(bulkTotal)}
+            </button>
+          )}
         </div>
+
+        {/* Search */}
+        <div className="relative w-full sm:w-72">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            placeholder="Search owner..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="w-full bg-white border border-slate-200/80 rounded-xl py-2 pl-9 pr-4 text-xs font-medium text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-[#095256]/20 focus:border-[#095256] transition-all shadow-2xs"
+          />
+        </div>
+      </div>
+
+      {/* ── Standalone Table Card ─────────────────────────────────────────── */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
 
         {/* Table */}
         <div className="overflow-x-auto">

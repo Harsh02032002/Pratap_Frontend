@@ -157,25 +157,17 @@ export default function SuperadminProperties() {
   const listView = (
     <div className="p-6 space-y-6 bg-[#F8FAFC] min-h-full">
       {/* Header */}
-      <div className="flex items-center justify-between">
-         <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-bold text-slate-800 tracking-tight leading-none">Property List</h1>
-            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Manage platform properties and listings</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+         <div>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">All Properties</h1>
+            <p className="text-sm text-slate-500 mt-0.5">Manage all property listings, statuses and actions</p>
          </div>
          <div className="flex items-center gap-3">
-            <div className="relative group w-64">
-               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-300" />
-               <input 
-                 value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-                 placeholder="Search properties, owners..." 
-                 className="w-full bg-white border border-slate-100 rounded-xl py-2 pl-9 pr-3 text-[10px] font-bold shadow-sm outline-none focus:ring-2 focus:ring-blue-100 transition-all" 
-               />
-            </div>
-            <button onClick={() => navigate("?view=add")} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-lg shadow-blue-200/10 hover:bg-blue-700 transition-all flex items-center gap-2">
-               <Plus className="w-3.5 h-3.5" /> Add Property
+            <button className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition shadow-2xs flex items-center gap-2">
+               <Sheet className="w-4 h-4 text-slate-500" /> Export
             </button>
-            <button className="bg-emerald-600 text-white px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-lg shadow-emerald-200/10 hover:bg-emerald-700 transition-all flex items-center gap-2">
-               <Sheet className="w-3.5 h-3.5" /> Export
+            <button onClick={() => navigate("?view=add")} className="bg-[#095256] hover:bg-[#074043] text-white px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition shadow-2xs flex items-center gap-2">
+               <Plus className="w-4 h-4" /> + Add Property
             </button>
          </div>
       </div>
@@ -189,39 +181,46 @@ export default function SuperadminProperties() {
         <StatCardHorizontal icon={Zap} label="Avg Occupancy" value="84%" trend="Market Lead" up color="blue" />
       </div>
 
-      {/* Main Ledger */}
-      <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-lg shadow-slate-200/50 overflow-hidden">
-         <div className="flex items-center justify-between mb-8">
-            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-tight">Property List</h3>
-            <div className="flex items-center gap-3">
-               <select 
-                 value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-                 className="bg-slate-50 border border-slate-100 rounded-xl px-3 py-1.5 text-[9px] font-bold text-slate-500 outline-none hover:bg-slate-100 transition-all cursor-pointer"
-               >
-                  <option value="all">All Properties</option>
-                  <option value="Active">Live on Website</option>
-                  <option value="Pending">Pending Approval</option>
-                  <option value="Inactive">Offline / Draft</option>
-               </select>
-               <button className="p-2 rounded-lg bg-slate-50 text-slate-400 hover:text-blue-600 transition-all border border-slate-100 shadow-sm">
-                  <Filter className="w-4 h-4" />
-               </button>
-            </div>
+      {/* Search & Filter Row (OUTSIDE Table Card) */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+         <div className="relative flex-1 min-w-[240px] max-w-md">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input 
+              value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+              placeholder="Search properties, owners..." 
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-[#095256]/20 focus:border-[#095256] shadow-2xs transition-all" 
+            />
+            {searchTerm && <button onClick={()=>setSearchTerm("")} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><X className="w-4 h-4"/></button>}
          </div>
 
+         <div className="flex items-center gap-2.5">
+            <select 
+              value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
+              className="px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 outline-none cursor-pointer focus:border-[#095256] shadow-2xs"
+            >
+               <option value="all">Status: All</option>
+               <option value="Active">Status: Active</option>
+               <option value="Pending">Status: Pending</option>
+               <option value="Inactive">Status: Inactive</option>
+            </select>
+         </div>
+      </div>
+
+      {/* Separate Table Card Below */}
+      <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-2xs overflow-hidden">
          <div className="overflow-x-auto">
-            <table className="w-full text-left">
+            <table className="w-full text-left border-collapse">
                <thead>
-                  <tr className="text-slate-400 text-[8px] font-bold uppercase border-b border-slate-50">
-                     <th className="pb-4">Property Details</th>
-                     <th className="pb-4">Owner Details</th>
-                     <th className="pb-4 text-center">Engagement</th>
-                     <th className="pb-4 text-center">Location Code</th>
-                     <th className="pb-4 text-center">Status</th>
-                     <th className="pb-4 text-right">Actions</th>
+                  <tr className="border-b border-[#E1E6EA]">
+                     <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Property Details</th>
+                     <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Owner Details</th>
+                     <th className="text-xs font-semibold text-[#4A5961] py-3 px-4 text-center">Engagement</th>
+                     <th className="text-xs font-semibold text-[#4A5961] py-3 px-4 text-center">Location Code</th>
+                     <th className="text-xs font-semibold text-[#4A5961] py-3 px-4 text-center">Status</th>
+                     <th className="text-xs font-semibold text-[#4A5961] py-3 px-4 text-right">Actions</th>
                   </tr>
                </thead>
-               <tbody className="divide-y divide-slate-50">
+               <tbody className="divide-y divide-[#E1E6EA] text-sm">
                   {filteredProperties.map((p, i) => (
                     <tr key={i} className="group hover:bg-slate-50 transition-colors cursor-pointer">
                        <td className="py-3">
@@ -262,10 +261,10 @@ export default function SuperadminProperties() {
                        </td>
                        <td className="py-3 text-center">
                           <span className={cn(
-                             "text-[7px] font-bold px-2 py-0.5 rounded-lg border uppercase tracking-wider",
-                             p.status === "Active" ? "bg-emerald-50 text-emerald-600 border-emerald-100" : 
-                             p.status === "Pending" ? "bg-amber-50 text-amber-600 border-amber-100" :
-                             "bg-rose-50 text-rose-600 border-rose-100"
+                             "inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold",
+                             p.status === "Active" ? "bg-emerald-100 text-emerald-700" : 
+                             p.status === "Pending" ? "bg-amber-100 text-amber-700" :
+                             "bg-rose-100 text-rose-700"
                           )}>
                              {p.status}
                           </span>
@@ -283,14 +282,14 @@ export default function SuperadminProperties() {
                                   } catch { toast.error("Error loading preview"); }
                                   finally { setPreviewLoading(false); }
                                 }}
-                                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-teal-50 text-teal-600 border border-teal-100 hover:bg-teal-100 transition-all text-[9px] font-bold uppercase tracking-wider shadow-sm"
+                                className="border border-[#CBD3D9] hover:bg-slate-50 text-[#10242A] text-xs font-semibold px-3 py-1 rounded-[6px] transition-colors cursor-pointer inline-flex items-center gap-1"
                                 title="Preview on Website"
                               >
                                 <Globe className="w-3 h-3" /> Preview
                               </button>
-                              <button onClick={() => fetchPropertyDetail(p.id)} className="p-2 rounded-lg bg-slate-50 text-slate-400 hover:text-indigo-600 transition-all border border-slate-100 shadow-sm" title="View Property"><Eye className="w-3.5 h-3.5" /></button>
-                              <button onClick={() => navigate(`?view=add&editId=${p.id}`)} className="p-2 rounded-lg bg-slate-50 text-slate-400 hover:text-blue-600 transition-all border border-slate-100 shadow-sm" title="Edit Property"><Pencil className="w-3.5 h-3.5" /></button>
-                              <button onClick={() => handleDeleteProperty(p.id)} className="p-2 rounded-lg bg-slate-50 text-slate-400 hover:text-rose-600 transition-all border border-slate-100 shadow-sm" title="Delete Property"><Trash2 className="w-3.5 h-3.5" /></button>
+                              <button onClick={() => fetchPropertyDetail(p.id)} className="border border-[#CBD3D9] hover:bg-slate-50 text-[#10242A] text-xs font-semibold px-3 py-1 rounded-[6px] transition-colors cursor-pointer">View</button>
+                              <button onClick={() => navigate(`?view=add&editId=${p.id}`)} className="border border-[#CBD3D9] hover:bg-slate-50 text-[#10242A] text-xs font-semibold px-3 py-1 rounded-[6px] transition-colors cursor-pointer">Edit</button>
+                              <button onClick={() => handleDeleteProperty(p.id)} className="border border-[#CBD3D9] hover:bg-slate-50 text-[#991B1B] text-xs font-semibold px-3 py-1 rounded-[6px] transition-colors cursor-pointer">Delete</button>
                           </div>
                        </td>
                     </tr>
@@ -1647,20 +1646,22 @@ function StatCardHorizontal({ icon: Icon, color, label, value, trend, up }) {
   };
 
   return (
-    <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-md flex items-start gap-3 group hover:translate-y-[-2px] transition-all">
-      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border shadow-sm transition-transform group-hover:scale-105", colors[color])}>
+    <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex items-center gap-3.5 group hover:translate-y-[-2px] transition-all">
+      <div className={cn("w-11 h-11 rounded-xl flex items-center justify-center shrink-0 border shadow-sm transition-transform group-hover:scale-105", colors[color])}>
          <Icon className="w-5 h-5" />
       </div>
-      <div className="min-w-0">
-         <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1 leading-none truncate">{label}</p>
-         <p className="text-xl font-bold text-slate-800 tracking-tight leading-none mb-2">{value}</p>
-         <div className={cn(
-           "flex items-center gap-1 text-[7px] font-bold uppercase",
-           up ? "text-emerald-600" : "text-rose-600"
-         )}>
-            {up ? <ArrowUpRight className="w-2.5 h-2.5" /> : <ArrowDownRight className="w-2.5 h-2.5" />}
-            {trend}
-         </div>
+      <div className="min-w-0 flex-1 flex flex-col justify-center">
+         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1.5 truncate">{label}</p>
+         <p className="text-xl sm:text-2xl font-bold text-slate-800 tracking-tight leading-none truncate">{value}</p>
+         {trend && (
+           <div className={cn(
+             "flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider mt-1.5",
+             up ? "text-emerald-600" : "text-rose-600"
+           )}>
+              {up ? <ArrowUpRight className="w-2.5 h-2.5" /> : <ArrowDownRight className="w-2.5 h-2.5" />}
+              {trend}
+           </div>
+         )}
       </div>
     </div>
   );

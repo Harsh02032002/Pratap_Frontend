@@ -295,11 +295,11 @@ export default function SuperadminPropertyApprovals() {
     }));
 
   return (
-    <div className="p-6 bg-[#F8FAFC] min-h-full">
+    <div className="space-y-6 text-[#10242A]">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-xl font-black text-slate-800 tracking-tight">Pending Approvals</h1>
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Review and approve or reject property listings submitted by property owners.</p>
+      <div className="mb-4">
+        <h1 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-tight">Approve / Reject Properties</h1>
+        <p className="text-[13px] text-[#4A5961] mt-0.5">Review and approve or reject property listings submitted by property owners.</p>
       </div>
 
       <div className="grid grid-cols-12 gap-6">

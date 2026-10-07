@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { 
-  Users, Search, ChevronRight, Zap, Award, Activity, RotateCcw,
-  Download, Eye, Landmark, HelpCircle, CheckCircle2, ShieldAlert
+  Users, Search, Zap, Award, Activity, RefreshCw,
+  Download, CheckCircle2, ShieldAlert
 } from "lucide-react";
 import { fetchJson } from "../../utils/api";
 import useSEO from "../../hooks/useSEO";
+import { PageHeader } from "../../components/superadmin/PageHeader";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
@@ -38,9 +39,9 @@ export default function ReportsPerformance() {
 
   if (loading) {
     return (
-      <div className="p-8 space-y-10 bg-[#F8FAFC] min-h-full flex flex-col items-center justify-center py-40">
-        <div className="w-16 h-16 border-4 border-blue-600/10 border-t-blue-600 rounded-full animate-spin mb-4" />
-        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Loading Staff Performance Reports...</p>
+      <div className="p-12 space-y-6 flex flex-col items-center justify-center py-40 font-['Plus_Jakarta_Sans',sans-serif]">
+        <div className="w-12 h-12 border-4 border-[#0E7C86]/20 border-t-[#0E7C86] rounded-full animate-spin mb-4" />
+        <p className="text-xs font-semibold text-[#4A5961] uppercase tracking-wider">Accessing Staff Performance Intel...</p>
       </div>
     );
   }
@@ -53,8 +54,6 @@ export default function ReportsPerformance() {
     (s.role || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Calculate metrics
-  const totalVisits = staffPerformance.reduce((acc, curr) => acc + (curr.tasks || 0), 0);
   const totalApproved = staffPerformance.reduce((acc, curr) => acc + (curr.resolved || 0), 0);
   const topPerformer = staffPerformance[0]?.name || "N/A";
   const activeStaffCount = staffPerformance.length;
@@ -75,103 +74,93 @@ export default function ReportsPerformance() {
   };
 
   return (
-    <div className="p-8 space-y-8 bg-[#F8FAFC] min-h-full font-inter text-slate-800">
+    <div className="space-y-6 pb-8 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
       {/* Header Area */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Staff Performance Reports</h1>
-          <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-             <span>Reports</span>
-             <ChevronRight size={10} className="opacity-50" />
-             <span className="text-blue-600">Staff Performance</span>
+      <PageHeader 
+        title="Staff Performance Reports"
+        subtitle="Track and monitor staff tasks, property visits, and field submission logs."
+        actions={
+          <div className="flex items-center gap-3">
+            <button
+              onClick={loadData}
+              className="flex items-center gap-2 bg-white px-3.5 py-2 rounded-[12px] border border-[#E1E6EA] shadow-xs text-xs font-semibold text-[#4A5961] hover:bg-[#F4F6F8] transition-all cursor-pointer"
+            >
+              <RefreshCw className="w-3.5 h-3.5 text-[#0E7C86]" />
+              <span>Refresh Data</span>
+            </button>
+            <button
+              onClick={exportCSV}
+              className="flex items-center gap-2 bg-[#0E7C86] hover:bg-[#0B656D] text-white px-4 py-2 rounded-[12px] text-xs font-semibold shadow-xs transition-all cursor-pointer"
+            >
+              <Download className="w-4 h-4" />
+              <span>Export Report</span>
+            </button>
           </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={loadData}
-            className="flex items-center gap-1.5 bg-white border border-slate-200 px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm"
-          >
-            <RotateCcw className="w-3.5 h-3.5" /> Refresh Data
-          </button>
-          <button
-            onClick={exportCSV}
-            className="flex items-center gap-1.5 bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-blue-700 transition-all shadow-md shadow-blue-600/10"
-          >
-            <Download className="w-3.5 h-3.5" /> Export Report
-          </button>
-        </div>
-      </div>
-
-      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider -mt-4">
-        Track and monitor staff tasks, visits, and performance metrics.
-      </p>
+        }
+      />
 
       {/* Hero Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-4">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center shrink-0">
-            <Zap className="w-5 h-5" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white p-5 rounded-[16px] border border-[#E1E6EA] shadow-xs flex items-center gap-4">
+          <div className="w-11 h-11 rounded-[12px] bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center shrink-0">
+            <Zap size={22} />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total Visits Submitted</p>
-            <h3 className="text-xl font-bold text-slate-800 leading-tight">{visitsCreated} Visits</h3>
-            <p className="text-[9px] text-slate-400 mt-1">All properties submitted by staff</p>
+            <p className="text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider">Visits Submitted</p>
+            <h4 className="text-2xl font-bold text-[#10242A] mt-0.5">{visitsCreated}</h4>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-4">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center shrink-0">
-            <CheckCircle2 className="w-5 h-5" />
+        <div className="bg-white p-5 rounded-[16px] border border-[#E1E6EA] shadow-xs flex items-center gap-4">
+          <div className="w-11 h-11 rounded-[12px] bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+            <CheckCircle2 size={22} />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Approved Visits</p>
-            <h3 className="text-xl font-bold text-emerald-600 leading-tight">{totalApproved} Approved</h3>
-            <p className="text-[9px] text-slate-400 mt-1">Verified and listed properties</p>
+            <p className="text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider">Approved Visits</p>
+            <h4 className="text-2xl font-bold text-[#10242A] mt-0.5">{totalApproved}</h4>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-4">
-          <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 border border-purple-100 flex items-center justify-center shrink-0">
-            <Award className="w-5 h-5" />
+        <div className="bg-white p-5 rounded-[16px] border border-[#E1E6EA] shadow-xs flex items-center gap-4">
+          <div className="w-11 h-11 rounded-[12px] bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+            <Award size={22} />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Top Staff Member</p>
-            <h3 className="text-xl font-bold text-slate-800 leading-tight truncate max-w-[150px]">{topPerformer}</h3>
-            <p className="text-[9px] text-slate-400 mt-1">Highest tasks submitted this month</p>
+            <p className="text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider">Top Staff Member</p>
+            <h4 className="text-xl font-bold text-[#10242A] mt-0.5 truncate max-w-[150px]">{topPerformer}</h4>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-4">
-          <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center shrink-0">
-            <Activity className="w-5 h-5" />
+        <div className="bg-white p-5 rounded-[16px] border border-[#E1E6EA] shadow-xs flex items-center gap-4">
+          <div className="w-11 h-11 rounded-[12px] bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+            <Activity size={22} />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Active Staff Members</p>
-            <h3 className="text-xl font-bold text-slate-800 leading-tight">{activeStaffCount} Employees</h3>
-            <p className="text-[9px] text-slate-400 mt-1">Tracked platform staff metrics</p>
+            <p className="text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider">Active Staff</p>
+            <h4 className="text-2xl font-bold text-[#10242A] mt-0.5">{activeStaffCount}</h4>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-12 gap-6">
          {/* Efficiency Scorecard / Leaderboard */}
-         <div className="col-span-12 lg:col-span-4 bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex flex-col justify-between">
+         <div className="col-span-12 lg:col-span-4 bg-white rounded-[16px] p-6 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
             <div>
-               <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-6">Top Performing Staff</h3>
-               <div className="space-y-6">
+               <h3 className="text-base font-bold text-[#10242A] mb-5">Top Performing Staff</h3>
+               <div className="space-y-4">
                   {staffPerformance.slice(0, 4).map((s, i) => (
-                    <div key={i} className="flex items-center gap-4">
-                       <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 border border-blue-100 flex items-center justify-center font-bold text-sm shrink-0">
+                    <div key={i} className="flex items-center gap-3 p-3 bg-[#F4F6F8] rounded-[12px] border border-[#E1E6EA]">
+                       <div className="w-9 h-9 rounded-[8px] bg-[#E6F4F5] text-[#0E7C86] font-bold text-xs flex items-center justify-center shrink-0">
                           {s.name ? s.name.split(' ').map(n => n[0]).join('') : "ST"}
                        </div>
                        <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between">
-                             <p className="text-xs font-bold text-slate-800 truncate">{s.name}</p>
-                             <p className="text-xs font-bold text-blue-600">{s.score}</p>
+                             <p className="text-xs font-bold text-[#10242A] truncate">{s.name}</p>
+                             <p className="text-xs font-bold text-[#0E7C86]">{s.score}</p>
                           </div>
-                          <div className="mt-1.5 w-full h-1.5 bg-slate-50 rounded-full overflow-hidden">
+                          <div className="mt-1.5 w-full h-1.5 bg-[#E1E6EA] rounded-full overflow-hidden">
                              <div 
-                                className="h-full rounded-full bg-blue-600 transition-all duration-500" 
+                                className="h-full rounded-full bg-[#0E7C86] transition-all duration-500" 
                                 style={{ width: s.score }} 
                              />
                           </div>
@@ -183,20 +172,20 @@ export default function ReportsPerformance() {
          </div>
 
          {/* Staff Performance & Visit Logs Table */}
-         <div className="col-span-12 lg:col-span-8 bg-white rounded-2xl p-6 border border-slate-100 shadow-sm overflow-hidden">
+         <div className="col-span-12 lg:col-span-8 bg-white rounded-[16px] p-6 border border-[#E1E6EA] shadow-xs overflow-hidden">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                <div>
-                  <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Staff Performance & Visit Logs</h3>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Visits and property updates completed by staff</p>
+                  <h3 className="text-base font-bold text-[#10242A]">Staff Performance & Visit Logs</h3>
+                  <p className="text-[11px] font-semibold text-[#4A5961] mt-0.5">Field tasks and property verification records</p>
                </div>
                <div className="relative w-full sm:w-64">
-                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#4A5961]" />
                  <input
                    type="text"
                    value={searchQuery}
                    onChange={e => setSearchQuery(e.target.value)}
-                   placeholder="Search Staff or Role..."
-                   className="w-full bg-slate-50 border border-transparent rounded-xl py-1.5 pl-9 pr-4 text-xs font-semibold text-slate-700 outline-none focus:bg-white focus:border-slate-200 focus:ring-4 focus:ring-slate-100 transition-all"
+                   placeholder="Search staff or role..."
+                   className="w-full bg-[#F4F6F8] border border-[#E1E6EA] rounded-[8px] py-2 pl-10 pr-4 text-xs font-medium text-[#10242A] outline-none focus:border-[#0E7C86] transition-all placeholder:text-[#4A5961]"
                  />
                </div>
             </div>
@@ -204,53 +193,49 @@ export default function ReportsPerformance() {
             <div className="overflow-x-auto">
                <table className="w-full text-left border-collapse">
                   <thead>
-                     <tr className="border-b border-slate-100">
-                        <th className="pb-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Staff Member</th>
-                        <th className="pb-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Staff Role</th>
-                        <th className="pb-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">Total Visits</th>
-                        <th className="pb-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">Approved Visits</th>
-                        <th className="pb-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">Performance Score</th>
-                        <th className="pb-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">Performance Rank</th>
+                     <tr className="bg-[#F4F6F8] text-[11px] font-bold text-[#4A5961] uppercase tracking-wider border-b border-[#E1E6EA]">
+                        <th className="py-3 px-4 font-bold">Staff Member</th>
+                        <th className="py-3 px-4 font-bold">Role</th>
+                        <th className="text-center py-3 px-4 font-bold">Visits</th>
+                        <th className="text-center py-3 px-4 font-bold">Approved</th>
+                        <th className="text-center py-3 px-4 font-bold">Score</th>
+                        <th className="text-center py-3 px-4 font-bold">Rank</th>
                      </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-[#E1E6EA]">
                      {filteredStaff.length === 0 ? (
                        <tr>
-                         <td colSpan={6} className="py-8 text-center text-slate-400 font-semibold">No staff performance logs found</td>
+                         <td colSpan={6} className="py-12 text-center text-xs font-semibold text-[#4A5961] uppercase tracking-wider">
+                           No staff performance logs found
+                         </td>
                        </tr>
                      ) : filteredStaff.map((s, i) => (
-                       <tr key={i} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50 transition-colors">
-                          <td className="py-4">
+                       <tr key={i} className="hover:bg-[#F4F6F8] transition-colors">
+                          <td className="py-3 px-4">
                              <div className="flex items-center gap-3">
-                                <div className={cn(
-                                   "w-8 h-8 rounded-xl flex items-center justify-center font-bold text-white text-xs",
-                                   s.color === "blue" ? "bg-blue-600" :
-                                   s.color === "indigo" ? "bg-indigo-600" :
-                                   s.color === "emerald" ? "bg-emerald-600" : "bg-amber-600"
-                                )}>
+                                <div className="w-8 h-8 rounded-[8px] bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center font-bold text-xs">
                                    {s.name ? s.name.split(' ').map(n => n[0]).join('') : "ST"}
                                 </div>
                                 <div>
-                                   <p className="text-xs font-bold text-slate-800 leading-none">{s.name}</p>
-                                   <p className="text-[9px] text-slate-400 font-mono mt-1 leading-none">STF-0{i+101}</p>
+                                   <p className="text-xs font-bold text-[#10242A]">{s.name}</p>
+                                   <p className="text-[11px] font-medium text-[#4A5961] mt-0.5">STF-0{i+101}</p>
                                 </div>
                              </div>
                           </td>
-                          <td className="py-4 text-xs font-semibold text-slate-600">
+                          <td className="py-3 px-4 text-xs font-medium text-[#4A5961]">
                              {s.role}
                           </td>
-                          <td className="py-4 text-center font-bold text-slate-800 text-xs">{s.tasks}</td>
-                          <td className="py-4 text-center font-bold text-emerald-600 text-xs">{s.resolved}</td>
-                          <td className="py-4 text-center font-bold text-blue-600 text-xs">
+                          <td className="py-3 px-4 text-center font-bold text-[#10242A] text-xs">{s.tasks}</td>
+                          <td className="py-3 px-4 text-center font-bold text-emerald-600 text-xs">{s.resolved}</td>
+                          <td className="py-3 px-4 text-center font-bold text-[#0E7C86] text-xs">
                              {s.score}
                           </td>
-                          <td className="py-4 text-center">
+                          <td className="py-3 px-4 text-center">
                              <span className={cn(
-                               "text-[9px] font-bold px-2 py-0.5 rounded-full border uppercase",
-                               s.status === "Elite" ? "bg-blue-50 text-blue-600 border-blue-100" : 
+                               "text-[10px] font-bold px-2.5 py-0.5 rounded-full border uppercase",
+                               s.status === "Elite" ? "bg-purple-50 text-purple-600 border-purple-100" : 
                                s.status === "Excellent" ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
-                               s.status === "On Track" ? "bg-slate-50 text-slate-600 border-slate-100" :
-                               "bg-amber-50 text-amber-600 border-amber-100"
+                               "bg-[#F4F6F8] text-[#4A5961] border-[#E1E6EA]"
                              )}>
                                 {s.status}
                              </span>

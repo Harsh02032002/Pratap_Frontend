@@ -82,36 +82,36 @@ export default function KycVerification() {
 
   return (
     <div className="space-y-6 text-[#10242A]">
-      {/* Page Header - PDF Page 11 Spec */}
+      {/* Page Header */}
       <PageHeader
         title="KYC / Documents"
         subtitle="Review owner identity and property documents"
       />
 
-      {/* 3 Top Stat Cards - PDF Page 11 */}
+      {/* 3 Top Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <div className="bg-white rounded-[12px] border border-[#E1E6EA] p-5 shadow-sm">
-          <p className="text-xs font-semibold text-[#4A5961] mb-1">Pending Review</p>
-          <p className="text-3xl font-bold text-[#10242A]">[{String(stats.pending).padStart(2, '0')}]</p>
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs">
+          <p className="text-xs font-semibold text-slate-500 mb-1">Pending Review</p>
+          <p className="text-3xl font-bold text-slate-900">{String(stats.pending).padStart(2, '0')}</p>
         </div>
-        <div className="bg-white rounded-[12px] border border-[#E1E6EA] p-5 shadow-sm">
-          <p className="text-xs font-semibold text-[#4A5961] mb-1">Verified</p>
-          <p className="text-3xl font-bold text-[#10242A]">[{String(stats.verified).padStart(2, '0')}]</p>
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs">
+          <p className="text-xs font-semibold text-slate-500 mb-1">Verified</p>
+          <p className="text-3xl font-bold text-slate-900">{String(stats.verified).padStart(2, '0')}</p>
         </div>
-        <div className="bg-white rounded-[12px] border border-[#E1E6EA] p-5 shadow-sm">
-          <p className="text-xs font-semibold text-[#4A5961] mb-1">Rejected</p>
-          <p className="text-3xl font-bold text-[#10242A]">[{String(stats.rejected).padStart(2, '0')}]</p>
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs">
+          <p className="text-xs font-semibold text-slate-500 mb-1">Rejected</p>
+          <p className="text-3xl font-bold text-slate-900">{String(stats.rejected).padStart(2, '0')}</p>
         </div>
       </div>
 
-      {/* Main 2-Column Section - PDF Page 11 Spec */}
+      {/* Main 2-Column Section */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
         {/* Left Panel: Owner List */}
-        <div className="md:col-span-4 bg-white rounded-[12px] border border-[#E1E6EA] p-4 shadow-sm space-y-2 max-h-[600px] overflow-y-auto">
+        <div className="md:col-span-4 bg-white rounded-2xl border border-slate-200/80 p-4 shadow-2xs space-y-2 max-h-[600px] overflow-y-auto">
           {loading ? (
-            <div className="py-12 text-center text-xs text-[#4A5961]">Loading owners...</div>
+            <div className="py-12 text-center text-xs text-slate-400 font-medium">Loading owners...</div>
           ) : owners.length === 0 ? (
-            <div className="py-12 text-center text-xs text-[#4A5961]">No owners found.</div>
+            <div className="py-12 text-center text-xs text-slate-400 font-medium">No owners found.</div>
           ) : (
             owners.map((o, idx) => {
               const kycStat = (o.kycStatus || o.kyc?.status || "pending").toLowerCase();
@@ -122,24 +122,24 @@ export default function KycVerification() {
                   key={idx}
                   onClick={() => setSelectedOwner(o)}
                   className={cn(
-                    "flex items-center justify-between p-3 rounded-[8px] cursor-pointer transition-colors border",
+                    "flex items-center justify-between p-3 rounded-xl cursor-pointer transition-colors border",
                     isSelected
-                      ? "bg-[#E6F4F5] border-[#0E7C86]"
-                      : "bg-white border-[#E1E6EA] hover:bg-slate-50"
+                      ? "bg-teal-50/70 border-[#095256]"
+                      : "bg-white border-slate-200/80 hover:bg-slate-50"
                   )}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-[#CBD3D9] flex items-center justify-center font-bold text-xs text-[#10242A]">
+                    <div className="w-9 h-9 rounded-full bg-slate-200/70 border border-slate-200 flex items-center justify-center font-bold text-xs text-slate-600 shrink-0">
                       {(o.name || "U").charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-[#10242A]">{o.name || "Owner"}</p>
-                      <p className="text-xs text-[#4A5961]">{o.loginId || "—"}</p>
+                      <p className="text-sm font-semibold text-slate-900">{o.name || "Owner"}</p>
+                      <p className="text-xs text-slate-500">{o.loginId || "—"}</p>
                     </div>
                   </div>
                   <span className={cn(
-                    "text-xs font-semibold px-2.5 py-0.5 rounded-full",
-                    kycStat === "verified" ? "bg-[#DDF3E4] text-[#14532D]" : kycStat === "rejected" ? "bg-[#FEE2E2] text-[#991B1B]" : "bg-[#FDEBD0] text-[#7A3E00]"
+                    "inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold",
+                    kycStat === "verified" ? "bg-emerald-100 text-emerald-700" : kycStat === "rejected" ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-700"
                   )}>
                     {kycStat === "verified" ? "Verified" : kycStat === "rejected" ? "Rejected" : "Pending"}
                   </span>

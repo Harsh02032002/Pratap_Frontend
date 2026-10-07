@@ -39,43 +39,57 @@ export function Sidebar({ open, isMobile, onClose, onLogout, activeModuleId, set
     }
   };
 
-  // Determine current active main module based on route
+  // Determine current active main module based on route with explicit order of precedence
   const currentPath = (location.pathname || "").toLowerCase();
-  let currentActiveId = activeModuleId;
+  let currentActiveId = null;
   
-  if (!currentActiveId || activeModuleId === "dashboard") {
-    if (
-      currentPath.includes("user") || 
-      currentPath.includes("owner") || 
-      currentPath.includes("tenant") || 
-      currentPath.includes("roles") || 
-      currentPath.includes("log") || 
-      currentPath.includes("manager") ||
-      currentPath.includes("kyc") ||
-      currentPath.includes("agreements")
-    ) {
-      currentActiveId = "user_management";
-    } else if (currentPath.includes("property") || currentPath.includes("rooms") || currentPath.includes("enquiry") || currentPath.includes("amenities")) {
-      currentActiveId = "property_management";
-    } else if (currentPath.includes("accounting") || currentPath.includes("refund") || currentPath.includes("revenue") || currentPath.includes("payout") || currentPath.includes("cashflow")) {
-      currentActiveId = "accounting";
-    } else if (currentPath.includes("chat") || currentPath.includes("superchat")) {
-      currentActiveId = "chat_management";
-    } else if (currentPath.includes("visit")) {
-      currentActiveId = "visits";
-    } else if (currentPath.includes("reports") || currentPath.includes("report")) {
-      currentActiveId = "report_analytics";
-    } else if (currentPath.includes("booking") || currentPath.includes("direct-bookings")) {
-      currentActiveId = "booking_leads";
-    } else if (currentPath.includes("review")) {
-      currentActiveId = "review";
-    } else if (currentPath.includes("complaint") || currentPath.includes("support")) {
-      currentActiveId = "support";
-    } else if (currentPath.includes("setting")) {
-      currentActiveId = "settings";
-    } else {
-      currentActiveId = "dashboard";
-    }
+  if (
+    currentPath.includes("complaint") || 
+    currentPath.includes("support") || 
+    currentPath.includes("tickets") || 
+    currentPath.includes("website-queries") || 
+    currentPath.includes("resolution")
+  ) {
+    currentActiveId = "support";
+  } else if (currentPath.includes("review")) {
+    currentActiveId = "review";
+  } else if (currentPath.includes("chat") || currentPath.includes("superchat")) {
+    currentActiveId = "chat_management";
+  } else if (currentPath.includes("visit")) {
+    currentActiveId = "visits";
+  } else if (
+    currentPath.startsWith("/superadmin/accounting") || 
+    currentPath.includes("accounting") ||
+    currentPath.includes("refund") || 
+    currentPath.includes("payout") || 
+    currentPath.includes("cashflow") || 
+    currentPath.includes("profit-loss")
+  ) {
+    currentActiveId = "accounting";
+  } else if (currentPath.startsWith("/superadmin/reports") || currentPath.includes("/reports/")) {
+    currentActiveId = "report_analytics";
+  } else if (currentPath.includes("booking") || currentPath.includes("direct-bookings")) {
+    currentActiveId = "booking_leads";
+  } else if (currentPath.includes("reports") || currentPath.includes("report")) {
+    currentActiveId = "report_analytics";
+  } else if (currentPath.includes("property") || currentPath.includes("rooms") || currentPath.includes("enquiry") || currentPath.includes("amenities")) {
+    currentActiveId = "property_management";
+  } else if (
+    currentPath.includes("user") || 
+    currentPath.includes("owner") || 
+    currentPath.includes("tenant") || 
+    currentPath.includes("roles") || 
+    currentPath.includes("log") || 
+    currentPath.includes("manager") ||
+    currentPath.includes("kyc") ||
+    currentPath.includes("agreements") ||
+    currentPath.includes("attendance")
+  ) {
+    currentActiveId = "user_management";
+  } else if (currentPath.includes("setting")) {
+    currentActiveId = "settings";
+  } else {
+    currentActiveId = activeModuleId || "dashboard";
   }
 
   const sidebarClasses = cn(

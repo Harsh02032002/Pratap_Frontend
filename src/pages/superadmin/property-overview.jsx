@@ -143,42 +143,42 @@ export default function PropertyOverview() {
                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Live Database</span>
             </div>
             <div className="overflow-x-auto">
-               <table className="w-full">
+               <table className="w-full text-left border-collapse">
                   <thead>
-                     <tr className="border-b border-slate-50 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
-                        <th className="text-left pb-4 font-bold">Property</th>
-                        <th className="text-left pb-4 font-bold">Owner</th>
-                        <th className="text-left pb-4 font-bold">Status</th>
-                        <th className="text-left pb-4 font-bold">Date</th>
+                     <tr className="border-b border-slate-200/80 bg-white">
+                        <th className="py-3.5 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Property</th>
+                        <th className="py-3.5 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Owner</th>
+                        <th className="py-3.5 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+                        <th className="py-3.5 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Date</th>
                      </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-50">
+                  <tbody className="divide-y divide-slate-100 text-sm">
                      {loading ? (
-                       <tr><td colSpan="4" className="py-10 text-center text-xs font-bold text-slate-300">Loading...</td></tr>
+                       <tr><td colSpan="4" className="py-10 text-center text-xs font-semibold text-slate-400">Loading...</td></tr>
                      ) : recentProperties.length === 0 ? (
-                       <tr><td colSpan="4" className="py-10 text-center text-xs font-bold text-slate-300">No properties found</td></tr>
+                       <tr><td colSpan="4" className="py-10 text-center text-xs font-semibold text-slate-400">No properties found</td></tr>
                      ) : recentProperties.map((prop, i) => (
-                        <tr key={i} className="group hover:bg-slate-50 transition-colors">
-                           <td className="py-4">
+                        <tr key={i} className="hover:bg-slate-50/70 transition-colors duration-150">
+                           <td className="py-4 px-6">
                               <div className="flex items-center gap-3">
-                                 <div className="w-10 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                                    <Building2 size={16} />
+                                 <div className="w-9 h-9 rounded-full bg-slate-200/70 border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center text-slate-600 font-semibold text-xs">
+                                    <Building2 size={16} className="text-slate-600" />
                                  </div>
                                  <div className="min-w-0">
-                                    <div className="text-[13px] font-bold text-slate-900 truncate">{prop.name}</div>
-                                    <div className="text-[11px] text-slate-400 font-medium">{prop.location}</div>
+                                    <div className="font-semibold text-slate-900 text-sm truncate">{prop.name}</div>
+                                    <div className="text-xs text-slate-500">{prop.location}</div>
                                  </div>
                               </div>
                            </td>
-                           <td className="py-4 text-[13px] text-slate-500 font-medium">{prop.owner}</td>
-                           <td className="py-4">
+                           <td className="py-4 px-6 text-sm text-slate-700 font-medium">{prop.owner}</td>
+                           <td className="py-4 px-6">
                               <span className={cn(
-                                "px-2.5 py-1 rounded-lg text-[10px] font-bold",
-                                prop.status === "Approved" ? "bg-emerald-50 text-emerald-600" :
-                                prop.status === "Pending" ? "bg-amber-50 text-amber-600" : "bg-rose-50 text-rose-600"
+                                "inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold",
+                                prop.status === "Approved" ? "bg-emerald-100 text-emerald-700" :
+                                prop.status === "Pending" ? "bg-amber-100 text-amber-700" : "bg-rose-100 text-rose-700"
                               )}>{prop.status}</span>
                            </td>
-                           <td className="py-4 text-[11px] text-slate-400 font-bold uppercase tracking-tight">{prop.date}</td>
+                           <td className="py-4 px-6 text-xs text-slate-500 font-medium">{prop.date}</td>
                         </tr>
                      ))}
                   </tbody>
