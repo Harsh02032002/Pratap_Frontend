@@ -118,6 +118,16 @@ const Row = ({ label, value }) => (
   </div>
 );
 
+// "2026-11-20" -> "20 November 2026", read as a UTC calendar date so the day never shifts.
+const fmtExtDate = (v) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(v || ""));
+  if (!m) return v ? String(v) : "";
+  return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]))
+    .toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+};
+
+const extLockBox = { background: "#fff8e1", border: "1.5px solid #ffb300", color: "#7a4f01", padding: "16px 20px", borderRadius: 10, marginTop: 24, fontSize: 14, fontWeight: 600, lineHeight: 1.5 };
+
 export default function DigitalCheckinTenantagreement() {
   useHtmlPage({
     title: "Tenant Rental Agreement & E-sign",
@@ -141,8 +151,10 @@ export default function DigitalCheckinTenantagreement() {
     eSignName, setESignName,
     accepted, setAccepted,
     submitting, error, loadingData, tenantData,
-    handleSubmit
+    handleSubmit,
+    extToken, extension, extensionError
   } = useTenantAgreement();
+  const isExt = Boolean(extToken);
 
   const [signatureDataUrl, setSignatureDataUrl] = useState("");
   const [showPad, setShowPad]                   = useState(false);
@@ -153,12 +165,49 @@ export default function DigitalCheckinTenantagreement() {
   }, []);
 
   const td = tenantData || {};
-  const isKycMismatch = td?.kycStatus === "mismatch_review" || Boolean(td?.kyc?.mismatchReasons || td?.mismatchReasons);
+  const isKycMismatch = !isExt && (td?.kycStatus === "mismatch_review" || Boolean(td?.kyc?.mismatchReasons || td?.mismatchReasons));
+
+  // Extension mode: why (if at all) the sign form must not be shown.
+  let extLock = null;
+  if (isExt) {
+    if (extensionError) extLock = "error";
+    else if (loadingData || !extension) extLock = "loading";
+    else if (extension.status === "completed") extLock = "completed";
+    else if (!extension.open || extension.status === "expired") extLock = "closed";
+    else if (extension.requiresKyc) extLock = "kyc";
+  }
+  const extKycUrl = `/digital-checkin/tenantkyc?loginId=${encodeURIComponent(loginId.trim())}&ext=${encodeURIComponent(extToken || "")}`;
 
   return (
     <div className="html-page">
       <div className="wrap">
+        {isExt && extension && (
+          <h1 style={{ fontSize: 20, fontWeight: 800, color: "#1a237e", letterSpacing: 0.5, margin: "0 0 10px" }}>
+            AGREEMENT EXTENSION #{extension.number}
+          </h1>
+        )}
         <h2>RoomHy Licence &amp; Subscription Agreement</h2>
+
+        {isExt && extensionError && (
+          <div style={{ background: "#fff0f0", border: "1px solid #f88", color: "#900", padding: "10px 14px", borderRadius: 6, marginBottom: 14 }}>
+            {extensionError}
+          </div>
+        )}
+
+        {isExt && extension && (
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 18 }}>
+            <div style={{ flex: "1 1 240px", border: "1px solid #ddd", borderRadius: 6, padding: "10px 14px", background: "#fafafa" }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#1a237e", marginBottom: 6 }}>Previous Agreement</div>
+              <Row label="Start" value={fmtExtDate(extension.previousStartDate)} />
+              <Row label="End"   value={fmtExtDate(extension.previousEndDate)} />
+            </div>
+            <div style={{ flex: "1 1 240px", border: "1px solid #9fa8da", borderRadius: 6, padding: "10px 14px", background: "#f8f9ff" }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#1a237e", marginBottom: 6 }}>New Extension</div>
+              <Row label="Extension duration"   value={extension.months ? `${extension.months} months` : ""} />
+              <Row label="New agreement period" value={`${fmtExtDate(extension.newStartDate)} → ${fmtExtDate(extension.newEndDate)}`} />
+            </div>
+          </div>
+        )}
 
         {isKycMismatch && (
           <div style={{ background: "#fef2f2", border: "2px solid #ef4444", color: "#991b1b", padding: "16px 20px", borderRadius: 10, marginBottom: 20, boxShadow: "0 4px 6px -1px rgba(239,68,68,0.1)" }}>
@@ -285,7 +334,7 @@ export default function DigitalCheckinTenantagreement() {
         </div>
 
         {/* ---- ANNEXURE A ---- */}
-        {!loadingData && (
+        {!loadingData && !(isExt && !extension) && (
           <div style={{ marginTop: 22 }}>
             <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 10, color: "#1a237e" }}>
               Annexure A — Schedule of Particulars
@@ -309,9 +358,9 @@ export default function DigitalCheckinTenantagreement() {
                     <Row label="RoomHy Premises"         value={premises || d.propertyName || td.propertyTitle} />
                     <Row label="Type of Accommodation"   value={d.accommodationType} />
                     <Row label="Monthly License Fee"     value={rent ? `₹ ${rent}` : ""} />
-                    <Row label="License Start Date"      value={fmt(d.licenseStartDate || td.moveInDate)} />
-                    <Row label="License Duration"        value={d.licenseDuration} />
-                    <Row label="License End Date"        value={fmt(d.licenseEndDate)} />
+                    <Row label="License Start Date"      value={isExt ? fmtExtDate(extension?.newStartDate) : fmt(d.licenseStartDate || td.moveInDate)} />
+                    <Row label="License Duration"        value={isExt ? (extension?.months ? `${extension.months} Months` : "") : d.licenseDuration} />
+                    <Row label="License End Date"        value={isExt ? fmtExtDate(extension?.newEndDate) : fmt(d.licenseEndDate)} />
                     <Row label="License Fee Due Date"    value={d.licenseFeeDueDate ? `${d.licenseFeeDueDate}th of each month` : "5th of each month"} />
                     <Row label="Move Out Charges"        value={d.moveOutCharges ? `₹ ${d.moveOutCharges}` : ""} />
                     <Row label="Notice Period Charges"   value={d.noticePeriodCharges ? `₹ ${d.noticePeriodCharges}` : ""} />
@@ -328,7 +377,28 @@ export default function DigitalCheckinTenantagreement() {
           </div>
         )}
 
+        {/* ---- EXTENSION LOCK STATES (replace the sign form) ---- */}
+        {extLock === "completed" && (
+          <div style={extLockBox}>This extension has already been signed.</div>
+        )}
+        {extLock === "closed" && (
+          <div style={extLockBox}>This extension request is no longer open. Please contact your property owner.</div>
+        )}
+        {extLock === "kyc" && (
+          <div style={extLockBox}>
+            <p style={{ margin: "0 0 12px" }}>Your Aadhaar must be re-verified before you can sign this extension.</p>
+            <button
+              type="button"
+              onClick={() => { window.location.href = extKycUrl; }}
+              style={{ background: "#1a237e", color: "#fff", border: "none", padding: "9px 18px", borderRadius: 6, fontSize: 14, fontWeight: 700, cursor: "pointer" }}
+            >
+              Re-verify Aadhaar to continue
+            </button>
+          </div>
+        )}
+
         {/* ---- E-SIGN FORM ---- */}
+        {!extLock && (
         <div style={{ marginTop: 24 }}>
 
           {/* Hidden login ID (auto-filled) */}
@@ -429,9 +499,10 @@ export default function DigitalCheckinTenantagreement() {
               opacity: (submitting || !signatureDataUrl || !accepted || !eSignName.trim() || isKycMismatch) ? 0.65 : 1
             }}
           >
-            {submitting ? "Submitting..." : isKycMismatch ? "Agreement Locked (Data Mismatch)" : "Submit & E-sign Agreement"}
+            {submitting ? "Submitting..." : isKycMismatch ? "Agreement Locked (Data Mismatch)" : isExt ? "Submit & E-sign Extension" : "Submit & E-sign Agreement"}
           </button>
         </div>
+        )}
       </div>
     </div>
   );

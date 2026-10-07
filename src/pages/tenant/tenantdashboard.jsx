@@ -1719,8 +1719,14 @@ export default function Tenantdashboard() {
   };
 
   const leaseDetails = tenant?.digitalCheckin?.agreementDetails || {};
-  const leaseStart = leaseDetails.licenseStartDate || tenant?.moveInDate;
-  const leaseEnd = leaseDetails.licenseEndDate;
+  // A signed (completed) agreement extension supersedes the original lease dates.
+  const latestExtension = (Array.isArray(tenant?.agreementExtensions) ? tenant.agreementExtensions : [])
+    .filter((x) => x && x.status === "completed")
+    .reduce((best, x) => (!best || Number(x.number) > Number(best.number) ? x : best), null);
+  const leaseStart = latestExtension
+    ? latestExtension.newStartDate
+    : (leaseDetails.licenseStartDate || tenant?.moveInDate);
+  const leaseEnd = latestExtension ? latestExtension.newEndDate : leaseDetails.licenseEndDate;
   const leaseStatus = tenant
     ? (tenant.moveoutRequest?.completedAt
         ? "Inactive"

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
 import { getOwnerRuntimeSession, clearOwnerRuntimeSession, getActiveOwnerPropertyId } from "../../utils/propertyowner";
 import { fetchPayments } from "../../utils/rentCollectionApi";
-import { Search, Download, Eye } from "lucide-react";
+import { Search, Download, Eye, Calendar, ChevronDown } from "lucide-react";
 import { RentReceiptModal, buildReceiptHtml } from "../../components/propertyowner/RentReceiptModal";
 
 function billingLabel(billingMonth) {
@@ -24,6 +24,9 @@ export default function ReceiptsPage() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [viewing, setViewing] = useState(null);
+  const currentMonth = useMemo(() => new Date().toISOString().slice(0, 7), []);
+  const [monthFilter, setMonthFilter] = useState(currentMonth);
+  const [monthMenuOpen, setMonthMenuOpen] = useState(false);
 
   useEffect(() => {
     // Receipts must reflect what was actually just paid — a stale 60s cache surviving
@@ -47,6 +50,7 @@ export default function ReceiptsPage() {
     email: p.tenantEmail,
     date: new Date(p.paymentDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
     period: billingLabel(p.billingMonth),
+    billingMonth: p.billingMonth,
     amount: p.rentAmount || p.amount,
     penalty: p.totalPenalty || 0,
     advanceChargeAmount: Number(p.advanceChargeAmount || p.advanceCharge || p.moveInCharges || p.invoiceId?.advanceChargeAmount || 0),
@@ -71,15 +75,33 @@ export default function ReceiptsPage() {
     _raw: p,
   })), [payments]);
 
+  // Distinct months that actually have receipts, most recent first — drives the
+  // month picker instead of a hardcoded list.
+  const availableMonths = useMemo(
+    () => [...new Set(payments.map(p => p.billingMonth).filter(Boolean))].sort().reverse(),
+    [payments]
+  );
+
+  const monthOptions = useMemo(() => {
+    const rest = availableMonths.filter(m => m !== currentMonth);
+    return [
+      { value: currentMonth, label: `Current Month (${billingLabel(currentMonth)})` },
+      ...rest.map(m => ({ value: m, label: billingLabel(m) })),
+    ];
+  }, [availableMonths, currentMonth]);
+
   const filtered = useMemo(() => {
     const q = debouncedSearch.trim().toLowerCase();
-    if (!q) return receipts;
-    return receipts.filter(r =>
-      r.tenant.toLowerCase().includes(q) ||
-      String(r.room).toLowerCase().includes(q) ||
-      r.id.toLowerCase().includes(q)
-    );
-  }, [receipts, debouncedSearch]);
+    return receipts.filter(r => {
+      if (r.billingMonth !== monthFilter) return false;
+      if (!q) return true;
+      return (
+        r.tenant.toLowerCase().includes(q) ||
+        String(r.room).toLowerCase().includes(q) ||
+        r.id.toLowerCase().includes(q)
+      );
+    });
+  }, [receipts, debouncedSearch, monthFilter]);
 
   const handleDownload = (r) => {
     const win = window.open("", "_blank", "width=860,height=960");
@@ -102,7 +124,7 @@ export default function ReceiptsPage() {
         </div>
         {!loading && (
           <span className="text-[11px] bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-full px-3 py-1 font-semibold self-start md:mt-2">
-            {receipts.length} receipt{receipts.length !== 1 ? "s" : ""}
+            {filtered.length} receipt{filtered.length !== 1 ? "s" : ""}
           </span>
         )}
       </div>
@@ -116,6 +138,37 @@ export default function ReceiptsPage() {
             placeholder="Search by receipt ID, tenant, or room..."
             className="w-full h-10 pl-9 pr-3 rounded-xl bg-card border border-border text-[13px] focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground"
           />
+        </div>
+
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setMonthMenuOpen(o => !o)}
+            className="h-10 pl-3.5 pr-3 rounded-xl bg-card border border-border text-[13px] inline-flex items-center gap-2 text-foreground hover:bg-muted/40 transition-colors"
+          >
+            <Calendar className="size-4 text-muted-foreground" />
+            <span className="font-semibold whitespace-nowrap">{billingLabel(monthFilter)}</span>
+            <ChevronDown className="size-3.5 text-muted-foreground" />
+          </button>
+          {monthMenuOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setMonthMenuOpen(false)} />
+              <div className="absolute right-0 sm:left-0 top-full mt-2 w-64 rounded-xl border border-border bg-card shadow-soft z-20 overflow-hidden">
+                {monthOptions.map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => { setMonthFilter(opt.value); setMonthMenuOpen(false); }}
+                    className={`w-full text-left px-4 py-2.5 text-[13px] hover:bg-muted/50 transition-colors ${
+                      opt.value === monthFilter ? "font-semibold text-foreground bg-muted/30" : "text-muted-foreground"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
 

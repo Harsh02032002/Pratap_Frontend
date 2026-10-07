@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { fetchJson } from "../../utils/api";
+import { fetchJson, clearApiCache } from "../../utils/api";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
 import { MobileTabs, MobileEmptyState, cn } from "../../components/propertyowner/MobileComponents";
 import {
@@ -48,6 +48,51 @@ const Pill = ({ tone = "muted", children }) => {
 const PAGE_SIZE = 30;
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+// Agreement dates arrive as "YYYY-MM-DD" IST calendar dates — handled as UTC so
+// nothing shifts a day in the browser's timezone.
+const parseYmd = (s) => {
+  const [y, m, d] = String(s || "").slice(0, 10).split("-").map(Number);
+  return y && m && d ? [y, m, d] : null;
+};
+const fmtYmd = (s) => {
+  const p = parseYmd(s);
+  if (!p) return "—";
+  return new Date(Date.UTC(p[0], p[1] - 1, p[2])).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+};
+// Calendar-month add, clamped to the target month's last day (2028-02-29 + 12 → 2029-02-28).
+const addMonthsYmd = (s, months) => {
+  const p = parseYmd(s);
+  if (!p) return null;
+  const total = p[1] - 1 + months;
+  const y = p[0] + Math.floor(total / 12);
+  const m = ((total % 12) + 12) % 12;
+  const lastDay = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  return new Date(Date.UTC(y, m, Math.min(p[2], lastDay))).toISOString().slice(0, 10);
+};
+const todayIstYmd = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+// One status line per tenant, derived from the live agreement-expiry item.
+const getAgreementLine = (item) => {
+  if (!item) return null;
+  if (item.pendingExtension) {
+    return { text: `Extension request sent · ${plural(item.pendingExtension.months, "month")}`, title: "Tenant has not signed yet", className: "text-blue-700" };
+  }
+  const done = item.lastCompletedExtension;
+  if (done?.newStartDate && todayIstYmd() < String(done.newStartDate).slice(0, 10)) {
+    return { text: `Extended to ${fmtYmd(done.newEndDate)}`, title: `Extension #${done.number} completed`, className: "text-emerald-700" };
+  }
+  if (item.phase === "notice") {
+    return { text: `Agreement ends ${fmtYmd(item.endDate)} · ${plural(item.daysLeft, "day")} left`, className: "text-amber-700" };
+  }
+  if (item.phase === "expired" && item.legacyExpired) {
+    return { text: `Agreement expired ${fmtYmd(item.endDate)}`, className: "text-rose-700" };
+  }
+  return null;
+};
+
+const EXTENSION_STATUS_LABEL = { requested: "Requested", completed: "Completed", expired: "Expired" };
+
 const val = (...sources) => sources.find(v => v !== undefined && v !== null && v !== "") || "—";
 
 const InfoField = ({ label, value, mono, wide }) => (
@@ -79,6 +124,19 @@ export default function Tenants() {
     !t?.moveoutRequest?.completedAt &&
     t?.status !== "inactive";
 
+  // Whole days left before the tenant moves out. Same logic as
+  // moveout-requests.jsx's daysLeft() — negative/zero means the notice has
+  // elapsed and the nightly job will close the tenancy on its next run.
+  const daysLeftInNotice = (noticeEndDate) => {
+    if (!noticeEndDate) return null;
+    const end = new Date(noticeEndDate);
+    if (isNaN(end)) return null;
+    const today = new Date();
+    end.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    return Math.round((end - today) / 86400000);
+  };
+
   const getDisplayStatus = (t) => {
     if (isOnNotice(t)) return "notice";
     if ((t.status === "active" || t.active) && (t.kycStatus !== "verified" && t.kyc !== "verified")) {
@@ -100,6 +158,12 @@ export default function Tenants() {
   const [cancelReason, setCancelReason] = useState("");
   const [cancellingNotice, setCancellingNotice] = useState(false);
   const [resendSubmitting, setResendSubmitting] = useState(false);
+  // Agreement expiry / extension state from /api/tenants/agreement-expiry, keyed by tenantId.
+  const [agreementByTenantId, setAgreementByTenantId] = useState(new Map());
+  const [extendModal, setExtendModal] = useState(null); // agreement-expiry item | null
+  const [extendMonths, setExtendMonths] = useState("");
+  const [extendSubmitting, setExtendSubmitting] = useState(false);
+  const [resendingExtensionId, setResendingExtensionId] = useState(null);
   // Tenants with a Pending alternate-ID-proof request — they're waiting on
   // Superadmin, so an Aadhaar-OTP completion reminder doesn't apply to them.
   const [pendingKycRequestTenantIds, setPendingKycRequestTenantIds] = useState(new Set());
@@ -278,6 +342,7 @@ export default function Tenants() {
       const data = await fetchOwnerTenants(owner.loginId);
       const activeTenantsOnly = (data || []).filter(t => t.status !== "inactive");
       setTenants(activeTenantsOnly);
+      loadAgreementExpiry();
     } catch (err) {
       alert("Error approving KYC: " + (err.message || err));
     }
@@ -300,6 +365,7 @@ export default function Tenants() {
       if (owner?.loginId) clearOwnerFetchCache(owner.loginId);
       const data = await fetchOwnerTenants(owner.loginId, true);
       setTenants((data || []).filter(x => x.status !== "inactive"));
+      loadAgreementExpiry();
       toast.success(`Move-out cancelled — ${t.name || "tenant"} stays on as a tenant.`);
       setCancelNoticeModal(null);
       setCancelReason("");
@@ -307,6 +373,61 @@ export default function Tenants() {
       toast.error("Could not cancel the notice: " + (err.message || err));
     } finally {
       setCancellingNotice(false);
+    }
+  };
+
+  const loadAgreementExpiry = async () => {
+    try {
+      const res = await fetchJson("/api/tenants/agreement-expiry");
+      setAgreementByTenantId(new Map((res?.items || []).map(i => [String(i.tenantId), i])));
+    } catch (_) {
+      // Non-critical — agreement lines and extend actions just won't show.
+    }
+  };
+  const getAgreementItem = (t) => agreementByTenantId.get(String(t?._id || t?.id));
+
+  const submitExtension = async () => {
+    const item = extendModal;
+    const months = Number(extendMonths);
+    if (!item || extendSubmitting) return;
+    if (!/^\d+$/.test(String(extendMonths).trim()) || months < 1 || months > 60) {
+      toast.error("Enter a whole number of months between 1 and 60.");
+      return;
+    }
+    setExtendSubmitting(true);
+    try {
+      const res = await fetchJson(`/api/tenants/${item.tenantId}/agreement-extension`, {
+        method: "POST",
+        body: JSON.stringify({ months }),
+        timeout: 30000
+      });
+      toast.success(res?.message || "Extension request sent.");
+      setExtendModal(null);
+      setExtendMonths("");
+      clearApiCache();
+      await loadAgreementExpiry();
+    } catch (err) {
+      toast.error(err.message || "Could not send the extension request.");
+    } finally {
+      setExtendSubmitting(false);
+    }
+  };
+
+  const resendExtensionLink = async (item) => {
+    if (!item || resendingExtensionId) return;
+    setResendingExtensionId(item.tenantId);
+    try {
+      const res = await fetchJson(`/api/tenants/${item.tenantId}/agreement-extension/resend`, {
+        method: "POST",
+        timeout: 30000
+      });
+      toast.success(res?.message || "Extension link resent.");
+      clearApiCache();
+      await loadAgreementExpiry();
+    } catch (err) {
+      toast.error(err.message || "Could not resend the extension link.");
+    } finally {
+      setResendingExtensionId(null);
     }
   };
 
@@ -362,6 +483,8 @@ export default function Tenants() {
       } finally {
         setLoading(false);
       }
+
+      loadAgreementExpiry();
 
       try {
         // Fetched without a status filter — tenants added without Aadhaar upload their
@@ -802,6 +925,24 @@ export default function Tenants() {
                         </td>
                         <td className="px-4 py-3">
                           <Pill tone={getStatusTone(getDisplayStatus(t))}>{getDisplayStatus(t)}</Pill>
+                          {isOnNotice(t) && (() => {
+                            const d = daysLeftInNotice(t.moveoutRequest?.noticeEndDate);
+                            if (d === null) return null;
+                            return (
+                              <div className="mt-1 text-[11px] font-semibold text-amber-700">
+                                {d > 0 ? `${d} day${d === 1 ? "" : "s"} left` : "Notice period ended"}
+                              </div>
+                            );
+                          })()}
+                          {(() => {
+                            const line = getAgreementLine(getAgreementItem(t));
+                            if (!line) return null;
+                            return (
+                              <div className={`mt-1 text-[11px] font-semibold ${line.className}`} title={line.title}>
+                                {line.text}
+                              </div>
+                            );
+                          })()}
                         </td>
                         <td className="px-4 py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1.5">
@@ -826,6 +967,25 @@ export default function Tenants() {
                                   </button>
                                 )}
                               </>
+                            )}
+                            {getAgreementItem(t)?.canExtend && (
+                              <button
+                                onClick={() => { setExtendModal(getAgreementItem(t)); setExtendMonths(""); }}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 text-[11.5px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 hover:bg-emerald-100 rounded-lg transition-colors shrink-0"
+                                title="Send the tenant an agreement extension request"
+                              >
+                                <CalendarClock size={13} /> Extend Agreement
+                              </button>
+                            )}
+                            {getAgreementItem(t)?.pendingExtension && (
+                              <button
+                                onClick={() => resendExtensionLink(getAgreementItem(t))}
+                                disabled={!!resendingExtensionId}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 text-[11.5px] font-bold text-blue-700 bg-blue-50 border border-blue-200/60 hover:bg-blue-100 rounded-lg transition-colors shrink-0 disabled:opacity-60"
+                                title="Email the tenant the extension signing link again"
+                              >
+                                {resendingExtensionId === getAgreementItem(t).tenantId ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />} Resend extension link
+                              </button>
                             )}
                             {isOnNotice(t) && (
                               <button
@@ -932,6 +1092,24 @@ export default function Tenants() {
                       )}>
                         {getDisplayStatus(t)}
                       </span>
+                      {isOnNotice(t) && (() => {
+                        const d = daysLeftInNotice(t.moveoutRequest?.noticeEndDate);
+                        if (d === null) return null;
+                        return (
+                          <span className="text-[10px] font-semibold text-amber-700">
+                            {d > 0 ? `${d}d left` : "Notice ended"}
+                          </span>
+                        );
+                      })()}
+                      {(() => {
+                        const line = getAgreementLine(getAgreementItem(t));
+                        if (!line) return null;
+                        return (
+                          <span className={`text-[10px] font-semibold text-right max-w-[160px] leading-tight ${line.className}`} title={line.title}>
+                            {line.text}
+                          </span>
+                        );
+                      })()}
                       <span
                         onClick={(e) => {
                           e.stopPropagation();
@@ -981,6 +1159,16 @@ export default function Tenants() {
                        <a href={`https://wa.me/${String(t.phone).replace(/\D/g, '')}?text=Hi%20${t.name}`} target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-emerald-50 border border-emerald-100/50 flex items-center justify-center text-emerald-600 hover:bg-emerald-100 transition-colors">
                           <MessageSquare size={13} className="fill-emerald-600/20" />
                        </a>
+                       {getAgreementItem(t)?.canExtend && (
+                         <button onClick={() => { setExtendModal(getAgreementItem(t)); setExtendMonths(""); }} className="h-8 px-3 rounded-full bg-emerald-50 border border-emerald-200/50 text-emerald-700 flex items-center gap-1 hover:bg-emerald-100 transition-colors text-[11px] font-bold" title="Send the tenant an agreement extension request">
+                            <CalendarClock size={12} /> Extend
+                         </button>
+                       )}
+                       {getAgreementItem(t)?.pendingExtension && (
+                         <button onClick={() => resendExtensionLink(getAgreementItem(t))} disabled={!!resendingExtensionId} className="h-8 px-3 rounded-full bg-blue-50 border border-blue-100/50 text-blue-700 flex items-center gap-1 hover:bg-blue-100 transition-colors text-[11px] font-bold disabled:opacity-60" title="Resend extension link">
+                            {resendingExtensionId === getAgreementItem(t).tenantId ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />} Resend link
+                         </button>
+                       )}
                        {isOnNotice(t) && (
                          <button onClick={() => { setCancelNoticeModal({ tenant: t }); setCancelReason(""); }} className="h-8 px-3 rounded-full bg-amber-50 border border-amber-200/50 text-amber-700 flex items-center gap-1 hover:bg-amber-100 transition-colors text-[11px] font-bold" title="Cancel the notice period and keep this tenant">
                             <Undo2 size={12} /> Cancel Notice
@@ -1195,6 +1383,42 @@ export default function Tenants() {
                         </div>
                       </div>
                     )}
+
+                    {(() => {
+                      const item = getAgreementItem(t);
+                      const exts = item?.extensions || [];
+                      if (!exts.length) return null;
+                      return (
+                        <div>
+                          <SectionHead icon={CalendarClock} title="Agreement history" color="text-emerald-600" />
+                          <div className="p-4 rounded-xl border border-border space-y-2.5 text-[13px]">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <span className="text-muted-foreground">
+                                Original agreement: <span className="font-medium text-foreground">{fmtYmd(exts[0].previousStartDate || item.startDate)} → {fmtYmd(exts[0].previousEndDate || item.endDate)}</span>
+                              </span>
+                            </div>
+                            {exts.map((x) => (
+                              <div key={x.number} className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-border">
+                                <span className="text-muted-foreground">
+                                  Agreement Extension #{x.number}:{" "}
+                                  <span className="font-medium text-foreground">{fmtYmd(x.newStartDate)} → {fmtYmd(x.newEndDate)}</span>
+                                  {" · "}{plural(x.months, "month")}{" · "}
+                                  <span className="font-semibold text-foreground">{EXTENSION_STATUS_LABEL[x.status] || x.status}</span>
+                                </span>
+                                {x.pdfUrl && (
+                                  <a href={getFileUrl(x.pdfUrl)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[12px] font-semibold text-primary hover:underline">
+                                    <ExternalLink size={12} /> View PDF
+                                  </a>
+                                )}
+                              </div>
+                            ))}
+                            <div className="pt-2.5 border-t border-border text-muted-foreground">
+                              Current agreement ends: <span className="font-semibold text-foreground">{fmtYmd(item.endDate)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </>
                 )}
 
@@ -2043,6 +2267,83 @@ export default function Tenants() {
                   className="flex-1 py-2.5 rounded-lg text-sm font-bold text-white bg-amber-600 hover:bg-amber-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {cancellingNotice ? "Cancelling..." : "Cancel Move-out"}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {extendModal && (() => {
+        const item = extendModal;
+        const raw = String(extendMonths).trim();
+        const months = Number(raw);
+        const validMonths = /^\d+$/.test(raw) && months >= 1 && months <= 60;
+        const proposedEnd = validMonths ? addMonthsYmd(item.endDate, months) : null;
+        const d = Number(item.daysLeft);
+        return (
+          <div
+            className="fixed inset-0 z-[200] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={(e) => e.target === e.currentTarget && !extendSubmitting && setExtendModal(null)}
+          >
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+              <div className="p-6">
+                <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center mb-4">
+                  <CalendarClock className="w-6 h-6 text-emerald-600" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900">Extend agreement — {item.name || "tenant"}</h3>
+                <div className="mt-3 p-3 rounded-xl bg-slate-50 border border-slate-100 text-[13px]">
+                  <div className="text-slate-500">
+                    Current agreement: <span className="font-semibold text-slate-800">{fmtYmd(item.startDate)} → {fmtYmd(item.endDate)}</span>
+                  </div>
+                  {Number.isFinite(d) && (
+                    <div className="mt-1 text-[12px] font-semibold text-amber-700">
+                      {d >= 0 ? `Expires in ${plural(d, "day")}` : `Expired ${plural(-d, "day")} ago`}
+                    </div>
+                  )}
+                </div>
+
+                <label className="block mt-5 mb-1.5 text-[12px] font-bold text-slate-700">
+                  How many months would you like to extend the agreement?
+                </label>
+                <input
+                  autoFocus
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={60}
+                  step={1}
+                  value={extendMonths}
+                  onChange={(e) => setExtendMonths(e.target.value)}
+                  placeholder="Months (1–60)"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-[13px] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 placeholder:text-slate-400"
+                />
+                {raw && !validMonths && (
+                  <p className="mt-1.5 text-[11px] font-semibold text-rose-600">Enter a whole number between 1 and 60.</p>
+                )}
+                {proposedEnd && (
+                  <p className="mt-3 text-[13px] text-slate-600">
+                    Proposed extension: <span className="font-semibold text-slate-800">{fmtYmd(item.endDate)} → {fmtYmd(proposedEnd)}</span>
+                  </p>
+                )}
+                <p className="mt-1.5 text-[11px] text-slate-400">
+                  The tenant will be emailed a link to re-verify their Aadhaar and sign. The extension becomes active once they sign.
+                </p>
+              </div>
+              <div className="flex gap-3 px-6 py-4 bg-slate-50 border-t border-slate-100">
+                <button
+                  onClick={() => setExtendModal(null)}
+                  disabled={extendSubmitting}
+                  className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={submitExtension}
+                  disabled={extendSubmitting || !validMonths}
+                  className="flex-1 py-2.5 rounded-lg text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {extendSubmitting ? "Sending..." : "Send extension request"}
                 </button>
               </div>
             </div>

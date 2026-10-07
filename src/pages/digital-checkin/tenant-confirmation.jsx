@@ -20,6 +20,10 @@ export default function DigitalCheckinTenantConfirmation() {
     inlineScripts: []
   });
 
+  const extensionNo = useMemo(() => {
+    try { return new URLSearchParams(window.location.search).get("extension") || ""; } catch (_) { return ""; }
+  }, []);
+
   const nextUrl = useMemo(() => (typeof window === "undefined" ? "" : resolveTenantDashboardUrl()), []);
 
   useEffect(() => {
@@ -38,11 +42,22 @@ export default function DigitalCheckinTenantConfirmation() {
     <div className="html-page">
       <div className="card">
         <div className="icon">&#10003;</div>
-        <h1>Agreement Signed Successfully! 🎉</h1>
-        <p>Your Licence & Subscription Agreement has been digitally signed and recorded.</p>
-        <p style={{ color: '#0d9488', fontWeight: 600, marginTop: 8 }}>
-          📧 The onboarding payment link has been sent to your registered Email address.
-        </p>
+        {extensionNo ? (
+          <>
+            <h1>Agreement Extension #{extensionNo} signed</h1>
+            <p style={{ color: '#0d9488', fontWeight: 600, marginTop: 8 }}>
+              📧 A copy of the signed extension has been emailed to you and your property owner.
+            </p>
+          </>
+        ) : (
+          <>
+            <h1>Agreement Signed Successfully! 🎉</h1>
+            <p>Your Licence & Subscription Agreement has been digitally signed and recorded.</p>
+            <p style={{ color: '#0d9488', fontWeight: 600, marginTop: 8 }}>
+              📧 The onboarding payment link has been sent to your registered Email address.
+            </p>
+          </>
+        )}
         <div className="meta" id="redirectText" style={{ marginTop: 16 }}>Redirecting to your Tenant Panel in 2 seconds...</div>
         <a className="btn" href="/tenant/tenantdashboard" style={{ marginTop: 12 }}>Go to Tenant Panel Dashboard</a>
       </div>
