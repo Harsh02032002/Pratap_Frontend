@@ -124,8 +124,8 @@ export default function TenantKycRequestsPage() {
   return (
     <div className="space-y-6 pb-8">
       <PageHeader
+        category="User Management"
         title="Request KYC Approve"
-        subtitle="Tenants without Aadhaar — review the ID proof the owner uploaded on their behalf."
         actions={
           <div className="flex bg-slate-100 p-1 rounded-lg">
             {["Pending", "Approved", "Rejected", "All"].map(status => (

@@ -7,7 +7,7 @@ import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLay
 import { getApiBase, getAuthHeader, fetchJson } from "../../utils/api";
 import {
   assignTenant, clearOwnerFetchCache, clearOwnerRuntimeSession, createRoom, updateRoom, deleteRoom, bulkCreateRooms, bulkDeleteRooms, bulkClearRoomTenants,
-  fetchOwnerProperties, fetchOwnerRooms, fetchOwnerTenants, getOwnerRuntimeSession
+  fetchOwnerProperties, fetchOwnerRooms, fetchOwnerTenantsLite, getOwnerRuntimeSession
 } from "../../utils/propertyowner";
 
 const cn = (...c) => c.filter(Boolean).join(" ");
@@ -358,7 +358,7 @@ export default function Rooms() {
       const [props, roomData, tList] = await Promise.all([
         fetchOwnerProperties(session.loginId),
         fetchOwnerRooms(session.loginId, 1, 500, skipCache),
-        fetchOwnerTenants(session.loginId),
+        fetchOwnerTenantsLite(session.loginId), // no tenant images on this page
       ]);
       setProperties(props);
       const merged = mergeRooms(session.loginId, roomData.rooms || []);

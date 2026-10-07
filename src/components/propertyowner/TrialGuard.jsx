@@ -4,6 +4,35 @@ import { getApiBase, fetchJson } from '../../utils/api';
 import { getOwnerRuntimeSession } from '../../utils/propertyowner';
 
 const CACHE_KEY = 'owner_trial_status';
+const CACHE_TTL_MS = 5 * 60 * 1000;
+
+// Caches only a NON-expired status. An expired status is always re-fetched, so
+// an owner who just paid (PayU redirects back to the panel) is never held behind
+// a stale "expired" entry. The entry also never outlives trialEndDate, so a
+// trial that ends inside the TTL still locks the panel on time.
+function getCachedTrialStatus(loginId) {
+  try {
+    const raw = sessionStorage.getItem(`${CACHE_KEY}_${loginId}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (Date.now() < parsed.expiresAt) {
+      return parsed.data;
+    }
+  } catch (_) {}
+  return null;
+}
+
+function setCachedTrialStatus(loginId, data) {
+  try {
+    const key = `${CACHE_KEY}_${loginId}`;
+    const expired = data?.trialExpired === true || data?.status === 'expired';
+    if (expired) { sessionStorage.removeItem(key); return; }
+    let expiresAt = Date.now() + CACHE_TTL_MS;
+    const endTs = data?.trialEndDate ? new Date(data.trialEndDate).getTime() : NaN;
+    if (Number.isFinite(endTs) && endTs > Date.now()) expiresAt = Math.min(expiresAt, endTs);
+    sessionStorage.setItem(key, JSON.stringify({ expiresAt, data }));
+  } catch (_) {}
+}
 
 /**
  * TrialGuard — wraps all Owner Panel pages.
@@ -19,16 +48,23 @@ export default function TrialGuard({ owner, children, onLogout }) {
   const runtimeOwner = getOwnerRuntimeSession();
   const loginId = owner?.loginId || runtimeOwner?.loginId;
 
-  const fetchTrialStatus = useCallback(async () => {
+  const fetchTrialStatus = useCallback(async (force = false) => {
     if (!loginId) { setLoading(false); return; }
 
+    if (!force) {
+      const cached = getCachedTrialStatus(loginId);
+      if (cached) {
+        setTrialData(cached);
+        setLoading(false);
+        return;
+      }
+    }
+
     try {
-      const res = await fetch(`${getApiBase()}/api/owners/subscription-status?loginId=${encodeURIComponent(loginId)}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success) {
-          setTrialData(data);
-        }
+      const data = await fetchJson(`/api/owners/subscription-status?loginId=${encodeURIComponent(loginId)}`);
+      if (data && data.success) {
+        setTrialData(data);
+        setCachedTrialStatus(loginId, data);
       }
     } catch (err) {
       console.warn('[TrialGuard] Could not fetch trial status:', err);
@@ -237,7 +273,7 @@ export default function TrialGuard({ owner, children, onLogout }) {
               <button
                 onClick={() => {
                   setLoading(true);
-                  fetchTrialStatus();
+                  fetchTrialStatus(true);
                 }}
                 className="w-full text-center text-xs text-slate-500 hover:text-slate-400 py-1 transition-colors flex items-center justify-center gap-1.5"
               >

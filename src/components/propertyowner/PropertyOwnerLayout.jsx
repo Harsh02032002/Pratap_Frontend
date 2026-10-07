@@ -28,6 +28,7 @@ import { cacheGet, cacheSet, cacheInvalidate } from "../../utils/cache";
 import { API_URL } from "../../utils/api";
 import PropertyOwnerMobileLayout from "./PropertyOwnerMobileLayout";
 import { initNotificationManager } from "../../utils/notificationManager";
+import { subscribeOwnerSocket } from "../../utils/ownerSocket";
 
 const DEFAULT_DESKTOP_ITEMS = [
   { href: "/propertyowner/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -158,42 +159,42 @@ export default function PropertyOwnerLayout({
 
   useEffect(() => {
     if (!owner?.loginId) return;
-    let socket;
-    try {
-      import('socket.io-client').then(({ io }) => {
-        import('../../utils/api').then(({ getApiBase }) => {
-          socket = io(getApiBase(), { transports: ['websocket', 'polling'] });
-          socket.emit('join_room', { login_id: owner.loginId, role: 'property_owner', name: owner.name || owner.loginId });
-          socket.on('new_bidding_alert', (data) => {
-            import('../../utils/notificationManager').then(({ showNativeNotification }) => {
-              showNativeNotification(data.title || '💰 New Bid Received!', {
-                body: data.body || 'A new bid was submitted for your property.',
-                icon: '/pwa-192x192.png',
-                clickAction: '/propertyowner/booking_request'
-              });
-            }).catch(() => {});
+    // Shared, ref-counted connection (utils/ownerSocket) — the mobile layout
+    // rendered inside this one reuses it instead of opening a second socket,
+    // and the room is re-joined on every reconnect.
+    let blockTimer = null;
+    const unsubscribe = subscribeOwnerSocket(owner, {
+      new_bidding_alert: (data) => {
+        import('../../utils/notificationManager').then(({ showNativeNotification }) => {
+          showNativeNotification(data.title || '💰 New Bid Received!', {
+            body: data.body || 'A new bid was submitted for your property.',
+            icon: '/pwa-192x192.png',
+            clickAction: '/propertyowner/booking_request'
           });
-          socket.on('account_blocked', () => {
-            setIsAccountBlocked(true);
-            clearOwnerRuntimeSession();
-            // countdown then redirect to login
-            let count = 5;
-            setBlockCountdown(count);
-            const t = setInterval(() => {
-              count -= 1;
-              setBlockCountdown(count);
-              if (count <= 0) {
-                clearInterval(t);
-                window.location.href = '/propertyowner/ownerlogin';
-              }
-            }, 1000);
-          });
-        });
-      });
-    } catch (_) {}
+        }).catch(() => {});
+      },
+      account_blocked: () => {
+        setIsAccountBlocked(true);
+        clearOwnerRuntimeSession();
+        // countdown then redirect to login
+        let count = 5;
+        setBlockCountdown(count);
+        if (blockTimer) clearInterval(blockTimer);
+        blockTimer = setInterval(() => {
+          count -= 1;
+          setBlockCountdown(count);
+          if (count <= 0) {
+            clearInterval(blockTimer);
+            window.location.href = '/propertyowner/ownerlogin';
+          }
+        }, 1000);
+      },
+    });
 
     return () => {
-      if (socket) socket.disconnect();
+      // blockTimer is deliberately NOT cleared: clearOwnerRuntimeSession() can
+      // re-run this effect, and the redirect to login must still happen.
+      unsubscribe();
     };
   }, [owner?.loginId]);
 

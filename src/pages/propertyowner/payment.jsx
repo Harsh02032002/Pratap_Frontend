@@ -1,13 +1,13 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchJson, getApiBase } from "../../utils/api";
+import { fetchJson, getApiBase, getScopedAuthToken } from "../../utils/api";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
 import { Send, Plus, Search, Wallet, CheckCircle2, Clock, AlertTriangle, Phone, MessageCircle, RefreshCw, X, Receipt, Smartphone, CreditCard, Banknote, FileText, Printer } from "lucide-react";
 import { RentReceiptModal } from "../../components/propertyowner/RentReceiptModal";
 import { MobileTabs, MobileEmptyState } from "../../components/propertyowner/MobileComponents";
 import {
   clearOwnerRuntimeSession,
-  fetchOwnerTenants,
+  fetchOwnerTenantsLite,
   getOwnerRuntimeSession,
   getActiveOwnerPropertyId
 } from "../../utils/propertyowner";
@@ -341,7 +341,7 @@ export default function Payment() {
     setCashRequestsLoading(true);
     try {
       const [tenantsData, dashData, invData, configData, contactData] = await Promise.allSettled([
-        fetchOwnerTenants(session.loginId),
+        fetchOwnerTenantsLite(session.loginId), // no tenant images on this page
         fetchRentDashboard(session._id || session.loginId),
         fetchInvoices({ ownerId: session._id || session.loginId, limit: 100, propertyId: getActiveOwnerPropertyId() }),
         fetchPenaltyConfigs(session._id || session.loginId),
@@ -471,10 +471,9 @@ export default function Payment() {
   useEffect(() => {
     if (!owner?.loginId) return;
 
-    // Connect to the generic owner event stream
-    // getApiBase() is what the rest of the app uses; VITE_API_BASE_URL is defined
-    // nowhere in this codebase, so this URL was silently falling back to same-origin.
-    const sse = new EventSource(`${getApiBase()}/api/owners/${owner.loginId}/stream`);
+    const token = typeof getScopedAuthToken === 'function' ? getScopedAuthToken() : null;
+    const tokenQs = token ? `?token=${encodeURIComponent(token)}` : '';
+    const sse = new EventSource(`${getApiBase()}/api/owners/${owner.loginId}/stream${tokenQs}`);
 
     sse.addEventListener('CASH_REQUEST_NEW', (e) => {
       try {

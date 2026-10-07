@@ -254,28 +254,22 @@ export default function Tenant() {
         actions={
           <div className="flex items-center gap-3">
             <button 
-              onClick={() => navigate("/superadmin/add-tenant")}
-              className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 shadow-sm transition-all flex items-center gap-2 active:scale-95"
+              onClick={exportToExcel}
+              className="bg-white border border-[#CBD3D9] hover:bg-slate-50 text-[#10242A] font-semibold text-sm px-4 py-2 rounded-[8px] transition-colors cursor-pointer"
             >
-               <Plus className="w-4 h-4" /> Add Tenant
+               Export
             </button>
             <button 
-              onClick={exportToExcel}
-              className="px-4 py-2 bg-white text-slate-600 border border-slate-200 rounded-xl text-xs font-bold hover:bg-slate-50 shadow-sm transition-all flex items-center gap-2 active:scale-95"
+              onClick={() => navigate("/superadmin/add-tenant")}
+              className="bg-[#0E7C86] hover:bg-[#0B666E] text-white font-semibold text-sm px-4 py-2 rounded-[8px] flex items-center gap-2 transition-colors cursor-pointer"
             >
-               <Sheet className="w-4 h-4 text-emerald-600" /> Export Excel
+               <Plus className="w-4 h-4" /> + Add Tenant
             </button>
           </div>
         }
       />
 
-      {/* Metrics Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Active Tenants" value={stats.total.toLocaleString()} sub="Active Residents" icon={Users} color="blue" />
-        <StatCard label="KYC Verified" value={stats.verified.toLocaleString()} sub="Verified Accounts" icon={ShieldCheck} color="emerald" />
-        <StatCard label="Total Rent" value={`₹${stats.revenue.toLocaleString('en-IN')}`} sub="Monthly Rent" icon={Banknote} color="purple" />
-        <StatCard label="Pending KYC" value={stats.submitted.toLocaleString()} sub="Needs Review" icon={Clock} color="amber" />
-      </div>
+
 
       {/* Main Ledger Card */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">

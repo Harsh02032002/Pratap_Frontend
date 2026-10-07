@@ -1,5 +1,6 @@
 // Centralized API service for Roomhy React App
 // This replaces the vanilla JS API calls with proper React-compatible fetch calls
+import { getScopedAuthToken } from '../utils/authScope';
 
 const getApiUrl = () => {
   if (import.meta.env?.VITE_API_URL && import.meta.env.VITE_API_URL !== 'undefined') return import.meta.env.VITE_API_URL;
@@ -43,10 +44,14 @@ export const apiFetch = async (endpoint, options = {}) => {
     'Content-Type': 'application/json',
   };
 
-  // Add auth token if available
+  // Add auth token if available. The route-scoped JWT comes first — it is what
+  // fetchJson sends, and the owner/staff logins store their token under `token`,
+  // not inside the `user` object, so `user.token` alone left owner-panel calls
+  // unauthenticated. `user.token` stays as the fallback for logins that set it.
   const user = JSON.parse(localStorage.getItem('user') || 'null');
-  if (user?.token) {
-    defaultHeaders['Authorization'] = `Bearer ${user.token}`;
+  const authToken = getScopedAuthToken() || user?.token;
+  if (authToken) {
+    defaultHeaders['Authorization'] = `Bearer ${authToken}`;
   }
 
   try {

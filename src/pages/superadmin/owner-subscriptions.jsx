@@ -1,45 +1,27 @@
 import React, { useEffect, useState, useMemo } from "react";
-import {
-  Crown, Clock, Users, CheckCircle2, AlertTriangle, RefreshCw,
-  Search, Settings, X, Calendar, ChevronRight, IndianRupee,
-  Shield, TrendingUp, AlertCircle, Save, Loader2, Phone,
-  ChevronLeft, Filter
-} from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Settings, X, Loader2 } from "lucide-react";
 import { fetchJson, getAuthHeader } from "../../utils/api";
+import { PageHeader } from "../../components/superadmin/PageHeader";
 
 const cn = (...c) => c.filter(Boolean).join(" ");
 
-const STATUS_CONFIG = {
-  trial_active:     { label: "Trial Active",     color: "bg-emerald-50 text-emerald-700 border-emerald-100", dot: "bg-emerald-500" },
-  expired:          { label: "Trial Expired",    color: "bg-red-50 text-red-700 border-red-100",             dot: "bg-red-500" },
-  subscribed:       { label: "Subscribed",        color: "bg-blue-50 text-blue-700 border-blue-100",          dot: "bg-blue-500" },
-  trial_unconfigured:{ label: "Not Configured",  color: "bg-slate-50 text-slate-500 border-slate-200",       dot: "bg-slate-300" },
-};
-
-const fmt = (d) => d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
-
 export default function OwnerSubscriptions() {
-  const [data, setData]           = useState(null);
-  const [loading, setLoading]     = useState(true);
-  const [search, setSearch]       = useState("");
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [planFilter, setPlanFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  // Settings panel
-  const [showSettings, setShowSettings]   = useState(false);
-  const [trialDaysInput, setTrialDaysInput]   = useState("");
-  const [priceInput, setPriceInput]           = useState("");
-  const [savingSettings, setSavingSettings]   = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [trialDaysInput, setTrialDaysInput] = useState("");
+  const [priceInput, setPriceInput] = useState("");
+  const [savingSettings, setSavingSettings] = useState(false);
 
-  // Extend modal
-  const [extendOwner, setExtendOwner]       = useState(null);
-  const [extendMode, setExtendMode]         = useState("days"); // "days" | "date" | "subscribe"
-  const [extendDays, setExtendDays]         = useState("");
-  const [extendDate, setExtendDate]         = useState("");
-  const [extendSubDate, setExtendSubDate]   = useState("");
-  const [extendNote, setExtendNote]         = useState("");
-  const [extending, setExtending]           = useState(false);
+  const [selectedOwnerModal, setSelectedOwnerModal] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const LIMIT = 10;
 
-  const load = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
       const res = await fetchJson("/api/superadmin/owner-subscriptions", { headers: getAuthHeader() });
@@ -55,17 +37,34 @@ export default function OwnerSubscriptions() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { loadData(); }, []);
 
-  const filtered = useMemo(() => {
-    if (!data?.owners) return [];
-    return data.owners.filter(o => {
+  const ownersList = data?.owners || [];
+
+  const filteredOwners = useMemo(() => {
+    return ownersList.filter(o => {
       const q = search.toLowerCase();
       const matchQ = !q || (o.name || "").toLowerCase().includes(q) || (o.loginId || "").toLowerCase().includes(q);
-      const matchS = statusFilter === "all" || o.trialStatus?.status === statusFilter;
-      return matchQ && matchS;
+
+      const plan = (o.subscriptionPlan || "Standard").toLowerCase();
+      const matchPlan = planFilter === "all" || plan === planFilter.toLowerCase();
+
+      const st = (o.trialStatus?.status || "trial_active").toLowerCase();
+      const matchStatus = statusFilter === "all" ||
+        (statusFilter === "active" && (st === "trial_active" || st === "subscribed")) ||
+        (statusFilter === "expiring" && st === "trial_active" && o.trialStatus?.daysRemaining <= 7) ||
+        (statusFilter === "expired" && st === "expired");
+
+      return matchQ && matchPlan && matchStatus;
     });
-  }, [data, search, statusFilter]);
+  }, [ownersList, search, planFilter, statusFilter]);
+
+  const totalRecords = filteredOwners.length;
+  const totalPages = Math.ceil(totalRecords / LIMIT) || 1;
+  const paginatedOwners = useMemo(() => {
+    const start = (currentPage - 1) * LIMIT;
+    return filteredOwners.slice(start, start + LIMIT);
+  }, [filteredOwners, currentPage]);
 
   const handleSaveSettings = async () => {
     setSavingSettings(true);
@@ -79,7 +78,7 @@ export default function OwnerSubscriptions() {
         })
       });
       setShowSettings(false);
-      load();
+      loadData();
     } catch (err) {
       alert("Failed to save settings: " + err.message);
     } finally {
@@ -87,269 +86,167 @@ export default function OwnerSubscriptions() {
     }
   };
 
-  const handleExtend = async () => {
-    if (!extendOwner) return;
-    setExtending(true);
-    try {
-      const body = { note: extendNote };
-      if (extendMode === "days")       { body.extendByDays = Number(extendDays); }
-      else if (extendMode === "date")  { body.newTrialEndDate = extendDate; }
-      else                             { body.markSubscribed = true; body.subscriptionExpiry = extendSubDate || null; }
-
-      await fetchJson(`/api/superadmin/owner-subscriptions/${encodeURIComponent(extendOwner.loginId)}/extend`, {
-        method: "POST",
-        headers: { ...getAuthHeader(), "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-      });
-      setExtendOwner(null);
-      setExtendDays(""); setExtendDate(""); setExtendSubDate(""); setExtendNote("");
-      load();
-    } catch (err) {
-      alert("Failed to update: " + err.message);
-    } finally {
-      setExtending(false);
-    }
-  };
-
-  const stats = data?.stats || {};
-
   return (
-    <div className="p-8 space-y-8 bg-[#F8FAFC] min-h-full">
-
-      {/* ── Header ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <h1 className="text-4xl font-bold text-slate-800 tracking-tight leading-none">Owner Subscriptions</h1>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-2">
-            Free Trial Management &amp; Subscription Tracker
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
+    <div className="space-y-6 text-[#10242A]">
+      {/* Page Header - PDF Page 14 Spec */}
+      <PageHeader
+        title="Owner Subscriptions"
+        subtitle="Plans and owner billing status"
+        actions={
           <button
             onClick={() => setShowSettings(true)}
-            className="flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-slate-900 text-white text-[10px] font-bold uppercase tracking-widest shadow-xl hover:bg-black transition-all"
+            className="bg-white border border-[#CBD3D9] hover:bg-slate-50 text-[#10242A] font-semibold text-sm px-4 py-2 rounded-[8px] transition-colors cursor-pointer"
           >
-            <Settings size={15} /> Trial Settings
+            Manage Plans
           </button>
-          <button
-            onClick={load}
-            className="p-3.5 rounded-2xl bg-white border border-slate-100 text-slate-400 hover:text-blue-600 shadow-md transition-all"
-          >
-            <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
-          </button>
+        }
+      />
+
+      {/* 3 Top Plan Cards - PDF Page 14 Spec */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        {/* Basic Plan Card */}
+        <div className="bg-white rounded-[12px] border border-[#E1E6EA] p-5 shadow-sm space-y-3">
+          <p className="text-base font-bold text-[#10242A]">Basic</p>
+          <p className="text-2xl font-bold text-[#10242A]">[Price]<span className="text-xs font-normal text-[#4A5961]">/month</span></p>
+          <div className="text-xs text-[#4A5961] space-y-1">
+            <p>[Feature one]</p>
+            <p>[Feature two]</p>
+            <p>[Feature three]</p>
+          </div>
+          <p className="text-xs font-semibold text-[#10242A] pt-2 border-t border-[#E1E6EA]">
+            [{ownersList.filter(o => (o.subscriptionPlan || "").toLowerCase() === "basic").length}] owners
+          </p>
+        </div>
+
+        {/* Standard Plan Card (Active Highlighted) */}
+        <div className="bg-white rounded-[12px] border-2 border-[#0E7C86] p-5 shadow-sm space-y-3 relative">
+          <p className="text-base font-bold text-[#10242A]">Standard</p>
+          <p className="text-2xl font-bold text-[#10242A]">[Price]<span className="text-xs font-normal text-[#4A5961]">/month</span></p>
+          <div className="text-xs text-[#4A5961] space-y-1">
+            <p>[Feature one]</p>
+            <p>[Feature two]</p>
+            <p>[Feature three]</p>
+          </div>
+          <p className="text-xs font-semibold text-[#10242A] pt-2 border-t border-[#E1E6EA]">
+            [{ownersList.filter(o => !(o.subscriptionPlan) || (o.subscriptionPlan || "").toLowerCase() === "standard").length}] owners
+          </p>
+        </div>
+
+        {/* Premium Plan Card */}
+        <div className="bg-white rounded-[12px] border border-[#E1E6EA] p-5 shadow-sm space-y-3">
+          <p className="text-base font-bold text-[#10242A]">Premium</p>
+          <p className="text-2xl font-bold text-[#10242A]">[Price]<span className="text-xs font-normal text-[#4A5961]">/month</span></p>
+          <div className="text-xs text-[#4A5961] space-y-1">
+            <p>[Feature one]</p>
+            <p>[Feature two]</p>
+            <p>[Feature three]</p>
+          </div>
+          <p className="text-xs font-semibold text-[#10242A] pt-2 border-t border-[#E1E6EA]">
+            [{ownersList.filter(o => (o.subscriptionPlan || "").toLowerCase() === "premium").length}] owners
+          </p>
         </div>
       </div>
 
-      {/* ── Stats Cards ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
-        {[
-          { label: "Total Owners",    value: stats.total      ?? "—", icon: Users,         color: "indigo" },
-          { label: "Trial Active",    value: stats.trialActive ?? "—", icon: Clock,          color: "emerald" },
-          { label: "Trial Expired",   value: stats.expired    ?? "—", icon: AlertTriangle,  color: "red" },
-          { label: "Subscribed",      value: stats.subscribed ?? "—", icon: Crown,          color: "blue" },
-        ].map(c => (
-          <div key={c.label} className={cn(
-            "bg-white rounded-3xl border border-slate-100 shadow-xl p-6 flex items-center gap-5",
-            c.color === "red" && stats.expired > 0 && "border-red-100 bg-red-50/30"
-          )}>
-            <div className={cn(
-              "w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg shrink-0",
-              c.color === "indigo" && "bg-indigo-600 shadow-indigo-200",
-              c.color === "emerald" && "bg-emerald-600 shadow-emerald-200",
-              c.color === "red"    && "bg-red-600 shadow-red-200",
-              c.color === "blue"   && "bg-blue-600 shadow-blue-200",
-            )}>
-              <c.icon size={22} className="text-white" />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{c.label}</p>
-              <p className="text-3xl font-black text-slate-800 mt-1 leading-none">{c.value}</p>
-            </div>
+      {/* Table Card - PDF Page 14 Spec */}
+      <div className="bg-white rounded-[12px] border border-[#E1E6EA] p-5 shadow-sm">
+        {/* Filter Bar (Search, Plan ▾, Status ▾) */}
+        <div className="flex flex-col sm:flex-row items-center gap-3 mb-6">
+          <div className="relative flex-1 w-full">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#4A5961]" />
+            <input
+              value={search} onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
+              placeholder="Search"
+              className="w-full h-[44px] bg-white border border-[#CBD3D9] rounded-[8px] pl-10 pr-3.5 text-sm text-[#10242A] placeholder:text-[#4A5961] outline-none focus:border-[#0E7C86]"
+            />
           </div>
-        ))}
-      </div>
-
-      {/* ── Current Settings Banner ── */}
-      {data?.settings && (
-        <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-3xl p-6 flex flex-wrap items-center gap-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
-              <Clock size={18} className="text-white" />
-            </div>
-            <div>
-              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Free Trial Period</p>
-              <p className="text-lg font-black text-white">
-                {data.settings.ownerTrialDays ? `${data.settings.ownerTrialDays} Days` : "Not Set"}
-                {data.settings.ownerTrialDays && (
-                  <span className="text-slate-400 text-sm font-normal ml-2">
-                    (~{Math.round(data.settings.ownerTrialDays / 30)} months)
-                  </span>
-                )}
-              </p>
-            </div>
-          </div>
-          <div className="w-px h-10 bg-white/10" />
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
-              <IndianRupee size={18} className="text-white" />
-            </div>
-            <div>
-              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Subscription Price</p>
-              <p className="text-lg font-black text-white">
-                {data.settings.ownerSubscriptionPrice != null
-                  ? `₹${Number(data.settings.ownerSubscriptionPrice).toLocaleString("en-IN")}/month`
-                  : "Not Set"}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => setShowSettings(true)}
-            className="ml-auto text-[9px] font-bold uppercase tracking-widest text-slate-400 hover:text-white border border-white/10 hover:border-white/30 px-5 py-2.5 rounded-xl transition-all flex items-center gap-2"
+          <select
+            value={planFilter} onChange={e => { setPlanFilter(e.target.value); setCurrentPage(1); }}
+            className="h-[44px] bg-white border border-[#CBD3D9] rounded-[8px] px-3.5 text-sm text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] w-full sm:w-36"
           >
-            <Settings size={12} /> Change Settings
-          </button>
-        </div>
-      )}
-
-      {/* ── Table ── */}
-      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-2xl shadow-slate-200/50 overflow-hidden">
-        {/* Table Header */}
-        <div className="p-8 border-b border-slate-50 flex flex-col md:flex-row md:items-center gap-5">
-          <div className="flex items-center gap-4 flex-1">
-            <div className="relative flex-1 max-w-xs group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-blue-500" />
-              <input
-                value={search} onChange={e => setSearch(e.target.value)}
-                placeholder="Search owner or ID..."
-                className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-3.5 pl-11 pr-4 text-sm font-bold text-slate-700 outline-none focus:bg-white focus:ring-4 focus:ring-blue-50 transition-all"
-              />
-            </div>
-            <div className="flex items-center gap-2 bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3">
-              <Filter size={14} className="text-slate-400" />
-              <select
-                value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-                className="bg-transparent text-[10px] font-bold text-slate-600 outline-none uppercase tracking-widest"
-              >
-                <option value="all">All Status</option>
-                <option value="trial_active">Trial Active</option>
-                <option value="expired">Expired</option>
-                <option value="subscribed">Subscribed</option>
-                <option value="trial_unconfigured">Not Configured</option>
-              </select>
-            </div>
-          </div>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-            {filtered.length} owners
-          </p>
+            <option value="all">Plan ▾</option>
+            <option value="basic">Basic</option>
+            <option value="standard">Standard</option>
+            <option value="premium">Premium</option>
+          </select>
+          <select
+            value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+            className="h-[44px] bg-white border border-[#CBD3D9] rounded-[8px] px-3.5 text-sm text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] w-full sm:w-36"
+          >
+            <option value="all">Status ▾</option>
+            <option value="active">Active</option>
+            <option value="expiring">Expiring</option>
+            <option value="expired">Expired</option>
+          </select>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
+          <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50/50 text-slate-400 text-[10px] font-bold uppercase tracking-[0.15em] border-b border-slate-100">
-                <th className="px-8 py-6">Owner</th>
-                <th className="px-6 py-6">Onboarding Date</th>
-                <th className="px-6 py-6">Trial End Date</th>
-                <th className="px-6 py-6 text-center">Status</th>
-                <th className="px-6 py-6 text-center">Days Remaining</th>
-                <th className="px-8 py-6 text-right">Actions</th>
+              <tr className="border-b border-[#E1E6EA] text-xs font-semibold text-[#4A5961]">
+                <th className="py-3 px-4">Owner</th>
+                <th className="py-3 px-4">Plan</th>
+                <th className="py-3 px-4">Start</th>
+                <th className="py-3 px-4">Renewal</th>
+                <th className="py-3 px-4">Amount</th>
+                <th className="py-3 px-4">Status</th>
+                <th className="py-3 px-4 text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
+            <tbody className="divide-y divide-[#E1E6EA] text-sm">
               {loading ? (
-                <tr><td colSpan="6" className="py-32 text-center">
-                  <div className="w-12 h-12 border-4 border-blue-600/10 border-t-blue-600 rounded-full animate-spin mx-auto mb-6" />
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Loading owner data...</p>
-                </td></tr>
-              ) : filtered.length === 0 ? (
-                <tr><td colSpan="6" className="py-32 text-center">
-                  <Users size={40} className="text-slate-200 mx-auto mb-4" />
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">No owners found</p>
-                </td></tr>
-              ) : filtered.map((o, i) => {
+                <tr><td colSpan="7" className="py-12 text-center text-[#4A5961]">Loading owner subscriptions...</td></tr>
+              ) : filteredOwners.length === 0 ? (
+                <tr><td colSpan="7" className="py-12 text-center text-[#4A5961]">No subscription records found.</td></tr>
+              ) : paginatedOwners.map((o, i) => {
                 const ts = o.trialStatus || {};
-                const sc = STATUS_CONFIG[ts.status] || STATUS_CONFIG.trial_unconfigured;
+                const isExp = ts.status === "expired";
+                const isExpiring = ts.status === "trial_active" && ts.daysRemaining <= 7;
+                const planName = o.subscriptionPlan || "Standard";
+
+                const startDateStr = ts.startDate ? new Date(ts.startDate).toLocaleDateString("en-IN", { day: 'numeric', month: 'short', year: 'numeric' }) : "[Date]";
+                const renewalDateStr = ts.endDate ? new Date(ts.endDate).toLocaleDateString("en-IN", { day: 'numeric', month: 'short', year: 'numeric' }) : "[Date]";
+
                 return (
-                  <tr key={i} className={cn(
-                    "group hover:bg-slate-50/40 transition-all",
-                    ts.status === "expired" && "bg-red-50/20"
-                  )}>
+                  <tr key={i} className="hover:bg-slate-50/50 transition-colors">
                     {/* Owner Identity */}
-                    <td className="px-8 py-6">
-                      <div className="flex items-center gap-4">
-                        <div className={cn(
-                          "w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg shrink-0 border",
-                          ts.status === "expired" ? "bg-red-100 text-red-700 border-red-200" :
-                          ts.status === "subscribed" ? "bg-blue-100 text-blue-700 border-blue-200" :
-                          "bg-slate-900 text-white border-transparent"
-                        )}>
-                          {(o.name || "?")[0].toUpperCase()}
+                    <td className="py-3.5 px-4 font-medium text-[#10242A]">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-[#CBD3D9] flex items-center justify-center font-bold text-xs text-[#10242A]">
+                          {(o.name || "U").charAt(0).toUpperCase()}
                         </div>
-                        <div>
-                          <p className="text-sm font-bold text-slate-800">{o.name || "Unknown"}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-[9px] font-black bg-slate-900 text-white px-2 py-0.5 rounded-lg">{o.loginId}</span>
-                            {o.phone && <span className="text-[9px] text-slate-400">{o.phone}</span>}
-                          </div>
-                        </div>
+                        <span className="font-semibold text-[#10242A]">{o.name || "[Name]"}</span>
                       </div>
                     </td>
 
-                    {/* Onboarding */}
-                    <td className="px-6 py-6">
-                      <p className="text-sm font-bold text-slate-700">{fmt(ts.startDate || o.createdAt)}</p>
-                      <p className="text-[9px] text-slate-400 mt-1 uppercase tracking-widest">Joined</p>
-                    </td>
+                    {/* Plan */}
+                    <td className="py-3.5 px-4 text-[#10242A] font-medium">{planName}</td>
 
-                    {/* Trial End */}
-                    <td className="px-6 py-6">
-                      <p className={cn("text-sm font-bold", ts.status === "expired" ? "text-red-600" : "text-slate-700")}>
-                        {fmt(ts.endDate)}
-                      </p>
-                      {o.subscription?.extendedBy && (
-                        <p className="text-[9px] text-slate-400 mt-1">Extended by {o.subscription.extendedBy}</p>
-                      )}
-                    </td>
+                    {/* Start */}
+                    <td className="py-3.5 px-4 text-[#4A5961]">{startDateStr}</td>
+
+                    {/* Renewal */}
+                    <td className="py-3.5 px-4 text-[#4A5961]">{renewalDateStr}</td>
+
+                    {/* Amount */}
+                    <td className="py-3.5 px-4 text-[#10242A] font-medium">[Amount]</td>
 
                     {/* Status Badge */}
-                    <td className="px-6 py-6 text-center">
-                      <span className={cn("inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-[9px] font-bold uppercase tracking-widest", sc.color)}>
-                        <span className={cn("w-1.5 h-1.5 rounded-full", sc.dot)} />
-                        {sc.label}
+                    <td className="py-3.5 px-4">
+                      <span className={cn(
+                        "text-xs font-semibold px-2.5 py-1 rounded-full inline-flex items-center",
+                        isExp ? "bg-[#FEE2E2] text-[#991B1B]" : isExpiring ? "bg-[#FDEBD0] text-[#7A3E00]" : "bg-[#DDF3E4] text-[#14532D]"
+                      )}>
+                        {isExp ? "Expired" : isExpiring ? "Expiring" : "Active"}
                       </span>
                     </td>
 
-                    {/* Days Remaining */}
-                    <td className="px-6 py-6 text-center">
-                      {ts.status === "trial_active" ? (
-                        <div>
-                          <p className={cn(
-                            "text-2xl font-black",
-                            ts.daysRemaining <= 7 ? "text-red-600" :
-                            ts.daysRemaining <= 30 ? "text-amber-600" : "text-emerald-600"
-                          )}>
-                            {ts.daysRemaining}
-                          </p>
-                          <p className="text-[9px] text-slate-400 uppercase tracking-widest">days left</p>
-                        </div>
-                      ) : ts.status === "expired" ? (
-                        <span className="text-red-500 font-black text-sm">Expired</span>
-                      ) : ts.status === "subscribed" ? (
-                        <span className="text-blue-500 font-bold text-xs flex items-center justify-center gap-1">
-                          <Crown size={12} /> Active
-                        </span>
-                      ) : (
-                        <span className="text-slate-300 text-xs">—</span>
-                      )}
-                    </td>
-
-                    {/* Actions */}
-                    <td className="px-8 py-6 text-right">
+                    {/* Action */}
+                    <td className="py-3.5 px-4 text-right">
                       <button
-                        onClick={() => { setExtendOwner(o); setExtendMode("days"); setExtendDays(""); setExtendDate(""); setExtendNote(""); }}
-                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-blue-600 text-white text-[9px] font-bold uppercase tracking-widest transition-all shadow-lg active:scale-95"
+                        onClick={() => setSelectedOwnerModal(o)}
+                        className="border border-[#CBD3D9] hover:bg-slate-50 text-[#10242A] text-xs font-semibold px-3 py-1 rounded-[6px] transition-colors cursor-pointer"
                       >
-                        <Shield size={12} /> Manage
+                        View
                       </button>
                     </td>
                   </tr>
@@ -358,78 +255,77 @@ export default function OwnerSubscriptions() {
             </tbody>
           </table>
         </div>
-      </div>
 
-      {/* ══════════════════════════════
-          SETTINGS PANEL (Modal)
-      ══════════════════════════════ */}
-      {showSettings && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-lg rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
-            <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-lg">
-                  <Settings size={20} />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-slate-800">Trial Settings</h3>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Set globally for all owners</p>
-                </div>
-              </div>
-              <button onClick={() => setShowSettings(false)} className="p-3 rounded-2xl bg-slate-100 hover:bg-slate-200 transition-all">
-                <X size={18} className="text-slate-500" />
+        {/* Pagination */}
+        {totalRecords > 0 && (
+          <div className="flex items-center justify-between pt-4 mt-4 border-t border-[#E1E6EA]">
+            <p className="text-xs text-[#4A5961]">
+              Showing {((currentPage - 1) * LIMIT) + 1} to {Math.min(currentPage * LIMIT, totalRecords)} of{" "}
+              <span className="font-semibold text-[#10242A]">{totalRecords}</span> subscriptions
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(currentPage - 1)}
+                className="flex items-center gap-1 px-3 py-1 rounded-[6px] border border-[#CBD3D9] text-xs font-semibold text-[#10242A] hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" /> Prev
+              </button>
+              <span className="text-xs text-[#4A5961] font-semibold px-2">Page {currentPage} of {totalPages}</span>
+              <button
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(currentPage + 1)}
+                className="flex items-center gap-1 px-3 py-1 rounded-[6px] border border-[#CBD3D9] text-xs font-semibold text-[#10242A] hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                Next <ChevronRight className="w-4 h-4" />
               </button>
             </div>
+          </div>
+        )}
+      </div>
 
-            <div className="p-10 space-y-8">
-              {/* Trial Days */}
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  Free Trial Duration (Days)
-                </label>
-                <div className="relative">
-                  <Clock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                  <input
-                    type="number" min="1"
-                    value={trialDaysInput}
-                    onChange={e => setTrialDaysInput(e.target.value)}
-                    placeholder="e.g. 180 (for 6 months)"
-                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 pl-10 text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all outline-none"
-                  />
-                </div>
-                <p className="text-[10px] text-slate-400">
-                  {trialDaysInput ? `${trialDaysInput} days ≈ ${(Number(trialDaysInput) / 30).toFixed(1)} months` : "Enter number of days"}
-                </p>
+      {/* Settings Modal (Manage Plans) */}
+      {showSettings && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+          <div className="bg-white w-full max-w-lg rounded-[12px] shadow-xl border border-[#E1E6EA] overflow-hidden">
+            <div className="p-5 border-b border-[#E1E6EA] flex items-center justify-between">
+              <h3 className="text-lg font-bold text-[#10242A]">Manage Subscription Plans</h3>
+              <button onClick={() => setShowSettings(false)} className="p-2 rounded-[6px] hover:bg-slate-100 transition-colors">
+                <X size={18} className="text-[#4A5961]" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-[#10242A]">Free Trial Days</label>
+                <input
+                  type="number"
+                  value={trialDaysInput}
+                  onChange={e => setTrialDaysInput(e.target.value)}
+                  className="w-full h-[44px] bg-white border border-[#CBD3D9] rounded-[8px] px-3.5 text-sm text-[#10242A] outline-none focus:border-[#0E7C86]"
+                />
               </div>
-
-              {/* Subscription Price */}
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  Subscription Price (₹/month)
-                </label>
-                <div className="relative">
-                  <IndianRupee size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                  <input
-                    type="number" min="0"
-                    value={priceInput}
-                    onChange={e => setPriceInput(e.target.value)}
-                    placeholder="Enter monthly price (e.g. 999)"
-                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 pl-10 text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all outline-none"
-                  />
-                </div>
-                <p className="text-[10px] text-slate-400">This price will show to owners when their trial expires</p>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-[#10242A]">Subscription Price (₹/month)</label>
+                <input
+                  type="number"
+                  value={priceInput}
+                  onChange={e => setPriceInput(e.target.value)}
+                  className="w-full h-[44px] bg-white border border-[#CBD3D9] rounded-[8px] px-3.5 text-sm text-[#10242A] outline-none focus:border-[#0E7C86]"
+                />
               </div>
-
-              <div className="flex gap-3 pt-2">
-                <button onClick={() => setShowSettings(false)} className="flex-1 py-4 rounded-2xl border border-slate-200 text-slate-500 text-[10px] font-bold uppercase tracking-widest hover:bg-slate-50 transition-all">
+              <div className="flex justify-end gap-3 pt-3">
+                <button
+                  onClick={() => setShowSettings(false)}
+                  className="bg-white border border-[#CBD3D9] hover:bg-slate-50 text-[#10242A] font-semibold text-xs px-4 py-2 rounded-[6px] transition-colors cursor-pointer"
+                >
                   Cancel
                 </button>
                 <button
                   onClick={handleSaveSettings}
                   disabled={savingSettings}
-                  className="flex-1 py-4 rounded-2xl bg-slate-900 text-white text-[10px] font-bold uppercase tracking-widest shadow-xl hover:bg-black transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="bg-[#0E7C86] hover:bg-[#0B666E] text-white font-semibold text-xs px-5 py-2 rounded-[6px] transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2"
                 >
-                  {savingSettings ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                  {savingSettings && <Loader2 size={14} className="animate-spin" />}
                   Save Settings
                 </button>
               </div>
@@ -438,131 +334,24 @@ export default function OwnerSubscriptions() {
         </div>
       )}
 
-      {/* ══════════════════════════════
-          EXTEND / MANAGE MODAL
-      ══════════════════════════════ */}
-      {extendOwner && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-lg rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
-            {/* Header */}
-            <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-slate-900 text-white flex items-center justify-center text-xl font-bold shadow-lg">
-                  {(extendOwner.name || "?")[0].toUpperCase()}
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-slate-800">{extendOwner.name}</h3>
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">
-                    {extendOwner.loginId} — Manage Subscription
-                  </p>
-                </div>
-              </div>
-              <button onClick={() => setExtendOwner(null)} className="p-3 rounded-2xl bg-slate-100 hover:bg-slate-200 transition-all">
-                <X size={18} className="text-slate-500" />
-              </button>
+      {/* Owner Detail View Modal */}
+      {selectedOwnerModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+          <div className="bg-white w-full max-w-md rounded-[12px] shadow-xl border border-[#E1E6EA] p-6 space-y-4">
+            <h3 className="text-lg font-bold text-[#10242A]">{selectedOwnerModal.name || "Owner"} Subscription</h3>
+            <div className="text-xs text-[#4A5961] space-y-2">
+              <p>ID: <span className="font-semibold text-[#10242A]">{selectedOwnerModal.loginId}</span></p>
+              <p>Plan: <span className="font-semibold text-[#10242A]">{selectedOwnerModal.subscriptionPlan || "Standard"}</span></p>
+              <p>Status: <span className="font-semibold text-[#10242A]">{selectedOwnerModal.trialStatus?.status || "Active"}</span></p>
+              <p>Days Remaining: <span className="font-semibold text-[#10242A]">{selectedOwnerModal.trialStatus?.daysRemaining ?? "—"}</span></p>
             </div>
-
-            <div className="p-10 space-y-7">
-              {/* Current Status */}
-              <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
-                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-3">Current Status</p>
-                <div className="flex items-center justify-between">
-                  <span className={cn(
-                    "inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-[9px] font-bold uppercase tracking-widest",
-                    (STATUS_CONFIG[extendOwner.trialStatus?.status] || STATUS_CONFIG.trial_unconfigured).color
-                  )}>
-                    {(STATUS_CONFIG[extendOwner.trialStatus?.status] || STATUS_CONFIG.trial_unconfigured).label}
-                  </span>
-                  <div className="text-right">
-                    <p className="text-[9px] text-slate-400 uppercase tracking-widest">Trial End</p>
-                    <p className="text-sm font-bold text-slate-700">{fmt(extendOwner.trialStatus?.endDate)}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Mode Tabs */}
-              <div className="flex rounded-2xl overflow-hidden border border-slate-200">
-                {[["days", "Extend by Days"], ["date", "Set End Date"], ["subscribe", "Mark Subscribed"]].map(([val, label]) => (
-                  <button
-                    key={val}
-                    onClick={() => setExtendMode(val)}
-                    className={cn(
-                      "flex-1 py-3 text-[9px] font-bold uppercase tracking-widest transition-all",
-                      extendMode === val ? "bg-slate-900 text-white" : "text-slate-400 hover:bg-slate-50"
-                    )}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Mode: Extend by days */}
-              {extendMode === "days" && (
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Extend by (Days)</label>
-                  <div className="flex gap-2">
-                    {[30, 60, 90, 180, 365].map(d => (
-                      <button key={d} onClick={() => setExtendDays(String(d))}
-                        className={cn("flex-1 py-2.5 rounded-xl border text-xs font-bold transition-all", extendDays === String(d) ? "bg-slate-900 text-white border-transparent" : "border-slate-200 text-slate-500 hover:bg-slate-50")}>
-                        {d}d
-                      </button>
-                    ))}
-                  </div>
-                  <input
-                    type="number" value={extendDays} onChange={e => setExtendDays(e.target.value)}
-                    placeholder="Or enter custom days"
-                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-blue-100 transition-all"
-                  />
-                </div>
-              )}
-
-              {/* Mode: Set date */}
-              {extendMode === "date" && (
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">New Trial End Date</label>
-                  <input
-                    type="date" value={extendDate} onChange={e => setExtendDate(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-blue-100 transition-all"
-                  />
-                </div>
-              )}
-
-              {/* Mode: Subscribe */}
-              {extendMode === "subscribe" && (
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Subscription Expiry Date (optional)</label>
-                  <input
-                    type="date" value={extendSubDate} onChange={e => setExtendSubDate(e.target.value)}
-                    placeholder="Leave empty for no expiry"
-                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-blue-100 transition-all"
-                  />
-                  <p className="text-[10px] text-slate-400">Leave empty to mark as subscribed with no expiry</p>
-                </div>
-              )}
-
-              {/* Note */}
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Note (optional)</label>
-                <input
-                  type="text" value={extendNote} onChange={e => setExtendNote(e.target.value)}
-                  placeholder="Reason for extension..."
-                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-3.5 text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-blue-100 transition-all"
-                />
-              </div>
-
-              <div className="flex gap-3">
-                <button onClick={() => setExtendOwner(null)} className="flex-1 py-4 rounded-2xl border border-slate-200 text-slate-500 text-[10px] font-bold uppercase tracking-widest hover:bg-slate-50 transition-all">
-                  Cancel
-                </button>
-                <button
-                  onClick={handleExtend}
-                  disabled={extending || (extendMode === "days" && !extendDays) || (extendMode === "date" && !extendDate)}
-                  className="flex-1 py-4 rounded-2xl bg-blue-600 text-white text-[10px] font-bold uppercase tracking-widest shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95"
-                >
-                  {extending ? <Loader2 size={14} className="animate-spin" /> : <Shield size={14} />}
-                  {extendMode === "subscribe" ? "Mark Subscribed" : "Update Trial"}
-                </button>
-              </div>
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setSelectedOwnerModal(null)}
+                className="bg-white border border-[#CBD3D9] hover:bg-slate-50 text-[#10242A] font-semibold text-xs px-4 py-2 rounded-[6px] transition-colors cursor-pointer"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

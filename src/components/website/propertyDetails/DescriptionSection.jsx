@@ -1,6 +1,6 @@
 import { useState } from "react";
-import * as LucideIcons from "lucide-react";
-const { Bed, Users, Wifi, Wind, Droplet, ChevronDown, ChevronUp, DollarSign, CheckCircle, Droplets, Car, Dumbbell, Utensils, Zap, Shirt, Tv, Shield, Waves, Fan, Home, Check } = LucideIcons;
+// Named imports so only these icons are bundled (not the whole lucide set).
+import { Bed, Users, Wifi, Wind, Droplet, ChevronDown, ChevronUp, DollarSign, CheckCircle, Droplets, Car, Dumbbell, Utensils, Zap, Shirt, Tv, Shield, Waves, Fan, Home, Check } from "lucide-react";
 
 function getAmenityIcon(amenity) {
   const name = typeof amenity === 'string' ? amenity : (amenity?.name || "");

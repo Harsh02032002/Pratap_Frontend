@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { getApiBase } from "../utils/api";
+import { getApiBase, getScopedAuthToken } from "../utils/api";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Live updates for owner-panel lists.
@@ -84,9 +84,9 @@ export const useOwnerLiveUpdates = (ownerLoginId, options = {}) => {
     const open = () => {
       if (closed || typeof EventSource === "undefined") return;
 
-      // getApiBase() rather than a bare env var — it is what the rest of the app
-      // uses and resolves correctly in dev, preview and production alike.
-      const url = `${getApiBase()}/api/owners/${encodeURIComponent(ownerLoginId)}/stream`;
+      const token = typeof getScopedAuthToken === "function" ? getScopedAuthToken() : null;
+      const tokenQs = token ? `?token=${encodeURIComponent(token)}` : "";
+      const url = `${getApiBase()}/api/owners/${encodeURIComponent(ownerLoginId)}/stream${tokenQs}`;
       try {
         source = new EventSource(url, { withCredentials: true });
       } catch (_) {
@@ -126,7 +126,16 @@ export const useOwnerLiveUpdates = (ownerLoginId, options = {}) => {
 
     // Last line of defence: whatever both of the above missed shows up the moment
     // the owner looks at the tab again.
-    const onFocus = () => { if (document.visibilityState === "visible") fire(); };
+    let lastFocusFire = 0;
+    const onFocus = () => {
+      if (document.visibilityState === "visible") {
+        const now = Date.now();
+        if (now - lastFocusFire > 1000) {
+          lastFocusFire = now;
+          fire();
+        }
+      }
+    };
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onFocus);
 
