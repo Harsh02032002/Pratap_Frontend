@@ -357,108 +357,143 @@ export default function Manager() {
           <div className="flex items-center gap-3">
             <button 
               onClick={() => showNotification("Exporting staff directory CSV...")}
-              className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-medium text-xs sm:text-sm px-4 py-2 rounded-xl transition-all shadow-2xs cursor-pointer"
+              className="bg-white border border-[#CBD3D9] hover:bg-gray-50 text-[#10242A] text-[13px] font-semibold px-4 py-2 rounded-[8px] transition-all shadow-xs cursor-pointer"
             >
               Export
             </button>
             <button 
               onClick={() => openModal()}
-              className="bg-[#095256] hover:bg-[#074043] text-white font-medium text-xs sm:text-sm px-4 py-2 rounded-xl flex items-center gap-2 transition-all shadow-2xs cursor-pointer"
+              className="bg-[#0E7C86] hover:bg-[#0B656D] text-white text-[13px] font-semibold px-4 py-2 rounded-[8px] transition-all shadow-xs cursor-pointer"
             >
-              <UserPlus size={16} />
-              <span>+ Add Staff</span>
+              + Add Staff
             </button>
           </div>
         }
       />
 
-      {/* Search & Filter Bar (OUTSIDE Table Card) */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="relative flex-1 w-full max-w-md">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+      {/* Search & Filter Bar */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="w-full sm:w-[320px]">
           <input 
             value={search} 
             onChange={e => setSearch(e.target.value)}
             placeholder="Search" 
-            className="w-full py-2.5 pl-10 pr-4 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-[#095256]/20 focus:border-[#095256] shadow-2xs transition-all" 
+            className="w-full bg-white border border-[#CBD3D9] rounded-[8px] px-3.5 py-2 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs" 
           />
         </div>
-        <div className="flex items-center gap-2.5 w-full sm:w-auto">
-          <select 
-            value={currentTeam}
-            onChange={e => setCurrentTeam(e.target.value)}
-            className="px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 outline-none cursor-pointer focus:border-[#095256] shadow-2xs w-full sm:w-36"
-          >
-            <option value="All">Role ▾</option>
-            {standardTeams.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
-          <select 
-            value={filterCity}
-            onChange={e => setFilterCity(e.target.value)}
-            className="px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 outline-none cursor-pointer focus:border-[#095256] shadow-2xs w-full sm:w-36"
-          >
-            <option value="">Status ▾</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
-        </div>
+        <select 
+          value={currentTeam}
+          onChange={e => setCurrentTeam(e.target.value)}
+          className="appearance-none bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-2 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs w-[75px] sm:w-[80px]"
+        >
+          <option value="All">Role ▾</option>
+          {standardTeams.map(t => <option key={t} value={t}>{t}</option>)}
+        </select>
+        <select 
+          value={filterCity}
+          onChange={e => setFilterCity(e.target.value)}
+          className="appearance-none bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-2 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs w-[85px] sm:w-[90px]"
+        >
+          <option value="">Status ▾</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
       </div>
 
-      {/* Separate Table Card Below */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
-        {/* Table */}
+      {/* Table Card */}
+      <div className="bg-white border border-[#E1E6EA] rounded-[12px] p-5 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse min-w-[700px]">
             <thead>
-              <tr className="border-b border-slate-200/80 bg-white">
-                <th className="py-3.5 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Name</th>
-                <th className="py-3.5 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Role</th>
-                <th className="py-3.5 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Phone</th>
-                <th className="py-3.5 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Email</th>
-                <th className="py-3.5 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
-                <th className="py-3.5 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Action</th>
+              <tr className="border-b border-[#E1E6EA]">
+                <th className="pb-3 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-left pl-2">Name</th>
+                <th className="pb-3 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-left">Role</th>
+                <th className="pb-3 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-left">Phone</th>
+                <th className="pb-3 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-left">Email</th>
+                <th className="pb-3 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-left">Status</th>
+                <th className="pb-3 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-left">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-sm">
+            <tbody className="divide-y divide-[#F0F4F6]">
                     {loading ? (
-                      <tr><td colSpan="6" className="py-24 text-center">
-                         <div className="w-12 h-12 border-4 border-slate-200 border-t-[#095256] rounded-full animate-spin mx-auto mb-6" />
-                         <p className="text-xs font-semibold text-slate-400">Loading staff directory...</p>
+                      <tr><td colSpan="6" className="py-12 text-center">
+                         <div className="w-8 h-8 border-3 border-gray-200 border-t-[#0E7C86] rounded-full animate-spin mx-auto mb-3" />
+                         <p className="text-[13px] font-medium text-[#4A5961]">Loading staff directory...</p>
                       </td></tr>
                     ) : filteredEmployees.length === 0 ? (
-                      <tr><td colSpan="6" className="py-24 text-center">
-                         <Users className="w-12 h-12 text-slate-200 mx-auto mb-4" />
-                         <p className="text-xs font-semibold text-slate-400">No matching staff found</p>
-                      </td></tr>
+                      [
+                        { name: "[Name]", role: "[Role]", phone: "[Phone]", email: "[Email]", active: false },
+                        { name: "[Name]", role: "[Role]", phone: "[Phone]", email: "[Email]", active: true },
+                        { name: "[Name]", role: "[Role]", phone: "[Phone]", email: "[Email]", active: true },
+                        { name: "[Name]", role: "[Role]", phone: "[Phone]", email: "[Email]", active: false },
+                        { name: "[Name]", role: "[Role]", phone: "[Phone]", email: "[Email]", active: true },
+                        { name: "[Name]", role: "[Role]", phone: "[Phone]", email: "[Email]", active: true },
+                        { name: "[Name]", role: "[Role]", phone: "[Phone]", email: "[Email]", active: false },
+                      ].map((item, idx) => (
+                        <tr key={idx} className="hover:bg-[#F9FAFB] transition-colors">
+                          <td className="py-3 text-left pl-2">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-[#D9E1E7] shrink-0" />
+                              <span className="text-[13px] font-medium text-[#10242A]">{item.name}</span>
+                            </div>
+                          </td>
+                          <td className="py-3 text-left text-[13px] text-[#4A5961]">{item.role}</td>
+                          <td className="py-3 text-left text-[13px] text-[#4A5961]">{item.phone}</td>
+                          <td className="py-3 text-left text-[13px] text-[#4A5961]">{item.email}</td>
+                          <td className="py-3 text-left">
+                            <span className={`inline-block px-3 py-1 rounded-full text-[12px] font-semibold ${
+                              item.active ? "bg-[#DDF3E4] text-[#14532D]" : "bg-[#FDE8E8] text-[#991B1B]"
+                            }`}>
+                              {item.active ? "Active" : "Inactive"}
+                            </span>
+                          </td>
+                          <td className="py-3 text-left pr-2">
+                            <div className="flex items-center gap-2">
+                              <button 
+                                onClick={() => openModal()} 
+                                className="bg-white border border-[#CBD3D9] hover:bg-gray-50 text-[#10242A] text-[12px] font-semibold px-3 py-1 rounded-[6px] transition-all shadow-xs cursor-pointer"
+                              >
+                                View
+                              </button>
+                              <button 
+                                onClick={() => openModal()} 
+                                className="bg-white border border-[#CBD3D9] hover:bg-gray-50 text-[#10242A] text-[12px] font-semibold px-3 py-1 rounded-[6px] transition-all shadow-xs cursor-pointer"
+                              >
+                                Edit
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
                     ) : filteredEmployees.map((e, i) => {
                        const active = e.isActive !== false;
                        return (
-                        <tr key={i} className="hover:bg-slate-50/70 transition-colors border-b border-slate-100">
-                          <td className="py-4 px-6 font-medium text-slate-900">
+                        <tr key={e._id || i} className="hover:bg-[#F9FAFB] transition-colors">
+                          <td className="py-3 text-left pl-2">
                             <div className="flex items-center gap-3">
-                              <div className="w-9 h-9 rounded-full bg-slate-200/70 border border-slate-200 flex items-center justify-center font-bold text-xs text-slate-600 shrink-0">
+                              <div className="w-8 h-8 rounded-full bg-[#D9E1E7] flex items-center justify-center font-bold text-[12px] text-[#4A5961] shrink-0">
                                 {buildInitials(e.name)}
                               </div>
-                              <span className="font-semibold text-slate-900 text-sm">{e.name || "Staff Member"}</span>
+                              <span className="text-[13px] font-medium text-[#10242A]">{e.name || "[Name]"}</span>
                             </div>
                           </td>
-                          <td className="py-4 px-6 text-slate-700 font-medium">{e.role || "Staff"}</td>
-                          <td className="py-4 px-6 text-slate-600">{e.phone || "—"}</td>
-                          <td className="py-4 px-6 text-slate-600">{e.email || "—"}</td>
-                          <td className="py-4 px-6">
+                          <td className="py-3 text-left text-[13px] text-[#4A5961]">{e.role || "[Role]"}</td>
+                          <td className="py-3 text-left text-[13px] text-[#4A5961]">{e.phone || "[Phone]"}</td>
+                          <td className="py-3 text-left text-[13px] text-[#4A5961]">{e.email || "[Email]"}</td>
+                          <td className="py-3 text-left">
                             <span className={cn(
-                              "inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold",
-                              active ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
+                              "inline-block px-3 py-1 rounded-full text-[12px] font-semibold",
+                              active ? "bg-[#DDF3E4] text-[#14532D]" : "bg-[#FDE8E8] text-[#991B1B]"
                             )}>
                               {active ? "Active" : "Inactive"}
                             </span>
                           </td>
-                          <td className="py-4 px-6 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <button onClick={() => openModal(e)} className="px-3.5 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-medium transition shadow-2xs">
+                          <td className="py-3 text-left pr-2">
+                            <div className="flex items-center gap-2">
+                              <button onClick={() => openModal(e)} className="bg-white border border-[#CBD3D9] hover:bg-gray-50 text-[#10242A] text-[12px] font-semibold px-3 py-1 rounded-[6px] transition-all shadow-xs cursor-pointer">
                                 View
                               </button>
-                              <button onClick={() => openModal(e)} className="px-3.5 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-medium transition shadow-2xs">
+                              <button onClick={() => openModal(e)} className="bg-white border border-[#CBD3D9] hover:bg-gray-50 text-[#10242A] text-[12px] font-semibold px-3 py-1 rounded-[6px] transition-all shadow-xs cursor-pointer">
                                 Edit
                               </button>
                             </div>

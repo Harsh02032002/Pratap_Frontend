@@ -239,26 +239,27 @@ export default function RolesPermissions() {
   ];
 
   return (
-    <div className="space-y-6 text-[#10242A]">
-      <PageHeader 
-        category="User Management"
-        title="Roles & Permissions"
-        actions={
+    <div className="space-y-4 text-[#10242A]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-[22px] font-bold text-[#10242A] tracking-tight">Roles & Permissions</h1>
+          <p className="text-[13px] text-[#4A5961]">Control what each role can access</p>
+        </div>
+        <div className="flex items-center gap-3">
           <button 
             onClick={() => alert("Creating new role...")}
-            className="bg-[#0E7C86] hover:bg-[#0B666E] text-white font-semibold text-sm px-4 py-2 rounded-[8px] flex items-center gap-2 transition-colors cursor-pointer"
+            className="bg-[#0E7C86] hover:bg-[#0B666E] text-white text-[13px] font-semibold px-4 py-2 rounded-[8px] transition-all shadow-xs cursor-pointer"
           >
-            <Plus size={16} />
-            <span>+ New Role</span>
+            + New Role
           </button>
-        }
-      />
+        </div>
+      </div>
 
-      {/* Grid - Left ROLES, Right Permissions Matrix (PDF Page 4) */}
+      {/* Grid - Left ROLES, Right Permissions Matrix */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         {/* Left Panel: ROLES */}
-        <div className="lg:col-span-4 bg-white rounded-[12px] p-5 border border-[#E1E6EA] shadow-sm">
-          <h3 className="text-xs font-bold text-[#4A5961] uppercase tracking-wider mb-4">ROLES</h3>
+        <div className="lg:col-span-4 bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-sm">
+          <h3 className="text-[12px] font-bold text-[#4A5961] uppercase tracking-wider mb-3">ROLES</h3>
           <div className="space-y-1">
             {rolesList.map((role) => {
               const isActive = role === selectedRole;
@@ -267,10 +268,10 @@ export default function RolesPermissions() {
                   key={role}
                   onClick={() => setSelectedRole(role)}
                   className={cn(
-                    "w-full text-left px-4 py-3 rounded-[8px] text-sm font-semibold transition-all flex items-center justify-between cursor-pointer",
+                    "w-full text-left px-4 py-2 text-[13px] font-semibold transition-all flex items-center justify-between cursor-pointer rounded-[8px] border-l-[3.5px]",
                     isActive 
-                      ? "bg-[#E6F4F5] text-[#0E7C86] font-bold border-l-4 border-[#0E7C86]" 
-                      : "text-[#10242A] hover:bg-slate-50"
+                      ? "bg-[#E6F4F5] text-[#0E7C86] border-[#0E7C86]" 
+                      : "text-[#10242A] hover:bg-slate-50 border-transparent"
                   )}
                 >
                   <span>{role}</span>
@@ -281,42 +282,43 @@ export default function RolesPermissions() {
         </div>
 
         {/* Right Panel: Permissions Table */}
-        <div className="lg:col-span-8 bg-white rounded-[12px] p-5 border border-[#E1E6EA] shadow-sm flex flex-col justify-between">
-          <div>
-            <h3 className="text-base font-bold text-[#10242A] mb-4">Permissions: {selectedRole}</h3>
+        <div className="lg:col-span-8 flex flex-col">
+          <h3 className="text-[15px] font-bold text-[#10242A] mb-3">Permissions: {selectedRole}</h3>
+          
+          <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-sm flex flex-col justify-between">
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+              <table className="w-full text-left border-collapse min-w-[500px]">
                 <thead>
                   <tr className="border-b border-[#E1E6EA]">
-                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Module</th>
-                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4 text-center">View</th>
-                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4 text-center">Create</th>
-                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4 text-center">Edit</th>
-                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4 text-center">Delete</th>
+                    <th className="text-[12px] font-semibold text-[#4A5961] pb-2 px-3">Module</th>
+                    <th className="text-[12px] font-semibold text-[#4A5961] pb-2 px-3 text-center">View</th>
+                    <th className="text-[12px] font-semibold text-[#4A5961] pb-2 px-3 text-center">Create</th>
+                    <th className="text-[12px] font-semibold text-[#4A5961] pb-2 px-3 text-center">Edit</th>
+                    <th className="text-[12px] font-semibold text-[#4A5961] pb-2 px-3 text-center">Delete</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E1E6EA] text-sm">
+                <tbody className="divide-y divide-[#E1E6EA] text-[13px]">
                   {modulesList.map((m, idx) => (
-                    <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="py-3.5 px-4 text-[#10242A] font-medium">{m.name}</td>
-                      <td className="py-3.5 px-4 text-center">
-                        <div className={`w-5 h-5 rounded flex items-center justify-center mx-auto ${m.view ? 'bg-[#0E7C86] text-white' : 'border border-[#CBD3D9]'}`}>
-                          {m.view && <CheckCircle2 size={14} />}
+                    <tr key={idx} className="hover:bg-[#F9FAFB] transition-colors">
+                      <td className="py-2 px-3 text-[#10242A] font-medium">{m.name}</td>
+                      <td className="py-2 px-3 text-center">
+                        <div className={`w-4 h-4 rounded-[4px] flex items-center justify-center mx-auto ${m.view ? 'bg-[#0E7C86] text-white' : 'bg-white border border-[#CBD3D9]'}`}>
+                          {m.view && <span className="text-[10px] font-bold">✓</span>}
                         </div>
                       </td>
-                      <td className="py-3.5 px-4 text-center">
-                        <div className={`w-5 h-5 rounded flex items-center justify-center mx-auto ${m.create ? 'bg-[#0E7C86] text-white' : 'border border-[#CBD3D9]'}`}>
-                          {m.create && <CheckCircle2 size={14} />}
+                      <td className="py-2 px-3 text-center">
+                        <div className={`w-4 h-4 rounded-[4px] flex items-center justify-center mx-auto ${m.create ? 'bg-[#0E7C86] text-white' : 'bg-white border border-[#CBD3D9]'}`}>
+                          {m.create && <span className="text-[10px] font-bold">✓</span>}
                         </div>
                       </td>
-                      <td className="py-3.5 px-4 text-center">
-                        <div className={`w-5 h-5 rounded flex items-center justify-center mx-auto ${m.edit ? 'bg-[#0E7C86] text-white' : 'border border-[#CBD3D9]'}`}>
-                          {m.edit && <CheckCircle2 size={14} />}
+                      <td className="py-2 px-3 text-center">
+                        <div className={`w-4 h-4 rounded-[4px] flex items-center justify-center mx-auto ${m.edit ? 'bg-[#0E7C86] text-white' : 'bg-white border border-[#CBD3D9]'}`}>
+                          {m.edit && <span className="text-[10px] font-bold">✓</span>}
                         </div>
                       </td>
-                      <td className="py-3.5 px-4 text-center">
-                        <div className={`w-5 h-5 rounded flex items-center justify-center mx-auto ${m.delete ? 'bg-[#0E7C86] text-white' : 'border border-[#CBD3D9]'}`}>
-                          {m.delete && <CheckCircle2 size={14} />}
+                      <td className="py-2 px-3 text-center">
+                        <div className={`w-4 h-4 rounded-[4px] flex items-center justify-center mx-auto ${m.delete ? 'bg-[#0E7C86] text-white' : 'bg-white border border-[#CBD3D9]'}`}>
+                          {m.delete && <span className="text-[10px] font-bold">✓</span>}
                         </div>
                       </td>
                     </tr>
@@ -324,15 +326,15 @@ export default function RolesPermissions() {
                 </tbody>
               </table>
             </div>
-          </div>
-
-          <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-[#E1E6EA]">
-            <button className="bg-white border border-[#CBD3D9] hover:bg-slate-50 text-[#10242A] text-sm font-semibold px-4 py-2 rounded-[8px] transition-colors cursor-pointer">
-              Cancel
-            </button>
-            <button className="bg-[#0E7C86] hover:bg-[#0B666E] text-white text-sm font-semibold px-4 py-2 rounded-[8px] transition-colors cursor-pointer">
-              Save changes
-            </button>
+            
+            <div className="flex items-center justify-end gap-3 mt-4 pt-4 border-t border-[#E1E6EA]">
+              <button className="bg-white border border-[#CBD3D9] hover:bg-gray-50 text-[#10242A] text-[13px] font-semibold px-4 py-1.5 rounded-[8px] transition-colors cursor-pointer shadow-xs">
+                Cancel
+              </button>
+              <button className="bg-[#0E7C86] hover:bg-[#0B656D] text-white text-[13px] font-semibold px-4 py-1.5 rounded-[8px] transition-colors cursor-pointer shadow-xs">
+                Save changes
+              </button>
+            </div>
           </div>
         </div>
       </div>

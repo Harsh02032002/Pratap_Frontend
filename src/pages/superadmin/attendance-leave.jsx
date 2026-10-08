@@ -60,51 +60,51 @@ export default function AttendanceLeave() {
   };
 
   return (
-    <div className="max-w-[1400px] font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
-      {/* ── Page Header (PDF Page 6) ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+    <div className="space-y-4 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
+      {/* ── Page Header ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-tight">Leave</h1>
+          <h1 className="text-[22px] font-bold text-[#10242A] tracking-tight leading-tight">Leave</h1>
           <p className="text-[13px] text-[#4A5961] mt-0.5">Review and approve staff leave requests</p>
         </div>
         <button
           onClick={() => setShowApplyModal(true)}
-          className="bg-[#0E7C86] hover:bg-[#0B666E] text-white font-semibold text-sm px-4 py-2 rounded-[8px] flex items-center gap-2 transition-colors cursor-pointer shrink-0 self-start sm:self-auto shadow-xs"
+          className="bg-[#0E7C86] hover:bg-[#0B666E] text-white font-semibold text-[13px] px-4 py-1.5 rounded-[8px] flex items-center gap-2 transition-colors cursor-pointer shrink-0 self-start sm:self-auto shadow-xs"
         >
           <Plus size={16} />
           <span>Add Leave</span>
         </button>
       </div>
 
-      {/* ── 3 Stat Cards (PDF Spec) ── */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      {/* ── 3 Stat Cards ── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Card 1: Pending Requests */}
-        <div className="bg-white border border-[#E1E6EA] rounded-[16px] p-6 shadow-xs">
+        <div className="bg-white border border-[#E1E6EA] rounded-[16px] p-5 shadow-xs">
           <div className="text-[13px] font-medium text-[#4A5961]">Pending Requests</div>
-          <div className="text-[32px] font-bold text-[#10242A] tracking-tight my-1">
-            {stats.pending}
+          <div className="text-[28px] font-bold text-[#10242A] tracking-tight mt-1">
+            {stats.pending.toString().padStart(2, '0')}
           </div>
         </div>
 
         {/* Card 2: Approved This Month */}
-        <div className="bg-white border border-[#E1E6EA] rounded-[16px] p-6 shadow-xs">
+        <div className="bg-white border border-[#E1E6EA] rounded-[16px] p-5 shadow-xs">
           <div className="text-[13px] font-medium text-[#4A5961]">Approved This Month</div>
-          <div className="text-[32px] font-bold text-[#10242A] tracking-tight my-1">
-            {stats.approved}
+          <div className="text-[28px] font-bold text-[#10242A] tracking-tight mt-1">
+            {stats.approved.toString().padStart(2, '0')}
           </div>
         </div>
 
         {/* Card 3: On Leave Today */}
-        <div className="bg-white border border-[#E1E6EA] rounded-[16px] p-6 shadow-xs">
+        <div className="bg-white border border-[#E1E6EA] rounded-[16px] p-5 shadow-xs">
           <div className="text-[13px] font-medium text-[#4A5961]">On Leave Today</div>
-          <div className="text-[32px] font-bold text-[#10242A] tracking-tight my-1">
-            {stats.today}
+          <div className="text-[28px] font-bold text-[#10242A] tracking-tight mt-1">
+            {stats.today.toString().padStart(2, '0')}
           </div>
         </div>
       </div>
 
-      {/* ── Tabs (PDF Spec: Pending, Approved, Rejected) ── */}
-      <div className="border-b border-[#E1E6EA] mb-6 flex gap-8">
+      {/* ── Tabs ── */}
+      <div className="border-b border-[#E1E6EA] flex gap-8">
         {["Pending", "Approved", "Rejected"].map((tab) => (
           <button
             key={tab}
@@ -117,25 +117,25 @@ export default function AttendanceLeave() {
           >
             {tab}
             {activeTab === tab && (
-              <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#0E7C86] rounded-full" />
+              <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#0E7C86] rounded-t-md" />
             )}
           </button>
         ))}
       </div>
 
-      {/* ── Table Container (PDF Spec) ── */}
+      {/* ── Table Container ── */}
       <div className="bg-white border border-[#E1E6EA] rounded-[16px] p-6 shadow-xs">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse min-w-[700px]">
             <thead>
               <tr className="border-b border-[#E1E6EA]">
-                <th className="pb-3 text-[12px] font-semibold text-[#708088] uppercase tracking-wider">Staff</th>
+                <th className="pb-3 text-[12px] font-semibold text-[#708088] uppercase tracking-wider pl-2">Staff</th>
                 <th className="pb-3 text-[12px] font-semibold text-[#708088] uppercase tracking-wider">Type</th>
                 <th className="pb-3 text-[12px] font-semibold text-[#708088] uppercase tracking-wider">From</th>
                 <th className="pb-3 text-[12px] font-semibold text-[#708088] uppercase tracking-wider">To</th>
                 <th className="pb-3 text-[12px] font-semibold text-[#708088] uppercase tracking-wider">Days</th>
                 <th className="pb-3 text-[12px] font-semibold text-[#708088] uppercase tracking-wider">Status</th>
-                <th className="pb-3 text-[12px] font-semibold text-[#708088] uppercase tracking-wider text-right">Action</th>
+                <th className="pb-3 text-[12px] font-semibold text-[#708088] uppercase tracking-wider text-right pr-2">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#F0F4F6]">
@@ -148,9 +148,9 @@ export default function AttendanceLeave() {
               ) : (
                 filteredLeaves.map((row) => (
                   <tr key={row.id} className="hover:bg-[#F9FAFB] transition-colors">
-                    <td className="py-4 text-[14px] font-medium text-[#10242A]">
+                    <td className="py-4 text-[14px] font-medium text-[#10242A] pl-2">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-[#CBD3D9] flex items-center justify-center text-xs font-bold text-[#10242A] shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-[#CBD3D9] flex items-center justify-center text-[12px] font-bold text-[#10242A] shrink-0">
                           {row.staff.split(" ").map(n => n[0]).join("")}
                         </div>
                         <span>{row.staff}</span>
@@ -166,29 +166,29 @@ export default function AttendanceLeave() {
                           ? "bg-[#DDF3E4] text-[#14532D]" 
                           : row.status === "Pending" 
                           ? "bg-[#FDEBD0] text-[#7A3E00]" 
-                          : "bg-[#FEE2E2] text-[#991B1B]"
+                          : "bg-[#FDE8E8] text-[#991B1B]"
                       }`}>
                         {row.status}
                       </span>
                     </td>
-                    <td className="py-4 text-right">
+                    <td className="py-4 text-right pr-2">
                       {row.status === "Pending" ? (
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => handleAction(row.id, "Approved")}
-                            className="bg-[#0E7C86] hover:bg-[#0B666E] text-white text-xs font-semibold px-3 py-1.5 rounded-[6px] transition-colors cursor-pointer"
+                            className="bg-[#0E7C86] hover:bg-[#0B666E] text-white text-[12px] font-semibold px-4 py-1.5 rounded-[8px] transition-colors cursor-pointer"
                           >
                             Approve
                           </button>
                           <button
                             onClick={() => handleAction(row.id, "Rejected")}
-                            className="bg-white border border-[#CBD3D9] hover:bg-slate-50 text-[#10242A] text-xs font-semibold px-3 py-1.5 rounded-[6px] transition-colors cursor-pointer"
+                            className="bg-white border border-[#CBD3D9] hover:bg-slate-50 text-[#10242A] text-[12px] font-semibold px-4 py-1.5 rounded-[8px] transition-colors cursor-pointer"
                           >
                             Reject
                           </button>
                         </div>
                       ) : (
-                        <span className="text-xs text-[#708088]">—</span>
+                        <span className="text-[12px] text-[#708088]">—</span>
                       )}
                     </td>
                   </tr>

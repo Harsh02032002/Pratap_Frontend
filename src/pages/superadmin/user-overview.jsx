@@ -91,135 +91,127 @@ export default function UserOverview() {
   const expiringSubs = subscriptionsData?.summary?.expiringCount || 3;
 
   return (
-    <div className="space-y-6 text-[#10242A]">
-      <PageHeader 
-        category="User Management"
-        title="Overview" 
-        actions={
-          <button 
-            onClick={() => navigate('/superadmin/owner?view=add')}
-            className="bg-[#0E7C86] hover:bg-[#0B666E] text-white font-semibold text-sm px-4 py-2 rounded-[8px] flex items-center gap-2 transition-colors cursor-pointer"
-          >
-            <UserPlus size={16} />
-            <span>+ Add Owner</span>
-          </button>
-        }
-      />
+    <div className="max-w-[1440px] text-[#10242A] space-y-3" style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
+      {/* ── Page Header (PDF Page 2 Exact Match) ── */}
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="text-[12px] font-normal text-[#4A5961] mb-0.5">User Management</div>
+          <h1 className="text-[26px] font-bold text-[#10242A] tracking-tight leading-tight">Overview</h1>
+        </div>
+        <button 
+          onClick={() => navigate('/superadmin/owner?view=add')}
+          className="bg-[#0E7C86] hover:bg-[#0B666E] text-white font-semibold text-[13px] px-4 py-2 rounded-[8px] transition-colors cursor-pointer shadow-xs"
+        >
+          + Add Owner
+        </button>
+      </div>
 
-      {/* 4 Stat Cards Header - PDF Page 2 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      {/* ── 4 Stat Cards Header ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard 
           label="Total Staff" 
-          value={loading ? "..." : String(totalStaffCount).padStart(2, '0')} 
+          value={`[${String(totalStaffCount).padStart(2, '0')}]`} 
           subtitle="All departments" 
-          loading={loading}
         />
         <StatCard 
           label="Property Owners" 
-          value={loading ? "..." : String(approvedOwnersCount).padStart(2, '0')} 
+          value={`[${String(approvedOwnersCount).padStart(2, '0')}]`} 
           subtitle="Approved owners" 
-          loading={loading}
         />
         <StatCard 
           label="Pending KYC" 
-          value={loading ? "..." : String(pendingKycCount).padStart(2, '0')} 
+          value={`[${String(pendingKycCount).padStart(2, '0')}]`} 
           subtitle="Awaiting review" 
-          loading={loading}
         />
         <StatCard 
           label="Open Owner Requests" 
-          value={loading ? "..." : String(openOwnerRequestsCount).padStart(2, '0')} 
+          value={`[${String(openOwnerRequestsCount).padStart(2, '0')}]`} 
           subtitle="Need a response" 
-          loading={loading}
         />
       </div>
 
-      {/* Middle Grid - Today's Attendance & Owners Pending Approval */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* Today's attendance */}
-        <div className="bg-white rounded-[12px] p-5 border border-[#E1E6EA] shadow-sm flex flex-col justify-between">
+      {/* ── Middle Grid - Today's attendance & Owners pending approval ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
+        {/* Left Box: Today's attendance */}
+        <div className="lg:col-span-5 bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
           <div>
-            <h3 className="text-base font-bold text-[#10242A] mb-4">Today's attendance</h3>
-            <div className="w-full bg-[#E1E6EA] h-2.5 rounded-full overflow-hidden mb-6 flex">
+            <h2 className="text-[16px] font-bold text-[#10242A] mb-3">Today's attendance</h2>
+            {/* Horizontal progress bar matching PDF design */}
+            <div className="w-full bg-[#E1E6EA] h-2 rounded-full overflow-hidden mb-3 flex">
               <div className="bg-[#0E7C86] h-full" style={{ width: '70%' }} />
-              <div className="bg-[#FDEBD0] h-full" style={{ width: '15%' }} />
-              <div className="bg-[#FEE2E2] h-full" style={{ width: '15%' }} />
+              <div className="bg-[#F5B041] h-full" style={{ width: '15%' }} />
+              <div className="bg-[#E74C3C] h-full" style={{ width: '15%' }} />
             </div>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between text-sm py-1.5 border-b border-[#E1E6EA]">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-[13px]">
                 <span className="text-[#4A5961]">Present</span>
-                <span className="font-bold text-[#10242A]">[08]</span>
+                <span className="font-bold text-[#10242A]">[00]</span>
               </div>
-              <div className="flex items-center justify-between text-sm py-1.5 border-b border-[#E1E6EA]">
+              <div className="flex items-center justify-between text-[13px]">
                 <span className="text-[#4A5961]">On leave</span>
-                <span className="font-bold text-[#10242A]">[02]</span>
+                <span className="font-bold text-[#10242A]">[00]</span>
               </div>
-              <div className="flex items-center justify-between text-sm py-1.5 border-b border-[#E1E6EA]">
+              <div className="flex items-center justify-between text-[13px]">
                 <span className="text-[#4A5961]">Absent</span>
-                <span className="font-bold text-[#10242A]">[01]</span>
+                <span className="font-bold text-[#10242A]">[00]</span>
               </div>
-              <div className="flex items-center justify-between text-sm py-1.5">
+              <div className="flex items-center justify-between text-[13px]">
                 <span className="text-[#4A5961]">Shifts running now</span>
-                <span className="font-bold text-[#10242A]">[06]</span>
+                <span className="font-bold text-[#10242A]">[00]</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Owners pending approval */}
-        <div className="bg-white rounded-[12px] p-5 border border-[#E1E6EA] shadow-sm flex flex-col justify-between">
+        {/* Right Box: Owners pending approval */}
+        <div className="lg:col-span-7 bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-bold text-[#10242A]">Owners pending approval</h3>
-              <button onClick={() => navigate('/superadmin/owner?view=pending')} className="text-xs text-[#0E7C86] font-semibold hover:underline">
-                View all
-              </button>
-            </div>
+            <h2 className="text-[16px] font-bold text-[#10242A] mb-2.5">Owners pending approval</h2>
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-[#E1E6EA]">
-                    <th className="text-xs font-semibold text-[#4A5961] py-2 px-3">Owner</th>
-                    <th className="text-xs font-semibold text-[#4A5961] py-2 px-3">Submitted</th>
-                    <th className="text-xs font-semibold text-[#4A5961] py-2 px-3">KYC</th>
-                    <th className="text-xs font-semibold text-[#4A5961] py-2 px-3 text-right">Action</th>
+                    <th className="pb-1.5 text-[12px] font-semibold text-[#4A5961]">Owner</th>
+                    <th className="pb-1.5 text-[12px] font-semibold text-[#4A5961]">Submitted</th>
+                    <th className="pb-1.5 text-[12px] font-semibold text-[#4A5961]">KYC</th>
+                    <th className="pb-1.5 text-[12px] font-semibold text-[#4A5961] text-right"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E1E6EA] text-sm">
+                <tbody className="divide-y divide-[#F0F4F6] text-[13px]">
                   {pendingOwners.length === 0 ? (
                     <>
                       <tr>
-                        <td className="py-2.5 px-3 font-medium text-[#10242A]">Vikram Malhotra</td>
-                        <td className="py-2.5 px-3 text-[#4A5961]">Oct 04</td>
-                        <td className="py-2.5 px-3">
-                          <span className="bg-[#FDEBD0] text-[#7A3E00] text-xs font-semibold px-2.5 py-0.5 rounded-full">Pending</span>
+                        <td className="py-2 text-[#10242A] font-normal">[Owner name]</td>
+                        <td className="py-2 text-[#4A5961]">[Date]</td>
+                        <td className="py-2">
+                          <span className="bg-[#FDEBD0] text-[#7A3E00] text-[11px] font-semibold px-2.5 py-0.5 rounded-full">Pending</span>
                         </td>
-                        <td className="py-2.5 px-3 text-right">
-                          <button onClick={() => navigate('/superadmin/kyc_verification')} className="border border-[#0E7C86] text-[#0E7C86] hover:bg-[#E6F4F5] text-xs font-semibold px-3 py-1 rounded-[6px] transition-colors">
+                        <td className="py-2 text-right">
+                          <button onClick={() => navigate('/superadmin/kyc_verification')} className="border border-[#0E7C86] text-[#0E7C86] hover:bg-[#E6F4F5] text-[12px] font-semibold px-3 py-0.5 rounded-[6px] transition-colors cursor-pointer">
                             Review
                           </button>
                         </td>
                       </tr>
                       <tr>
-                        <td className="py-2.5 px-3 font-medium text-[#10242A]">Sunita Rao</td>
-                        <td className="py-2.5 px-3 text-[#4A5961]">Oct 05</td>
-                        <td className="py-2.5 px-3">
-                          <span className="bg-[#FEE2E2] text-[#991B1B] text-xs font-semibold px-2.5 py-0.5 rounded-full">Docs missing</span>
+                        <td className="py-2 text-[#10242A] font-normal">[Owner name]</td>
+                        <td className="py-2 text-[#4A5961]">[Date]</td>
+                        <td className="py-2">
+                          <span className="bg-[#FADBD8] text-[#78281F] text-[11px] font-semibold px-2.5 py-0.5 rounded-full">Docs missing</span>
                         </td>
-                        <td className="py-2.5 px-3 text-right">
-                          <button onClick={() => navigate('/superadmin/kyc_verification')} className="border border-[#0E7C86] text-[#0E7C86] hover:bg-[#E6F4F5] text-xs font-semibold px-3 py-1 rounded-[6px] transition-colors">
+                        <td className="py-2 text-right">
+                          <button onClick={() => navigate('/superadmin/kyc_verification')} className="border border-[#0E7C86] text-[#0E7C86] hover:bg-[#E6F4F5] text-[12px] font-semibold px-3 py-0.5 rounded-[6px] transition-colors cursor-pointer">
                             Review
                           </button>
                         </td>
                       </tr>
                       <tr>
-                        <td className="py-2.5 px-3 font-medium text-[#10242A]">Rajesh Agarwal</td>
-                        <td className="py-2.5 px-3 text-[#4A5961]">Oct 06</td>
-                        <td className="py-2.5 px-3">
-                          <span className="bg-[#FDEBD0] text-[#7A3E00] text-xs font-semibold px-2.5 py-0.5 rounded-full">Pending</span>
+                        <td className="py-2 text-[#10242A] font-normal">[Owner name]</td>
+                        <td className="py-2 text-[#4A5961]">[Date]</td>
+                        <td className="py-2">
+                          <span className="bg-[#FDEBD0] text-[#7A3E00] text-[11px] font-semibold px-2.5 py-0.5 rounded-full">Pending</span>
                         </td>
-                        <td className="py-2.5 px-3 text-right">
-                          <button onClick={() => navigate('/superadmin/kyc_verification')} className="border border-[#0E7C86] text-[#0E7C86] hover:bg-[#E6F4F5] text-xs font-semibold px-3 py-1 rounded-[6px] transition-colors">
+                        <td className="py-2 text-right">
+                          <button onClick={() => navigate('/superadmin/kyc_verification')} className="border border-[#0E7C86] text-[#0E7C86] hover:bg-[#E6F4F5] text-[12px] font-semibold px-3 py-0.5 rounded-[6px] transition-colors cursor-pointer">
                             Review
                           </button>
                         </td>
@@ -228,18 +220,18 @@ export default function UserOverview() {
                   ) : (
                     pendingOwners.slice(0, 3).map((o, idx) => (
                       <tr key={idx}>
-                        <td className="py-2.5 px-3 font-medium text-[#10242A]">{o.name || "Owner"}</td>
-                        <td className="py-2.5 px-3 text-[#4A5961]">{o.createdAt ? new Date(o.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : "Recently"}</td>
-                        <td className="py-2.5 px-3">
+                        <td className="py-2 text-[#10242A] font-normal">{o.name || "[Owner name]"}</td>
+                        <td className="py-2 text-[#4A5961]">{o.createdAt ? new Date(o.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : "[Date]"}</td>
+                        <td className="py-2">
                           <span className={cn(
-                            "text-xs font-semibold px-2.5 py-0.5 rounded-full",
-                            o.kycStatus === "docs_missing" ? "bg-[#FEE2E2] text-[#991B1B]" : "bg-[#FDEBD0] text-[#7A3E00]"
+                            "text-[11px] font-semibold px-2.5 py-0.5 rounded-full",
+                            o.kycStatus === "docs_missing" ? "bg-[#FADBD8] text-[#78281F]" : "bg-[#FDEBD0] text-[#7A3E00]"
                           )}>
                             {o.kycStatus === "docs_missing" ? "Docs missing" : "Pending"}
                           </span>
                         </td>
-                        <td className="py-2.5 px-3 text-right">
-                          <button onClick={() => navigate('/superadmin/kyc_verification')} className="border border-[#0E7C86] text-[#0E7C86] hover:bg-[#E6F4F5] text-xs font-semibold px-3 py-1 rounded-[6px] transition-colors">
+                        <td className="py-2 text-right">
+                          <button onClick={() => navigate('/superadmin/kyc_verification')} className="border border-[#0E7C86] text-[#0E7C86] hover:bg-[#E6F4F5] text-[12px] font-semibold px-3 py-0.5 rounded-[6px] transition-colors cursor-pointer">
                             Review
                           </button>
                         </td>
@@ -253,37 +245,45 @@ export default function UserOverview() {
         </div>
       </div>
 
-      {/* Bottom Grid - Owner Subscriptions & Agreements & Requests */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* Owner subscriptions */}
-        <div className="bg-white rounded-[12px] p-5 border border-[#E1E6EA] shadow-sm flex flex-col justify-between">
+      {/* ── Bottom Grid - Owner subscriptions & Agreements and requests ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        {/* Left Box: Owner subscriptions */}
+        <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
           <div>
-            <h3 className="text-base font-bold text-[#10242A] mb-4">Owner subscriptions</h3>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between text-sm py-2 border-b border-[#E1E6EA]">
+            <h2 className="text-[16px] font-bold text-[#10242A] mb-3">Owner subscriptions</h2>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-[13px]">
                 <span className="text-[#4A5961]">Active plans</span>
-                <span className="font-bold text-[#10242A]">[{String(activeSubs).padStart(2, '0')}]</span>
+                <span className="font-bold text-[#10242A]">[00]</span>
               </div>
-              <div className="flex items-center justify-between text-sm py-2 border-b border-[#E1E6EA]">
+              <div className="flex items-center justify-between text-[13px]">
                 <span className="text-[#4A5961]">Expiring in 7 days</span>
-                <span className="font-bold text-[#10242A]">[{String(expiringSubs).padStart(2, '0')}]</span>
+                <span className="font-bold text-[#10242A]">[00]</span>
+              </div>
+              <div className="flex items-center justify-between text-[13px]">
+                <span className="text-[#4A5961]">Expired</span>
+                <span className="font-bold text-[#10242A]">[00]</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Agreements and requests */}
-        <div className="bg-white rounded-[12px] p-5 border border-[#E1E6EA] shadow-sm flex flex-col justify-between">
+        {/* Right Box: Agreements and requests */}
+        <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
           <div>
-            <h3 className="text-base font-bold text-[#10242A] mb-4">Agreements and requests</h3>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between text-sm py-2 border-b border-[#E1E6EA]">
+            <h2 className="text-[16px] font-bold text-[#10242A] mb-3">Agreements and requests</h2>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-[13px]">
                 <span className="text-[#4A5961]">Agreements awaiting signature</span>
-                <span className="font-bold text-[#10242A]">[04]</span>
+                <span className="font-bold text-[#10242A]">[00]</span>
               </div>
-              <div className="flex items-center justify-between text-sm py-2 border-b border-[#E1E6EA]">
+              <div className="flex items-center justify-between text-[13px]">
                 <span className="text-[#4A5961]">New owner requests</span>
-                <span className="font-bold text-[#10242A]">[{String(openOwnerRequestsCount).padStart(2, '0')}]</span>
+                <span className="font-bold text-[#10242A]">[00]</span>
+              </div>
+              <div className="flex items-center justify-between text-[13px]">
+                <span className="text-[#4A5961]">Documents to verify</span>
+                <span className="font-bold text-[#10242A]">[00]</span>
               </div>
             </div>
           </div>

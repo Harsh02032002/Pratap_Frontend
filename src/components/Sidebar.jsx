@@ -93,7 +93,7 @@ export function Sidebar({ open, isMobile, onClose, onLogout, activeModuleId, set
   }
 
   const sidebarClasses = cn(
-    "w-[240px] min-w-[240px] xl:w-[260px] xl:min-w-[260px] h-screen bg-[#0F2A2E] text-[#C9DADD] flex flex-col z-50 shrink-0 transition-all duration-300 font-['Plus_Jakarta_Sans',sans-serif]",
+    "w-[240px] min-w-[240px] xl:w-[260px] xl:min-w-[260px] h-screen bg-[#0F2A2E] text-[#C9DADD] flex flex-col z-50 shrink-0 transition-all duration-300",
     isMobile ? "fixed left-0 top-0 shadow-2xl" : "relative",
     isMobile && !open ? "-translate-x-full" : "translate-x-0"
   );
@@ -108,9 +108,9 @@ export function Sidebar({ open, isMobile, onClose, onLogout, activeModuleId, set
         />
       )}
 
-      <aside className={sidebarClasses}>
+      <aside className={sidebarClasses} style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
         {/* Brand / Logo Header */}
-        <div className="pt-5 pb-4 px-6 flex items-center justify-center relative shrink-0">
+        <div className="pt-4 pb-2 px-6 flex items-center justify-center relative shrink-0">
           <div className="flex flex-col items-center select-none">
             {/* Teal Roof Icon over "OO" */}
             <svg className="w-5 h-2.5 text-[#00A79D] ml-[44px] -mb-[3px]" viewBox="0 0 16 8" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -133,7 +133,7 @@ export function Sidebar({ open, isMobile, onClose, onLogout, activeModuleId, set
         </div>
 
         {/* Navigation List - Main Modules Only */}
-        <nav className="flex-1 overflow-y-auto px-0 space-y-[2px] custom-sidebar-scrollbar py-2">
+        <nav className="flex-1 overflow-y-auto px-0 space-y-[2px] custom-sidebar-scrollbar pt-1 pb-2">
           {MAIN_NAV.map((item) => {
             const Icon = item.icon;
             const isActive = currentActiveId === item.id;

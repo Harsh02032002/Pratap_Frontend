@@ -337,52 +337,52 @@ export default function Owner() {
    };
 
    return (
-      <div className="space-y-6 text-[#10242A]">
-          {/* Page Header */}
-          <PageHeader
-             title="View All Owners"
-             subtitle="Manage and view all registered property owners"
-             actions={
-                <div className="flex items-center gap-3">
-                   <button
-                      onClick={exportToExcel}
-                      className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-medium text-xs sm:text-sm px-4 py-2 rounded-xl transition-all shadow-2xs cursor-pointer"
-                   >
-                      Export
-                   </button>
-                   <button
-                      onClick={() => navigate("/superadmin/add-owner")}
-                      className="bg-[#095256] hover:bg-[#074043] text-white font-medium text-xs sm:text-sm px-4 py-2 rounded-xl flex items-center gap-2 transition-all shadow-2xs cursor-pointer"
-                   >
-                      <Plus className="w-4 h-4" /> + Add Owner
-                   </button>
-                </div>
-             }
-          />
+      <div className="space-y-4 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
+         {/* Page Header */}
+         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+               <h1 className="text-[22px] font-bold text-[#10242A] tracking-tight leading-tight">View All Owners</h1>
+               <p className="text-[13px] text-[#4A5961] mt-0.5">Manage and view all registered property owners</p>
+            </div>
+            <div className="flex items-center gap-3 shrink-0 self-start sm:self-auto">
+               <button
+                  onClick={exportToExcel}
+                  className="bg-white border border-[#CBD3D9] hover:bg-gray-50 text-[#10242A] font-semibold text-[13px] px-4 py-1.5 rounded-[8px] transition-colors cursor-pointer shadow-xs"
+               >
+                  Export
+               </button>
+               <button
+                  onClick={() => navigate("/superadmin/add-owner")}
+                  className="bg-[#0E7C86] hover:bg-[#0B666E] text-white font-semibold text-[13px] px-4 py-1.5 rounded-[8px] flex items-center gap-2 transition-colors cursor-pointer shadow-xs"
+               >
+                  <Plus size={16} /> Add Owner
+               </button>
+            </div>
+         </div>
 
           {/* Search & Filter Bar (OUTSIDE Table Card) */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-             <div className="relative flex-1 w-full max-w-md">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+             <div className="relative w-full sm:w-[320px]">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#708088]" />
                 <input
                    value={search} onChange={e => setSearch(e.target.value)}
                    placeholder="Search"
-                   className="w-full py-2.5 pl-10 pr-4 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-[#095256]/20 focus:border-[#095256] shadow-2xs transition-all"
+                   className="w-full bg-white border border-[#CBD3D9] rounded-[8px] pl-10 pr-3.5 py-1.5 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs"
                 />
              </div>
-             <div className="flex items-center gap-2.5 w-full sm:w-auto">
-                <select className="px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 outline-none cursor-pointer focus:border-[#095256] shadow-2xs w-full sm:w-36">
+             <div className="flex items-center gap-3 w-full sm:w-auto">
+                <select className="appearance-none px-3 py-1.5 bg-white border border-[#CBD3D9] rounded-[8px] text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs w-full sm:w-[110px]">
                    <option value="">KYC status ▾</option>
                    <option value="verified">Verified</option>
                    <option value="pending">Pending</option>
                 </select>
-                <select className="px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 outline-none cursor-pointer focus:border-[#095256] shadow-2xs w-full sm:w-36">
+                <select className="appearance-none px-3 py-1.5 bg-white border border-[#CBD3D9] rounded-[8px] text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs w-full sm:w-[110px]">
                    <option value="">Subscription ▾</option>
                    <option value="basic">Basic</option>
                    <option value="standard">Standard</option>
                    <option value="premium">Premium</option>
                 </select>
-                <select className="px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 outline-none cursor-pointer focus:border-[#095256] shadow-2xs w-full sm:w-36">
+                <select className="appearance-none px-3 py-1.5 bg-white border border-[#CBD3D9] rounded-[8px] text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs w-full sm:w-[100px]">
                    <option value="">Status ▾</option>
                    <option value="approved">Approved</option>
                    <option value="pending">Pending</option>
@@ -391,71 +391,71 @@ export default function Owner() {
           </div>
 
           {/* Separate Table Card Below */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
+          <div className="bg-white rounded-[12px] border border-[#E1E6EA] p-4 shadow-xs overflow-hidden">
              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
+                <table className="w-full text-left border-collapse min-w-[700px]">
                    <thead>
-                      <tr className="border-b border-slate-200/80 bg-white">
-                         <th className="py-3.5 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Owner</th>
-                         <th className="py-3.5 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Properties</th>
-                         <th className="py-3.5 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Phone</th>
-                         <th className="py-3.5 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">KYC</th>
-                         <th className="py-3.5 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Subscription</th>
-                         <th className="py-3.5 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
-                         <th className="py-3.5 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Action</th>
+                      <tr className="border-b border-[#E1E6EA]">
+                         <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider pl-2">Owner</th>
+                         <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Properties</th>
+                         <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Phone</th>
+                         <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">KYC</th>
+                         <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Subscription</th>
+                         <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Status</th>
+                         <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-right pr-2">Action</th>
                       </tr>
                    </thead>
-                  <tbody className="divide-y divide-[#E1E6EA] text-sm">
+                  <tbody className="divide-y divide-[#F0F4F6] text-sm">
                      {loading ? (
-                        <tr><td colSpan="7" className="py-12 text-center text-[#4A5961]">Loading Property Owners...</td></tr>
+                        <tr><td colSpan="7" className="py-8 text-center text-[#4A5961] text-[13px]">Loading Property Owners...</td></tr>
                      ) : filteredOwners.length === 0 ? (
-                        <tr><td colSpan="7" className="py-12 text-center text-[#4A5961]">No property owners found.</td></tr>
+                        <tr><td colSpan="7" className="py-8 text-center text-[#4A5961] text-[13px]">No property owners found.</td></tr>
                      ) : paginatedOwners.map((o, i) => {
                         const kycStat = (o.kycStatus || o.kyc?.status || "pending").toLowerCase();
                         const isApproved = o.status === "approved" || o.isApproved;
 
                         return (
-                           <tr key={i} className="hover:bg-slate-50/70 transition-colors border-b border-slate-100">
-                              <td className="py-4 px-6 font-medium text-slate-900">
+                           <tr key={i} className="hover:bg-[#F9FAFB] transition-colors">
+                              <td className="py-2.5 px-6 font-medium text-[#10242A] pl-2">
                                  <div className="flex items-center gap-3">
-                                    <div className="w-9 h-9 rounded-full bg-slate-200/70 border border-slate-200 flex items-center justify-center font-bold text-xs text-slate-600 shrink-0">
+                                    <div className="w-7 h-7 rounded-full bg-[#D9E1E7] flex items-center justify-center font-bold text-[11px] text-[#4A5961] shrink-0">
                                        {(o.name || "U").charAt(0).toUpperCase()}
                                     </div>
                                     <div>
-                                       <span className="font-semibold text-slate-900 text-sm block">{o.name || "Owner"}</span>
-                                       <span className="text-xs text-slate-500">{o.loginId || "—"}</span>
+                                       <span className="font-semibold text-[#10242A] text-[13px] block">{o.name || "Owner"}</span>
+                                       <span className="text-[12px] text-[#708088]">{o.loginId || "—"}</span>
                                     </div>
                                  </div>
                               </td>
-                              <td className="py-4 px-6 text-slate-700 font-medium">{o.propertyCount || 1} Properties</td>
-                              <td className="py-4 px-6 text-slate-600">{o.phone || o.profile?.phone || "—"}</td>
-                              <td className="py-4 px-6">
+                              <td className="py-2.5 text-[#4A5961] text-[13px]">{o.propertyCount || 1} Properties</td>
+                              <td className="py-2.5 text-[#4A5961] text-[13px]">{o.phone || o.profile?.phone || "—"}</td>
+                              <td className="py-2.5">
                                  <span className={cn(
-                                    "inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold",
-                                    kycStat === "verified" ? "bg-emerald-100 text-emerald-700" : kycStat === "docs_missing" ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-700"
+                                    "inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold",
+                                    kycStat === "verified" ? "bg-[#DDF3E4] text-[#14532D]" : kycStat === "docs_missing" ? "bg-[#FDE8E8] text-[#991B1B]" : "bg-[#FDEBD0] text-[#7A3E00]"
                                  )}>
                                     {kycStat === "verified" ? "Verified" : kycStat === "docs_missing" ? "Docs missing" : "Pending"}
                                  </span>
                               </td>
-                              <td className="py-4 px-6">
-                                 <span className="bg-sky-100 text-sky-700 text-xs font-semibold px-3 py-1 rounded-full inline-flex items-center">
+                              <td className="py-2.5">
+                                 <span className="bg-[#E0F2FE] text-[#0369A1] text-[11px] font-semibold px-2.5 py-0.5 rounded-full inline-flex items-center">
                                     Trial Active
                                  </span>
                               </td>
-                              <td className="py-4 px-6">
+                              <td className="py-2.5">
                                  <span className={cn(
-                                    "inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold",
-                                    isApproved ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+                                    "inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold",
+                                    isApproved ? "bg-[#DDF3E4] text-[#14532D]" : "bg-[#FDEBD0] text-[#7A3E00]"
                                  )}>
                                     {isApproved ? "Approved" : "Pending"}
                                  </span>
                               </td>
-                              <td className="py-4 px-6 text-right">
+                              <td className="py-2.5 px-6 text-right">
                                  <div className="flex items-center justify-end gap-2">
-                                    <button onClick={() => { setSelectedOwner(o); setIsEditingOwner(false); }} className="px-3.5 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-medium transition shadow-2xs cursor-pointer">
+                                    <button onClick={() => { setSelectedOwner(o); setIsEditingOwner(false); }} className="px-3 py-1 bg-white border border-[#CBD3D9] hover:bg-gray-50 text-[#10242A] rounded-[6px] text-[11px] font-semibold transition shadow-xs cursor-pointer">
                                        View
                                     </button>
-                                    <button onClick={() => { setSelectedOwner(o); setIsEditingOwner(true); }} className="px-3.5 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-medium transition shadow-2xs cursor-pointer">
+                                    <button onClick={() => { setSelectedOwner(o); setIsEditingOwner(true); }} className="px-3 py-1 bg-white border border-[#CBD3D9] hover:bg-gray-50 text-[#10242A] rounded-[6px] text-[11px] font-semibold transition shadow-xs cursor-pointer">
                                        Edit
                                     </button>
                                  </div>
@@ -469,40 +469,24 @@ export default function Owner() {
 
                {/* Pagination */}
                {totalRecords > 0 && (
-                  <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-white">
-                     <p className="text-xs font-semibold text-slate-500">
+                  <div className="flex items-center justify-between pt-3 mt-3 border-t border-[#E1E6EA]">
+                     <p className="text-[12px] font-semibold text-[#4A5961]">
                         Showing {((currentPage - 1) * LIMIT) + 1} to {Math.min(currentPage * LIMIT, totalRecords)} of{" "}
-                        <span className="text-slate-900 font-bold">{totalRecords.toLocaleString()}</span> property owners
+                        <span className="text-[#10242A] font-bold">{totalRecords.toLocaleString()}</span> property owners
                      </p>
                      <div className="flex items-center gap-2">
                         <button
                            disabled={currentPage === 1}
                            onClick={() => setCurrentPage(currentPage - 1)}
-                           className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                           className="flex items-center gap-1 px-2.5 py-1 rounded-[6px] border border-[#CBD3D9] text-[12px] font-semibold text-[#10242A] hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
                         >
                            <ChevronLeft className="w-4 h-4" /> Prev
                         </button>
-                        {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-                           let n;
-                           if (totalPages <= 7) n = i + 1;
-                           else if (currentPage <= 4) n = i + 1;
-                           else if (currentPage >= totalPages - 3) n = totalPages - 6 + i;
-                           else n = currentPage - 3 + i;
-                           return (
-                              <button
-                                 key={n}
-                                 onClick={() => setCurrentPage(n)}
-                                 className={cn("w-8 h-8 rounded-lg text-xs font-bold transition-all",
-                                    currentPage === n ? "bg-blue-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-100 border border-slate-200")}
-                              >
-                                 {n}
-                              </button>
-                           );
-                        })}
+                        <span className="text-[12px] text-[#4A5961] font-semibold px-2">Page {currentPage} of {totalPages}</span>
                         <button
                            disabled={currentPage === totalPages}
                            onClick={() => setCurrentPage(currentPage + 1)}
-                           className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                           className="flex items-center gap-1 px-2.5 py-1 rounded-[6px] border border-[#CBD3D9] text-[12px] font-semibold text-[#10242A] hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
                         >
                            Next <ChevronRight className="w-4 h-4" />
                         </button>

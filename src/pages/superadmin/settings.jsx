@@ -163,13 +163,13 @@ export default function SuperadminSettings() {
   }
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-8 pb-16">
+    <div className="space-y-4 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
       {/* ── Banner Notification ── */}
       {banner.show && (
         <div 
           className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-6 py-4 rounded-2xl shadow-xl transition-all duration-300 transform translate-y-0 ${
             banner.type === "success" 
-              ? "bg-emerald-600 text-white" 
+              ? "bg-[#0E7C86] text-white" 
               : "bg-rose-600 text-white"
           }`}
         >
@@ -179,35 +179,33 @@ export default function SuperadminSettings() {
       )}
 
       {/* ── Header ── */}
-      <div className="flex flex-col gap-1.5">
-        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Settings</h1>
-        <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-          <span>Superadmin</span>
-          <ChevronRight className="w-3 h-3 text-slate-300" />
-          <span className="text-blue-600">Settings</span>
-        </div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+         <div>
+            <h1 className="text-[22px] font-bold text-[#10242A] tracking-tight leading-tight">Settings</h1>
+            <p className="text-[13px] text-[#4A5961] mt-0.5">Manage platform preferences and profile</p>
+         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         
         {/* ── Left Side: Commission Split Setting ── */}
-        <div className="md:col-span-2 space-y-6">
+        <div className="md:col-span-2 space-y-4">
           
           {/* Card: Platform Commission Calibration */}
-          <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-6">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
-                <Percent className="w-5 h-5" />
+          <div className="bg-white rounded-[12px] border border-[#E1E6EA] shadow-xs p-5 space-y-5">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-[8px] bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center">
+                <Percent className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-900">Platform Commission</h3>
-                <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Set your percentage</p>
+                <h3 className="text-[14px] font-bold text-[#10242A]">Platform Commission</h3>
+                <p className="text-[11px] text-[#4A5961] font-semibold uppercase tracking-wider">Set your percentage</p>
               </div>
             </div>
 
-            <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 space-y-5">
+            <div className="p-4 bg-[#F9FAFB] rounded-[8px] border border-[#CBD3D9] space-y-4">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-slate-600">Commission %</label>
+                <label className="text-[12px] font-bold text-[#4A5961]">Commission %</label>
                 <div className="flex items-center gap-2">
                   <input 
                     type="number" 
@@ -215,9 +213,9 @@ export default function SuperadminSettings() {
                     max="100"
                     value={commissionPercentage}
                     onChange={(e) => setCommissionPercentage(Math.min(100, Math.max(0, Number(e.target.value))))}
-                    className="w-20 bg-white border border-slate-200 rounded-xl py-2 px-3 text-center text-sm font-black text-slate-900 focus:outline-none focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 transition-all"
+                    className="w-16 bg-white border border-[#CBD3D9] rounded-[6px] py-1.5 px-2 text-center text-[13px] font-bold text-[#10242A] focus:outline-none focus:border-[#0E7C86] transition-all shadow-xs"
                   />
-                  <span className="text-sm font-black text-slate-500">%</span>
+                  <span className="text-[13px] font-bold text-[#4A5961]">%</span>
                 </div>
               </div>
 
@@ -229,13 +227,13 @@ export default function SuperadminSettings() {
                 step="0.5"
                 value={commissionPercentage}
                 onChange={(e) => setCommissionPercentage(Number(e.target.value))}
-                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                className="w-full h-1.5 bg-[#CBD3D9] rounded-lg appearance-none cursor-pointer accent-[#0E7C86]"
               />
 
-              <div className="border-t border-dashed border-slate-200 my-4" />
+              <div className="border-t border-dashed border-[#CBD3D9] my-3" />
 
               <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-slate-600">GST on Commission %</label>
+                <label className="text-[12px] font-bold text-[#4A5961]">GST on Commission %</label>
                 <div className="flex items-center gap-2">
                   <input 
                     type="number" 
@@ -243,9 +241,9 @@ export default function SuperadminSettings() {
                     max="100"
                     value={gstPercentage}
                     onChange={(e) => setGstPercentage(Math.min(100, Math.max(0, Number(e.target.value))))}
-                    className="w-20 bg-white border border-slate-200 rounded-xl py-2 px-3 text-center text-sm font-black text-slate-900 focus:outline-none focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 transition-all"
+                    className="w-16 bg-white border border-[#CBD3D9] rounded-[6px] py-1.5 px-2 text-center text-[13px] font-bold text-[#10242A] focus:outline-none focus:border-[#0E7C86] transition-all shadow-xs"
                   />
-                  <span className="text-sm font-black text-slate-500">%</span>
+                  <span className="text-[13px] font-bold text-[#4A5961]">%</span>
                 </div>
               </div>
 
@@ -253,51 +251,51 @@ export default function SuperadminSettings() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <label className="text-xs font-bold text-slate-900 block">Default Booking Amount (₹)</label>
-                  <span className="text-[10px] text-slate-400 font-semibold block">Configured token amount charged for room/property bookings</span>
+                  <label className="text-[12px] font-bold text-[#10242A] block">Default Booking Amount (₹)</label>
+                  <span className="text-[11px] text-[#4A5961] font-semibold block">Configured token amount charged for room/property bookings</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-black text-slate-500">₹</span>
+                  <span className="text-[13px] font-bold text-[#4A5961]">₹</span>
                   <input 
                     type="number" 
                     min="0"
                     value={defaultBookingAmount}
                     onChange={(e) => setDefaultBookingAmount(Math.max(0, Number(e.target.value)))}
-                    className="w-28 bg-white border border-slate-200 rounded-xl py-2 px-3 text-center text-sm font-black text-slate-900 focus:outline-none focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 transition-all"
+                    className="w-24 bg-white border border-[#CBD3D9] rounded-[6px] py-1.5 px-2 text-center text-[13px] font-bold text-[#10242A] focus:outline-none focus:border-[#0E7C86] transition-all shadow-xs"
                   />
                 </div>
               </div>
 
               {/* Live Calculator Visualizer */}
-              <div className="bg-white rounded-xl p-4 border border-slate-200/60 shadow-inner space-y-3">
-                <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                  <Sparkles size={11} className="text-purple-600" /> Live Earnings Calculator
+              <div className="bg-white rounded-[8px] p-4 border border-[#E1E6EA] shadow-xs space-y-3">
+                <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#4A5961] uppercase tracking-widest">
+                  <Sparkles size={11} className="text-[#0E7C86]" /> Live Earnings Calculator
                 </div>
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-slate-500 font-semibold">Default Booking Amount:</span>
-                  <span className="font-bold text-purple-700">₹{Number(defaultBookingAmount || 500).toLocaleString("en-IN")}</span>
+                <div className="flex justify-between items-center text-[12px]">
+                  <span className="text-[#4A5961] font-semibold">Default Booking Amount:</span>
+                  <span className="font-bold text-[#0E7C86]">₹{Number(defaultBookingAmount || 500).toLocaleString("en-IN")}</span>
                 </div>
-                <div className="border-t border-dashed border-slate-100 my-2" />
+                <div className="border-t border-dashed border-[#E1E6EA] my-2" />
                 <div className="flex justify-between items-center">
                   <div className="flex flex-col">
-                    <span className="text-[10px] font-black text-purple-600 uppercase tracking-wider">Admin Commission ({commissionPercentage}%)</span>
-                    <span className="text-[9px] text-slate-400">Admin gets (before GST)</span>
+                    <span className="text-[11px] font-bold text-[#0E7C86] tracking-wider">Admin Commission ({commissionPercentage}%)</span>
+                    <span className="text-[10px] text-[#4A5961]">Admin gets (before GST)</span>
                   </div>
-                  <span className="text-sm font-black text-purple-700">₹{((Number(defaultBookingAmount || 500) * commissionPercentage) / 100).toLocaleString("en-IN")}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <div className="flex flex-col">
-                    <span className="text-[10px] font-black text-rose-600 uppercase tracking-wider">GST on Commission ({gstPercentage}%)</span>
-                    <span className="text-[9px] text-slate-400">Govt. Tax</span>
-                  </div>
-                  <span className="text-sm font-bold text-rose-700">₹{(((Number(defaultBookingAmount || 500) * commissionPercentage / 100) * gstPercentage) / 100).toLocaleString("en-IN")}</span>
+                  <span className="text-[13px] font-bold text-[#0E7C86]">₹{((Number(defaultBookingAmount || 500) * commissionPercentage) / 100).toLocaleString("en-IN")}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <div className="flex flex-col">
-                    <span className="text-[10px] font-black text-slate-600 uppercase tracking-wider">Owner Earnings</span>
-                    <span className="text-[9px] text-slate-400">Net Owner Payout</span>
+                    <span className="text-[11px] font-bold text-rose-600 tracking-wider">GST on Commission ({gstPercentage}%)</span>
+                    <span className="text-[10px] text-[#4A5961]">Govt. Tax</span>
                   </div>
-                  <span className="text-sm font-bold text-slate-900">₹{(Number(defaultBookingAmount || 500) - ((Number(defaultBookingAmount || 500) * commissionPercentage) / 100) - (((Number(defaultBookingAmount || 500) * commissionPercentage / 100) * gstPercentage) / 100)).toLocaleString("en-IN")}</span>
+                  <span className="text-[13px] font-bold text-rose-600">₹{(((Number(defaultBookingAmount || 500) * commissionPercentage / 100) * gstPercentage) / 100).toLocaleString("en-IN")}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <div className="flex flex-col">
+                    <span className="text-[11px] font-bold text-[#10242A] tracking-wider">Owner Earnings</span>
+                    <span className="text-[10px] text-[#4A5961]">Net Owner Payout</span>
+                  </div>
+                  <span className="text-[14px] font-bold text-[#10242A]">₹{(Number(defaultBookingAmount || 500) - ((Number(defaultBookingAmount || 500) * commissionPercentage) / 100) - (((Number(defaultBookingAmount || 500) * commissionPercentage / 100) * gstPercentage) / 100)).toLocaleString("en-IN")}</span>
                 </div>
               </div>
             </div>
@@ -306,7 +304,7 @@ export default function SuperadminSettings() {
               <button 
                 onClick={handleSaveSettings}
                 disabled={savingSettings}
-                className="bg-purple-600 text-white px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-purple-700 transition-all flex items-center gap-2 shadow-lg shadow-purple-600/10 disabled:opacity-50"
+                className="bg-[#0E7C86] hover:bg-[#0B666E] text-white px-5 py-2 rounded-[8px] text-[13px] font-semibold transition-colors flex items-center gap-2 shadow-xs disabled:opacity-50 cursor-pointer"
               >
                 <Save size={14} /> {savingSettings ? "Saving..." : "Save Settings"}
               </button>
@@ -314,57 +312,57 @@ export default function SuperadminSettings() {
           </div>
 
           {/* Card: Account Profile Settings */}
-          <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-6">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                <User className="w-5 h-5" />
+          <div className="bg-white rounded-[12px] border border-[#E1E6EA] shadow-xs p-5 space-y-5">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-[8px] bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center">
+                <User className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-900">My Profile</h3>
-                <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Update your details</p>
+                <h3 className="text-[14px] font-bold text-[#10242A]">My Profile</h3>
+                <p className="text-[11px] text-[#4A5961] font-semibold uppercase tracking-wider">Update your details</p>
               </div>
             </div>
 
             <form onSubmit={handleSaveProfile} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">First Name</label>
+                  <label className="text-[12px] font-semibold text-[#10242A]">First Name</label>
                   <input
                     type="text"
                     value={profile.firstName}
                     onChange={(e) => setProfile({ ...profile, firstName: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3 px-4 text-xs font-bold text-slate-800 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all"
+                    className="w-full bg-white border border-[#CBD3D9] rounded-[8px] px-3.5 py-2 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs"
                     required
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Last Name</label>
+                  <label className="text-[12px] font-semibold text-[#10242A]">Last Name</label>
                   <input
                     type="text"
                     value={profile.lastName}
                     onChange={(e) => setProfile({ ...profile, lastName: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3 px-4 text-xs font-bold text-slate-800 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all"
+                    className="w-full bg-white border border-[#CBD3D9] rounded-[8px] px-3.5 py-2 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Email</label>
+                  <label className="text-[12px] font-semibold text-[#10242A]">Email</label>
                   <input
                     type="email"
                     value={profile.email}
                     disabled
-                    className="w-full bg-slate-100 border border-slate-200/60 rounded-xl py-3 px-4 text-xs font-bold text-slate-400 cursor-not-allowed outline-none"
+                    className="w-full bg-[#F9FAFB] border border-[#E1E6EA] rounded-[8px] px-3.5 py-2 text-[13px] font-medium text-[#708088] cursor-not-allowed outline-none"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Phone Number</label>
+                  <label className="text-[12px] font-semibold text-[#10242A]">Phone Number</label>
                   <input
                     type="text"
                     value={profile.phone}
                     onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3 px-4 text-xs font-bold text-slate-800 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all"
+                    className="w-full bg-white border border-[#CBD3D9] rounded-[8px] px-3.5 py-2 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs"
                   />
                 </div>
               </div>
@@ -373,7 +371,7 @@ export default function SuperadminSettings() {
                 <button
                   type="submit"
                   disabled={profileSaving}
-                  className="bg-blue-600 text-white px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg shadow-blue-600/10 disabled:opacity-50"
+                  className="bg-[#0E7C86] hover:bg-[#0B666E] text-white px-5 py-2 rounded-[8px] text-[13px] font-semibold transition-colors flex items-center gap-2 shadow-xs disabled:opacity-50 cursor-pointer"
                 >
                   <Save size={14} /> {profileSaving ? "Saving..." : "Save Changes"}
                 </button>
@@ -383,51 +381,51 @@ export default function SuperadminSettings() {
         </div>
 
         {/* ── Right Side: Change Password ── */}
-        <div className="space-y-6">
-          <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-6">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                <Lock className="w-5 h-5" />
+        <div className="space-y-4">
+          <div className="bg-white rounded-[12px] border border-[#E1E6EA] shadow-xs p-5 space-y-5">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-[8px] bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center">
+                <Lock className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-900">Change Password</h3>
-                <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Update your password</p>
+                <h3 className="text-[14px] font-bold text-[#10242A]">Change Password</h3>
+                <p className="text-[11px] text-[#4A5961] font-semibold uppercase tracking-wider">Update your password</p>
               </div>
             </div>
 
             <form onSubmit={handleChangePassword} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Current Password</label>
+                <label className="text-[12px] font-semibold text-[#10242A]">Current Password</label>
                 <input
                   type="password"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3 px-4 text-xs font-bold text-slate-800 outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 focus:bg-white transition-all"
+                  className="w-full bg-white border border-[#CBD3D9] rounded-[8px] px-3.5 py-2 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs"
                   required
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">New Password</label>
+                <label className="text-[12px] font-semibold text-[#10242A]">New Password</label>
                 <input
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3 px-4 text-xs font-bold text-slate-800 outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 focus:bg-white transition-all"
+                  className="w-full bg-white border border-[#CBD3D9] rounded-[8px] px-3.5 py-2 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs"
                   required
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Confirm New Password</label>
+                <label className="text-[12px] font-semibold text-[#10242A]">Confirm New Password</label>
                 <input
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3 px-4 text-xs font-bold text-slate-800 outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 focus:bg-white transition-all"
+                  className="w-full bg-white border border-[#CBD3D9] rounded-[8px] px-3.5 py-2 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs"
                   required
                 />
               </div>
@@ -435,7 +433,7 @@ export default function SuperadminSettings() {
               <button
                 type="submit"
                 disabled={passwordSaving}
-                className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-lg shadow-amber-500/10 disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-[8px] text-[13px] font-semibold transition-colors flex items-center justify-center gap-2 shadow-xs disabled:opacity-50 cursor-pointer"
               >
                 <Save size={14} /> {passwordSaving ? "Updating Password..." : "Update Password"}
               </button>

@@ -87,81 +87,81 @@ export default function OwnerSubscriptions() {
   };
 
   return (
-    <div className="space-y-6 text-[#10242A]">
-      {/* Page Header - PDF Page 14 Spec */}
-      <PageHeader
-        title="Owner Subscriptions"
-        subtitle="Plans and owner billing status"
-        actions={
-          <button
+    <div className="space-y-4 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+         <div>
+            <h1 className="text-[22px] font-bold text-[#10242A] tracking-tight leading-tight">Owner Subscriptions</h1>
+            <p className="text-[13px] text-[#4A5961] mt-0.5">Plans and owner billing status</p>
+         </div>
+         <button
             onClick={() => setShowSettings(true)}
-            className="bg-white border border-[#CBD3D9] hover:bg-slate-50 text-[#10242A] font-semibold text-sm px-4 py-2 rounded-[8px] transition-colors cursor-pointer"
-          >
+            className="bg-white border border-[#CBD3D9] hover:bg-gray-50 text-[#10242A] font-semibold text-[13px] px-4 py-2 rounded-[8px] transition-colors cursor-pointer shadow-xs"
+         >
             Manage Plans
-          </button>
-        }
-      />
+         </button>
+      </div>
 
-      {/* 3 Top Plan Cards - PDF Page 14 Spec */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      {/* 3 Top Plan Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Basic Plan Card */}
-        <div className="bg-white rounded-[12px] border border-[#E1E6EA] p-5 shadow-sm space-y-3">
-          <p className="text-base font-bold text-[#10242A]">Basic</p>
-          <p className="text-2xl font-bold text-[#10242A]">[Price]<span className="text-xs font-normal text-[#4A5961]">/month</span></p>
-          <div className="text-xs text-[#4A5961] space-y-1">
-            <p>[Feature one]</p>
-            <p>[Feature two]</p>
-            <p>[Feature three]</p>
+        <div className="bg-white rounded-[12px] border border-[#E1E6EA] p-4 shadow-xs space-y-2.5">
+          <p className="text-[14px] font-bold text-[#10242A]">Basic</p>
+          <p className="text-[24px] font-bold text-[#10242A] leading-none">Price<span className="text-[12px] font-normal text-[#4A5961]">/month</span></p>
+          <div className="text-[12px] text-[#4A5961] space-y-0.5">
+            <p>Feature one</p>
+            <p>Feature two</p>
+            <p>Feature three</p>
           </div>
-          <p className="text-xs font-semibold text-[#10242A] pt-2 border-t border-[#E1E6EA]">
-            [{ownersList.filter(o => (o.subscriptionPlan || "").toLowerCase() === "basic").length}] owners
+          <p className="text-[12px] font-semibold text-[#10242A] pt-2 border-t border-[#E1E6EA]">
+            {ownersList.filter(o => (o.subscriptionPlan || "").toLowerCase() === "basic").length} owners
           </p>
         </div>
 
         {/* Standard Plan Card (Active Highlighted) */}
-        <div className="bg-white rounded-[12px] border-2 border-[#0E7C86] p-5 shadow-sm space-y-3 relative">
-          <p className="text-base font-bold text-[#10242A]">Standard</p>
-          <p className="text-2xl font-bold text-[#10242A]">[Price]<span className="text-xs font-normal text-[#4A5961]">/month</span></p>
-          <div className="text-xs text-[#4A5961] space-y-1">
-            <p>[Feature one]</p>
-            <p>[Feature two]</p>
-            <p>[Feature three]</p>
+        <div className="bg-white rounded-[12px] border-2 border-[#0E7C86] p-4 shadow-xs space-y-2.5 relative">
+          <p className="text-[14px] font-bold text-[#10242A]">Standard</p>
+          <p className="text-[24px] font-bold text-[#10242A] leading-none">Price<span className="text-[12px] font-normal text-[#4A5961]">/month</span></p>
+          <div className="text-[12px] text-[#4A5961] space-y-0.5">
+            <p>Feature one</p>
+            <p>Feature two</p>
+            <p>Feature three</p>
           </div>
-          <p className="text-xs font-semibold text-[#10242A] pt-2 border-t border-[#E1E6EA]">
-            [{ownersList.filter(o => !(o.subscriptionPlan) || (o.subscriptionPlan || "").toLowerCase() === "standard").length}] owners
+          <p className="text-[12px] font-semibold text-[#10242A] pt-2 border-t border-[#E1E6EA]">
+            {ownersList.filter(o => !(o.subscriptionPlan) || (o.subscriptionPlan || "").toLowerCase() === "standard").length} owners
           </p>
         </div>
 
         {/* Premium Plan Card */}
-        <div className="bg-white rounded-[12px] border border-[#E1E6EA] p-5 shadow-sm space-y-3">
-          <p className="text-base font-bold text-[#10242A]">Premium</p>
-          <p className="text-2xl font-bold text-[#10242A]">[Price]<span className="text-xs font-normal text-[#4A5961]">/month</span></p>
-          <div className="text-xs text-[#4A5961] space-y-1">
-            <p>[Feature one]</p>
-            <p>[Feature two]</p>
-            <p>[Feature three]</p>
+        <div className="bg-white rounded-[12px] border border-[#E1E6EA] p-4 shadow-xs space-y-2.5">
+          <p className="text-[14px] font-bold text-[#10242A]">Premium</p>
+          <p className="text-[24px] font-bold text-[#10242A] leading-none">Price<span className="text-[12px] font-normal text-[#4A5961]">/month</span></p>
+          <div className="text-[12px] text-[#4A5961] space-y-0.5">
+            <p>Feature one</p>
+            <p>Feature two</p>
+            <p>Feature three</p>
           </div>
-          <p className="text-xs font-semibold text-[#10242A] pt-2 border-t border-[#E1E6EA]">
-            [{ownersList.filter(o => (o.subscriptionPlan || "").toLowerCase() === "premium").length}] owners
+          <p className="text-[12px] font-semibold text-[#10242A] pt-2 border-t border-[#E1E6EA]">
+            {ownersList.filter(o => (o.subscriptionPlan || "").toLowerCase() === "premium").length} owners
           </p>
         </div>
       </div>
 
-      {/* Table Card - PDF Page 14 Spec */}
-      <div className="bg-white rounded-[12px] border border-[#E1E6EA] p-5 shadow-sm">
+      {/* Table Card */}
+      <div className="bg-white rounded-[12px] border border-[#E1E6EA] p-4 shadow-xs">
         {/* Filter Bar (Search, Plan ▾, Status ▾) */}
-        <div className="flex flex-col sm:flex-row items-center gap-3 mb-6">
-          <div className="relative flex-1 w-full">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#4A5961]" />
+        <div className="flex flex-col sm:flex-row items-center gap-3 mb-4">
+          <div className="relative flex-1 w-full sm:max-w-[320px]">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#708088]" />
             <input
               value={search} onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
               placeholder="Search"
-              className="w-full h-[44px] bg-white border border-[#CBD3D9] rounded-[8px] pl-10 pr-3.5 text-sm text-[#10242A] placeholder:text-[#4A5961] outline-none focus:border-[#0E7C86]"
+              className="w-full bg-white border border-[#CBD3D9] rounded-[8px] pl-10 pr-3.5 py-1.5 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs"
             />
           </div>
           <select
             value={planFilter} onChange={e => { setPlanFilter(e.target.value); setCurrentPage(1); }}
-            className="h-[44px] bg-white border border-[#CBD3D9] rounded-[8px] px-3.5 text-sm text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] w-full sm:w-36"
+            className="bg-white border border-[#CBD3D9] rounded-[8px] px-3.5 py-1.5 text-[13px] font-semibold text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs w-full sm:w-[140px]"
           >
             <option value="all">Plan ▾</option>
             <option value="basic">Basic</option>
@@ -170,7 +170,7 @@ export default function OwnerSubscriptions() {
           </select>
           <select
             value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-            className="h-[44px] bg-white border border-[#CBD3D9] rounded-[8px] px-3.5 text-sm text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] w-full sm:w-36"
+            className="bg-white border border-[#CBD3D9] rounded-[8px] px-3.5 py-1.5 text-[13px] font-semibold text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs w-full sm:w-[140px]"
           >
             <option value="all">Status ▾</option>
             <option value="active">Active</option>
@@ -180,23 +180,23 @@ export default function OwnerSubscriptions() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse min-w-[800px]">
             <thead>
-              <tr className="border-b border-[#E1E6EA] text-xs font-semibold text-[#4A5961]">
-                <th className="py-3 px-4">Owner</th>
-                <th className="py-3 px-4">Plan</th>
-                <th className="py-3 px-4">Start</th>
-                <th className="py-3 px-4">Renewal</th>
-                <th className="py-3 px-4">Amount</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4 text-right">Action</th>
+              <tr className="border-b border-[#E1E6EA]">
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider pl-2">Owner</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Plan</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Start</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Renewal</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Amount</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Status</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-right pr-2">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E1E6EA] text-sm">
+            <tbody className="divide-y divide-[#F0F4F6] text-sm">
               {loading ? (
-                <tr><td colSpan="7" className="py-12 text-center text-[#4A5961]">Loading owner subscriptions...</td></tr>
+                <tr><td colSpan="7" className="py-8 text-center text-[#4A5961] text-[13px]">Loading owner subscriptions...</td></tr>
               ) : filteredOwners.length === 0 ? (
-                <tr><td colSpan="7" className="py-12 text-center text-[#4A5961]">No subscription records found.</td></tr>
+                <tr><td colSpan="7" className="py-8 text-center text-[#4A5961] text-[13px]">No subscription records found.</td></tr>
               ) : paginatedOwners.map((o, i) => {
                 const ts = o.trialStatus || {};
                 const isExp = ts.status === "expired";
@@ -207,44 +207,44 @@ export default function OwnerSubscriptions() {
                 const renewalDateStr = ts.endDate ? new Date(ts.endDate).toLocaleDateString("en-IN", { day: 'numeric', month: 'short', year: 'numeric' }) : "[Date]";
 
                 return (
-                  <tr key={i} className="hover:bg-slate-50/50 transition-colors">
+                  <tr key={i} className="hover:bg-[#F9FAFB] transition-colors">
                     {/* Owner Identity */}
-                    <td className="py-3.5 px-4 font-medium text-[#10242A]">
+                    <td className="py-2.5 px-4 font-medium text-[#10242A] pl-2">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-[#CBD3D9] flex items-center justify-center font-bold text-xs text-[#10242A]">
+                        <div className="w-7 h-7 rounded-full bg-[#D9E1E7] flex items-center justify-center font-bold text-[11px] text-[#4A5961]">
                           {(o.name || "U").charAt(0).toUpperCase()}
                         </div>
-                        <span className="font-semibold text-[#10242A]">{o.name || "[Name]"}</span>
+                        <span className="font-semibold text-[13px] text-[#10242A]">{o.name || "[Name]"}</span>
                       </div>
                     </td>
 
                     {/* Plan */}
-                    <td className="py-3.5 px-4 text-[#10242A] font-medium">{planName}</td>
+                    <td className="py-2.5 px-4 text-[#10242A] font-medium text-[13px]">{planName}</td>
 
                     {/* Start */}
-                    <td className="py-3.5 px-4 text-[#4A5961]">{startDateStr}</td>
+                    <td className="py-2.5 px-4 text-[#4A5961] text-[13px]">{startDateStr}</td>
 
                     {/* Renewal */}
-                    <td className="py-3.5 px-4 text-[#4A5961]">{renewalDateStr}</td>
+                    <td className="py-2.5 px-4 text-[#4A5961] text-[13px]">{renewalDateStr}</td>
 
                     {/* Amount */}
-                    <td className="py-3.5 px-4 text-[#10242A] font-medium">[Amount]</td>
+                    <td className="py-2.5 px-4 text-[#10242A] font-medium text-[13px]">[Amount]</td>
 
                     {/* Status Badge */}
-                    <td className="py-3.5 px-4">
+                    <td className="py-2.5 px-4">
                       <span className={cn(
-                        "text-xs font-semibold px-2.5 py-1 rounded-full inline-flex items-center",
-                        isExp ? "bg-[#FEE2E2] text-[#991B1B]" : isExpiring ? "bg-[#FDEBD0] text-[#7A3E00]" : "bg-[#DDF3E4] text-[#14532D]"
+                        "text-[11px] font-semibold px-2.5 py-0.5 rounded-full inline-flex items-center",
+                        isExp ? "bg-[#FDE8E8] text-[#991B1B]" : isExpiring ? "bg-[#FDEBD0] text-[#7A3E00]" : "bg-[#DDF3E4] text-[#14532D]"
                       )}>
                         {isExp ? "Expired" : isExpiring ? "Expiring" : "Active"}
                       </span>
                     </td>
 
                     {/* Action */}
-                    <td className="py-3.5 px-4 text-right">
+                    <td className="py-2.5 px-4 text-right pr-2">
                       <button
                         onClick={() => setSelectedOwnerModal(o)}
-                        className="border border-[#CBD3D9] hover:bg-slate-50 text-[#10242A] text-xs font-semibold px-3 py-1 rounded-[6px] transition-colors cursor-pointer"
+                        className="border border-[#CBD3D9] hover:bg-gray-50 text-[#10242A] text-[11px] font-semibold px-3 py-1 rounded-[6px] transition-colors cursor-pointer"
                       >
                         View
                       </button>
@@ -258,24 +258,24 @@ export default function OwnerSubscriptions() {
 
         {/* Pagination */}
         {totalRecords > 0 && (
-          <div className="flex items-center justify-between pt-4 mt-4 border-t border-[#E1E6EA]">
-            <p className="text-xs text-[#4A5961]">
+          <div className="flex items-center justify-between pt-3 mt-3 border-t border-[#E1E6EA]">
+            <p className="text-[12px] font-semibold text-[#4A5961]">
               Showing {((currentPage - 1) * LIMIT) + 1} to {Math.min(currentPage * LIMIT, totalRecords)} of{" "}
-              <span className="font-semibold text-[#10242A]">{totalRecords}</span> subscriptions
+              <span className="text-[#10242A] font-bold">{totalRecords}</span> subscriptions
             </p>
             <div className="flex items-center gap-2">
               <button
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage(currentPage - 1)}
-                className="flex items-center gap-1 px-3 py-1 rounded-[6px] border border-[#CBD3D9] text-xs font-semibold text-[#10242A] hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center gap-1 px-2.5 py-1 rounded-[6px] border border-[#CBD3D9] text-[12px] font-semibold text-[#10242A] hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4" /> Prev
               </button>
-              <span className="text-xs text-[#4A5961] font-semibold px-2">Page {currentPage} of {totalPages}</span>
+              <span className="text-[12px] text-[#4A5961] font-semibold px-2">Page {currentPage} of {totalPages}</span>
               <button
                 disabled={currentPage === totalPages}
                 onClick={() => setCurrentPage(currentPage + 1)}
-                className="flex items-center gap-1 px-3 py-1 rounded-[6px] border border-[#CBD3D9] text-xs font-semibold text-[#10242A] hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center gap-1 px-2.5 py-1 rounded-[6px] border border-[#CBD3D9] text-[12px] font-semibold text-[#10242A] hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
               >
                 Next <ChevronRight className="w-4 h-4" />
               </button>

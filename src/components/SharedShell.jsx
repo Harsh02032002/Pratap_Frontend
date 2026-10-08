@@ -190,12 +190,10 @@ export default function SharedShell() {
           }}
         />
 
-        {/* Secondary Sub-navigation Sidebar Panel (as shown in PDF) */}
-        {!isMobile && <SubNavPanel activeModuleId={activeModuleId} />}
-
+        {/* Main Workspace Column to the right of Primary Dark Sidebar */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          {/* Top Global Header - Screenshot & PDF Perfect */}
-          <header className="h-[72px] bg-white border-b border-[#E1E6EA] flex items-center justify-between px-8 z-30 shrink-0">
+          {/* Top Global Header (Design Spec Section 3: 72px high, white, bottom border 1px #E1E6EA, padding 0 32px) */}
+          <header className="h-[72px] bg-white border-b border-[#E1E6EA] flex items-center justify-between px-[32px] z-30 shrink-0">
             <div className="flex items-center gap-4">
               <button
                 className="lg:hidden p-2 text-slate-500 hover:bg-slate-50 rounded-xl transition-all"
@@ -204,13 +202,13 @@ export default function SharedShell() {
                 <Menu size={24} />
               </button>
               
-              {/* Search Field - PDF Spec: 44px high, radius 8px, border 1px #CBD3D9 */}
+              {/* Search Field - Design Spec Section 3: 44px high, radius 8px, border 1px #CBD3D9 */}
               <div className="hidden md:flex items-center bg-white border border-[#CBD3D9] rounded-[8px] px-3.5 h-[44px] w-96 focus-within:border-[#0E7C86] focus-within:ring-1 focus-within:ring-[#0E7C86] transition-all">
-                <Search size={18} className="text-[#4A5961] shrink-0" />
+                <Search size={17} className="text-[#4A5961] shrink-0" />
                 <input 
                   type="text" 
                   placeholder="Search users, properties, bookings..." 
-                  className="bg-transparent border-none outline-none text-sm ml-2.5 w-full text-[#10242A] placeholder:text-[#4A5961]"
+                  className="bg-transparent border-none outline-none text-sm ml-2.5 w-full text-[#10242A] placeholder:text-[#708088]"
                 />
               </div>
             </div>
@@ -349,11 +347,18 @@ export default function SharedShell() {
             </div>
           </header>
 
-          <main className="flex-1 min-w-0 overflow-y-auto custom-scrollbar p-4 md:p-6">
-            <div className="w-full max-w-[1600px] mx-auto">
-              <Outlet />
-            </div>
-          </main>
+          {/* Row Container Below Header: SubNavPanel + Main Content Area */}
+          <div className="flex-1 flex min-h-0 overflow-hidden">
+            {/* Secondary Sub-navigation Sidebar Panel (Below Header) */}
+            {!isMobile && <SubNavPanel activeModuleId={activeModuleId} />}
+
+            {/* Main Content Area */}
+            <main className="flex-1 min-w-0 overflow-y-auto custom-scrollbar p-6 lg:px-[32px] lg:pt-[18px] lg:pb-[24px] bg-[#F4F6F8]">
+              <div className="w-full max-w-[1600px] mx-auto">
+                <Outlet />
+              </div>
+            </main>
+          </div>
         </div>
 
         {/* Mobile Overlay */}

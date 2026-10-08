@@ -57,39 +57,41 @@ export default function OwnerRequestsPage() {
   }, [requests, activeTab]);
 
   return (
-    <div className="space-y-6 text-[#10242A]">
-      {/* Page Header - PDF Page 13 Spec */}
-      <PageHeader
-        title="Owner Requests"
-        subtitle="Requests raised by property owners"
-      />
+    <div className="space-y-4 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
+         {/* Page Header */}
+         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+               <h1 className="text-[22px] font-bold text-[#10242A] tracking-tight leading-tight">Owner Requests</h1>
+               <p className="text-[13px] text-[#4A5961] mt-0.5">Requests raised by property owners</p>
+            </div>
+         </div>
 
-      {/* 3 Top Stat Cards - PDF Page 13 Spec */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <div className="bg-white rounded-[12px] border border-[#E1E6EA] p-5 shadow-sm">
-          <p className="text-xs font-semibold text-[#4A5961] mb-1">Open</p>
-          <p className="text-3xl font-bold text-[#10242A]">[{String(stats.openCount).padStart(2, '0')}]</p>
-        </div>
-        <div className="bg-white rounded-[12px] border border-[#E1E6EA] p-5 shadow-sm">
-          <p className="text-xs font-semibold text-[#4A5961] mb-1">In Progress</p>
-          <p className="text-3xl font-bold text-[#10242A]">[{String(stats.inProgressCount).padStart(2, '0')}]</p>
-        </div>
-        <div className="bg-white rounded-[12px] border border-[#E1E6EA] p-5 shadow-sm">
-          <p className="text-xs font-semibold text-[#4A5961] mb-1">Resolved</p>
-          <p className="text-3xl font-bold text-[#10242A]">[{String(stats.resolvedCount).padStart(2, '0')}]</p>
-        </div>
-      </div>
+         {/* 3 Top Stat Cards */}
+         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-white rounded-[12px] border border-[#E1E6EA] p-4 shadow-xs">
+               <p className="text-[13px] font-medium text-[#4A5961]">Open</p>
+               <p className="text-[24px] font-bold text-[#10242A] tracking-tight mt-1">{String(stats.openCount).padStart(2, '0')}</p>
+            </div>
+            <div className="bg-white rounded-[12px] border border-[#E1E6EA] p-4 shadow-xs">
+               <p className="text-[13px] font-medium text-[#4A5961]">In Progress</p>
+               <p className="text-[24px] font-bold text-[#10242A] tracking-tight mt-1">{String(stats.inProgressCount).padStart(2, '0')}</p>
+            </div>
+            <div className="bg-white rounded-[12px] border border-[#E1E6EA] p-4 shadow-xs">
+               <p className="text-[13px] font-medium text-[#4A5961]">Resolved</p>
+               <p className="text-[24px] font-bold text-[#10242A] tracking-tight mt-1">{String(stats.resolvedCount).padStart(2, '0')}</p>
+            </div>
+         </div>
 
-      {/* Table Card - PDF Page 13 Spec */}
-      <div className="bg-white rounded-[12px] border border-[#E1E6EA] p-5 shadow-sm">
+      {/* Table Card */}
+      <div className="bg-white rounded-[12px] border border-[#E1E6EA] p-4 shadow-xs">
         {/* Underline Tabs */}
-        <div className="flex items-center gap-6 border-b border-[#E1E6EA] mb-5">
+        <div className="flex items-center gap-6 border-b border-[#E1E6EA] mb-4">
           {["Open", "In Progress", "Resolved"].map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={cn(
-                "pb-3 text-sm font-semibold transition-colors cursor-pointer relative",
+                "pb-2.5 text-[13px] font-semibold transition-colors cursor-pointer relative",
                 activeTab === tab
                   ? "text-[#0E7C86] font-bold border-b-2 border-[#0E7C86]"
                   : "text-[#4A5961] hover:text-[#10242A]"
@@ -101,25 +103,25 @@ export default function OwnerRequestsPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse min-w-[700px]">
             <thead>
-              <tr className="border-b border-[#E1E6EA] text-xs font-semibold text-[#4A5961]">
-                <th className="py-3 px-4">Owner</th>
-                <th className="py-3 px-4">Request type</th>
-                <th className="py-3 px-4">Subject</th>
-                <th className="py-3 px-4">Date</th>
-                <th className="py-3 px-4">Priority</th>
-                <th className="py-3 px-4 text-right">Action</th>
+              <tr className="border-b border-[#E1E6EA]">
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider pl-2">Owner</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Request type</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Subject</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Date</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Priority</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-right pr-2">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E1E6EA] text-sm">
+            <tbody className="divide-y divide-[#F0F4F6] text-sm">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-[#4A5961]">Loading owner requests...</td>
+                  <td colSpan={6} className="py-8 text-center text-[#4A5961] text-[13px]">Loading owner requests...</td>
                 </tr>
               ) : filteredRequests.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-[#4A5961]">No {activeTab.toLowerCase()} requests found.</td>
+                  <td colSpan={6} className="py-8 text-center text-[#4A5961] text-[13px]">No {activeTab.toLowerCase()} requests found.</td>
                 </tr>
               ) : (
                 filteredRequests.map((req, idx) => {
@@ -129,7 +131,7 @@ export default function OwnerRequestsPage() {
 
                   const priority = req.priority || (idx % 3 === 0 ? "High" : idx % 3 === 1 ? "Medium" : "Low");
                   const priorityClass = priority === "High"
-                    ? "bg-[#FEE2E2] text-[#991B1B]"
+                    ? "bg-[#FDE8E8] text-[#991B1B]"
                     : priority === "Medium"
                     ? "bg-[#FDEBD0] text-[#7A3E00]"
                     : "bg-[#E6F4F5] text-[#0E7C86]";
@@ -139,27 +141,27 @@ export default function OwnerRequestsPage() {
                     : idx % 3 === 0 ? "Edit property" : idx % 3 === 1 ? "Payout change" : "Support";
 
                   return (
-                    <tr key={req._id || idx} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="py-3.5 px-4 font-medium text-[#10242A]">
+                    <tr key={req._id || idx} className="hover:bg-[#F9FAFB] transition-colors">
+                      <td className="py-2.5 px-4 font-medium text-[#10242A] pl-2">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-[#CBD3D9] flex items-center justify-center font-bold text-xs text-[#10242A]">
+                          <div className="w-7 h-7 rounded-full bg-[#D9E1E7] flex items-center justify-center font-bold text-[11px] text-[#4A5961]">
                             {(req.ownerLoginId || "O").charAt(0).toUpperCase()}
                           </div>
-                          <span className="font-semibold text-[#10242A]">{req.ownerLoginId || "[Name]"}</span>
+                          <span className="font-semibold text-[13px] text-[#10242A]">{req.ownerLoginId || "[Name]"}</span>
                         </div>
                       </td>
-                      <td className="py-3.5 px-4 text-[#10242A]">{reqTypeDisplay}</td>
-                      <td className="py-3.5 px-4 text-[#4A5961]">{req.subject || "[Subject]"}</td>
-                      <td className="py-3.5 px-4 text-[#4A5961]">{dateStr}</td>
-                      <td className="py-3.5 px-4">
-                        <span className={cn("text-xs font-semibold px-3 py-1 rounded-full inline-block", priorityClass)}>
+                      <td className="py-2.5 px-4 text-[#10242A] text-[13px]">{reqTypeDisplay}</td>
+                      <td className="py-2.5 px-4 text-[#4A5961] text-[13px]">{req.subject || "[Subject]"}</td>
+                      <td className="py-2.5 px-4 text-[#4A5961] text-[13px]">{dateStr}</td>
+                      <td className="py-2.5 px-4">
+                        <span className={cn("text-[11px] font-semibold px-2.5 py-0.5 rounded-full inline-block", priorityClass)}>
                           {priority}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 text-right">
+                      <td className="py-2.5 px-4 text-right pr-2">
                         <button
                           onClick={() => setViewModal(req)}
-                          className="bg-[#0E7C86] hover:bg-[#0B666E] text-white font-semibold text-xs px-4 py-1.5 rounded-[6px] transition-colors cursor-pointer"
+                          className="bg-[#0E7C86] hover:bg-[#0B666E] text-white font-semibold text-[11px] px-3 py-1 rounded-[6px] transition-colors cursor-pointer"
                         >
                           Open
                         </button>

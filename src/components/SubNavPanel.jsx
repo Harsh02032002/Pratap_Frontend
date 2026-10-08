@@ -55,16 +55,6 @@ const SUB_NAV_CONFIG = {
           { label: "Owner Subscriptions", path: "/superadmin/owner-subscriptions" },
         ],
       },
-      {
-        header: "TENANTS",
-        items: [
-          { label: "View All Tenants", path: "/superadmin/tenant" },
-          { label: "Add Tenant", path: "/superadmin/add-tenant" },
-          { label: "KYC / Documents", path: "/superadmin/kyc_verification" },
-          { label: "Request KYC Approve", path: "/superadmin/tenant-kyc-requests" },
-          { label: "Rent History", path: "/superadmin/rentcollection" },
-        ],
-      },
     ],
   },
   property_management: {
@@ -296,28 +286,36 @@ export function SubNavPanel({ activeModuleId }) {
   const currentPath = location.pathname + location.search;
 
   return (
-    <aside className="w-[210px] min-w-[210px] xl:w-[230px] xl:min-w-[230px] h-screen bg-white border-r border-[#E1E6EA] flex flex-col shrink-0 z-40 font-['Plus_Jakarta_Sans',sans-serif] transition-all duration-300">
+    <aside className="w-[230px] min-w-[230px] xl:w-[250px] xl:min-w-[250px] h-full bg-white border-r border-[#E1E6EA] flex flex-col shrink-0 z-40 transition-all duration-300" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       {/* Sections and Items */}
-      <div className="flex-1 overflow-y-auto px-3 pt-5 pb-4 space-y-5 custom-sidebar-scrollbar">
+      <div className="flex-1 overflow-y-auto px-3 pt-5 pb-4 space-y-3 custom-sidebar-scrollbar">
         {moduleConfig.sections.map((section, sIdx) => (
-          <div key={sIdx} className="space-y-1">
+          <div key={sIdx} className={cn("space-y-1", sIdx > 0 && "mt-3")}>
+            {section.header && (
+              <div className="px-3 pt-2 pb-1 text-[10px] font-bold text-[#708088] tracking-[0.12em] uppercase select-none font-['Plus_Jakarta_Sans',sans-serif]">
+                {section.header}
+              </div>
+            )}
 
-            <div className="space-y-[2px]">
+            <div className="space-y-[1px]">
               {section.items.map((item, iIdx) => {
                 const isActive =
                   currentPath === item.path ||
                   location.pathname === item.path ||
                   (item.path.includes("?") && location.pathname + location.search === item.path);
 
+                const hasLeftBorder = isActive && item.label !== "Overview";
+
                 return (
                   <button
                     key={iIdx}
                     onClick={() => navigate(item.path)}
                     className={cn(
-                      "w-full text-left px-3 py-2 rounded-[8px] text-[13.5px] font-medium transition-colors duration-150 cursor-pointer block truncate select-none",
+                      "w-full text-left px-3 h-[36px] flex items-center rounded-[8px] text-[13px] font-medium transition-colors duration-150 cursor-pointer block truncate select-none border-l-[3.5px]",
                       isActive
-                        ? "bg-[#E6F4F5] text-[#0E7C86] font-semibold"
-                        : "text-[#4A5961] hover:bg-[#F4F6F8] hover:text-[#10242A]"
+                        ? "bg-[#E6F4F5] text-[#0E7C86] font-bold"
+                        : "text-[#4A5961] hover:bg-[#F4F6F8] hover:text-[#10242A]",
+                      hasLeftBorder ? "border-[#0E7C86]" : "border-transparent"
                     )}
                   >
                     {item.label}
