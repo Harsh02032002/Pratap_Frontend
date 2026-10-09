@@ -529,7 +529,7 @@ export const useOwnerProfile = () => {
         { loginId: trimmedLogin, aadhaarNumber: aadhaarRaw, otp: otp.trim() },
         apiBases
       );
-      window.location.href = `/digital-checkin/ownerterms?loginId=${encodeURIComponent(payload.loginId)}&email=${encodeURIComponent(payload.email)}`;
+      window.location.href = `/digital-checkin/owneragreement?loginId=${encodeURIComponent(payload.loginId)}&email=${encodeURIComponent(payload.email)}`;
     } catch (err) {
       setKycStatus({ type: "error", text: `Error: ${err.message}` });
       setLoadingComplete(false);
