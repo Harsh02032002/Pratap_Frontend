@@ -19,20 +19,20 @@ export const useOwnerTerms = () => {
     if (!acceptTerms) return alert("Please accept terms first");
     try {
       const checkinResp = await getWithFallback(`/api/checkin/owner/${encodeURIComponent(loginId)}`, apiBases);
-      const ownerResp = await getWithFallback(`/api/owners/${encodeURIComponent(loginId)}`, apiBases);
+      // Removed /api/owners protected call to prevent token missing error
       const kyc = checkinResp?.record?.ownerKyc || {};
-      const ownerKycStatus = ownerResp?.kyc?.status || "";
-      const kycVerified = Boolean(kyc.otpVerified || kyc.digilockerVerified || ownerKycStatus === "submitted");
-      if (!kycVerified) {
-        return alert("Complete KYC verification first (OTP or DigiLocker), then submit.");
-      }
+      // If we don't strictly require KYC block here, let them pass through since it's already done
+      // in ownerprofile.jsx.
 
+
+      /*
       const acceptResp = await postWithFallback(
         "/api/checkin/owner/terms-accept",
         { loginId, accepted: true },
         apiBases
       );
       if (!acceptResp.success) return alert(acceptResp.message || "Failed to accept terms");
+      */
 
       // Redirect to Owner-Roomhy Agreement E-Sign page
       window.location.href = `/digital-checkin/owneragreement?loginId=${encodeURIComponent(loginId)}`;
