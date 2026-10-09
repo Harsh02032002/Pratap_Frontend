@@ -198,6 +198,22 @@ export default function Owner() {
       }
    };
 
+   const deleteOwner = async (owner) => {
+      const id = owner.loginId || owner._id;
+      if (!confirm("Permanently delete this property owner?")) return;
+      try {
+         await fetchJson(`/api/owners/${encodeURIComponent(id)}`, { 
+            method: "DELETE",
+            headers: getAuthHeader()
+         });
+         setOwners(prev => prev.filter(o => o.loginId !== id && o._id !== id));
+         alert("Property owner deleted successfully");
+      } catch (err) {
+         alert("Failed to delete owner: " + (err.body?.message || err.message));
+      }
+   };
+
+
    const filteredOwners = useMemo(() => {
       const query = search.trim().toLowerCase();
       let base = owners;
@@ -457,6 +473,9 @@ export default function Owner() {
                                     </button>
                                     <button onClick={() => { setSelectedOwner(o); setIsEditingOwner(true); }} className="px-3 py-1 bg-white border border-[#CBD3D9] hover:bg-gray-50 text-[#10242A] rounded-[6px] text-[11px] font-semibold transition shadow-xs cursor-pointer">
                                        Edit
+                                    </button>
+                                    <button onClick={() => deleteOwner(o)} className="bg-white border border-rose-200 hover:bg-rose-50 text-rose-600 text-[11px] font-semibold px-3 py-1 rounded-[6px] transition-all shadow-xs cursor-pointer">
+                                       Delete
                                     </button>
                                  </div>
                               </td>

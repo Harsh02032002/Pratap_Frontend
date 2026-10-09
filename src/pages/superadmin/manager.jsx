@@ -461,6 +461,12 @@ export default function Manager() {
                               >
                                 Edit
                               </button>
+                              <button 
+                                onClick={() => {}} 
+                                className="bg-white border border-rose-200 hover:bg-rose-50 text-rose-600 text-[12px] font-semibold px-3 py-1 rounded-[6px] transition-all shadow-xs cursor-pointer"
+                              >
+                                Delete
+                              </button>
                             </div>
                           </td>
                         </tr>
@@ -495,6 +501,9 @@ export default function Manager() {
                               </button>
                               <button onClick={() => openModal(e)} className="bg-white border border-[#CBD3D9] hover:bg-gray-50 text-[#10242A] text-[12px] font-semibold px-3 py-1 rounded-[6px] transition-all shadow-xs cursor-pointer">
                                 Edit
+                              </button>
+                              <button onClick={() => deleteEmployee(e)} className="bg-white border border-rose-200 hover:bg-rose-50 text-rose-600 text-[12px] font-semibold px-3 py-1 rounded-[6px] transition-all shadow-xs cursor-pointer">
+                                Delete
                               </button>
                             </div>
                           </td>
