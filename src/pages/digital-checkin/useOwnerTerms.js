@@ -18,11 +18,8 @@ export const useOwnerTerms = () => {
   const handleSubmit = useCallback(async () => {
     if (!acceptTerms) return alert("Please accept terms first");
     try {
-      const checkinResp = await getWithFallback(`/api/checkin/owner/${encodeURIComponent(loginId)}`, apiBases);
-      // Removed /api/owners protected call to prevent token missing error
-      const kyc = checkinResp?.record?.ownerKyc || {};
-      // If we don't strictly require KYC block here, let them pass through since it's already done
-      // in ownerprofile.jsx.
+      // Bypassed KYC checks here to allow direct progression to agreement page
+      // since KYC is already validated in ownerprofile.jsx.
 
 
       /*
