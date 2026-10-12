@@ -368,7 +368,9 @@ export default function DigitalCheckinTenantagreement() {
                     <Row label="Inclusions"              value={d.inclusions} />
                     <Row label="Minimum Stay Duration"   value={d.minimumStayDuration || "3 Months"} />
                     <Row label="GST Charges"             value={d.gstCharges ? `₹ ${d.gstCharges}` : "Nil"} />
-                    <Row label="Aadhaar No."             value={maskAadh(td.kyc?.aadhaarNumber || td.digitalCheckin?.kyc?.aadhaarNumber)} />
+                    {/* The server sends only the masked form now; the raw fields are a
+                        fallback for an older backend still returning them. */}
+                    <Row label="Aadhaar No."             value={td.aadhaarMasked || maskAadh(td.kyc?.aadhaarNumber || td.digitalCheckin?.kyc?.aadhaarNumber)} />
                     <Row label="Agreement Date"          value={new Date().toLocaleDateString("en-IN")} />
                   </>
                 );

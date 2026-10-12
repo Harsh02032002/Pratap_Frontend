@@ -68,11 +68,46 @@ export const postWithFallback = (path, payload, bases = getApiBases()) =>
 export const postExpectSuccess = (path, payload, bases = getApiBases()) =>
   postJson(path, payload, bases, true);
 
-export const getWithFallback = async (path, bases = getApiBases()) => {
+// ── Check-in access proof ────────────────────────────────────────────────────
+// After a successful KYC OTP the backend issues a short-lived proof that lets
+// THIS tenant's profile request include their own uploaded Aadhaar images.
+// It is kept in sessionStorage (this tab only, gone when the tab closes) and
+// sent as a header — never in the URL, so it stays out of history and logs.
+const CHECKIN_ACCESS_HEADER = "X-Checkin-Access";
+const accessKey = (loginId) => `roomhy_checkin_access_${String(loginId || "").trim().toUpperCase()}`;
+
+export const saveCheckinAccess = (loginId, access) => {
+  if (!loginId || !access?.token) return;
+  try {
+    sessionStorage.setItem(accessKey(loginId), JSON.stringify({ token: access.token, expiresAt: access.expiresAt }));
+  } catch (_) { /* storage blocked — the flow still works without the proof */ }
+};
+
+export const clearCheckinAccess = (loginId) => {
+  try { sessionStorage.removeItem(accessKey(loginId)); } catch (_) { /* ignore */ }
+};
+
+/** Headers carrying the stored proof for `loginId`, or {} if none / expired. */
+export const checkinAccessHeaders = (loginId) => {
+  if (!loginId) return {};
+  try {
+    const stored = JSON.parse(sessionStorage.getItem(accessKey(loginId)) || "null");
+    if (!stored?.token) return {};
+    if (stored.expiresAt && Date.now() > Number(stored.expiresAt)) {
+      clearCheckinAccess(loginId);
+      return {};
+    }
+    return { [CHECKIN_ACCESS_HEADER]: stored.token };
+  } catch (_) {
+    return {};
+  }
+};
+
+export const getWithFallback = async (path, bases = getApiBases(), { headers } = {}) => {
   let lastErr = null;
   for (const base of bases) {
     try {
-      const res = await fetch(`${base}${path}`);
+      const res = await fetch(`${base}${path}`, headers ? { headers } : undefined);
       if (res.ok) return res.json();
       const data = await res.json().catch(() => ({}));
       lastErr = new Error(data.message || `HTTP ${res.status}`);
