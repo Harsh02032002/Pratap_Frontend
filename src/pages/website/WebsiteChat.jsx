@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { io } from "socket.io-client";
+import { getScopedAuthToken } from "../../utils/authScope";
 import WebsiteNavbar from "../../components/website/WebsiteNavbar";
 import { 
   MessageCircle, 
@@ -299,9 +300,14 @@ export default function WebsiteChat() {
   useEffect(() => {
     if (!websiteUserId) return undefined;
 
+      // The server now authenticates the Socket.IO handshake and derives the
+      // session identity from the account record, so a connection without a
+      // valid token is refused. getScopedAuthToken() returns the panel token on
+      // panel routes and website_token on the website, matching the HTTP layer.
     const socket = io(getApiBase(), {
       transports: ["websocket", "polling"],
-      reconnection: true
+      reconnection: true,
+      auth: { token: getScopedAuthToken() }
     });
     socketRef.current = socket;
 

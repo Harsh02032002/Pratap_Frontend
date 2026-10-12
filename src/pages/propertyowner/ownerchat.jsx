@@ -3,6 +3,7 @@ import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLay
 import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerTenants } from "../../utils/propertyowner";
 import { apiFetch, getApiBase } from "../../utils/api";
 import { io } from "socket.io-client";
+import { getScopedAuthToken } from "../../utils/authScope";
 import { toast } from "react-hot-toast";
 import { Search, Send, User, MoreVertical, Loader2, MessageSquare, Wallet, Paperclip, FileText, AlertTriangle, X } from "lucide-react";
 
@@ -420,9 +421,14 @@ export default function OwnerChat() {
   React.useEffect(() => {
     if (!owner?.loginId) return undefined;
 
+      // The server now authenticates the Socket.IO handshake and derives the
+      // session identity from the account record, so a connection without a
+      // valid token is refused. getScopedAuthToken() returns the panel token on
+      // panel routes and website_token on the website, matching the HTTP layer.
     const socket = io(getApiBase(), {
       transports: ["websocket", "polling"],
-      reconnectionAttempts: 10
+      reconnectionAttempts: 10,
+      auth: { token: getScopedAuthToken() }
     });
     socketRef.current = socket;
 

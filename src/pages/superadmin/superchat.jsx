@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { io } from "socket.io-client";
+import { getScopedAuthToken } from "../../utils/authScope";
 import {
   Search, MoreVertical, User, Send, Paperclip, Smile, Phone, Mail,
   Star, Globe, ChevronRight, UserCheck, Calendar, ArrowUpRight, ArrowDownRight, Building2, DollarSign, RefreshCw, Shield, MessageSquare,
@@ -251,7 +252,11 @@ export default function SuperChat() {
   }, [activeChat, superadminLoginId, viewMode]);
 
   useEffect(() => {
-    const socket = io(getApiBase(), { transports: ["websocket"], upgrade: false, reconnection: true });
+      // The server now authenticates the Socket.IO handshake and derives the
+      // session identity from the account record, so a connection without a
+      // valid token is refused. getScopedAuthToken() returns the panel token on
+      // panel routes and website_token on the website, matching the HTTP layer.
+    const socket = io(getApiBase(), { transports: ["websocket"], upgrade: false, reconnection: true, auth: { token: getScopedAuthToken() } });
     socketRef.current = socket;
     const join = () => socket.emit("join_room", { login_id: superadminLoginId, role: "superadmin", name: "Super Admin" });
     socket.on("connect", join);
