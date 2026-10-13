@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Search, Calendar, Download, RefreshCw, Filter } from "lucide-react";
-import { fetchJson } from "../../utils/api";
-import { PageHeader } from "../../components/superadmin/PageHeader";
+import { getAllStaffAttendance } from "../../api/attendance";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
@@ -16,51 +14,87 @@ function StatCard({ label, value, loading }) {
   );
 }
 
+const toMinutes = (t) => {
+  const m = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i.exec(String(t || "").trim());
+  if (!m) return null;
+  return (Number(m[1]) % 12 + (m[3].toUpperCase() === "PM" ? 12 : 0)) * 60 + Number(m[2]);
+};
+
+const hoursBetween = (inT, outT) => {
+  const a = toMinutes(inT), b = toMinutes(outT);
+  if (a === null || b === null || b < a) return "—";
+  const h = (b - a) / 60;
+  return `${Number.isInteger(h) ? h : h.toFixed(2).replace(/0$/, "")}h`;
+};
+
+const todayStr = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
 export default function Log() {
-  const [logs, setLogs] = useState([]);
-  const [employees, setEmployees] = useState([]);
+  const [rows, setRows] = useState([]);
+  const [summary, setSummary] = useState({ present: 0, late: 0, absent: 0, onLeave: 0 });
   const [loading, setLoading] = useState(true);
-  
+  const [error, setError] = useState("");
+
+  const [date, setDate] = useState(todayStr());
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
 
   useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      try {
-        const [empRes] = await Promise.allSettled([
-          fetchJson("/api/employees")
-        ]);
-        if (empRes.status === "fulfilled" && empRes.value) {
-          const list = Array.isArray(empRes.value) ? empRes.value : (empRes.value.employees || []);
-          setEmployees(list);
-        }
-      } catch (err) {
-        console.error("Log data error:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadData();
-  }, []);
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+    getAllStaffAttendance(date)
+      .then(({ data, summary }) => {
+        if (cancelled) return;
+        setRows(data);
+        setSummary(summary);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setRows([]);
+        setError(err?.message || "Could not load attendance");
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [date]);
 
-  const sampleLogs = [
-    { staff: "Vikas Joshi", role: "Field Executive", in: "09:00 AM", out: "06:00 PM", hours: "9h", status: "Present" },
-    { staff: "Neha Kapoor", role: "Field Executive", in: "09:45 AM", out: "06:00 PM", hours: "8.25h", status: "Late" },
-    { staff: "Amit Singh", role: "Field Executive", in: "—", out: "—", hours: "0h", status: "Absent" },
-    { staff: "Pooja Verma", role: "Field Executive", in: "08:55 AM", out: "05:50 PM", hours: "9h", status: "Present" },
-    { staff: "Rahul Sharma", role: "Field Executive", in: "10:15 AM", out: "06:30 PM", hours: "8.25h", status: "Late" },
-    { staff: "Harsh", role: "Marketing Team", in: "—", out: "—", hours: "0h", status: "Absent" },
-  ];
+  const roles = useMemo(() => [...new Set(rows.map((r) => r.role).filter(Boolean))].sort(), [rows]);
 
   const displayList = useMemo(() => {
-    return sampleLogs.filter(item => {
-      const matchSearch = !search || item.staff.toLowerCase().includes(search.toLowerCase()) || item.role.toLowerCase().includes(search.toLowerCase());
-      const matchStatus = statusFilter === "all" || item.status.toLowerCase() === statusFilter.toLowerCase();
-      return matchSearch && matchStatus;
-    });
-  }, [search, statusFilter]);
+    return rows
+      .map((r) => ({
+        staff: r.name || r.loginId || "—",
+        role: r.role || "",
+        in: r.checkIn || "—",
+        out: r.checkOut || "—",
+        hours: hoursBetween(r.checkIn, r.checkOut),
+        status: r.status === "Half Day" ? "On Leave" : r.status === "Leave" ? "On Leave" : r.status,
+        key: r.employeeId,
+      }))
+      .filter((item) => {
+        const q = search.toLowerCase();
+        const matchSearch = !q || item.staff.toLowerCase().includes(q) || item.role.toLowerCase().includes(q);
+        const matchRole = roleFilter === "all" || item.role === roleFilter;
+        const matchStatus = statusFilter === "all" || item.status.toLowerCase() === statusFilter.toLowerCase();
+        return matchSearch && matchRole && matchStatus;
+      });
+  }, [rows, search, roleFilter, statusFilter]);
+
+  const exportCsv = () => {
+    const esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const lines = [["Staff", "Role", "Check-in", "Check-out", "Hours", "Status"].map(esc).join(",")];
+    displayList.forEach((r) => lines.push([r.staff, r.role, r.in, r.out, r.hours, r.status].map(esc).join(",")));
+    const url = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/csv" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `daily-logs-${date}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="space-y-4 text-[#10242A]">
@@ -71,7 +105,7 @@ export default function Log() {
         </div>
         <div className="flex items-center gap-3">
           <button 
-            onClick={() => alert("Exporting Daily Logs CSV...")}
+            onClick={exportCsv}
             className="bg-white border border-[#CBD3D9] hover:bg-gray-50 text-[#10242A] text-[13px] font-semibold px-4 py-1.5 rounded-[8px] transition-all shadow-xs cursor-pointer"
           >
             Export
@@ -81,10 +115,10 @@ export default function Log() {
 
       {/* 4 Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Present" value="00" loading={loading} />
-        <StatCard label="Late" value="00" loading={loading} />
-        <StatCard label="Absent" value="00" loading={loading} />
-        <StatCard label="On Leave" value="00" loading={loading} />
+        <StatCard label="Present" value={summary.present} loading={loading} />
+        <StatCard label="Late" value={summary.late} loading={loading} />
+        <StatCard label="Absent" value={summary.absent} loading={loading} />
+        <StatCard label="On Leave" value={summary.onLeave} loading={loading} />
       </div>
 
       {/* Filter Bar */}
@@ -97,15 +131,20 @@ export default function Log() {
             className="w-full bg-white border border-[#CBD3D9] rounded-[8px] px-3.5 py-1.5 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs" 
           />
         </div>
-        <select className="appearance-none bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-1.5 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs w-[85px] sm:w-[90px]">
-          <option value="today">[Date] ▾</option>
-        </select>
+        <input
+          type="date"
+          value={date}
+          max={todayStr()}
+          onChange={e => e.target.value && setDate(e.target.value)}
+          className="bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-1.5 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs"
+        />
         <select 
           value={roleFilter}
           onChange={e => setRoleFilter(e.target.value)}
-          className="appearance-none bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-1.5 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs w-[75px] sm:w-[80px]"
+          className="appearance-none bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-1.5 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs w-[90px] sm:w-[110px]"
         >
           <option value="all">Role ▾</option>
+          {roles.map(r => <option key={r} value={r}>{r}</option>)}
         </select>
         <select 
           value={statusFilter}
@@ -113,6 +152,7 @@ export default function Log() {
           className="appearance-none bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-1.5 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs w-[85px] sm:w-[90px]"
         >
           <option value="all">Status ▾</option>
+          {["Present", "Late", "Absent", "On Leave"].map(st => <option key={st} value={st}>{st}</option>)}
         </select>
       </div>
 
@@ -132,45 +172,17 @@ export default function Log() {
             <tbody className="divide-y divide-[#F0F4F6]">
               {loading ? (
                 <tr><td colSpan="5" className="py-6 text-center text-[13px] text-[#4A5961]">Loading records...</td></tr>
+              ) : error ? (
+                <tr><td colSpan="5" className="py-6 text-center text-[13px] text-[#991B1B]">{error}</td></tr>
               ) : displayList.length === 0 ? (
-                [
-                  { name: "[Name]", in: "00:00", out: "00:00", hours: "0h", status: "Present" },
-                  { name: "[Name]", in: "00:00", out: "00:00", hours: "0h", status: "Late" },
-                  { name: "[Name]", in: "00:00", out: "00:00", hours: "0h", status: "Absent" },
-                  { name: "[Name]", in: "00:00", out: "00:00", hours: "0h", status: "Present" },
-                  { name: "[Name]", in: "00:00", out: "00:00", hours: "0h", status: "Late" },
-                  { name: "[Name]", in: "00:00", out: "00:00", hours: "0h", status: "Absent" },
-                  { name: "[Name]", in: "00:00", out: "00:00", hours: "0h", status: "Present" },
-                ].map((row, idx) => (
-                  <tr key={idx} className="hover:bg-[#F9FAFB] transition-colors">
-                    <td className="py-2.5 text-left pl-2">
-                      <div className="flex items-center gap-3">
-                        <div className="w-7 h-7 rounded-full bg-[#D9E1E7] shrink-0" />
-                        <span className="text-[13px] font-medium text-[#10242A]">{row.name}</span>
-                      </div>
-                    </td>
-                    <td className="py-2.5 text-left text-[13px] text-[#4A5961]">{row.in}</td>
-                    <td className="py-2.5 text-left text-[13px] text-[#4A5961]">{row.out}</td>
-                    <td className="py-2.5 text-left text-[13px] text-[#4A5961]">{row.hours}</td>
-                    <td className="py-2.5 text-left">
-                      <span className={cn(
-                        "inline-block px-2.5 py-0.5 rounded-full text-[12px] font-semibold",
-                        row.status === "Present" ? "bg-[#DDF3E4] text-[#14532D]" : 
-                        row.status === "Late" ? "bg-[#FFEDD5] text-[#9A3412]" : 
-                        "bg-[#FDE8E8] text-[#991B1B]"
-                      )}>
-                        {row.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))
+                <tr><td colSpan="5" className="py-6 text-center text-[13px] text-[#4A5961]">No staff records for this day.</td></tr>
               ) : (
-                displayList.map((row, idx) => (
-                  <tr key={idx} className="hover:bg-[#F9FAFB] transition-colors">
+                displayList.map((row) => (
+                  <tr key={row.key} className="hover:bg-[#F9FAFB] transition-colors">
                     <td className="py-2.5 text-left pl-2">
                       <div className="flex items-center gap-3">
                         <div className="w-7 h-7 rounded-full bg-[#D9E1E7] flex items-center justify-center font-bold text-[11px] text-[#4A5961] shrink-0">
-                          {row.staff.split(" ").map(n => n[0]).join("")}
+                          {row.staff.split(" ").filter(Boolean).map(n => n[0]).join("").slice(0, 2).toUpperCase()}
                         </div>
                         <span className="text-[13px] font-medium text-[#10242A]">{row.staff}</span>
                       </div>
@@ -183,6 +195,7 @@ export default function Log() {
                         "inline-block px-2.5 py-0.5 rounded-full text-[12px] font-semibold",
                         row.status === "Present" ? "bg-[#DDF3E4] text-[#14532D]" : 
                         row.status === "Late" ? "bg-[#FFEDD5] text-[#9A3412]" : 
+                        row.status === "On Leave" ? "bg-[#E1ECF4] text-[#1E3A5F]" : 
                         "bg-[#FDE8E8] text-[#991B1B]"
                       )}>
                         {row.status}

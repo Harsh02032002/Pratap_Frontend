@@ -9,6 +9,7 @@ import {
   Zap, Headset, Megaphone
 } from "lucide-react";
 import { fetchJson } from "../../utils/api";
+import EmployeeAttendanceWidget from "../../components/EmployeeAttendanceWidget";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
@@ -202,6 +203,8 @@ export default function SuperadminAreaadminPage() {
                     <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">{user.city || 'All Cities'}</span>
                 </div>
             </div>
+
+            <EmployeeAttendanceWidget user={user} />
 
             {/* Top Stat Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

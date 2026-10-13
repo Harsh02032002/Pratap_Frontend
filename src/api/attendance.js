@@ -16,6 +16,44 @@ export async function checkOut(staffLoginId) {
   return apiFetch(`/api/hr/checkout`, { method: "POST", body: JSON.stringify({ staffLoginId }) });
 }
 
+/** Every employee's attendance for one day (superadmin Daily Logs). Returns { data, summary }. */
+export async function getAllStaffAttendance(date) {
+  const data = await apiFetch(`/api/hr/attendance-all?date=${encodeURIComponent(date)}`);
+  return { data: data?.data || [], summary: data?.summary || { present: 0, late: 0, absent: 0, onLeave: 0 } };
+}
+
+/** Every leave request (superadmin Leave page). */
+export async function getAllLeaves() {
+  const data = await apiFetch(`/api/hr/leaves-all`);
+  return data?.data || [];
+}
+
+/** File a leave. `employeeId` is for admins filing on someone's behalf. */
+export async function createLeave(payload) {
+  return apiFetch(`/api/hr/leaves`, { method: "POST", body: JSON.stringify(payload) });
+}
+
+/** Approve or reject a pending leave. */
+export async function setLeaveStatus(id, status) {
+  return apiFetch(`/api/hr/leaves/${encodeURIComponent(id)}/status`, { method: "PATCH", body: JSON.stringify({ status }) });
+}
+
+/** The logged-in employee's own leave requests, newest first. */
+export async function getMyLeaves() {
+  const data = await apiFetch(`/api/hr/leaves/mine`);
+  return data?.data || [];
+}
+
+/** Every staff member with their weekly shift, or empty fields if unassigned. */
+export async function getAllShifts() {
+  const data = await apiFetch(`/api/hr/shifts-all`);
+  return data?.data || [];
+}
+
+export async function saveShift(payload) {
+  return apiFetch(`/api/hr/shifts`, { method: "POST", body: JSON.stringify(payload) });
+}
+
 /** Tenant attendance for an owner on a date. Returns an array. */
 export async function getTenantAttendance(ownerLoginId, date, propertyId = "") {
   const qs = new URLSearchParams({ ownerLoginId, date });
