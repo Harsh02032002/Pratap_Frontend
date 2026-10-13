@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import { X, Plus, Zap, RotateCw, Calendar, Edit2, Trash2, Layers, CheckCircle2, Loader2 } from "lucide-react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
 import { getOwnerRuntimeSession, clearOwnerRuntimeSession, getActiveOwnerPropertyId } from "../../utils/propertyowner";
-import { getApiBase, fetchJson } from "../../utils/api";
+import { getApiBase, fetchJson, getAuthHeader } from "../../utils/api";
 import { toast } from "react-hot-toast";
 
 const cn = (...c) => c.filter(Boolean).join(" ");
@@ -66,7 +66,7 @@ export default function ElectricityReadings() {
 
       const res = await fetch(`${getApiBase()}/api/electricity/bulk-update`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeader() },
         body: JSON.stringify({ readings })
       });
 
@@ -140,7 +140,7 @@ export default function ElectricityReadings() {
 
       const res = await fetch(`${getApiBase()}/api/electricity/update-reading`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeader() },
         body: JSON.stringify(payload)
       });
 

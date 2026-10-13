@@ -24,11 +24,11 @@ import { LayoutDashboard,
 import { SILVER_NAV, GOLD_NAV } from './navConfig';
 import { fetchOwnerProperties, clearOwnerRuntimeSession } from "../../utils/propertyowner";
 import { getStaffPanelNav, filterNotificationsForStaff, hasStaffPermission } from "../../utils/staffAccess";
-import { cacheGet, cacheSet, cacheInvalidate } from "../../utils/cache";
 import { API_URL } from "../../utils/api";
 import PropertyOwnerMobileLayout from "./PropertyOwnerMobileLayout";
 import { initNotificationManager } from "../../utils/notificationManager";
 import { subscribeOwnerSocket } from "../../utils/ownerSocket";
+import { useOwnerNotifications } from "../../hooks/useOwnerNotifications";
 
 const DEFAULT_DESKTOP_ITEMS = [
   { href: "/propertyowner/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -93,8 +93,6 @@ export function getPropertyOwnerNavConfig(variant = "default") {
 }
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
-
-const _NOTIF_TTL = 2 * 60 * 1000; // 2 minutes — shared with notifications.jsx page
 
 export default function PropertyOwnerLayout({
   owner,
@@ -253,76 +251,46 @@ export default function PropertyOwnerLayout({
     }
   }, [isStaffProxy, assignedPropId, activePropertyId]);
 
-  const [globalNotifications, setGlobalNotifications] = useState([]);
-  
-  useEffect(() => {
-    if (!owner?.loginId) return;
-    // If the dashboard (or parent page) already passed notifications via props, use them
-    // and skip the independent API call — the dashboard aggregation already fetched them.
-    if (skipNotificationFetch) return;
-
-    const isStaff = !!owner?.isStaffProxy;
-    const staffId = owner?.staffLoginId;
-
-    const fetchNotifs = async () => {
-      const cacheKey = `notifications:${isStaff ? (staffId || owner.loginId) : owner.loginId}`;
-      const cached = cacheGet(cacheKey);
-      if (cached) {
-        setGlobalNotifications(cached);
-        return;
-      }
-      try {
-        const { fetchJson } = await import("../../utils/api");
-        // A staff proxy pulls TWO feeds: their own (notifications addressed directly
-        // to them, e.g. an assigned task) plus the owner feed (role-relevant items,
-        // filtered downstream). Owners just pull their own.
-        const targets = isStaff && staffId
-          ? [{ id: staffId, own: true }, { id: owner.loginId, own: false }]
-          : [{ id: owner.loginId, own: false }];
-
-        const lists = await Promise.all(
-          targets.map((t) =>
-            fetchJson(`/api/notifications?toLoginId=${encodeURIComponent(t.id)}`)
-              .then((r) => (Array.isArray(r) ? r.map((n) => ({ ...n, _ownFeed: t.own })) : []))
-              .catch(() => [])
-          )
-        );
-
-        const seen = new Set();
-        const formatted = lists.flat().map(n => {
-          const meta = typeof n.meta === 'string' ? JSON.parse(n.meta) : (n.meta || {});
-          return {
-            ...n,
-            title: meta.title || n.title || "Notification",
-            message: meta.message || n.message || "",
-            type: n.type || "system",
-            meta: meta
-          };
-        }).filter((n) => {
-          const key = String(n._id || `${n.title}-${n.message}`);
-          if (seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        });
-
-        cacheSet(cacheKey, formatted, _NOTIF_TTL);
-        setGlobalNotifications(formatted);
-      } catch (e) {
-        console.error("Failed to fetch global notifications", e);
-      }
-    };
-    fetchNotifs();
-  }, [owner?.loginId, owner?.isStaffProxy, owner?.staffLoginId, skipNotificationFetch]);
-
-  const rawNotifications = globalNotifications.length > 0 ? globalNotifications : notifications;
+  // One live feed for every bell variant: initial load + SSE push, no polling.
+  // `skipNotificationFetch` is kept in the props for old callers but no longer
+  // matters — the dashboard's own list used to be mixed in here and made the
+  // count and the list disagree.
+  const {
+    items: liveNotifications,
+    markRead: markNotificationRead,
+    markAllRead: markAllNotificationsRead,
+  } = useOwnerNotifications(owner?.loginId, {
+    extraFeedIds: owner?.isStaffProxy && owner?.staffLoginId ? [owner.staffLoginId] : [],
+    enabled: !!owner?.loginId,
+  });
   // Staff share the owner's feed via the proxy session — route only what belongs
   // to them (never owner-sensitive cash/OTP/financial notifications).
   const displayNotifications = owner?.isStaffProxy
-    ? filterNotificationsForStaff(owner, rawNotifications)
-    : rawNotifications;
-  const displayNotificationCount = owner?.isStaffProxy
-    ? displayNotifications.filter(n => !n.read).length
-    : (globalNotifications.length > 0 ? globalNotifications.filter(n => !n.read).length : notificationCount);
+    ? filterNotificationsForStaff(owner, liveNotifications)
+    : liveNotifications;
+  const displayNotificationCount = displayNotifications.filter((n) => !n.read).length;
+
+  const notificationTarget = (n) => {
+    const t = `${n.type || ""} ${n.title || ""}`.toLowerCase();
+    if (t.includes("move-out") || t.includes("moveout") || t.includes("moved out")) return "/propertyowner/moveout-requests";
+    if (t.includes("cash") || t.includes("payment") || t.includes("rent")) return "/propertyowner/payment";
+    if (t.includes("complaint")) return "/propertyowner/complaints";
+    if (t.includes("agreement")) return "/propertyowner/tenants";
+    if (t.includes("bid") || t.includes("booking") || t.includes("enquiry")) return "/propertyowner/booking_request";
+    return "/propertyowner/notifications";
+  };
+  const openNotification = (n) => {
+    if (!n.read) markNotificationRead(n._id);
+    setNotificationOpen(false);
+    navigate(notificationTarget(n));
+  };
+  const timeAgo = (d) => {
+    const mins = Math.floor((Date.now() - new Date(d).getTime()) / 60000);
+    if (!Number.isFinite(mins) || mins < 1) return "just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    return hrs < 24 ? `${hrs}h ago` : `${Math.floor(hrs / 24)}d ago`;
+  };
 
   // Staff members share this exact panel, but see only a permission-filtered
   // navigation. Owners get the full nav. This is what makes it a single panel.
@@ -354,6 +322,16 @@ export default function PropertyOwnerLayout({
     if (window.innerWidth < 1024) setMobileOpen(false);
   };
   const [profileOpen, setProfileOpen] = useState(false);
+  // Click anywhere outside the bell / profile menus closes both.
+  useEffect(() => {
+    const onDown = (e) => {
+      if (e.target?.closest?.("[data-menu-root]")) return;
+      setNotificationOpen(false);
+      setProfileOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, []);
   const navConfig = useMemo(() => getPropertyOwnerNavConfig(navVariant), [navVariant]);
 
   useEffect(() => {
@@ -917,11 +895,11 @@ export default function PropertyOwnerLayout({
               </button>
             )}
 
-            <div className="relative">
+            <div className="relative" data-menu-root>
               <button 
                 aria-label="Notifications"
                 className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all relative group"
-                onClick={() => setNotificationOpen(!notificationOpen)}
+                onClick={() => { setProfileOpen(false); setNotificationOpen(!notificationOpen); }}
               >
                 <Bell size={20} className="group-hover:rotate-12 transition-transform" />
                 {displayNotificationCount > 0 && (
@@ -936,28 +914,12 @@ export default function PropertyOwnerLayout({
               )}>
                 <div className="px-5 py-2 border-b border-slate-50 mb-2 flex justify-between items-center">
                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest">Notifications</h3>
-                  {displayNotifications.length > 0 && (
-                    <button 
-                      onClick={async () => {
-                        // Clear notifications visually and invalidate shared cache
-                        setGlobalNotifications([]);
-                        if (owner?.loginId) {
-                          cacheInvalidate(`notifications:${owner.loginId}`);
-                          try {
-                            const { fetchJson } = await import("../../utils/api");
-                            await fetchJson(`/api/notifications/mark-all-read`, {
-                                method: 'PUT',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ toLoginId: owner.loginId })
-                            });
-                          } catch (e) {
-                            console.error("Failed to clear notifications", e);
-                          }
-                        }
-                      }}
+                  {displayNotificationCount > 0 && (
+                    <button
+                      onClick={markAllNotificationsRead}
                       className="text-[10px] font-bold text-blue-600 hover:text-blue-800"
                     >
-                      Clear All
+                      Mark all read
                     </button>
                   )}
                 </div>
@@ -969,10 +931,21 @@ export default function PropertyOwnerLayout({
                     </div>
                   ) : (
                     displayNotifications.map((n, i) => (
-                      <div key={i} className="px-5 py-3 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0 cursor-pointer">
-                        <p className="text-[11px] font-bold text-slate-900 leading-tight mb-1">{n.title}</p>
-                        <p className="text-[10px] text-slate-500 line-clamp-2">{n.message}</p>
-                      </div>
+                      <button
+                        type="button"
+                        key={n._id || i}
+                        onClick={() => openNotification(n)}
+                        className={cn("w-full text-left px-5 py-3 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0", !n.read && "bg-blue-50/40")}
+                      >
+                        <div className="flex items-start gap-2">
+                          {!n.read && <span className="mt-1 w-1.5 h-1.5 shrink-0 rounded-full bg-blue-600" />}
+                          <div className="min-w-0 flex-1">
+                            <p className={cn("text-[11px] leading-tight mb-1 text-slate-900", n.read ? "font-semibold" : "font-bold")}>{n.title}</p>
+                            <p className="text-[10px] text-slate-500 line-clamp-2">{n.message}</p>
+                            <p className="mt-1 text-[9px] text-slate-400">{timeAgo(n.createdAt)}</p>
+                          </div>
+                        </div>
+                      </button>
                     ))
                   )}
                 </div>
@@ -991,7 +964,7 @@ export default function PropertyOwnerLayout({
             </div>
 
             {/* Profile Identity */}
-            <div className="flex items-center gap-4 pl-6 border-l border-slate-100 group cursor-pointer relative" onClick={() => setProfileOpen(!profileOpen)}>
+            <div data-menu-root className="flex items-center gap-4 pl-6 border-l border-slate-100 group cursor-pointer relative" onClick={() => { setNotificationOpen(false); setProfileOpen(!profileOpen); }}>
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-black text-slate-900 leading-none group-hover:text-blue-600 transition-colors">{displayName}</p>
                 <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest opacity-60">ID: {owner?.loginId || "..."}</p>

@@ -256,7 +256,7 @@ export default function Manager() {
       name:              formName,
       email:             formEmail,
       phone:             formPhone,
-      password:          formPassword,
+      ...(formPassword && formPassword.trim() ? { password: formPassword } : {}),
       role:              finalRole,
       loginId:           formLoginId,
       city:              formCity,
@@ -643,7 +643,7 @@ export default function Manager() {
                        </div>
                        <div className="space-y-2">
                           <label className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest ml-1">Access Password</label>
-                          <input value={formPassword} onChange={e => setFormPassword(e.target.value)} className="w-full bg-white border border-indigo-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-700 shadow-sm focus:ring-4 focus:ring-indigo-100 transition-all outline-none" />
+                          <input value={formPassword} onChange={e => setFormPassword(e.target.value)} placeholder="•••••••• saved — leave blank to keep, or type a new password" autoComplete="new-password" className="w-full bg-white border border-indigo-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-700 shadow-sm focus:ring-4 focus:ring-indigo-100 transition-all outline-none" />
                        </div>
                     </div>
                  </section>
