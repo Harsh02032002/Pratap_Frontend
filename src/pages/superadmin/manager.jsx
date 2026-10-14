@@ -1,30 +1,24 @@
 import { compressImage, PRESETS } from "../../utils/imageCompression";
 import React, { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { 
-  Users, Shield, Clock, Search, ArrowUpRight, 
+  Users, Clock, Search, ArrowUpRight, 
   ArrowDownRight, MoreVertical, Filter, Globe, 
   MapPin, Zap, Trash2, ChevronRight, Phone, 
   Mail, User, Megaphone, Calculator, Hammer, 
   Headset, Star, ShieldCheck, Key, LogOut, RefreshCw,
   Activity, LayoutGrid, FileText, Sparkles,
   Layers, Box, Globe2, Loader2, Save, Plus, X,
-  CheckCircle2, AlertCircle, Camera, Fingerprint, Lock, Unlock, UserPlus,
+  CheckCircle2, AlertCircle, Camera,
   Building2, UserCog, ChevronDown
 } from "lucide-react";
 import { fetchJson, getApiBase, getAuthHeader } from "../../utils/api";
 import { PageHeader } from "../../components/superadmin/PageHeader";
-import {
-  EMPLOYEE_MODULE_OPTIONS,
-  RESTRICTED_MODULE_GROUPS,
-  DEFAULT_RESTRICTED_MODULES,
-  EMPLOYEE_TYPES,
-  ROLES_REQUIRING_ASSIGNED_PROPERTIES,
-} from "../../utils/permissionKeys";
+const FALLBACK_STAFF_ROLES = ["Admin", "Manager", "Accountant", "Support Agent", "Field Agent"];
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
-// Kept for backwards-compat with existing role filter chips
-const standardTeams = [
+// Legacy department names still stored on older staff records.
+const legacyTeams = [
   "Marketing Team",
   "Accounts Department",
   "Maintenance Team",
@@ -53,8 +47,8 @@ export default function Manager() {
   const [editingId, setEditingId] = useState(null);
   const [parentLoginId, setParentLoginId] = useState("");
   const [formName, setFormName] = useState("");
-  const [formRole, setFormRole] = useState("Marketing Team");
-  const [customRole, setCustomRole] = useState("");
+  const [staffRoles, setStaffRoles] = useState([]);
+  const [formRole, setFormRole] = useState(FALLBACK_STAFF_ROLES[0]);
   const [formCity, setFormCity] = useState("");
   const [formArea, setFormArea] = useState("");
   const [formPhone, setFormPhone] = useState("");
@@ -62,13 +56,10 @@ export default function Manager() {
   const [formLoginId, setFormLoginId] = useState("");
   const [formPassword, setFormPassword] = useState("");
   const [formPhoto, setFormPhoto] = useState("");
-  const [selectedPerms, setSelectedPerms] = useState(new Set());
 
   // ── New scope state ───────────────────────────────────────────────────────
-  const [formEmployeeType, setFormEmployeeType]       = useState("Field Executive");
   const [assignedProperties, setAssignedProperties]   = useState([]);   // array of {_id, title}
   const [assignedOwners, setAssignedOwners]           = useState([]);   // array of {_id, name}
-  const [restrictedModules, setRestrictedModules]     = useState(new Set(DEFAULT_RESTRICTED_MODULES));
   const [allProperties, setAllProperties]             = useState([]);   // dropdown options
   const [allOwners, setAllOwners]                     = useState([]);   // dropdown options
   const [propSearch, setPropSearch]                   = useState("");
@@ -89,13 +80,16 @@ export default function Manager() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [empData, cityData, areaData, propData, ownerData] = await Promise.all([
+      const [empData, cityData, areaData, propData, ownerData, roleData] = await Promise.all([
         fetchJson(`/api/employees?_t=${Date.now()}`),
         fetchJson("/api/locations/cities").catch(() => ({ data: [] })),
         fetchJson("/api/locations/areas").catch(() => ({ data: [] })),
         fetchJson("/api/properties?limit=300&status=Active").catch(() => ({ data: [] })),
         fetchJson("/api/owners?limit=300").catch(() => ({ data: [] })),
+        fetchJson("/api/roles").catch(() => ({ data: [] })),
       ]);
+      const loadedRoles = Array.isArray(roleData?.data) ? roleData.data : [];
+      setStaffRoles(loadedRoles);
 
       setEmployees(empData.data || empData.employees || empData || []);
       setCities(cityData.data || cityData || []);
@@ -118,9 +112,7 @@ export default function Manager() {
     return employees.filter(e => {
       const matchesSearch = (e.name || "").toLowerCase().includes(search.toLowerCase()) || 
                            (e.loginId || "").toLowerCase().includes(search.toLowerCase());
-      const matchesTeam = currentTeam === "All" ? true : 
-                         currentTeam === "Custom" ? !standardTeams.includes(e.role) : 
-                         e.role === currentTeam;
+      const matchesTeam = currentTeam === "All" ? true : e.role === currentTeam;
       const matchesCity = !filterCity || e.city === filterCity;
       const matchesArea = !filterArea || e.area === filterArea;
       
@@ -191,14 +183,9 @@ export default function Manager() {
     }
   };
 
-  const togglePerm = (id) => {
-    setSelectedPerms(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
+  const roleOptions = staffRoles.length
+    ? staffRoles.map((r) => r.name)
+    : FALLBACK_STAFF_ROLES;
 
   const openModal = (emp = null, parentId = "") => {
     setFieldErrors({});
@@ -206,8 +193,7 @@ export default function Manager() {
       setEditingId(emp.id || emp.loginId);
       setParentLoginId(emp.parentLoginId || "");
       setFormName(emp.name || "");
-      setFormRole(standardTeams.includes(emp.role) ? emp.role : "Custom");
-      setCustomRole(standardTeams.includes(emp.role) ? "" : emp.role);
+      setFormRole(emp.role || roleOptions[0] || FALLBACK_STAFF_ROLES[0]);
       setFormCity(emp.city || "");
       setFormArea(emp.area || "");
       setFormPhone(emp.phone || "");
@@ -215,29 +201,20 @@ export default function Manager() {
       setFormLoginId(emp.loginId || "");
       setFormPassword(emp.password || "");
       setFormPhoto(emp.photoDataUrl || emp.photoUrl || "");
-      setSelectedPerms(new Set(emp.permissions || []));
-      // ── New scope fields ──────────────────────────────────────────
-      setFormEmployeeType(emp.employeeType || "Field Executive");
       setAssignedProperties(emp.assignedProperties || []);
       setAssignedOwners(emp.assignedOwners || []);
-      setRestrictedModules(new Set(emp.restrictedModules || DEFAULT_RESTRICTED_MODULES));
     } else {
       setEditingId(null);
       setParentLoginId(parentId);
       setFormName("");
-      setFormRole("Marketing Team");
-      setCustomRole("");
+      setFormRole(roleOptions[0] || FALLBACK_STAFF_ROLES[0]);
       setFormCity("");
       setFormArea("");
       setFormPhone("");
       setFormEmail("");
       setFormPhoto("");
-      setSelectedPerms(new Set());
-      // ── New scope fields (defaults) ───────────────────────────────
-      setFormEmployeeType("Field Executive");
       setAssignedProperties([]);
       setAssignedOwners([]);
-      setRestrictedModules(new Set(DEFAULT_RESTRICTED_MODULES));
       generateCreds("", "");
     }
     setShowModal(true);
@@ -249,27 +226,23 @@ export default function Manager() {
     setFieldErrors({});
 
     setSaving(true);
-    const finalRole = formRole === "Custom" ? customRole : formRole;
+    const finalRole = formRole;
     const areaCode = getLocalCode(formCity, formArea);
     
     const payload = {
       name:              formName,
       email:             formEmail,
       phone:             formPhone,
-      password:          formPassword,
+      ...(formPassword && formPassword.trim() ? { password: formPassword } : {}),
       role:              finalRole,
       loginId:           formLoginId,
       city:              formCity,
       area:              formArea,
       areaCode:          areaCode,
-      permissions:       Array.from(selectedPerms),
       photoDataUrl:      formPhoto,
       parentLoginId:     parentLoginId || undefined,
-      // ── New scope fields ─────────────────────────────────────────
-      employeeType:      formEmployeeType,
       assignedProperties: assignedProperties.map(p => p._id || p),
       assignedOwners:     assignedOwners.map(o => o._id || o),
-      restrictedModules:  Array.from(restrictedModules),
     };
 
     try {
@@ -384,10 +357,14 @@ export default function Manager() {
         <select 
           value={currentTeam}
           onChange={e => setCurrentTeam(e.target.value)}
-          className="appearance-none bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-2 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs w-[75px] sm:w-[80px]"
+          className="appearance-none bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-2 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs min-w-[140px]"
         >
-          <option value="All">Role ▾</option>
-          {standardTeams.map(t => <option key={t} value={t}>{t}</option>)}
+          <option value="All">All roles</option>
+          {roleOptions.map(t => <option key={t} value={t}>{t}</option>)}
+          {employees.some(e => e.role && !roleOptions.includes(e.role) && legacyTeams.includes(e.role)) &&
+            legacyTeams.filter(t => employees.some(e => e.role === t)).map(t => (
+              <option key={t} value={t}>{t}</option>
+            ))}
         </select>
         <select 
           value={filterCity}
@@ -564,30 +541,16 @@ export default function Manager() {
                        </div>
 
                        <div className="space-y-2">
-                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Role / Department</label>
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Role</label>
                           <select value={formRole} onChange={e => setFormRole(e.target.value)} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all outline-none shadow-sm appearance-none">
-                             {standardTeams.map(t => <option key={t} value={t}>{t}</option>)}
-                             <option value="Custom">Custom Role</option>
+                             {roleOptions.map(t => <option key={t} value={t}>{t}</option>)}
+                             {formRole && !roleOptions.includes(formRole) && (
+                               <option value={formRole}>{formRole}</option>
+                             )}
                           </select>
-                          {formRole === "Custom" && (
-                            <input value={customRole} onChange={e => setCustomRole(e.target.value)} placeholder="Type custom role..." className="w-full mt-3 bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all outline-none shadow-sm" />
-                          )}
-                       </div>
-
-                       <div className="space-y-2">
-                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Employee Type</label>
-                          <select
-                            value={formEmployeeType}
-                            onChange={e => setFormEmployeeType(e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all outline-none shadow-sm appearance-none"
-                          >
-                            {EMPLOYEE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                          </select>
-                          {ROLES_REQUIRING_ASSIGNED_PROPERTIES.includes(formEmployeeType) && (
-                            <p className="text-[10px] text-amber-600 font-semibold px-1 flex items-center gap-1">
-                              <Shield size={10} /> This type requires at least one Assigned Property
-                            </p>
-                          )}
+                          <p className="text-[11px] text-slate-400 font-medium px-1">
+                            Access follows this role. Module permissions are set in Roles & Permissions, and they update for signed-in staff without a logout.
+                          </p>
                        </div>
 
                        <div className="space-y-2">
@@ -647,118 +610,6 @@ export default function Manager() {
                        </div>
                     </div>
                  </section>
-
-                 {/* Section 3: Module Access Permissions */}
-                 <section>
-                    <div className="flex items-center justify-between mb-8">
-                       <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-bold shadow-lg shadow-emerald-200">3</div>
-                          <div>
-                            <h4 className="text-lg font-bold text-slate-800 tracking-tight">Module Access Permissions</h4>
-                            <p className="text-[10px] text-slate-400 font-medium mt-0.5">Select which top-level modules this employee can access</p>
-                          </div>
-                       </div>
-                       <div className="flex gap-4">
-                          <button onClick={() => setSelectedPerms(new Set(EMPLOYEE_MODULE_OPTIONS.map(p => p.id)))} className="text-[10px] font-bold text-emerald-600 uppercase hover:underline">Select All</button>
-                          <button onClick={() => setSelectedPerms(new Set())} className="text-[10px] font-bold text-slate-400 uppercase hover:underline">Clear All</button>
-                       </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                       {EMPLOYEE_MODULE_OPTIONS.map(perm => {
-                         const selected = selectedPerms.has(perm.id);
-                         return (
-                           <div 
-                             key={perm.id} 
-                             onClick={() => togglePerm(perm.id)}
-                             className={cn(
-                               "flex items-center gap-3 p-4 rounded-2xl border transition-all cursor-pointer group",
-                               selected ? "bg-emerald-50 border-emerald-100 shadow-sm" : "bg-white border-slate-100 hover:border-emerald-100"
-                             )}
-                           >
-                              <div className={cn(
-                                "w-6 h-6 rounded-lg flex items-center justify-center border transition-all",
-                                selected ? "bg-emerald-600 border-emerald-600 text-white" : "bg-slate-50 border-slate-200 text-transparent"
-                              )}>
-                                 <Fingerprint size={12} />
-                              </div>
-                              <span className={cn("text-[10px] font-bold uppercase tracking-tight", selected ? "text-emerald-700" : "text-slate-500 group-hover:text-slate-800")}>{perm.label}</span>
-                           </div>
-                         );
-                       })}
-                    </div>
-                  </section>
-
-
-
-
-
-
-                  {/* ─── Section 4: Restricted Modules ───────────────────────────── */}
-                  <section>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-2xl bg-rose-600 text-white flex items-center justify-center font-bold shadow-lg shadow-rose-200">4</div>
-                        <div>
-                          <h4 className="text-lg font-bold text-slate-800 tracking-tight">Restricted Modules</h4>
-                          <p className="text-[10px] text-rose-400 font-bold uppercase tracking-widest mt-0.5">Default Recommended</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-2 flex-wrap justify-end">
-                        <button type="button" onClick={() => setRestrictedModules(new Set(DEFAULT_RESTRICTED_MODULES))}
-                          className="px-3 py-1.5 text-[10px] font-bold text-rose-600 border border-rose-200 rounded-xl hover:bg-rose-50 transition-all uppercase">
-                          Select All
-                        </button>
-                        <button type="button" onClick={() => setRestrictedModules(new Set())}
-                          className="px-3 py-1.5 text-[10px] font-bold text-slate-400 border border-slate-200 rounded-xl hover:bg-slate-50 transition-all uppercase">
-                          Clear All
-                        </button>
-                        <button type="button" onClick={() => setRestrictedModules(new Set(DEFAULT_RESTRICTED_MODULES))}
-                          className="px-3 py-1.5 text-[10px] font-bold text-indigo-600 border border-indigo-200 rounded-xl hover:bg-indigo-50 transition-all uppercase">
-                          Reset Recommended
-                        </button>
-                      </div>
-                    </div>
-
-                    <p className="text-[11px] text-slate-400 font-medium mb-8 ml-14 leading-relaxed">
-                      These permissions are sensitive. <strong className="text-slate-600">Checked (red) = Blocked.</strong>{" "}
-                      Uncheck only to grant access.
-                    </p>
-
-                    <div className="space-y-5">
-                      {RESTRICTED_MODULE_GROUPS.map(group => (
-                        <div key={group.moduleLabel} className="bg-slate-50/60 rounded-[2rem] p-6 border border-slate-100">
-                          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">{group.moduleLabel}</p>
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                            {group.items.map(item => {
-                              const isBlocked = restrictedModules.has(item.key);
-                              return (
-                                <div key={item.key}
-                                  onClick={() => setRestrictedModules(prev => {
-                                    const next = new Set(prev);
-                                    if (next.has(item.key)) next.delete(item.key); else next.add(item.key);
-                                    return next;
-                                  })}
-                                  className={cn(
-                                    "flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer select-none",
-                                    isBlocked ? "bg-rose-50 border-rose-200" : "bg-white border-slate-100 hover:border-rose-100"
-                                  )}
-                                >
-                                  <div className={cn(
-                                    "w-5 h-5 rounded-md flex items-center justify-center border transition-all flex-shrink-0",
-                                    isBlocked ? "bg-rose-600 border-rose-600 text-white" : "bg-white border-slate-200"
-                                  )}>
-                                    {isBlocked && <X size={10} />}
-                                  </div>
-                                  <span className={cn("text-[10px] font-bold leading-tight", isBlocked ? "text-rose-700" : "text-slate-500")}>{item.label}</span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </section>
 
                </div>
 

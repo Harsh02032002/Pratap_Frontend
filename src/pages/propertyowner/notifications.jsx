@@ -1,13 +1,11 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
 import { getOwnerRuntimeSession, clearOwnerRuntimeSession } from "../../utils/propertyowner";
-import { cacheGet, cacheSet, cacheInvalidate } from "../../utils/cache";
+import { useOwnerNotifications } from "../../hooks/useOwnerNotifications";
 import {
-  Bell, Check, Trash2, IndianRupee, UserCheck, AlertTriangle,
-  Settings, Info, ShieldAlert, Plus
+  Bell, Check, IndianRupee, UserCheck, AlertTriangle,
+  Info, Plus
 } from "lucide-react";
-
-const NOTIF_TTL = 2 * 60 * 1000; // 2 minutes
 
 export default function NotificationsPage() {
   const owner = getOwnerRuntimeSession();
@@ -17,80 +15,22 @@ export default function NotificationsPage() {
   }
 
   const [activeTab, setActiveTab] = useState("all");
-  const [notifications, setNotifications] = useState([]);
+  // Same live feed as the header bell (initial load + SSE push, no polling).
+  const { items, markRead, markAllRead } = useOwnerNotifications(owner.loginId);
   const [loading, setLoading] = useState(true);
+  React.useEffect(() => { const t = setTimeout(() => setLoading(false), 600); return () => clearTimeout(t); }, []);
+  const notifications = useMemo(() => items.map((n) => ({
+    id: n._id,
+    type: n.type || "system",
+    title: n.title,
+    msg: n.message,
+    time: n.createdAt ? new Date(n.createdAt).toLocaleString() : "",
+    read: n.read,
+    meta: n.meta,
+  })), [items]);
 
-  React.useEffect(() => {
-    if (!owner?.loginId) return;
-    const fetchNotifs = async () => {
-      const cacheKey = `notifications:${owner.loginId}`;
-      const cached = cacheGet(cacheKey);
-      if (cached) {
-        setNotifications(cached);
-        setLoading(false);
-        return;
-      }
-      try {
-        const { fetchJson } = await import("../../utils/api");
-        const res = await fetchJson(`/api/notifications?toLoginId=${encodeURIComponent(owner.loginId)}`);
-        if (Array.isArray(res)) {
-          const formatted = res.map(n => {
-            const meta = typeof n.meta === 'string' ? JSON.parse(n.meta) : (n.meta || {});
-            return {
-              id: n._id,
-              type: n.type || "system",
-              title: meta.title || n.title || "Notification",
-              msg: meta.message || n.message || "",
-              time: new Date(n.createdAt).toLocaleString(),
-              read: n.read,
-              meta
-            };
-          });
-          cacheSet(cacheKey, formatted, NOTIF_TTL);
-          setNotifications(formatted);
-        }
-      } catch (e) {
-        console.error("Failed to load notifications", e);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchNotifs();
-  }, [owner?.loginId]);
-
-  const handleMarkAllRead = async () => {
-    try {
-      const { fetchJson } = await import("../../utils/api");
-      await fetchJson('/api/notifications/mark-all-read', {
-        method: 'PUT',
-        body: JSON.stringify({ toLoginId: owner.loginId })
-      });
-      cacheInvalidate(`notifications:${owner.loginId}`);
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const handleMarkSingleRead = async (id) => {
-    try {
-      const { fetchJson } = await import("../../utils/api");
-      await fetchJson(`/api/notifications/${id}/read`, { method: 'PUT' });
-      cacheInvalidate(`notifications:${owner.loginId}`);
-      setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const handleDeleteNotification = async (id) => {
-    try {
-      cacheInvalidate(`notifications:${owner.loginId}`);
-      setNotifications(prev => prev.filter(n => n.id !== id));
-    } catch (e) {
-      console.error(e);
-    }
-  };
+  const handleMarkAllRead = () => markAllRead();
+  const handleMarkSingleRead = (id) => markRead(id);
 
   const filtered = notifications.filter(n => {
     if (activeTab === "all") return true;
@@ -207,13 +147,6 @@ export default function NotificationsPage() {
                       <Check size={16} />
                     </button>
                   )}
-                  <button 
-                    onClick={() => handleDeleteNotification(item.id)}
-                    className="size-8 rounded-lg hover:bg-rose-50 flex items-center justify-center text-rose-600"
-                    title="Delete"
-                  >
-                    <Trash2 size={16} />
-                  </button>
                 </div>
               </div>
             ))

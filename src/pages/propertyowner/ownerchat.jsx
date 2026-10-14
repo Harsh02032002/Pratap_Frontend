@@ -241,9 +241,10 @@ export default function OwnerChat() {
     formData.append("file", file);
 
     try {
-      const { getApiBase } = await import("../../utils/api");
+      const { getApiBase, getAuthHeader } = await import("../../utils/api");
       const res = await fetch(`${getApiBase()}/api/upload-file`, {
         method: "POST",
+        headers: getAuthHeader(),
         body: formData
       });
       const data = await res.json();

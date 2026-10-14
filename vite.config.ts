@@ -97,6 +97,10 @@ export default defineConfig(({ mode }) => {
           skipWaiting: true,
           // Claim all open clients immediately so the new SW controls the page.
           clientsClaim: true,
+          // index.html is intentionally not precached (see globIgnores). Workbox's
+          // default NavigationRoute calls createHandlerBoundToURL("index.html")
+          // and throws non-precached-url, which breaks in-app navigations.
+          navigateFallback: null,
           // Navigation (HTML page) requests always go to the network first.
           // Falls back to the cached index.html only if the network is offline.
           // This ensures F5 always loads a fresh index.html from the server.

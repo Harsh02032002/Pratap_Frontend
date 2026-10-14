@@ -27,6 +27,8 @@ export default function PropertyOwnerMobileLayout({
   headerRight = null,
   notificationCount = 0,
   notifications = [],
+  onOpenNotification = null,
+  onMarkAllRead = null,
   onLogout,
   disableSubmenuStrip = false,
   // Props passed from PropertyOwnerLayout to avoid duplicate fetches
@@ -125,17 +127,9 @@ export default function PropertyOwnerMobileLayout({
         window.location.reload();
       };
 
-  // Notifications — use props passed from parent (no duplicate fetch)
-  const [localClearedNotifications, setLocalClearedNotifications] = useState(false);
-  const [displayNotifications, setDisplayNotifications] = useState(notifications);
-
-  useEffect(() => {
-    if (!localClearedNotifications) {
-      setDisplayNotifications(notifications);
-    }
-  }, [notifications, localClearedNotifications]);
-
-  const displayNotificationCount = displayNotifications.filter(n => !n.read).length || notificationCount;
+  // Notifications — use live props passed from PropertyOwnerLayout
+  const displayNotifications = notifications;
+  const displayNotificationCount = displayNotifications.filter(n => !n.read).length;
 
 
   const displayName = useMemo(() => owner?.name || owner?.ownerName || "Owner", [owner]);
@@ -217,7 +211,7 @@ export default function PropertyOwnerMobileLayout({
           <div className="flex items-center gap-2">
             {/* Notification Bell */}
             <button 
-              onClick={() => setNotifDrawerOpen(true)}
+              onClick={() => { setProfileDrawerOpen(false); setMoreDrawerOpen(false); setSwitcherOpen(false); setNotifDrawerOpen((prev) => !prev); }}
               className="relative p-1.5 text-slate-700 transition-all"
               aria-label="Notifications"
             >
@@ -231,7 +225,7 @@ export default function PropertyOwnerMobileLayout({
 
             {/* Profile Avatar */}
             <button 
-              onClick={() => setProfileDrawerOpen(true)}
+              onClick={() => { setNotifDrawerOpen(false); setMoreDrawerOpen(false); setSwitcherOpen(false); setProfileDrawerOpen((prev) => !prev); }}
               className="w-9 h-9 rounded-full bg-blue-600 text-white font-black text-sm flex items-center justify-center border-2 border-white/30 shadow-md shrink-0 hover:scale-105 transition-transform overflow-hidden"
             >
               {showAvatar ? (
@@ -583,28 +577,12 @@ export default function PropertyOwnerMobileLayout({
             <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider">Alerts & Logs</h3>
           </div>
           <div className="flex gap-4">
-            {/* Staff must not clear the owner's notification feed */}
-            {!staffMode && displayNotifications.length > 0 && (
+            {displayNotificationCount > 0 && typeof onMarkAllRead === "function" && (
               <button
-                onClick={async () => {
-                  setGlobalNotifications([]);
-                  if (owner?.loginId) {
-                    cacheInvalidate(`notifications:${owner.loginId}`);
-                    try {
-                      const { fetchJson } = await import("../../utils/api");
-                      await fetchJson(`/api/notifications/mark-all-read`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ toLoginId: owner.loginId })
-                      });
-                    } catch (e) {
-                      console.error("Failed to clear notifications", e);
-                    }
-                  }
-                }}
+                onClick={() => onMarkAllRead()}
                 className="text-[10px] font-bold text-blue-600 hover:text-blue-700"
               >
-                Mark Read
+                Mark all read
               </button>
             )}
             <button onClick={() => setNotifDrawerOpen(false)} className="text-slate-400 hover:text-slate-700">
@@ -645,10 +623,26 @@ export default function PropertyOwnerMobileLayout({
             </div>
           ) : (
             displayNotifications.map((n, i) => (
-              <div key={i} className="p-3.5 bg-slate-50 border border-slate-100 rounded-2xl">
-                <p className="text-[11px] font-black text-slate-800 leading-tight mb-1">{n.title}</p>
-                <p className="text-[10px] text-slate-500 leading-relaxed">{n.message}</p>
-              </div>
+              <button
+                type="button"
+                key={n._id || i}
+                onClick={() => {
+                  setNotifDrawerOpen(false);
+                  if (typeof onOpenNotification === "function") onOpenNotification(n);
+                }}
+                className={cn(
+                  "w-full text-left p-3.5 border rounded-2xl transition-colors",
+                  !n.read ? "bg-blue-50/40 border-blue-100" : "bg-slate-50 border-slate-100"
+                )}
+              >
+                <div className="flex items-start gap-2">
+                  {!n.read && <span className="mt-1 w-1.5 h-1.5 shrink-0 rounded-full bg-blue-600" />}
+                  <div className="min-w-0 flex-1">
+                    <p className={cn("text-[11px] text-slate-800 leading-tight mb-1", n.read ? "font-semibold" : "font-black")}>{n.title}</p>
+                    <p className="text-[10px] text-slate-500 leading-relaxed">{n.message}</p>
+                  </div>
+                </div>
+              </button>
             ))
           )}
         </div>

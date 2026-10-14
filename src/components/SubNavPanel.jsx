@@ -1,7 +1,22 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { toPanelPath, canCreateInModule, isCreateOnlyPath } from "../utils/employeePermissions";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
+
+const readPanelUser = () => {
+  try {
+    return JSON.parse(
+      sessionStorage.getItem("manager_user") ||
+      sessionStorage.getItem("user") ||
+      localStorage.getItem("staff_user") ||
+      localStorage.getItem("user") ||
+      "{}"
+    );
+  } catch {
+    return {};
+  }
+};
 
 const SUB_NAV_CONFIG = {
   home: {
@@ -224,7 +239,7 @@ const SUB_NAV_CONFIG = {
 };
 
 function detectActiveModuleId(pathname, activeModuleIdProp) {
-  const path = (pathname || "").toLowerCase();
+  const path = (pathname || "").toLowerCase().replace(/^\/employee\//, "/superadmin/");
   
   if (path.includes("complaint") || path.includes("support") || path.includes("tickets") || path.includes("website-queries") || path.includes("resolution")) {
     return "support";
@@ -278,12 +293,22 @@ function detectActiveModuleId(pathname, activeModuleIdProp) {
 export function SubNavPanel({ activeModuleId }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const [panelUser, setPanelUser] = useState(readPanelUser);
+
+  useEffect(() => {
+    const sync = () => setPanelUser(readPanelUser());
+    window.addEventListener("roomhy-access-updated", sync);
+    return () => window.removeEventListener("roomhy-access-updated", sync);
+  }, []);
 
   const targetModuleId = detectActiveModuleId(location.pathname, activeModuleId);
   const moduleConfig = SUB_NAV_CONFIG[targetModuleId];
   if (!moduleConfig) return null;
 
   const currentPath = location.pathname + location.search;
+  const authRole = String(panelUser?.role || "").toLowerCase();
+  const isStaffPanel = authRole === "employee" || authRole === "areamanager";
+  const allowCreate = !isStaffPanel || canCreateInModule(panelUser, targetModuleId);
 
   return (
     <aside className="w-[230px] min-w-[230px] xl:w-[250px] xl:min-w-[250px] h-full bg-white border-r border-[#E1E6EA] flex flex-col shrink-0 z-40 transition-all duration-300" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
@@ -299,23 +324,33 @@ export function SubNavPanel({ activeModuleId }) {
 
             <div className="space-y-[1px]">
               {section.items.map((item, iIdx) => {
+                const itemPath = toPanelPath(item.path, location.pathname);
                 const isActive =
-                  currentPath === item.path ||
-                  location.pathname === item.path ||
-                  (item.path.includes("?") && location.pathname + location.search === item.path);
+                  currentPath === itemPath ||
+                  location.pathname === itemPath ||
+                  (itemPath.includes("?") && location.pathname + location.search === itemPath);
 
                 const hasLeftBorder = isActive && item.label !== "Overview";
+                const isDisabledByCrud = isStaffPanel && isCreateOnlyPath(item.path) && !allowCreate;
 
                 return (
                   <button
                     key={iIdx}
-                    onClick={() => navigate(item.path)}
+                    type="button"
+                    disabled={isDisabledByCrud}
+                    title={isDisabledByCrud ? "Create permission disabled for your role in this module" : undefined}
+                    onClick={() => {
+                      if (isDisabledByCrud) return;
+                      navigate(toPanelPath(item.path, location.pathname));
+                    }}
                     className={cn(
-                      "w-full text-left px-3 h-[36px] flex items-center rounded-[8px] text-[13px] font-medium transition-colors duration-150 cursor-pointer block truncate select-none border-l-[3.5px]",
-                      isActive
-                        ? "bg-[#E6F4F5] text-[#0E7C86] font-bold"
-                        : "text-[#4A5961] hover:bg-[#F4F6F8] hover:text-[#10242A]",
-                      hasLeftBorder ? "border-[#0E7C86]" : "border-transparent"
+                      "w-full text-left px-3 h-[36px] flex items-center rounded-[8px] text-[13px] font-medium transition-colors duration-150 block truncate select-none border-l-[3.5px]",
+                      isDisabledByCrud
+                        ? "text-[#9AA6AE] opacity-50 cursor-not-allowed border-transparent"
+                        : isActive
+                          ? "bg-[#E6F4F5] text-[#0E7C86] font-bold cursor-pointer"
+                          : "text-[#4A5961] hover:bg-[#F4F6F8] hover:text-[#10242A] cursor-pointer",
+                      hasLeftBorder && !isDisabledByCrud ? "border-[#0E7C86]" : "border-transparent"
                     )}
                   >
                     {item.label}

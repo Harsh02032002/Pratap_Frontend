@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { TranslationProvider } from './contexts/TranslationContext';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -11,6 +11,7 @@ import TenantProtectedRoute from "./pages/tenant/TenantProtectedRoute";
 import { getStaffSession, setStaffSession, clearStaffSession, canAccessOwnerPathAsStaff, STAFF_HOME_PATH, UNIFIED_LOGIN_PATH } from "./utils/staffAccess";
 import { fetchJson } from "./utils/api";
 import { hasEmployeePermission, getFirstAllowedEmployeeRoute } from "./utils/employeePermissions";
+import { redirectIfAccessRevoked, subscribeEmployeeAccess } from "./utils/employeeAccessSync";
 import { Toaster, toast } from "react-hot-toast";
 import InstallPWA from "./components/InstallPWA";
 import NotificationPromptBanner from "./components/NotificationPromptBanner";
@@ -134,6 +135,7 @@ const HtmlRedirectOrHome = () => {
 
 const ManagerRouteGuard = () => {
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -161,7 +163,7 @@ const ManagerRouteGuard = () => {
       !["/superadmin", "/superadmin/", "/superadmin/index"].includes(currentPath);
 
     if (isBlockedRoute) {
-      window.location.replace("/propertyowner/admin");
+      navigate("/propertyowner/admin", { replace: true });
     }
   }, [location.pathname]);
 
@@ -170,6 +172,7 @@ const ManagerRouteGuard = () => {
 
 const RouteRoleGuard = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user: authUser, loading } = useAuth();
 
   useEffect(() => {
@@ -203,37 +206,35 @@ const RouteRoleGuard = () => {
     // Owner session must not access admin panels unless they are logged in as superadmin/admin
     const owner = getOwnerSession();
     if (owner?.loginId && role !== 'superadmin' && role !== 'admin') {
-      window.location.replace('/propertyowner/admin');
+      navigate('/propertyowner/admin', { replace: true });
       return;
     }
 
     if (role === 'areamanager' || role === 'employee' || role === 'manager') {
       if (isAdminRoute) {
+        // Redirect /superadmin/* → /employee/* without a full-page reload.
         const empPath = path.replace('/superadmin/', '/employee/');
-        window.location.replace(empPath);
+        navigate(empPath, { replace: true });
         return;
       }
 
       if (isEmployeeRoute && path !== '/employee/index') {
         if (!hasEmployeePermission(userObj, path)) {
           const fallback = getFirstAllowedEmployeeRoute(userObj);
-          if (fallback && fallback !== path) {
-            window.location.replace(fallback);
-          } else if (path !== '/employee/areaadmin') {
-            window.location.replace('/employee/areaadmin');
-          }
+          const dest = (fallback && fallback !== path) ? fallback : '/employee/areaadmin';
+          if (dest !== path) navigate(dest, { replace: true });
         }
       }
       return;
     }
 
     if (isAdminRoute && role !== 'superadmin' && role !== 'admin') {
-      window.location.replace('/superadmin/index');
+      navigate('/superadmin/index', { replace: true });
       return;
     }
 
     if (isEmployeeRoute && role !== 'areamanager' && role !== 'employee' && role !== 'manager' && role !== 'superadmin' && role !== 'admin') {
-      window.location.replace('/superadmin/index');
+      navigate('/superadmin/index', { replace: true });
     }
   }, [location.pathname, authUser, loading]);
 
@@ -245,6 +246,31 @@ const RouteRoleGuard = () => {
 // filters against the permissions captured at login time and shows stale menus.
 // Runs once per load; only reloads if the permissions/active state actually
 // changed (so no reload loop).
+// Superadmin role edits reach signed-in employees over the socket. The sidebar
+// re-reads the session; the employee stays logged in.
+const EmployeeAccessSync = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const onEmployeePanel = location.pathname.startsWith("/employee/") && location.pathname !== "/employee/index";
+
+  useEffect(() => {
+    if (!onEmployeePanel) return undefined;
+    return subscribeEmployeeAccess((user) => {
+      redirectIfAccessRevoked(user, window.location.pathname, navigate);
+    });
+  }, [onEmployeePanel, navigate]);
+
+  useEffect(() => {
+    const onUpdate = (event) => {
+      if (event?.detail) redirectIfAccessRevoked(event.detail, location.pathname, navigate);
+    };
+    window.addEventListener("roomhy-access-updated", onUpdate);
+    return () => window.removeEventListener("roomhy-access-updated", onUpdate);
+  }, [location.pathname, navigate]);
+
+  return null;
+};
+
 const StaffSessionSync = () => {
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -633,6 +659,7 @@ export default function App() {
             <ManagerRouteGuard />
             <RouteRoleGuard />
             <StaffSessionSync />
+            <EmployeeAccessSync />
             <StaffRouteGuard />
             <RouteChromeCleanup />
             <Suspense fallback={<PageLoader />}>

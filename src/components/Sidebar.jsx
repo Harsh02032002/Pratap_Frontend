@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { 
   LayoutDashboard, Users, Building2, Wallet, 
   MessageSquare, BarChart3, Calendar, Star, 
@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { LogoutDialog } from "./superadmin/LogoutDialog";
+import { readEmployeePermissionKeys, toPanelPath } from "../utils/employeePermissions";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
@@ -24,10 +25,31 @@ const MAIN_NAV = [
   { label: "Settings", id: "settings", icon: Settings, path: "/superadmin/settings" },
 ];
 
+const readPanelUser = () => {
+  try {
+    return JSON.parse(
+      sessionStorage.getItem("manager_user") ||
+      sessionStorage.getItem("user") ||
+      localStorage.getItem("staff_user") ||
+      localStorage.getItem("user") ||
+      "{}"
+    );
+  } catch {
+    return {};
+  }
+};
+
 export function Sidebar({ open, isMobile, onClose, onLogout, activeModuleId, setActiveModuleId }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [panelUser, setPanelUser] = useState(readPanelUser);
+
+  useEffect(() => {
+    const sync = () => setPanelUser(readPanelUser());
+    window.addEventListener("roomhy-access-updated", sync);
+    return () => window.removeEventListener("roomhy-access-updated", sync);
+  }, []);
 
   const handleLogout = () => {
     if (onLogout) {
@@ -39,8 +61,19 @@ export function Sidebar({ open, isMobile, onClose, onLogout, activeModuleId, set
     }
   };
 
-  // Determine current active main module based on route with explicit order of precedence
-  const currentPath = (location.pathname || "").toLowerCase();
+  const authRole = String(panelUser?.role || "").toLowerCase();
+  const isStaffPanel = authRole === "employee" || authRole === "areamanager";
+  const permissionKeys = isStaffPanel ? readEmployeePermissionKeys(panelUser) : null;
+  const visibleNav = MAIN_NAV.filter((item) => {
+    if (!isStaffPanel || !permissionKeys) return true;
+    if (permissionKeys.length === 0) return panelUser?.permissionSource === "role" ? item.id === "dashboard" : true;
+    if (item.id === "visits") return true;
+    return permissionKeys.includes(item.id);
+  });
+
+  // Determine current active main module based on route with explicit order of precedence.
+  // Employee routes are the same pages under /employee — compare them as /superadmin.
+  const currentPath = (location.pathname || "").toLowerCase().replace(/^\/employee\//, "/superadmin/");
   let currentActiveId = null;
   
   if (
@@ -134,7 +167,7 @@ export function Sidebar({ open, isMobile, onClose, onLogout, activeModuleId, set
 
         {/* Navigation List - Main Modules Only */}
         <nav className="flex-1 overflow-y-auto px-0 space-y-[2px] custom-sidebar-scrollbar pt-1 pb-2">
-          {MAIN_NAV.map((item) => {
+          {visibleNav.map((item) => {
             const Icon = item.icon;
             const isActive = currentActiveId === item.id;
 
@@ -143,7 +176,7 @@ export function Sidebar({ open, isMobile, onClose, onLogout, activeModuleId, set
                 <div
                   onClick={() => {
                     if (setActiveModuleId) setActiveModuleId(item.id);
-                    if (item.path) navigate(item.path);
+                    if (item.path) navigate(toPanelPath(item.path, location.pathname));
                     if (isMobile && onClose) onClose();
                   }}
                   className={cn(

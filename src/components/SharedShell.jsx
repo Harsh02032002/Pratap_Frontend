@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, useLocation, Outlet, useNavigate } from "react-router-dom";
 import { resolveSectionFromPath, sharedNavConfig } from "./sharedNavConfig";
 import { Menu, Search, Bell, ChevronRight, X, MessageSquare, Building2, HelpCircle, Plus, ChevronDown, UserPlus, Wallet, AlertCircle, Calendar, Receipt, Smartphone } from "lucide-react";
@@ -8,11 +8,77 @@ import { fetchJson } from "../utils/api";
 import { requestNotificationPermission, showNativeNotification } from "../utils/notificationManager";
 import NotificationPromptBanner from "./NotificationPromptBanner";
 import AdminNotificationPrompt from "./AdminNotificationPrompt";
+import { getModuleActionPermissions } from "../utils/employeePermissions";
 
+const SAFE_BUTTON_TEXT_RE = /^(all|active|inactive|pending|verified|approved|rejected|published|overview|details|view|view details|preview|cancel|close|back|next|prev|previous|reset|clear|refresh|retry|filter|filters|search|export|export csv|export excel|download|print|ok|got it|\d+|✕|×)$/i;
+
+const DELETE_ACTION_RE = /\b(delete|remove|trash|destroy|permanent\s*delete|bulk\s*delete|clear\s+all)\b/i;
+
+const CREATE_ACTION_RE = /(^\+\s*\S+)|\b(add\s+new|add\s+property|add\s+tenant|add\s+owner|add\s+staff|add\s+employee|add\s+member|add\s+role|new\s+role|create\s+role|add\s+room|add\s+category|add\s+amenity|add\s+location|add\s+city|add\s+area|add\s+charge|add\s+record|create\s+new|create\s+property|create\s+user|create\s+ticket|record\s+payment|submit\s+visit|new\s+visit|add\s+visit|generate\s+invoice|new\s+entry|add\s+expense|add\s+payout)\b/i;
+
+const EDIT_ACTION_RE = /\b(edit|update|modify|save|save\s+changes|save\s+settings|save\s+details|approve|bulk\s*approve|reject|bulk\s*reject|verify|deactivate|activate|enable|disable|block|unblock|suspend|assign|reassign|resolve|escalate|moderate|publish|unpublish|process\s+payout|initiate\s+refund|approve\s+refund|reject\s+refund|send\s+payout|mark\s+paid|mark\s+as|change\s+status|reset\s+password|feature|unfeature)\b/i;
+
+function classifyCrudElement(el) {
+  if (!el || !(el instanceof HTMLElement)) return null;
+  if (el.dataset.crudIgnore === "true" || el.closest("[data-crud-ignore='true']")) return null;
+  const explicit = String(el.dataset.crudAction || "").toLowerCase();
+  if (explicit === "create" || explicit === "edit" || explicit === "delete") return explicit;
+
+  if (el.getAttribute("role") === "tab") return null;
+
+  const rawText = String(el.innerText || el.textContent || "").replace(/\s+/g, " ").trim();
+  const title = String(el.getAttribute("title") || el.dataset.originalCrudTitle || "").trim();
+  const ariaLabel = String(el.getAttribute("aria-label") || "").trim();
+  const href = String(el.getAttribute("href") || "").toLowerCase();
+  const combined = [rawText, title, ariaLabel].filter(Boolean).join(" ");
+
+  const hasTrashIcon = Boolean(
+    el.querySelector("svg.lucide-trash, svg.lucide-trash-2, svg.lucide-trash2, [data-lucide='trash'], [data-lucide='trash-2']")
+  );
+  const hasPlusIcon = Boolean(
+    el.querySelector("svg.lucide-plus, svg.lucide-user-plus, svg.lucide-plus-circle, svg.lucide-circle-plus, svg.lucide-file-plus, [data-lucide='plus'], [data-lucide='user-plus']")
+  );
+  const hasEditIcon = Boolean(
+    el.querySelector("svg.lucide-edit, svg.lucide-edit-2, svg.lucide-edit-3, svg.lucide-pencil, svg.lucide-square-pen, svg.lucide-pen, svg.lucide-save, svg.lucide-user-cog, [data-lucide='edit'], [data-lucide='pencil'], [data-lucide='save']")
+  );
+
+  if (!hasTrashIcon && !hasPlusIcon && !hasEditIcon && SAFE_BUTTON_TEXT_RE.test(rawText)) {
+    return null;
+  }
+
+  if (hasTrashIcon || DELETE_ACTION_RE.test(combined)) {
+    return "delete";
+  }
+
+  if (
+    href.includes("/add-owner") ||
+    href.includes("/add-tenant") ||
+    href.includes("/add-property") ||
+    CREATE_ACTION_RE.test(rawText) ||
+    CREATE_ACTION_RE.test(combined) ||
+    (hasPlusIcon && (!rawText || /\b(add|new|create|record)\b/i.test(combined)))
+  ) {
+    return "create";
+  }
+
+  if (hasEditIcon || EDIT_ACTION_RE.test(combined)) {
+    return "edit";
+  }
+
+  if (String(el.getAttribute("type") || "").toLowerCase() === "submit") {
+    const formOrDialog = el.closest("form, [role='dialog']");
+    const headingText = String(formOrDialog?.querySelector("h1, h2, h3, h4")?.textContent || "");
+    if (/\b(add|create|new|record)\b/i.test(headingText)) return "create";
+    return "edit";
+  }
+
+  return null;
+}
 
 export default function SharedShell() {
   const location = useLocation();
   const navigate = useNavigate();
+  const mainContentRef = useRef(null);
   const pathName = location.pathname || "";
   const isEmbed = useMemo(() => {
     try {
@@ -43,7 +109,17 @@ export default function SharedShell() {
       return {};
     }
   };
-  const user = resolveUser();
+  const [user, setUser] = useState(resolveUser);
+  useEffect(() => {
+    const syncUser = () => setUser(resolveUser());
+    window.addEventListener("roomhy-access-updated", syncUser);
+    window.addEventListener("storage", syncUser);
+    return () => {
+      window.removeEventListener("roomhy-access-updated", syncUser);
+      window.removeEventListener("storage", syncUser);
+    };
+  }, [location.pathname]);
+
   const userName = user?.name || "User";
   const roleLower = String(user?.role || "").toLowerCase();
   const userRole = (roleLower === "employee" || roleLower === "areamanager" || roleLower === "manager") 
@@ -169,6 +245,117 @@ export default function SharedShell() {
   useEffect(() => {
     setActiveModuleId(null);
   }, [location.pathname]);
+
+  const isStaffUser = roleLower === "employee" || roleLower === "areamanager";
+  const currentModuleCrud = useMemo(
+    () => getModuleActionPermissions(user, location.pathname),
+    [user, location.pathname]
+  );
+
+  useEffect(() => {
+    const root = mainContentRef.current;
+    if (!root) return undefined;
+
+    const applyCrudButtonStates = () => {
+      const elements = root.querySelectorAll("button, a[href], input[type='submit'], [role='button']");
+      elements.forEach((el) => {
+        if (!(el instanceof HTMLElement)) return;
+
+        if (!isStaffUser) {
+          if (el.dataset.crudDisabled === "true") {
+            if ("disabled" in el) el.disabled = false;
+            el.removeAttribute("aria-disabled");
+            delete el.dataset.crudDisabled;
+            delete el.dataset.crudBlockedAction;
+            el.classList.remove("opacity-50", "cursor-not-allowed");
+            if (el.dataset.originalCrudTitle !== undefined) {
+              if (el.dataset.originalCrudTitle) el.setAttribute("title", el.dataset.originalCrudTitle);
+              else el.removeAttribute("title");
+              delete el.dataset.originalCrudTitle;
+            }
+          }
+          return;
+        }
+
+        const action = classifyCrudElement(el);
+        if (!action) return;
+
+        const isAllowed =
+          action === "create"
+            ? Boolean(currentModuleCrud.create)
+            : action === "edit"
+              ? Boolean(currentModuleCrud.edit)
+              : action === "delete"
+                ? Boolean(currentModuleCrud.delete)
+                : true;
+
+        if (!isAllowed) {
+          if (el.dataset.crudDisabled !== "true") {
+            el.dataset.originalCrudTitle = el.getAttribute("title") || "";
+          }
+          if ("disabled" in el) el.disabled = true;
+          el.setAttribute("aria-disabled", "true");
+          el.dataset.crudDisabled = "true";
+          el.dataset.crudBlockedAction = action;
+          el.classList.add("opacity-50", "cursor-not-allowed");
+          const label = action.charAt(0).toUpperCase() + action.slice(1);
+          el.setAttribute("title", `${label} permission is disabled for your role in this module`);
+        } else if (el.dataset.crudDisabled === "true") {
+          if ("disabled" in el) el.disabled = false;
+          el.removeAttribute("aria-disabled");
+          delete el.dataset.crudDisabled;
+          delete el.dataset.crudBlockedAction;
+          el.classList.remove("opacity-50", "cursor-not-allowed");
+          if (el.dataset.originalCrudTitle !== undefined) {
+            if (el.dataset.originalCrudTitle) el.setAttribute("title", el.dataset.originalCrudTitle);
+            else el.removeAttribute("title");
+            delete el.dataset.originalCrudTitle;
+          }
+        }
+      });
+    };
+
+    applyCrudButtonStates();
+
+    let rafId = null;
+    const observer = new MutationObserver(() => {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(applyCrudButtonStates);
+    });
+    observer.observe(root, { childList: true, subtree: true });
+
+    const handleBlockedClick = (e) => {
+      if (!isStaffUser) return;
+      const target = e.target instanceof Element
+        ? e.target.closest("button, a[href], input[type='submit'], [role='button']")
+        : null;
+      if (!target || !(target instanceof HTMLElement)) return;
+      const blockedAction = target.dataset.crudBlockedAction || classifyCrudElement(target);
+      if (!blockedAction) return;
+      const allowed =
+        blockedAction === "create"
+          ? Boolean(currentModuleCrud.create)
+          : blockedAction === "edit"
+            ? Boolean(currentModuleCrud.edit)
+            : blockedAction === "delete"
+              ? Boolean(currentModuleCrud.delete)
+              : true;
+      if (!allowed) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+
+    root.addEventListener("click", handleBlockedClick, true);
+    root.addEventListener("submit", handleBlockedClick, true);
+
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      observer.disconnect();
+      root.removeEventListener("click", handleBlockedClick, true);
+      root.removeEventListener("submit", handleBlockedClick, true);
+    };
+  }, [isStaffUser, currentModuleCrud, location.pathname]);
 
   if (isEmbed) return <Outlet />;
   if (!config) return <div className="shared-shell"><Outlet /></div>;
@@ -353,7 +540,7 @@ export default function SharedShell() {
             {!isMobile && <SubNavPanel activeModuleId={activeModuleId} />}
 
             {/* Main Content Area */}
-            <main className="flex-1 min-w-0 overflow-y-auto custom-scrollbar p-6 lg:px-[32px] lg:pt-[18px] lg:pb-[24px] bg-[#F4F6F8]">
+            <main ref={mainContentRef} className="flex-1 min-w-0 overflow-y-auto custom-scrollbar p-6 lg:px-[32px] lg:pt-[18px] lg:pb-[24px] bg-[#F4F6F8]">
               <div className="w-full max-w-[1600px] mx-auto">
                 <Outlet />
               </div>
