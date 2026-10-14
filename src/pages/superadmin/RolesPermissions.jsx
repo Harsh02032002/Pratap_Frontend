@@ -7,6 +7,7 @@ import {
   Activity, Lock, Edit3, Trash2, Camera,
   Fingerprint, Loader2, MapPin, Building2, Shield, User, Plus
 } from "lucide-react";
+import { toast } from "react-hot-toast";
 import { fetchJson, getAuthHeader, getApiBase } from "../../utils/api";
 import { PageHeader } from "../../components/superadmin/PageHeader";
 import { 
@@ -224,120 +225,210 @@ export default function RolesPermissions() {
     (e.loginId || "").toLowerCase().includes(search.toLowerCase())
   );
 
-  const [selectedRole, setSelectedRole] = useState("Admin");
-  const rolesList = ["Admin", "Manager", "Accountant", "Support Agent", "Field Agent"];
+  // ── Roles: real data from /api/roles (saved templates + roles staff already hold) ──
+  const [roles, setRoles] = useState([]);
+  const [rolesLoading, setRolesLoading] = useState(true);
+  const [rolesError, setRolesError] = useState("");
+  const [selectedRole, setSelectedRole] = useState("");
+  const [draftPerms, setDraftPerms] = useState(new Set());
+  const [applyToStaff, setApplyToStaff] = useState(false);
+  const [savingRole, setSavingRole] = useState(false);
+  const [newRoleName, setNewRoleName] = useState(null); // null = closed
 
-  const modulesList = [
-    { name: "User Management", view: true, create: true, edit: true, delete: false },
-    { name: "Property Management", view: true, create: false, edit: true, delete: true },
-    { name: "Accounting", view: true, create: true, edit: true, delete: true },
-    { name: "Chat Management", view: true, create: false, edit: false, delete: false },
-    { name: "Visit Report", view: true, create: true, edit: true, delete: false },
-    { name: "Reports", view: true, create: false, edit: true, delete: false },
-    { name: "Bookings", view: true, create: true, edit: false, delete: false },
-    { name: "Reviews", view: true, create: false, edit: true, delete: false },
-    { name: "Support", view: true, create: true, edit: true, delete: false },
-    { name: "Settings", view: true, create: false, edit: false, delete: false },
-  ];
+  const loadRoles = async (keepSelection) => {
+    try {
+      setRolesError("");
+      const res = await fetchJson(`/api/roles?_t=${Date.now()}`, { headers: getAuthHeader() });
+      const list = res.roles || [];
+      setRoles(list);
+      const pick = list.find((r) => r.name === keepSelection) || list[0];
+      setSelectedRole(pick ? pick.name : "");
+      setDraftPerms(new Set(pick ? pick.permissions : []));
+    } catch (err) {
+      setRolesError(err.message || "Could not load roles");
+    } finally {
+      setRolesLoading(false);
+    }
+  };
+  useEffect(() => { loadRoles(); }, []);
+
+  const currentRole = roles.find((r) => r.name === selectedRole) || null;
+  const savedPerms = new Set(currentRole ? currentRole.permissions : []);
+  const dirty = !!currentRole && (draftPerms.size !== savedPerms.size || [...draftPerms].some((p) => !savedPerms.has(p)));
+
+  const chooseRole = (r) => { setSelectedRole(r.name); setDraftPerms(new Set(r.permissions)); setApplyToStaff(false); };
+  const toggleDraftPerm = (key) => setDraftPerms((prev) => {
+    const next = new Set(prev);
+    next.has(key) ? next.delete(key) : next.add(key);
+    return next;
+  });
+
+  const saveRole = async (name, permissions, apply) => {
+    setSavingRole(true);
+    try {
+      const res = await fetchJson("/api/roles", {
+        method: "PUT",
+        headers: getAuthHeader(),
+        body: JSON.stringify({ name, permissions, applyToStaff: apply }),
+      });
+      toast.success(apply ? `Saved. Updated ${res.appliedTo} staff member(s).` : "Role saved.");
+      setApplyToStaff(false);
+      await loadRoles(name);
+      if (apply) fetchEmployees();
+    } catch (err) {
+      toast.error(err.message || "Could not save role");
+    } finally {
+      setSavingRole(false);
+    }
+  };
+
+  const createRole = async (e) => {
+    e.preventDefault();
+    const name = (newRoleName || "").trim();
+    if (!name) return;
+    await saveRole(name, [], false);
+    setNewRoleName(null);
+  };
+
+  const deleteRole = async () => {
+    if (!currentRole?.id || !window.confirm(`Delete the "${currentRole.name}" role template? Staff keep the access they already have.`)) return;
+    try {
+      await fetchJson(`/api/roles/${currentRole.id}`, { method: "DELETE", headers: getAuthHeader() });
+      toast.success("Role deleted.");
+      await loadRoles();
+    } catch (err) {
+      toast.error(err.message || "Could not delete role");
+    }
+  };
 
   return (
     <div className="space-y-4 text-[#10242A]">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-[22px] font-bold text-[#10242A] tracking-tight">Roles & Permissions</h1>
-          <p className="text-[13px] text-[#4A5961]">Control what each role can access</p>
+          <p className="text-[13px] text-[#4A5961]">Choose which sections each role can open</p>
         </div>
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={() => alert("Creating new role...")}
-            className="bg-[#0E7C86] hover:bg-[#0B666E] text-white text-[13px] font-semibold px-4 py-2 rounded-[8px] transition-all shadow-xs cursor-pointer"
-          >
-            + New Role
-          </button>
-        </div>
+        <button
+          onClick={() => setNewRoleName("")}
+          className="bg-[#0E7C86] hover:bg-[#0B666E] text-white text-[13px] font-semibold px-4 py-2 rounded-[8px] transition-all shadow-xs cursor-pointer"
+        >
+          + New Role
+        </button>
       </div>
 
-      {/* Grid - Left ROLES, Right Permissions Matrix */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-        {/* Left Panel: ROLES */}
         <div className="lg:col-span-4 bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-sm">
           <h3 className="text-[12px] font-bold text-[#4A5961] uppercase tracking-wider mb-3">ROLES</h3>
+          {newRoleName !== null && (
+            <form onSubmit={createRole} className="flex gap-2 mb-3">
+              <input
+                autoFocus
+                value={newRoleName}
+                onChange={(e) => setNewRoleName(e.target.value)}
+                maxLength={60}
+                placeholder="Role name"
+                className="flex-1 min-w-0 border border-[#CBD3D9] rounded-[8px] px-3 py-1.5 text-[13px]"
+              />
+              <button disabled={savingRole || !newRoleName.trim()} className="bg-[#0E7C86] text-white text-[13px] font-semibold px-3 rounded-[8px] disabled:opacity-50">Add</button>
+              <button type="button" onClick={() => setNewRoleName(null)} className="text-[13px] text-[#4A5961] px-1">✕</button>
+            </form>
+          )}
+          {rolesLoading && <p className="text-[13px] text-[#4A5961]">Loading roles…</p>}
+          {rolesError && <p className="text-[13px] text-red-600">{rolesError}</p>}
+          {!rolesLoading && !rolesError && roles.length === 0 && (
+            <p className="text-[13px] text-[#4A5961]">No roles yet. Click “+ New Role” to create one.</p>
+          )}
           <div className="space-y-1">
-            {rolesList.map((role) => {
-              const isActive = role === selectedRole;
+            {roles.map((role) => {
+              const isActive = role.name === selectedRole;
               return (
                 <button
-                  key={role}
-                  onClick={() => setSelectedRole(role)}
+                  key={role.name}
+                  onClick={() => chooseRole(role)}
                   className={cn(
                     "w-full text-left px-4 py-2 text-[13px] font-semibold transition-all flex items-center justify-between cursor-pointer rounded-[8px] border-l-[3.5px]",
-                    isActive 
-                      ? "bg-[#E6F4F5] text-[#0E7C86] border-[#0E7C86]" 
-                      : "text-[#10242A] hover:bg-slate-50 border-transparent"
+                    isActive ? "bg-[#E6F4F5] text-[#0E7C86] border-[#0E7C86]" : "text-[#10242A] hover:bg-slate-50 border-transparent"
                   )}
                 >
-                  <span>{role}</span>
+                  <span>{role.name}{!role.saved && <span className="ml-2 text-[10px] font-medium text-[#4A5961]">not saved yet</span>}</span>
+                  <span className="text-[11px] font-medium text-[#4A5961]">{role.staffCount} staff</span>
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* Right Panel: Permissions Table */}
         <div className="lg:col-span-8 flex flex-col">
-          <h3 className="text-[15px] font-bold text-[#10242A] mb-3">Permissions: {selectedRole}</h3>
-          
-          <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-sm flex flex-col justify-between">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse min-w-[500px]">
-                <thead>
-                  <tr className="border-b border-[#E1E6EA]">
-                    <th className="text-[12px] font-semibold text-[#4A5961] pb-2 px-3">Module</th>
-                    <th className="text-[12px] font-semibold text-[#4A5961] pb-2 px-3 text-center">View</th>
-                    <th className="text-[12px] font-semibold text-[#4A5961] pb-2 px-3 text-center">Create</th>
-                    <th className="text-[12px] font-semibold text-[#4A5961] pb-2 px-3 text-center">Edit</th>
-                    <th className="text-[12px] font-semibold text-[#4A5961] pb-2 px-3 text-center">Delete</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#E1E6EA] text-[13px]">
-                  {modulesList.map((m, idx) => (
-                    <tr key={idx} className="hover:bg-[#F9FAFB] transition-colors">
-                      <td className="py-2 px-3 text-[#10242A] font-medium">{m.name}</td>
-                      <td className="py-2 px-3 text-center">
-                        <div className={`w-4 h-4 rounded-[4px] flex items-center justify-center mx-auto ${m.view ? 'bg-[#0E7C86] text-white' : 'bg-white border border-[#CBD3D9]'}`}>
-                          {m.view && <span className="text-[10px] font-bold">✓</span>}
-                        </div>
-                      </td>
-                      <td className="py-2 px-3 text-center">
-                        <div className={`w-4 h-4 rounded-[4px] flex items-center justify-center mx-auto ${m.create ? 'bg-[#0E7C86] text-white' : 'bg-white border border-[#CBD3D9]'}`}>
-                          {m.create && <span className="text-[10px] font-bold">✓</span>}
-                        </div>
-                      </td>
-                      <td className="py-2 px-3 text-center">
-                        <div className={`w-4 h-4 rounded-[4px] flex items-center justify-center mx-auto ${m.edit ? 'bg-[#0E7C86] text-white' : 'bg-white border border-[#CBD3D9]'}`}>
-                          {m.edit && <span className="text-[10px] font-bold">✓</span>}
-                        </div>
-                      </td>
-                      <td className="py-2 px-3 text-center">
-                        <div className={`w-4 h-4 rounded-[4px] flex items-center justify-center mx-auto ${m.delete ? 'bg-[#0E7C86] text-white' : 'bg-white border border-[#CBD3D9]'}`}>
-                          {m.delete && <span className="text-[10px] font-bold">✓</span>}
-                        </div>
-                      </td>
+          {currentRole ? (
+            <>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-[15px] font-bold text-[#10242A]">Permissions: {currentRole.name}</h3>
+                {currentRole.saved && (
+                  <button onClick={deleteRole} className="text-[12px] font-semibold text-red-600 hover:underline">Delete role</button>
+                )}
+              </div>
+              <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-sm flex flex-col justify-between">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-[#E1E6EA]">
+                      <th className="text-[12px] font-semibold text-[#4A5961] pb-2 px-3">Section</th>
+                      <th className="text-[12px] font-semibold text-[#4A5961] pb-2 px-3 text-center w-28">Can open</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            
-            <div className="flex items-center justify-end gap-3 mt-4 pt-4 border-t border-[#E1E6EA]">
-              <button className="bg-white border border-[#CBD3D9] hover:bg-gray-50 text-[#10242A] text-[13px] font-semibold px-4 py-1.5 rounded-[8px] transition-colors cursor-pointer shadow-xs">
-                Cancel
-              </button>
-              <button className="bg-[#0E7C86] hover:bg-[#0B656D] text-white text-[13px] font-semibold px-4 py-1.5 rounded-[8px] transition-colors cursor-pointer shadow-xs">
-                Save changes
-              </button>
-            </div>
-          </div>
+                  </thead>
+                  <tbody className="divide-y divide-[#E1E6EA] text-[13px]">
+                    {EMPLOYEE_MODULE_OPTIONS.map((m) => (
+                      <tr key={m.id} className="hover:bg-[#F9FAFB] transition-colors">
+                        <td className="py-2 px-3 text-[#10242A] font-medium">{m.label}</td>
+                        <td className="py-2 px-3 text-center">
+                          <input
+                            type="checkbox"
+                            aria-label={`${currentRole.name} can open ${m.label}`}
+                            checked={draftPerms.has(m.id)}
+                            onChange={() => toggleDraftPerm(m.id)}
+                            className="w-4 h-4 accent-[#0E7C86] cursor-pointer"
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p className="text-[12px] text-[#4A5961] mt-3">
+                  Accounting and Settings are superadmin-only and can’t be given to a role. Fine-grained blocks inside a section are set per staff member.
+                </p>
+
+                <div className="flex flex-wrap items-center justify-between gap-3 mt-4 pt-4 border-t border-[#E1E6EA]">
+                  <label className={cn("flex items-center gap-2 text-[13px]", currentRole.staffCount ? "cursor-pointer" : "opacity-50")}>
+                    <input
+                      type="checkbox"
+                      disabled={!currentRole.staffCount}
+                      checked={applyToStaff}
+                      onChange={(e) => setApplyToStaff(e.target.checked)}
+                      className="w-4 h-4 accent-[#0E7C86]"
+                    />
+                    Also update the {currentRole.staffCount} staff member(s) who have this role
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <button
+                      disabled={!dirty || savingRole}
+                      onClick={() => setDraftPerms(new Set(currentRole.permissions))}
+                      className="bg-white border border-[#CBD3D9] hover:bg-gray-50 text-[#10242A] text-[13px] font-semibold px-4 py-1.5 rounded-[8px] disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      disabled={(!dirty && !applyToStaff && currentRole.saved) || savingRole}
+                      onClick={() => saveRole(currentRole.name, [...draftPerms], applyToStaff)}
+                      className="bg-[#0E7C86] hover:bg-[#0B656D] text-white text-[13px] font-semibold px-4 py-1.5 rounded-[8px] disabled:opacity-50"
+                    >
+                      {savingRole ? "Saving…" : "Save changes"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            !rolesLoading && <p className="text-[13px] text-[#4A5961]">Select or create a role to edit its access.</p>
+          )}
         </div>
       </div>
 
