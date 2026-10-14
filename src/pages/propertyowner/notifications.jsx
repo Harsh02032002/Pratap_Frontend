@@ -4,7 +4,7 @@ import { getOwnerRuntimeSession, clearOwnerRuntimeSession } from "../../utils/pr
 import { useOwnerNotifications } from "../../hooks/useOwnerNotifications";
 import {
   Bell, Check, IndianRupee, UserCheck, AlertTriangle,
-  Info, Plus
+  Settings, Info, ShieldAlert, Plus
 } from "lucide-react";
 
 export default function NotificationsPage() {
@@ -16,7 +16,7 @@ export default function NotificationsPage() {
 
   const [activeTab, setActiveTab] = useState("all");
   // Same live feed as the header bell (initial load + SSE push, no polling).
-  const { items, markRead, markAllRead } = useOwnerNotifications(owner.loginId);
+  const { items, connected, markRead, markAllRead } = useOwnerNotifications(owner.loginId);
   const [loading, setLoading] = useState(true);
   React.useEffect(() => { const t = setTimeout(() => setLoading(false), 600); return () => clearTimeout(t); }, []);
   const notifications = useMemo(() => items.map((n) => ({

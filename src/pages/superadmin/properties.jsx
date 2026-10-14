@@ -1234,7 +1234,7 @@ function PropertyViewModal({ property: p, onClose, apiUrl, onRefresh }) {
     if (!window.confirm("Approve these changes? They will go live immediately.")) return;
     setApprovingChanges(true);
     try {
-      const res = await fetch(`${apiUrl}/api/properties/${p._id}/approve-changes`, { method: "PUT", headers: { "Content-Type": "application/json" } });
+      const res = await fetch(`${apiUrl}/api/properties/${p._id}/approve-changes`, { method: "PUT", headers: { "Content-Type": "application/json", ...getAuthHeader() } });
       const data = await res.json();
       if (data.success) { toast.success("Changes approved & live!"); onRefresh(); }
       else toast.error(data.message || "Failed to approve");
@@ -1246,7 +1246,7 @@ function PropertyViewModal({ property: p, onClose, apiUrl, onRefresh }) {
     try {
       const res = await fetch(`${apiUrl}/api/properties/${p._id}/reject-changes`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeader() },
         body: JSON.stringify({ rejectReason })
       });
       const data = await res.json();

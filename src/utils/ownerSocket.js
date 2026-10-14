@@ -38,9 +38,17 @@ function ensureSocket(owner) {
     current.socketPromise = Promise.all([
       import('socket.io-client'),
       import('./api'),
-    ]).then(([{ io }, { getApiBase }]) => {
+      // Loaded dynamically like the others so nothing is pulled into the
+      // initial bundle just to read the token.
+      import('./authScope'),
+    ]).then(([{ io }, { getApiBase }, { getScopedAuthToken }]) => {
       if (state !== current) return null; // torn down while importing
-      const socket = io(getApiBase(), { transports: ['websocket', 'polling'] });
+      // See the note in the other socket call sites: the handshake is now
+      // authenticated server-side, so the token must travel with it.
+      const socket = io(getApiBase(), {
+        transports: ['websocket', 'polling'],
+        auth: { token: getScopedAuthToken() },
+      });
       const join = () => socket.emit('join_room', current.joinPayload);
       socket.on('connect', join);
       if (socket.connected) join();

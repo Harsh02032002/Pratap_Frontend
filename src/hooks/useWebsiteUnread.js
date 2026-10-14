@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { fetchJson, getApiBase } from "../utils/api";
-import { getScopedStoredUser } from "../utils/authScope";
+import { getScopedStoredUser, getScopedAuthToken } from "../utils/authScope";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Website unread-chat badge (WhatsApp-style count on the floating chat button
@@ -63,7 +63,8 @@ const connectSocket = (userId, userObj) => {
   import("socket.io-client")
     .then(({ io }) => {
       if (!started || userId !== currentUserId || socket) return;
-      const s = io(getApiBase(), { transports: ["websocket", "polling"], reconnection: true });
+      // Handshake is authenticated server-side now; send the scoped token.
+      const s = io(getApiBase(), { transports: ["websocket", "polling"], reconnection: true, auth: { token: getScopedAuthToken() } });
       socket = s;
       // Same join payload shape WebsiteChat sends. The server also joins the
       // canonical (email-hash) form of login_id on its own.

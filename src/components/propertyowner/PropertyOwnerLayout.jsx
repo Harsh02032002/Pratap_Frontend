@@ -248,9 +248,9 @@ export default function PropertyOwnerLayout({
     }
   }, [isStaffProxy, assignedPropId, activePropertyId]);
 
-  // Live feed (initial fetch + SSE push, no polling). Always use this feed so
-  // the red dot and the dropdown list come from the exact same array on every
-  // page, regardless of what the page itself fetches.
+  // One live feed for every bell variant: initial load + SSE push, no polling.
+  // Always use this feed so the red dot and the dropdown list come from the
+  // exact same array on every page, regardless of what the page itself fetches.
   const {
     items: liveNotifications,
     markRead: markNotificationRead,

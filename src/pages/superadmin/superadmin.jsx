@@ -11,6 +11,7 @@ import {
   fetchAccountingOverviewStats
 } from "../../utils/api";
 import useSEO from "../../hooks/useSEO";
+import EmployeeAttendanceWidget from "../../components/EmployeeAttendanceWidget";
 
 export default function SuperadminDashboard() {
   const navigate = useNavigate();
@@ -109,6 +110,10 @@ export default function SuperadminDashboard() {
         <h1 className="text-[26px] font-bold text-[#10242A] tracking-tight leading-tight">Overview</h1>
         <p className="text-[12px] text-[#4A5961] mt-0.5 leading-normal">Platform summary</p>
       </div>
+
+      <EmployeeAttendanceWidget user={(() => {
+        try { return JSON.parse(sessionStorage.getItem("user") || localStorage.getItem("user") || "null"); } catch { return null; }
+      })()} />
 
       {/* ── 4 Top Stat Cards ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">

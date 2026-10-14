@@ -64,7 +64,7 @@ export default function Owner() {
          setLoading(true);
          const [res, visitsRes] = await Promise.all([
             fetchJson("/api/owners"),
-            fetchJson("/api/visits").catch(() => ({ visits: [] }))
+            fetchJson("/api/visits?lite=1").catch(() => ({ visits: [] }))
          ]);
 
          const baseOwners = Array.isArray(res) ? res : (res.data || res.owners || []);

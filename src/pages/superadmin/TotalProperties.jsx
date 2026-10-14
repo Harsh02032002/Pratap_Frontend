@@ -1143,7 +1143,7 @@ function PendingChangesSection({ prop, apiUrl, onRefresh, setConfirmModal }) {
         setApproving(true);
         const toastId = toast.loading("Approving changes...");
         try {
-          const res = await fetch(`${apiUrl}/api/properties/${prop._id}/approve-changes`, { method: "PUT", headers: { "Content-Type": "application/json" } });
+          const res = await fetch(`${apiUrl}/api/properties/${prop._id}/approve-changes`, { method: "PUT", headers: { "Content-Type": "application/json", ...getAuthHeader() } });
           const data = await res.json();
           if (data.success) { toast.success("Changes approved & live!", { id: toastId }); onRefresh(); }
           else toast.error(data.message || "Failed to approve", { id: toastId });
@@ -1162,7 +1162,7 @@ function PendingChangesSection({ prop, apiUrl, onRefresh, setConfirmModal }) {
         setRejecting(true);
         const toastId = toast.loading("Rejecting changes...");
         try {
-          const res = await fetch(`${apiUrl}/api/properties/${prop._id}/reject-changes`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rejectReason: reason }) });
+          const res = await fetch(`${apiUrl}/api/properties/${prop._id}/reject-changes`, { method: "PUT", headers: { "Content-Type": "application/json", ...getAuthHeader() }, body: JSON.stringify({ rejectReason: reason }) });
           const data = await res.json();
           if (data.success) { toast.success("Changes rejected", { id: toastId }); setShowReject(false); onRefresh(); }
           else toast.error(data.message || "Failed to reject", { id: toastId });

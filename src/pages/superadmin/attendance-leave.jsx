@@ -1,6 +1,15 @@
-import React, { useState, useMemo } from "react";
-import { Search, Plus } from "lucide-react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
+import toast from "react-hot-toast";
+import { Plus } from "lucide-react";
 import useSEO from "../../hooks/useSEO";
+import { getAllLeaves, createLeave, setLeaveStatus, getAllStaffAttendance } from "../../api/attendance";
+
+const fmtDate = (d) => new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+const todayStr = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+const emptyForm = () => ({ employeeId: "", type: "Casual Leave", from: todayStr(), to: todayStr(), reason: "" });
 
 export default function AttendanceLeave() {
   useSEO({
@@ -11,52 +20,74 @@ export default function AttendanceLeave() {
 
   const [activeTab, setActiveTab] = useState("Pending");
   const [showApplyModal, setShowApplyModal] = useState(false);
+  const [leaves, setLeaves] = useState([]);
+  const [staff, setStaff] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [newLeave, setNewLeave] = useState(emptyForm());
 
-  // Dynamic leave records state
-  const [leaves, setLeaves] = useState([
-    { id: 1, staff: "Neha Kapoor", role: "Field Executive", type: "Casual Leave", from: "10 Oct 2026", to: "12 Oct 2026", days: 3, status: "Pending" },
-    { id: 2, staff: "Amit Singh", role: "Field Executive", type: "Sick Leave", from: "08 Oct 2026", to: "09 Oct 2026", days: 2, status: "Pending" },
-    { id: 3, staff: "Rajesh Verma", role: "Maintenance", type: "Casual Leave", from: "05 Oct 2026", to: "05 Oct 2026", days: 1, status: "Approved" },
-    { id: 4, staff: "Harsh Gupta", role: "Marketing Team", type: "Earned Leave", from: "15 Oct 2026", to: "18 Oct 2026", days: 4, status: "Approved" },
-    { id: 5, staff: "Siddharth Malhotra", role: "Accounts", type: "Sick Leave", from: "01 Oct 2026", to: "02 Oct 2026", days: 2, status: "Rejected" },
-  ]);
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const [list, att] = await Promise.all([getAllLeaves(), getAllStaffAttendance(todayStr())]);
+      setLeaves(list.map((l) => ({ ...l, id: l._id })));
+      setStaff(att.data);
+    } catch (err) {
+      setError(err?.message || "Could not load leave requests");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  // New leave form state for modal
-  const [newLeave, setNewLeave] = useState({ staff: "", type: "Casual Leave", from: "", to: "", days: 1, reason: "" });
+  useEffect(() => { load(); }, [load]);
 
   const stats = useMemo(() => {
-    const pending = leaves.filter(l => l.status === "Pending").length;
-    const approved = leaves.filter(l => l.status === "Approved").length;
-    const today = leaves.filter(l => l.status === "Approved" && l.from.includes("Oct")).length || 1;
-    return { pending, approved, today };
+    const now = new Date();
+    const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const approved = leaves.filter((l) => l.status === "Approved");
+    return {
+      pending: leaves.filter((l) => l.status === "Pending").length,
+      approved: approved.filter((l) => {
+        const f = new Date(l.fromDate);
+        return f.getMonth() === now.getMonth() && f.getFullYear() === now.getFullYear();
+      }).length,
+      today: approved.filter((l) => new Date(l.fromDate) <= startToday && new Date(l.toDate) >= startToday).length,
+    };
   }, [leaves]);
 
-  const filteredLeaves = useMemo(() => {
-    return leaves.filter(l => l.status.toLowerCase() === activeTab.toLowerCase());
-  }, [leaves, activeTab]);
+  const filteredLeaves = useMemo(
+    () => leaves.filter((l) => l.status.toLowerCase() === activeTab.toLowerCase()),
+    [leaves, activeTab]
+  );
 
-  const handleAction = (id, newStatus) => {
-    setLeaves(prev => prev.map(l => l.id === id ? { ...l, status: newStatus } : l));
+  const handleAction = async (id, status) => {
+    try {
+      await setLeaveStatus(id, status);
+      toast.success(`Leave ${status.toLowerCase()}`);
+      await load();
+    } catch (err) {
+      toast.error(err?.message || "Could not update leave");
+    }
   };
 
-  const handleAddLeave = (e) => {
+  const handleAddLeave = async (e) => {
     e.preventDefault();
-    if (!newLeave.staff) return;
-    setLeaves(prev => [
-      {
-        id: Date.now(),
-        staff: newLeave.staff,
-        role: "Staff Member",
-        type: newLeave.type,
-        from: newLeave.from || "12 Oct 2026",
-        to: newLeave.to || "14 Oct 2026",
-        days: Number(newLeave.days) || 1,
-        status: "Pending"
-      },
-      ...prev
-    ]);
-    setShowApplyModal(false);
-    setNewLeave({ staff: "", type: "Casual Leave", from: "", to: "", days: 1, reason: "" });
+    if (!newLeave.employeeId) return;
+    setSaving(true);
+    try {
+      await createLeave(newLeave);
+      toast.success("Leave added");
+      setShowApplyModal(false);
+      setNewLeave(emptyForm());
+      setActiveTab("Pending");
+      await load();
+    } catch (err) {
+      toast.error(err?.message || "Could not add leave");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -139,7 +170,11 @@ export default function AttendanceLeave() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#F0F4F6]">
-              {filteredLeaves.length === 0 ? (
+              {loading ? (
+                <tr><td colSpan="7" className="py-12 text-center text-[#708088] text-[14px]">Loading leave requests...</td></tr>
+              ) : error ? (
+                <tr><td colSpan="7" className="py-12 text-center text-[#991B1B] text-[14px]">{error}</td></tr>
+              ) : filteredLeaves.length === 0 ? (
                 <tr>
                   <td colSpan="7" className="py-12 text-center text-[#708088] text-[14px]">
                     No {activeTab.toLowerCase()} leave requests found.
@@ -151,14 +186,14 @@ export default function AttendanceLeave() {
                     <td className="py-4 text-[14px] font-medium text-[#10242A] pl-2">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-[#CBD3D9] flex items-center justify-center text-[12px] font-bold text-[#10242A] shrink-0">
-                          {row.staff.split(" ").map(n => n[0]).join("")}
+                          {(row.employeeName || "?").split(" ").filter(Boolean).map(n => n[0]).join("").slice(0, 2).toUpperCase()}
                         </div>
-                        <span>{row.staff}</span>
+                        <span>{row.employeeName}</span>
                       </div>
                     </td>
                     <td className="py-4 text-[14px] text-[#4A5961]">{row.type}</td>
-                    <td className="py-4 text-[14px] text-[#4A5961]">{row.from}</td>
-                    <td className="py-4 text-[14px] text-[#4A5961]">{row.to}</td>
+                    <td className="py-4 text-[14px] text-[#4A5961]">{fmtDate(row.fromDate)}</td>
+                    <td className="py-4 text-[14px] text-[#4A5961]">{fmtDate(row.toDate)}</td>
                     <td className="py-4 text-[14px] text-[#4A5961]">{row.days}</td>
                     <td className="py-4">
                       <span className={`inline-block px-3 py-1 rounded-full text-[12px] font-semibold ${
@@ -206,15 +241,16 @@ export default function AttendanceLeave() {
             <h3 className="text-[18px] font-bold text-[#10242A] mb-4">Add Staff Leave</h3>
             <form onSubmit={handleAddLeave} className="space-y-4 text-sm">
               <div>
-                <label className="block text-xs font-semibold text-[#4A5961] mb-1">Staff Name</label>
-                <input
-                  type="text"
+                <label className="block text-xs font-semibold text-[#4A5961] mb-1">Staff</label>
+                <select
                   required
-                  placeholder="e.g. Neha Kapoor"
-                  value={newLeave.staff}
-                  onChange={e => setNewLeave({ ...newLeave, staff: e.target.value })}
+                  value={newLeave.employeeId}
+                  onChange={e => setNewLeave({ ...newLeave, employeeId: e.target.value })}
                   className="w-full h-10 border border-[#CBD3D9] rounded-[8px] px-3 text-[#10242A] outline-none focus:border-[#0E7C86]"
-                />
+                >
+                  <option value="">Select staff</option>
+                  {staff.map(s => <option key={s.employeeId} value={s.employeeId}>{s.name} — {s.role}</option>)}
+                </select>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-[#4A5961] mb-1">Leave Type</label>
@@ -225,6 +261,7 @@ export default function AttendanceLeave() {
                 >
                   <option value="Casual Leave">Casual Leave</option>
                   <option value="Sick Leave">Sick Leave</option>
+                  <option value="Emergency Leave">Emergency Leave</option>
                   <option value="Earned Leave">Earned Leave</option>
                 </select>
               </div>
@@ -232,8 +269,9 @@ export default function AttendanceLeave() {
                 <div>
                   <label className="block text-xs font-semibold text-[#4A5961] mb-1">From Date</label>
                   <input
-                    type="text"
-                    placeholder="12 Oct 2026"
+                    type="date"
+                    required
+                    min={"2000-01-01"}
                     value={newLeave.from}
                     onChange={e => setNewLeave({ ...newLeave, from: e.target.value })}
                     className="w-full h-10 border border-[#CBD3D9] rounded-[8px] px-3 text-[#10242A] outline-none focus:border-[#0E7C86]"
@@ -242,13 +280,23 @@ export default function AttendanceLeave() {
                 <div>
                   <label className="block text-xs font-semibold text-[#4A5961] mb-1">To Date</label>
                   <input
-                    type="text"
-                    placeholder="14 Oct 2026"
+                    type="date"
+                    required
+                    min={newLeave.from}
                     value={newLeave.to}
                     onChange={e => setNewLeave({ ...newLeave, to: e.target.value })}
                     className="w-full h-10 border border-[#CBD3D9] rounded-[8px] px-3 text-[#10242A] outline-none focus:border-[#0E7C86]"
                   />
                 </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-[#4A5961] mb-1">Reason (optional)</label>
+                <input
+                  type="text"
+                  value={newLeave.reason}
+                  onChange={e => setNewLeave({ ...newLeave, reason: e.target.value })}
+                  className="w-full h-10 border border-[#CBD3D9] rounded-[8px] px-3 text-[#10242A] outline-none focus:border-[#0E7C86]"
+                />
               </div>
               <div className="flex justify-end gap-3 pt-2">
                 <button
@@ -260,9 +308,10 @@ export default function AttendanceLeave() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-[#0E7C86] hover:bg-[#0B666E] text-white rounded-[8px] text-xs font-semibold transition-colors"
+                  disabled={saving}
+                  className="px-4 py-2 bg-[#0E7C86] hover:bg-[#0B666E] text-white rounded-[8px] text-xs font-semibold transition-colors disabled:opacity-50"
                 >
-                  Save Leave
+                  {saving ? "Saving..." : "Save Leave"}
                 </button>
               </div>
             </form>

@@ -163,15 +163,21 @@ export const fetchJson = (path, options = {}) => {
       if (!res.ok) {
         const text = await res.text();
         let errorMsg = `Request failed: ${res.status} ${res.statusText}`;
+        // The backend sets this when the account was deactivated or force-logged
+        // out, so the stored token is dead and no retry will help. Matching the
+        // flag rather than the message text keeps this working if the wording changes.
+        let sessionEnded = false;
         try {
           const parsed = JSON.parse(text);
           const msg = parsed.message || parsed.error;
           if (msg) errorMsg = msg + (parsed.details ? `: ${parsed.details}` : '');
+          sessionEnded = parsed.sessionEnded === true;
         } catch (_) {}
         const err = new Error(errorMsg);
         err.status = res.status;
         err.body = text;
-        if (res.status === 401 && (errorMsg.includes("token invalid") || errorMsg.includes("Token expired") || errorMsg.includes("token missing"))) {
+        err.sessionEnded = sessionEnded;
+        if (res.status === 401 && (sessionEnded || errorMsg.includes("token invalid") || errorMsg.includes("Token expired") || errorMsg.includes("token missing"))) {
           try { clearScopedSession(); } catch (_) {}
         }
         throw err;

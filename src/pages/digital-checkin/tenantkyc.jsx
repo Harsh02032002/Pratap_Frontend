@@ -286,6 +286,7 @@ export default function DigitalCheckinTenantkyc() {
   const {
     loginId, setLoginId,
     aadhaarNumber, setAadhaarNumber,
+    aadhaarOnFileMasked,
     aadhaarLinkedPhone,
     tenantPhone,
     tenantProfile,
@@ -379,6 +380,14 @@ export default function DigitalCheckinTenantkyc() {
               required
               style={errors.aadhaarNumber ? { borderColor: "#f44336" } : {}}
             />
+            {/* Masked hint only — for security the full number on file is never
+                sent to this page, so it cannot be pre-filled. */}
+            {aadhaarOnFileMasked && !aadhaarNumber && (
+              <div style={{ fontSize: "12px", color: "#555", marginTop: "4px" }}>
+                Aadhaar on file: <strong>{aadhaarOnFileMasked}</strong>. Enter the full
+                12-digit number, or upload your card below and it will be filled in automatically.
+              </div>
+            )}
             <FieldError msg={errors.aadhaarNumber} />
           </div>
 

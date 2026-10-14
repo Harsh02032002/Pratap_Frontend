@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { getApiBases, getWithFallback, postExpectSuccess, postWithFallback } from "./utils";
+import {
+  getApiBases,
+  getWithFallback,
+  postExpectSuccess,
+  postWithFallback,
+  checkinAccessHeaders,
+  saveCheckinAccess,
+  clearCheckinAccess
+} from "./utils";
 import { useAadhaarOcr } from "./useAadhaarOcr";
 
 const TENANT_KYC_STATE_KEY = "roomhy_tenant_kyc_state";
@@ -22,6 +30,10 @@ export const useTenantKyc = () => {
   const [fetchingProfile, setFetchingProfile]       = useState(false);
   const [errors, setErrors]                         = useState({});
   const [mismatchDetails, setMismatchDetails]       = useState("");
+  // "XXXX XXXX 1234" for the Aadhaar already on file. Display-only: the server
+  // never sends the full number, so this must never be put in the input or
+  // submitted — the tenant types the number or OCR fills it from the card.
+  const [aadhaarOnFileMasked, setAadhaarOnFileMasked] = useState("");
   // Agreement-extension token from the email link (?ext=...). Empty for the normal flow.
   const [extToken] = useState(() => {
     try { return new URLSearchParams(window.location.search).get("ext") || ""; } catch (_) { return ""; }
@@ -42,10 +54,15 @@ export const useTenantKyc = () => {
     const load = async () => {
       setFetchingProfile(true);
       try {
+        const id = loginId.trim().toUpperCase();
         const data = await getWithFallback(
-          `/api/checkin/tenant/profile/${encodeURIComponent(loginId.trim().toUpperCase())}`,
-          apiBases
+          `/api/checkin/tenant/profile/${encodeURIComponent(id)}`,
+          apiBases,
+          { headers: checkinAccessHeaders(id) }
         );
+        // The server refused a stored proof (expired, revoked, another
+        // tenant's) and sent the public view — forget it.
+        if (data?.checkinAccess === "denied") clearCheckinAccess(id);
         const t = data?.tenant || data;
         if (t) {
           setTenantProfile(t);
@@ -54,22 +71,17 @@ export const useTenantKyc = () => {
             setTenantPhone(phone);
             setAadhaarLinkedPhone(phone);
           }
-          // Prefill Aadhaar number if owner entered or if existing
-          const existingAadhaar = (
-            t.aadhaarNumber ||
-            t.idProofNumber ||
-            t.kyc?.aadhaarNumber ||
-            t.kycVerificationData?.adminEnteredAadhaar ||
-            t.aadhar ||
-            ""
-          ).replace(/\D/g, "");
-          if (existingAadhaar) {
-            setAadhaarNumber(existingAadhaar);
-          }
+          // The server no longer sends the Aadhaar number — only a masked
+          // "XXXX XXXX 1234". Show it as a hint; NEVER put it in the input,
+          // where it would be submitted as if it were the real number. The
+          // tenant types the number, or OCR fills it from the card photo.
+          setAadhaarOnFileMasked(t.aadhaarMasked || "");
 
-          // Prefill existing uploaded documents so tenant can view/remove/replace them
-          const existingFront = t.digitalCheckin?.documents?.aadhaarFrontUrl || t.kyc?.aadhaarFront || t.aadhaarFront || "";
-          const existingBack = t.digitalCheckin?.documents?.aadhaarBackUrl || t.kyc?.aadhaarBack || t.aadhaarBack || "";
+          // Previously uploaded card images come back only with a valid check-in
+          // access proof (i.e. after this tenant's OTP), so a returning tenant
+          // can view/replace them; otherwise they upload again.
+          const existingFront = t.kycDocuments?.aadhaarFront || "";
+          const existingBack = t.kycDocuments?.aadhaarBack || "";
           const existingPhoto = t.digitalCheckin?.documents?.tenantPhotoUrl || t.kyc?.tenantPhoto || t.photo || "";
           
           if (existingFront || existingBack || existingPhoto) {
@@ -245,16 +257,18 @@ export const useTenantKyc = () => {
       if (!/^\d{12}$/.test(aadhaarRaw)) return setOtpMsg("Aadhaar number must be 12 digits");
       if (!otp.trim()) return setOtpMsg("Please enter the OTP");
 
-      // Compute Aadhaar OCR Mismatch against Owner's Pre-filled Record
-      const ownerExpectedAadhaar = (
-        tenantProfile?.idProofNumber ||
-        tenantProfile?.aadhaarNumber ||
-        tenantProfile?.kyc?.aadhaarNumber ||
-        tenantProfile?.kyc?.aadhar ||
-        tenantProfile?.kycVerificationData?.adminEnteredAadhaar ||
-        tenantProfile?.idProof?.number ||
-        ""
-      ).replace(/\D/g, "");
+      // Compare against the owner's record. The server now sends only the last
+      // four digits of the number on file (it never sends the full number to
+      // this anonymous page), so these checks compare last-4 — the server
+      // repeats the full comparison authoritatively in verify-otp.
+      const ownerExpectedLast4 = String(tenantProfile?.aadhaarLast4 || "").replace(/\D/g, "");
+      const last4Matches = (number) => !ownerExpectedLast4 || !number || number.slice(-4) === ownerExpectedLast4;
+      // Mismatch text is shown to reviewers and stored, so it carries masked
+      // numbers only.
+      const masked = (v) => {
+        const d = String(v || "").replace(/\D/g, "");
+        return d.length >= 4 ? `XXXX XXXX ${d.slice(-4)}` : "unreadable";
+      };
 
       const scannedCardAadhaar = (frontOcr?.aadhaarNumber || "").replace(/\D/g, "");
 
@@ -275,17 +289,18 @@ export const useTenantKyc = () => {
 
       const mismatchReasons = [];
 
-      // Check 1: Uploaded Card vs Owner Record
-      if (ownerExpectedAadhaar && scannedCardAadhaar && !isAadhaarMatch(ownerExpectedAadhaar, scannedCardAadhaar)) {
-        mismatchReasons.push(`Aadhaar Card image mismatch: Owner Record (${ownerExpectedAadhaar}) vs Scanned Card Image (${scannedCardAadhaar})`);
+      // Check 1: Uploaded Card vs Owner Record (last four digits)
+      if (ownerExpectedLast4 && scannedCardAadhaar && !last4Matches(scannedCardAadhaar)) {
+        mismatchReasons.push(`Aadhaar Card image mismatch: Owner Record (XXXX XXXX ${ownerExpectedLast4}) vs Scanned Card Image (${masked(scannedCardAadhaar)})`);
       }
-      // Check 2: Entered Number vs Owner Record
-      if (ownerExpectedAadhaar && aadhaarRaw && !isAadhaarMatch(ownerExpectedAadhaar, aadhaarRaw)) {
-        mismatchReasons.push(`Aadhaar Number mismatch: Owner Record (${ownerExpectedAadhaar}) vs Submitted Number (${aadhaarRaw})`);
+      // Check 2: Entered Number vs Owner Record (last four digits)
+      if (ownerExpectedLast4 && aadhaarRaw && !last4Matches(aadhaarRaw)) {
+        mismatchReasons.push(`Aadhaar Number mismatch: Owner Record (XXXX XXXX ${ownerExpectedLast4}) vs Submitted Number (${masked(aadhaarRaw)})`);
       }
-      // Check 3: Scanned Card Image vs Entered Aadhaar Number
+      // Check 3: Scanned Card Image vs Entered Aadhaar Number (both on this
+      // device, so still compared in full)
       if (scannedCardAadhaar && aadhaarRaw && !isAadhaarMatch(scannedCardAadhaar, aadhaarRaw)) {
-        mismatchReasons.push(`Aadhaar Card image mismatch: Image number (${scannedCardAadhaar}) vs Entered number (${aadhaarRaw})`);
+        mismatchReasons.push(`Aadhaar Card image mismatch: Image number (${masked(scannedCardAadhaar)}) vs Entered number (${masked(aadhaarRaw)})`);
       }
       // Check 4: If OCR rejected or unreadable card image
       if (frontOcr?.status === "rejected" || frontOcr?.status === "unreadable") {
@@ -311,7 +326,10 @@ export const useTenantKyc = () => {
           ...(extToken ? { extensionToken: extToken } : {})
         };
         saveKycState({ otpSent: true });
-        await postExpectSuccess("/api/checkin/tenant/kyc/verify-otp", payload, apiBases);
+        const verified = await postExpectSuccess("/api/checkin/tenant/kyc/verify-otp", payload, apiBases);
+        // Issued only because this OTP verified; lets later profile reads in
+        // this tab include the tenant's own uploaded card images.
+        if (verified?.checkinAccess) saveCheckinAccess(payload.loginId, verified.checkinAccess);
 
         // Update local cache
         try {
@@ -346,7 +364,7 @@ export const useTenantKyc = () => {
         setOtpMsg(`Verification failed: ${err.message}`);
       }
     },
-    [aadhaarNumber, apiBases, extToken, frontOcr, loginId, otp, saveKycState, uploadedUrls]
+    [aadhaarNumber, apiBases, extToken, frontOcr, loginId, otp, saveKycState, tenantProfile, uploadedUrls]
   );
 
 
@@ -358,6 +376,7 @@ export const useTenantKyc = () => {
   return {
     loginId, setLoginId,
     aadhaarNumber, setAadhaarNumber,
+    aadhaarOnFileMasked,          // "XXXX XXXX 1234" — display only, never an input value
     aadhaarLinkedPhone,           // read-only, from DB — do NOT expose setter to UI
     tenantPhone,                  // original value from DB
     tenantProfile,
