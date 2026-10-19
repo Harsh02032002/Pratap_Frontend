@@ -8,6 +8,12 @@ export async function getMyAttendance(staffLoginId, month, year) {
   return data?.data || [];
 }
 
+/** The logged-in employee's assigned shift + whether check-in is open now. data is null if none assigned. */
+export async function getMyShift() {
+  const data = await apiFetch(`/api/hr/my-shift`);
+  return { shift: data?.data || null, graceMinutes: data?.graceMinutes ?? 60 };
+}
+
 export async function checkIn(staffLoginId) {
   return apiFetch(`/api/hr/checkin`, { method: "POST", body: JSON.stringify({ staffLoginId }) });
 }

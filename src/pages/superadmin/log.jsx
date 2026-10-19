@@ -34,7 +34,7 @@ const todayStr = () => {
 
 export default function Log() {
   const [rows, setRows] = useState([]);
-  const [summary, setSummary] = useState({ present: 0, late: 0, absent: 0, onLeave: 0 });
+  const [summary, setSummary] = useState({ present: 0, late: 0, absent: 0, onLeave: 0, halfDay: 0, holiday: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -72,7 +72,7 @@ export default function Log() {
         in: r.checkIn || "—",
         out: r.checkOut || "—",
         hours: hoursBetween(r.checkIn, r.checkOut),
-        status: r.status === "Half Day" ? "On Leave" : r.status === "Leave" ? "On Leave" : r.status,
+        status: r.status === "Leave" ? "On Leave" : r.status,
         key: r.employeeId,
       }))
       .filter((item) => {
@@ -114,11 +114,13 @@ export default function Log() {
       </div>
 
       {/* 4 Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
         <StatCard label="Present" value={summary.present} loading={loading} />
         <StatCard label="Late" value={summary.late} loading={loading} />
         <StatCard label="Absent" value={summary.absent} loading={loading} />
+        <StatCard label="Half Day" value={summary.halfDay} loading={loading} />
         <StatCard label="On Leave" value={summary.onLeave} loading={loading} />
+        <StatCard label="Holiday" value={summary.holiday} loading={loading} />
       </div>
 
       {/* Filter Bar */}
@@ -152,7 +154,7 @@ export default function Log() {
           className="appearance-none bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-1.5 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs w-[85px] sm:w-[90px]"
         >
           <option value="all">Status ▾</option>
-          {["Present", "Late", "Absent", "On Leave"].map(st => <option key={st} value={st}>{st}</option>)}
+          {["Present", "Half Day", "Late", "Absent", "On Leave", "Holiday"].map(st => <option key={st} value={st}>{st}</option>)}
         </select>
       </div>
 
@@ -196,6 +198,8 @@ export default function Log() {
                         row.status === "Present" ? "bg-[#DDF3E4] text-[#14532D]" : 
                         row.status === "Late" ? "bg-[#FFEDD5] text-[#9A3412]" : 
                         row.status === "On Leave" ? "bg-[#E1ECF4] text-[#1E3A5F]" : 
+                        row.status === "Half Day" ? "bg-[#FEF3C7] text-[#92400E]" : 
+                        row.status === "Holiday" ? "bg-[#E8EDF1] text-[#4A5961]" : 
                         "bg-[#FDE8E8] text-[#991B1B]"
                       )}>
                         {row.status}

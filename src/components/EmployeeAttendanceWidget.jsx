@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { LogIn, LogOut, Clock, CalendarOff } from "lucide-react";
 import { useMyAttendance, useCheckIn, useCheckOut } from "../hooks/useAttendance";
-import { getMyLeaves, createLeave } from "../api/attendance";
+import { getMyLeaves, createLeave, getMyShift } from "../api/attendance";
 import { queryKeys } from "../lib/queryKeys";
 
 const EMPLOYEE_ROLES = ["employee", "manager"];
@@ -16,6 +16,17 @@ const STATUS_STYLE = {
   Pending: "bg-[#FDEBD0] text-[#7A3E00]",
   Rejected: "bg-[#FDE8E8] text-[#991B1B]",
 };
+
+// "09:00 AM" + 60 -> "10:00 AM"
+const addMinutes = (t, add) => {
+  const m = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i.exec(t || "");
+  if (!m) return t;
+  let mins = ((Number(m[1]) % 12) + (m[3].toUpperCase() === "PM" ? 12 : 0)) * 60 + Number(m[2]) + add;
+  const h24 = Math.floor(mins / 60) % 24;
+  return `${pad(h24 % 12 || 12)}:${pad(mins % 60)} ${h24 >= 12 ? "PM" : "AM"}`;
+};
+
+const WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 const isSameLocalDay = (a, b) =>
   a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
@@ -48,6 +59,15 @@ export default function EmployeeAttendanceWidget({ user }) {
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.attendance.all }),
   });
 
+  // Re-fetched every minute so the buttons open/close as the shift starts and ends.
+  const { data: shiftInfo, isLoading: shiftLoading } = useQuery({
+    queryKey: queryKeys.attendance.myShift(loginId),
+    queryFn: getMyShift,
+    enabled: isEmployee,
+    refetchInterval: 60000,
+  });
+  const shift = shiftInfo?.shift || null;
+
   const today = useMemo(
     () => records.find((r) => r?.date && isSameLocalDay(new Date(r.date), new Date())) || null,
     [records]
@@ -57,6 +77,21 @@ export default function EmployeeAttendanceWidget({ user }) {
 
   const checkedIn = !!today?.checkIn;
   const checkedOut = !!today?.checkOut;
+  const onLeaveToday = today?.status === "Leave";
+
+  // Why check-in is closed right now (empty string = open).
+  const state = shift?.state || "no-shift";
+  const shiftBlock =
+    shiftLoading ? "Loading shift…"
+    : state === "no-shift" ? "No shift assigned yet — ask your superadmin"
+    : state === "off" ? `Day off (${shift.weekday}) — Holiday`
+    : state === "before" ? `Shift starts at ${shift.startTime}`
+    : state === "ended" && !checkedIn ? `Shift ended at ${shift.endTime}`
+    : onLeaveToday ? "You are on approved leave today"
+    : "";
+  const canCheckIn = !shiftBlock && !checkedIn;
+  const canCheckOut = checkedIn && !checkedOut;
+  const grace = shiftInfo?.graceMinutes ?? 60;
 
   const run = async (mut, okMsg) => {
     try {
@@ -99,23 +134,36 @@ export default function EmployeeAttendanceWidget({ user }) {
               <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Check-out</p>
               <p className="text-xl font-bold text-slate-800 tracking-tight">{isLoading ? "..." : today?.checkOut || "—"}</p>
             </div>
-            {today?.status === "Late" && (
-              <span className="text-[9px] font-bold text-amber-600 uppercase tracking-widest">Late</span>
+            {today?.status === "Half Day" && (
+              <span className="text-[9px] font-bold text-amber-600 uppercase tracking-widest">Half day</span>
             )}
+          </div>
+          <div className="mt-3 text-[11px] text-slate-500">
+            {shiftLoading ? "…" : shift ? (
+              <>
+                <span className="font-bold text-slate-700">{shift.shiftName} shift · {shift.startTime} – {shift.endTime}</span>
+                <span className="mx-1.5">·</span>
+                {shift.days.length === 7 ? "Every day" : WEEK.filter((d) => shift.days.includes(d)).map((d) => d.slice(0, 3)).join(", ")}
+                <div className="text-slate-400 mt-0.5">
+                  Check in by {addMinutes(shift.startTime, grace)} for a full day; later counts as half day.
+                </div>
+              </>
+            ) : "No shift assigned yet"}
+            {shiftBlock && !checkedIn && <div className="mt-1 font-bold text-amber-600">{shiftBlock}</div>}
           </div>
         </div>
       </div>
       <div className="flex items-center gap-4">
         <button
           onClick={() => run(checkInMut, "Checked in")}
-          disabled={isLoading || checkedIn || checkInMut.isPending}
+          disabled={isLoading || !canCheckIn || checkInMut.isPending}
           className="flex items-center gap-2 px-7 py-3.5 bg-slate-800 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-slate-900 shadow-lg shadow-slate-800/10 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <LogIn className="w-3.5 h-3.5" /> {checkInMut.isPending ? "Saving..." : "Check In"}
         </button>
         <button
           onClick={() => run(checkOutMut, "Checked out")}
-          disabled={isLoading || !checkedIn || checkedOut || checkOutMut.isPending}
+          disabled={isLoading || !canCheckOut || checkOutMut.isPending}
           className="flex items-center gap-2 px-7 py-3.5 bg-white text-slate-600 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <LogOut className="w-3.5 h-3.5" /> {checkOutMut.isPending ? "Saving..." : "Check Out"}

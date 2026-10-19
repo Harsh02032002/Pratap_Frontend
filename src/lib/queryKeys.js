@@ -21,6 +21,8 @@ export const queryKeys = {
     all: ["attendance"],
     // The logged-in employee's own leave requests.
     myLeaves: (staffLoginId) => ["attendance", "myLeaves", staffLoginId],
+    // The logged-in employee's assigned shift.
+    myShift: (staffLoginId) => ["attendance", "myShift", staffLoginId],
     // The logged-in staff member's own attendance for a month.
     mine: (staffLoginId, month, year) => ["attendance", "mine", staffLoginId, month, year],
     // Tenant attendance for an owner on a given date.
