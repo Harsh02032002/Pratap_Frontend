@@ -13,7 +13,7 @@ import {
   UtensilsCrossed, Cigarette, PawPrint, BedDouble, DoorOpen
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { fetchJson, getAuthHeader, getApiBase } from "../../utils/api";
+import { fetchJson, getAuthHeader, getApiBase, clearApiCache } from "../../utils/api";
 import { compressImage, PRESETS } from "../../utils/imageCompression";
 import { PROPERTY_TIERS, normalizeTierKey } from "../../utils/propertyTiers";
 import {
@@ -316,6 +316,12 @@ export default function Visit() {
   const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalRows, setTotalRows] = useState(0);
+  const [serverStats, setServerStats] = useState(null);
+  const [loadError, setLoadError] = useState(null);
+  const [detailLoadingId, setDetailLoadingId] = useState(null); // report being fetched for View/Edit
   const [viewingVisit, setViewingVisit] = useState(null);
   const [actingId, setActingId] = useState(null);
   const [ownerKyc, setOwnerKyc] = useState(null);
@@ -951,24 +957,86 @@ export default function Visit() {
 
   // ─── Data Loading ───────────────────────────────────────────────────────────
 
-  const loadVisits = async () => {
-    try {
-      setLoading(true);
-      const isEmpPage = window.location.pathname.startsWith("/employee");
-      const storedUser = JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user") || "{}");
-      let url = "/api/visits";
-      if (isEmpPage && (storedUser.loginId || storedUser.employeeId || storedUser.name)) {
-        const sid = storedUser.loginId || storedUser.employeeId || storedUser.name;
-        url += `?staffId=${encodeURIComponent(sid)}&staffName=${encodeURIComponent(storedUser.name || "")}`;
-      }
-      const data = await fetchJson(url);
-      const list = data?.visits || data || [];
-      setVisits(list);
-    } catch (err) { console.error(err); }
-    finally { setLoading(false); }
+  const PAGE_SIZE = 25;
+  const loadReqRef = useRef(0);   // newest request wins; older responses are dropped
+  const mountedRef = useRef(true);
+  useEffect(() => () => { mountedRef.current = false; }, []);
+
+  // One automatic retry for transient failures (auth not ready, timeout, 5xx, offline).
+  const isRetryable = (err) => {
+    const s = err?.status;
+    return !s || s === 401 || s === 408 || s >= 500;
   };
 
-  useEffect(() => { loadVisits(); }, []);
+  const loadVisits = async () => {
+    const reqId = ++loadReqRef.current;
+    setLoading(true);
+    setLoadError(null);
+    const params = new URLSearchParams({ view: "table", page: String(page), limit: String(PAGE_SIZE) });
+    const q = debouncedSearch.trim();
+    if (q) params.set("q", q.slice(0, 60));
+    const url = `/api/visits?${params.toString()}`;
+    try {
+      let data;
+      try {
+        data = await fetchJson(url);
+      } catch (err) {
+        if (!isRetryable(err)) throw err;
+        await new Promise(r => setTimeout(r, 1000));
+        if (!mountedRef.current || reqId !== loadReqRef.current) return;
+        data = await fetchJson(url);
+      }
+      if (!mountedRef.current || reqId !== loadReqRef.current) return;
+      const list = Array.isArray(data?.visits) ? data.visits : Array.isArray(data) ? data : null;
+      if (!list) throw new Error("The server sent back something unexpected.");
+      const count = Number.isFinite(Number(data?.total)) ? Number(data.total) : list.length;
+      // Deleted the last row of the last page -> step back instead of showing an empty page.
+      if (list.length === 0 && count > 0 && page > 1) {
+        setPage(Math.max(1, Math.ceil(count / PAGE_SIZE)));
+        return;
+      }
+      setVisits(list);
+      setTotalRows(count);
+      setServerStats(data?.stats || null);
+    } catch (err) {
+      if (!mountedRef.current || reqId !== loadReqRef.current) return;
+      console.error(err);
+      setLoadError(err?.message || "Could not load visit reports.");
+    } finally {
+      if (mountedRef.current && reqId === loadReqRef.current) setLoading(false);
+    }
+  };
+
+  // Search is sent to the server, so wait for typing to pause; a new search starts at page 1.
+  useEffect(() => {
+    const t = setTimeout(() => { setDebouncedSearch(search); setPage(1); }, 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  useEffect(() => { loadVisits(); }, [page, debouncedSearch]);
+
+  // The list rows carry no photos or full details. View/Edit pull the whole
+  // report first, so a form is never prefilled (and saved) from the thin row.
+  const fetchVisitDetail = async (v) => {
+    const id = v.visitId || v._id;
+    const data = await fetchJson(`/api/visits/${encodeURIComponent(id)}`);
+    const full = data?.visit;
+    if (!full || typeof full !== "object") throw new Error("Report details were not returned.");
+    // Keep the list's KYC status: it is checked against the owner record, the stored one can lag.
+    return { ...full, kycStatus: v.kycStatus ?? full.kycStatus, kycSentAt: v.kycSentAt ?? full.kycSentAt };
+  };
+
+  const handleViewVisit = async (v) => {
+    const id = v.visitId || v._id;
+    setDetailLoadingId(id);
+    try {
+      setViewingVisit(await fetchVisitDetail(v));
+    } catch (err) {
+      notify("error", "Could not open the report", err?.message || "Please try again.");
+    } finally {
+      setDetailLoadingId(null);
+    }
+  };
 
   useEffect(() => {
     fetchJson("/api/locations/cities")
@@ -1077,9 +1145,16 @@ export default function Visit() {
     try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch (e) {}
   };
 
-  const handleStartEdit = (v) => {
-    if (!v) return;
-    loadFormFromVisit(v);
+  const handleStartEdit = async (v) => {
+    if (!v || detailLoadingId) return;
+    setDetailLoadingId(v.visitId || v._id);
+    try {
+      loadFormFromVisit(await fetchVisitDetail(v));
+    } catch (err) {
+      notify("error", "Could not open the report for editing", err?.message || "Nothing was changed. Please try again.");
+    } finally {
+      setDetailLoadingId(null);
+    }
   };
 
   // ─── Onboarding Handler ─────────────────────────────────────────────────────
@@ -1235,6 +1310,7 @@ export default function Visit() {
       }
       resetForm();
       setCurrentView("list");
+      clearApiCache();
       loadVisits();
     } catch (err) {
       notify("error", "Could not submit the report", err?.message || "Something went wrong. Nothing was saved — please try again.");
@@ -1260,6 +1336,7 @@ export default function Visit() {
         `Emailed to ${v.ownerEmail || "the owner"}.`,
         res?.loginId ? `Owner login ID: ${res.loginId}` : null
       );
+      clearApiCache();
       loadVisits();
     } catch (err) {
       notify("error", "Could not send the KYC link", err?.message || "The email did not go out. Please try again.");
@@ -1296,6 +1373,7 @@ export default function Visit() {
       setRejectModal(null);
       setRejectReason("");
       setViewingVisit(null);
+      clearApiCache();
       loadVisits();
     } catch (err) {
       notify("error", "Could not reject", err?.message || "The rejection did not go through. Please try again.");
@@ -1336,6 +1414,7 @@ export default function Visit() {
         notify("success", "Property published", `${name} is now live on the website.`, "Owner emailed their credentials");
       }
       setViewingVisit(null);
+      clearApiCache();
       loadVisits();
     } catch (err) {
       notify("error", "Could not approve", err?.message || "The approval did not go through. Please try again.");
@@ -1357,6 +1436,7 @@ export default function Visit() {
       if (viewingVisit && (viewingVisit.visitId === id || viewingVisit._id === id)) {
         setViewingVisit(null);
       }
+      clearApiCache();
       loadVisits();
     } catch (err) {
       notify("error", "Could not delete visit report", err?.message || "Please try again.");
@@ -1402,20 +1482,12 @@ export default function Visit() {
     });
   }, [visits, currentStaffIdentity]);
 
-  const filteredVisits = useMemo(() => {
-    const q = search.toLowerCase();
-    return ownVisits.filter(v => {
-      const propName = (v.propertyName || v.propertyInfo?.name || "").toLowerCase();
-      const staffName = (v.staffName || v.submittedBy || "").toLowerCase();
-      return propName.includes(q) || staffName.includes(q);
-    });
-  }, [ownVisits, search]);
+  // Search happens on the server (q), so the page already holds only matches.
+  const filteredVisits = ownVisits;
 
-  const stats = useMemo(() => {
-    const total = ownVisits.length;
-    const approved = ownVisits.filter(v => v.status === "approved").length;
-    return { total, approved, pending: total - approved };
-  }, [ownVisits]);
+  const stats = serverStats
+    ? { total: serverStats.total ?? 0, approved: serverStats.approved ?? 0, pending: serverStats.pending ?? 0 }
+    : { total: 0, approved: 0, pending: 0 };
 
   // ─── Toggle Pill Component ──────────────────────────────────────────────────
   const TogglePill = ({ label, icon: Icon, active, onClick }) => (
@@ -2167,7 +2239,7 @@ export default function Visit() {
                 <button type="button" onClick={() => { resetForm(); setCurrentView("list"); }} className="px-6 py-4 rounded-2xl text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all">
                   Cancel
                 </button>
-                <button type="submit" disabled={saving} className={cn("px-8 py-4 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest shadow-xl transition-all flex items-center gap-2", editingVisit ? "bg-amber-600 hover:bg-amber-700 shadow-amber-600/20" : "bg-blue-600 hover:bg-blue-700 shadow-blue-600/20")}>
+                <button type="submit" disabled={saving || !!detailLoadingId} className={cn("px-8 py-4 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest shadow-xl transition-all flex items-center gap-2", editingVisit ? "bg-amber-600 hover:bg-amber-700 shadow-amber-600/20" : "bg-blue-600 hover:bg-blue-700 shadow-blue-600/20")}>
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   {saving ? "Saving..." : editingVisit ? "Update Visit Report" : "Onboard Property Owner"}
                 </button>
@@ -2221,6 +2293,18 @@ export default function Visit() {
             </button>
           </div>
 
+          {loadError && (
+            <div className="bg-rose-50 border border-rose-200 text-rose-700 rounded-[16px] p-4 flex items-center justify-between gap-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider">Could not load visit reports</p>
+                <p className="text-xs font-medium mt-0.5">{loadError}</p>
+              </div>
+              <button onClick={loadVisits} className="px-4 py-2 bg-white hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-[8px] text-[10px] font-bold uppercase transition-all cursor-pointer shrink-0">
+                Retry
+              </button>
+            </div>
+          )}
+
           {/* Table */}
           <div className="bg-white rounded-[16px] border border-[#E1E6EA] shadow-xs overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[1300px]">
@@ -2239,6 +2323,8 @@ export default function Visit() {
               <tbody className="divide-y divide-slate-50 text-xs font-bold text-slate-700">
                 {loading ? (
                   <tr><td colSpan={8} className="p-8 text-center text-slate-400 font-bold uppercase tracking-widest">Loading visits...</td></tr>
+                ) : loadError ? (
+                  <tr><td colSpan={8} className="p-8 text-center text-rose-400 font-bold uppercase tracking-widest">Could not load visit reports</td></tr>
                 ) : filteredVisits.length === 0 ? (
                   <tr><td colSpan={8} className="p-8 text-center text-slate-400 font-bold uppercase tracking-widest">No visit reports found</td></tr>
                 ) : (
@@ -2316,15 +2402,17 @@ export default function Visit() {
                       </td>
                       <td className="p-4 pr-6 whitespace-nowrap">
                         <div className="flex items-center justify-end gap-2">
-                          <button onClick={() => setViewingVisit(v)}
+                          <button onClick={() => handleViewVisit(v)}
+                            disabled={detailLoadingId === (v.visitId || v._id)}
                             className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold uppercase transition-all">
-                            View
+                            {detailLoadingId === (v.visitId || v._id) ? "..." : "View"}
                           </button>
                           <button
                             type="button"
                             onClick={() => handleStartEdit(v)}
+                            disabled={!!detailLoadingId}
                             title="Edit visit report details"
-                            className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-lg text-[10px] font-bold uppercase transition-all flex items-center gap-1 cursor-pointer shadow-xs"
+                            className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-lg text-[10px] font-bold uppercase transition-all flex items-center gap-1 cursor-pointer shadow-xs disabled:opacity-50 disabled:cursor-wait"
                           >
                             <Pencil size={11} /> Edit
                           </button>
@@ -2379,6 +2467,24 @@ export default function Visit() {
                 )}
               </tbody>
             </table>
+            {totalRows > PAGE_SIZE && (
+              <div className="flex items-center justify-between gap-4 p-4 border-t border-[#E1E6EA] text-[11px] font-bold text-[#4A5961] uppercase tracking-wider">
+                <span>
+                  Showing {(page - 1) * PAGE_SIZE + 1}-{Math.min(page * PAGE_SIZE, totalRows)} of {totalRows}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1 || loading}
+                    className="px-3 py-1.5 bg-white hover:bg-[#F4F6F8] border border-[#E1E6EA] rounded-[8px] transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
+                    Previous
+                  </button>
+                  <span>Page {page} of {Math.ceil(totalRows / PAGE_SIZE)}</span>
+                  <button onClick={() => setPage(p => p + 1)} disabled={page >= Math.ceil(totalRows / PAGE_SIZE) || loading}
+                    className="px-3 py-1.5 bg-white hover:bg-[#F4F6F8] border border-[#E1E6EA] rounded-[8px] transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -2423,7 +2529,8 @@ export default function Visit() {
                 <button
                   type="button"
                   onClick={() => handleStartEdit(viewingVisit)}
-                  className="px-3.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer"
+                  disabled={!!detailLoadingId}
+                  className="disabled:opacity-50 px-3.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer"
                 >
                   <Edit3 size={12} /> Edit Report
                 </button>
