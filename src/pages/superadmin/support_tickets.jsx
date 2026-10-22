@@ -26,7 +26,19 @@ export default function VerificationCenter() {
   const [loading, setLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState(null);
   const [assignModal, setAssignModal] = useState(null);
+  const [fullscreenImage, setFullscreenImage] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // pendingChanges.data values can be text, numbers, booleans, arrays or objects.
+  // 0 and false are real values, so only null/undefined/"" read as empty.
+  const fmtVal = (v) => {
+    if (v === null || v === undefined || v === "") return "—";
+    if (typeof v === "boolean") return v ? "Yes" : "No";
+    if (typeof v === "object") return JSON.stringify(v);
+    return String(v);
+  };
+  const imgUrl = (img) => (img && typeof img === "object" ? img.url : img);
+  const isMediaField = (field) => field === "images" || field === "media";
 
   const loadData = async () => {
     const token = sessionStorage.getItem("token") || localStorage.getItem("token");
@@ -508,6 +520,160 @@ export default function VerificationCenter() {
         </div>
       </div>
 
+      {/* Review Modal — current vs requested values for edit requests, details for new listings.
+          The Review buttons set selectedItem; without this block they open nothing. */}
+      {selectedItem && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[16px] w-full max-w-4xl shadow-2xl border border-[#E1E6EA] overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="px-5 py-4 border-b border-[#E1E6EA] flex items-start justify-between bg-[#F4F6F8] shrink-0">
+              <div>
+                <h3 className="text-sm font-bold text-[#10242A]">
+                  {selectedItem.type === "new_property" && `Property Verification: ${selectedItem.data.title}`}
+                  {selectedItem.type === "property_edit" && `Edit Request: ${selectedItem.data.title}`}
+                  {selectedItem.type === "room_edit" && `Room Edit Request: ${selectedItem.data.title}`}
+                </h3>
+                <p className="text-[10px] text-[#4A5961] font-semibold uppercase tracking-wider mt-1">
+                  Requested by: {selectedItem.type === "new_property" ? selectedItem.data.ownerLoginId : selectedItem.data.pendingChanges?.requestedBy}
+                </p>
+              </div>
+              <button onClick={() => setSelectedItem(null)} className="p-1.5 text-[#4A5961] hover:text-[#10242A] hover:bg-white rounded-lg transition-all"><X size={16} /></button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-5 space-y-5">
+              {selectedItem.type === "new_property" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="space-y-3">
+                    <h4 className="text-[10px] font-bold text-[#10242A] uppercase tracking-wider">Property Media</h4>
+                    <div className="grid grid-cols-2 gap-2">
+                      {selectedItem.data.images?.length > 0 ? (
+                        selectedItem.data.images.map((img, i) => <img key={i} src={img} alt="" className="w-full h-32 object-cover rounded-xl border border-[#E1E6EA]" loading="lazy" onError={(e) => { e.currentTarget.style.display = "none"; }} />)
+                      ) : (
+                        <div className="col-span-2 py-8 bg-[#F4F6F8] rounded-xl text-center text-xs font-semibold text-[#4A5961] uppercase">No images uploaded</div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <h4 className="text-[10px] font-bold text-[#10242A] uppercase tracking-wider">Details</h4>
+                    <div className="bg-[#F4F6F8] rounded-xl p-4 border border-[#E1E6EA] space-y-3">
+                      {[
+                        { label: "Property Name", val: selectedItem.data.title },
+                        { label: "City", val: selectedItem.data.city },
+                        { label: "Locality", val: selectedItem.data.locality },
+                        { label: "Full Address", val: selectedItem.data.address },
+                        { label: "Monthly Rent", val: `₹${selectedItem.data.monthlyRent || 0}` },
+                        { label: "Property Age", val: selectedItem.data.propertyDetails?.propertyAge },
+                      ].map(f => (
+                        <div key={f.label} className="flex justify-between text-xs items-start">
+                          <span className="text-[#4A5961] font-semibold shrink-0">{f.label}:</span>
+                          <span className="text-[#10242A] font-bold text-right ml-4">{fmtVal(f.val)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {(selectedItem.type === "property_edit" || selectedItem.type === "room_edit") && (
+                <div className="space-y-3">
+                  <h4 className="text-[10px] font-bold text-[#10242A] uppercase tracking-wider flex items-center gap-1.5">
+                    <Info size={14} className="text-[#0E7C86]" /> Requested changes — current vs new
+                  </h4>
+                  {Object.keys(selectedItem.data.pendingChanges?.data || {}).length === 0 ? (
+                    <div className="py-8 bg-[#F4F6F8] rounded-xl text-center text-xs font-semibold text-[#4A5961]">
+                      This request has no field changes recorded.
+                    </div>
+                  ) : (
+                    <div className="border border-[#E1E6EA] rounded-xl overflow-hidden">
+                      <table className="w-full text-xs">
+                        <thead className="bg-[#F4F6F8] font-bold text-[#4A5961] uppercase tracking-wider text-[9px] border-b border-[#E1E6EA]">
+                          <tr>
+                            <th className="px-4 py-3 text-left">Field</th>
+                            <th className="px-4 py-3 text-left">Current (live)</th>
+                            <th className="px-4 py-3 text-left bg-[#E6F4F5] text-[#09626A]">Requested (new)</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#E1E6EA]">
+                          {Object.keys(selectedItem.data.pendingChanges.data).map(field => {
+                            const liveVal = selectedItem.data[field];
+                            const requestedVal = selectedItem.data.pendingChanges.data[field];
+
+                            if (isMediaField(field)) {
+                              const strip = (list, extra) => (
+                                <div className="flex gap-1.5 overflow-x-auto max-w-[260px] pb-1">
+                                  {(Array.isArray(list) ? list : []).length === 0 && <span className="text-[#4A5961]">—</span>}
+                                  {(Array.isArray(list) ? list : []).map((img, i) => (
+                                    <img key={i} src={imgUrl(img)} alt="" loading="lazy"
+                                      className={cn("w-12 h-10 object-cover rounded-lg cursor-pointer", extra)}
+                                      onClick={() => setFullscreenImage({ url: imgUrl(img), index: i })}
+                                      onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                                  ))}
+                                </div>
+                              );
+                              return (
+                                <tr key={field}>
+                                  <td className="px-4 py-4 font-bold text-[#4A5961] uppercase tracking-wider text-[9px]">{field === "media" ? "Room Media" : "Images"}</td>
+                                  <td className="px-4 py-4">{strip(liveVal, "border border-[#E1E6EA]")}</td>
+                                  <td className="px-4 py-4 bg-[#E6F4F5]/40">{strip(requestedVal, "border border-[#0E7C86]")}</td>
+                                </tr>
+                              );
+                            }
+
+                            return (
+                              <tr key={field}>
+                                <td className="px-4 py-3 font-bold text-[#4A5961] uppercase tracking-wider text-[9px]">{field}</td>
+                                <td className="px-4 py-3 font-medium text-[#4A5961] break-words">{fmtVal(liveVal)}</td>
+                                <td className="px-4 py-3 font-bold text-[#09626A] bg-[#E6F4F5]/40 break-words">{fmtVal(requestedVal)}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="px-5 py-4 border-t border-[#E1E6EA] bg-[#F4F6F8] flex gap-2 justify-end shrink-0">
+              <button onClick={() => setSelectedItem(null)} className="px-3.5 py-2 bg-white border border-[#E1E6EA] text-[#10242A] rounded-lg text-xs font-semibold hover:bg-[#F4F6F8] transition-all">Cancel</button>
+              {!isEmployeeView && (
+                <button onClick={() => setAssignModal({ type: selectedItem.type === "room_edit" ? "room" : "property", id: selectedItem.data._id })} className="px-3.5 py-2 bg-white border border-[#E1E6EA] text-[#0E7C86] rounded-lg text-xs font-semibold hover:bg-[#E6F4F5] transition-all flex items-center gap-1.5"><UserPlus size={13} /> Assign Verification</button>
+              )}
+              <button
+                onClick={() => {
+                  const id = selectedItem.data._id;
+                  if (selectedItem.type === "new_property") handleRejectNewProperty(id);
+                  else if (selectedItem.type === "property_edit") handleRejectPropertyEdit(id);
+                  else handleRejectRoomEdit(id);
+                }}
+                className="px-3.5 py-2 bg-white border border-rose-200 text-rose-700 rounded-lg text-xs font-semibold hover:bg-rose-50 transition-all"
+              >
+                {selectedItem.type === "new_property" ? "Reject" : "Reject Changes"}
+              </button>
+              <button
+                onClick={() => {
+                  const id = selectedItem.data._id;
+                  if (selectedItem.type === "new_property") handleApproveNewProperty(id);
+                  else if (selectedItem.type === "property_edit") handleApprovePropertyEdit(id);
+                  else handleApproveRoomEdit(id);
+                }}
+                className="px-3.5 py-2 bg-[#0E7C86] hover:bg-[#09626A] text-white rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5"
+              >
+                <Check size={13} /> {selectedItem.type === "new_property" ? "Approve" : "Approve Changes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Fullscreen Image Viewer */}
+      {fullscreenImage && (
+        <div className="fixed inset-0 bg-black/90 z-[200] flex items-center justify-center p-4" onClick={() => setFullscreenImage(null)}>
+          <button onClick={() => setFullscreenImage(null)} className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all"><X size={22} /></button>
+          <img src={fullscreenImage.url} alt="Fullscreen view" className="max-w-full max-h-full object-contain rounded-lg" onClick={(e) => e.stopPropagation()} />
+        </div>
+      )}
+
       {/* Assign Modal */}
       {assignModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center" onClick={() => setAssignModal(null)}>
@@ -518,7 +684,7 @@ export default function VerificationCenter() {
                 <p className="text-xs text-[#4A5961] text-center py-4">No employees registered.</p>
               ) : (
                 employees.map(emp => (
-                  <button key={emp._id} onClick={() => handleAssignVerification(assignModal.id, emp.loginId, emp.name)} className="w-full text-left px-3 py-2 text-xs font-semibold text-[#10242A] hover:bg-[#E6F4F5] hover:text-[#0E7C86] rounded-[8px] transition-all flex items-center gap-2 cursor-pointer">
+                  <button key={emp._id} onClick={() => handleAssignVerification(assignModal.id, emp._id, emp.name)} className="w-full text-left px-3 py-2 text-xs font-semibold text-[#10242A] hover:bg-[#E6F4F5] hover:text-[#0E7C86] rounded-[8px] transition-all flex items-center gap-2 cursor-pointer">
                     <div className="w-6 h-6 rounded-full bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center text-[9px] font-bold shrink-0">
                       {emp.name?.split(" ").map(n=>n[0]).join("")}
                     </div>
