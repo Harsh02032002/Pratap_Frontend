@@ -85,7 +85,10 @@ export default function SuperadminPropertyApprovals() {
           });
         } catch (_) {}
         setProperties(prev => prev.map(p => p.id === id ? { ...p, status: "Approved" } : p));
-        if (selected?.id === id) setSelected(prev => ({ ...prev, status: "Approved" }));
+        // Null-safe: the modal footer calls setSelected(null) before this await
+        // resolves, so `prev` is already null. Spreading null would produce a
+        // truthy {status} object, remounting the modal without `photos`.
+        if (selected?.id === id) setSelected(prev => (prev ? { ...prev, status: "Approved" } : null));
         const approvedProp = properties.find(p => p.id === id);
         setApprovedPopup({ title: approvedProp?.title || "Property", id });
         toast.success("Property approved successfully");
@@ -108,7 +111,7 @@ export default function SuperadminPropertyApprovals() {
       const data = await res.json();
       if (data.success || res.ok) {
         setProperties(prev => prev.map(p => p.id === id ? { ...p, status: "Rejected" } : p));
-        if (selected?.id === id) setSelected(prev => ({ ...prev, status: "Rejected" }));
+        if (selected?.id === id) setSelected(prev => (prev ? { ...prev, status: "Rejected" } : null));
         toast.success("Property rejected successfully");
       }
     } catch (e) {
