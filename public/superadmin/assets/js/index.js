@@ -132,51 +132,15 @@ lucide.createIcons();
             showError('Login ID format not recognized.', errorMsg);
         }
 
-        // SuperAdmin Login with optimized speed - try local first, then backend
+        // SuperAdmin Login - backend only
         // NOTE: This is STAFF login section - uses staff_user/staff_token keys
         async function loginSuperAdmin(email, password, errorMsg) {
             console.log('[Staff Login] Attempting SuperAdmin login with email:', email);
             
-            // Try local login first (instant) - this is the primary path
-            const db = JSON.parse(localStorage.getItem('roomhy_superadmin_db') || 'null');
-            
-            // Check hardcoded default credentials first (fastest)
-            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-            if (isLocal && !db && email === 'roomhyadmin@gmail.com' && password === 'admin@123') {
-                console.log('[Staff Login] ✅ SuperAdmin login with default credentials');
-                const user = { id: 'SUPER_ADMIN', loginId: 'SUPER_ADMIN', email, name: 'Super Admin', role: 'superadmin' };
-                sessionStorage.setItem('user', JSON.stringify(user));
-                localStorage.setItem('user', JSON.stringify(user));
-                localStorage.setItem('staff_user', JSON.stringify(user));
-                localStorage.setItem('staff_token', 'superadmin_token');
-                persistWindowSession(user);
-                localStorage.setItem('token', 'superadmin_token');
-                // Clear owner sessions to prevent crosstalk
-                sessionStorage.removeItem('owner_session');
-                localStorage.removeItem('owner_user');
-                window.location.href = resolvePanelPath('superadmin', 'superadmin');
-                return;
-            }
+            // Auth is backend-only: no hardcoded credentials, no localStorage
+            // credential store, no client-side issued tokens.
 
-            // Check local database (stored by seeder)
-            if (db && db.email === email && db.password === password) {
-                console.log('[Staff Login] ✅ SuperAdmin login with stored credentials');
-                const user = { ...db, loginId: db.loginId || db.id || 'SUPER_ADMIN', role: 'superadmin' };
-                sessionStorage.setItem('user', JSON.stringify(user));
-                localStorage.setItem('user', JSON.stringify(user));
-                localStorage.setItem('staff_user', JSON.stringify(user));
-                localStorage.setItem('staff_token', 'superadmin_token');
-                localStorage.setItem('token', 'superadmin_token');
-                // Clear owner sessions to prevent crosstalk
-                sessionStorage.removeItem('owner_session');
-                localStorage.removeItem('owner_user');
-                window.location.href = resolvePanelPath('superadmin', 'superadmin');
-                return;
-            }
-
-            console.log('[Staff Login] Local SuperAdmin credentials not found, trying backend API...');
-
-            // If local login failed, try backend API with timeout (5 seconds max)
+            // Authenticate against the backend (5 second timeout)
             try {
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout

@@ -470,7 +470,7 @@ function AddPropertyView({ onBack, apiUrl, editId }) {
     try {
       const res = await fetch(`${apiUrl}/api/locations/cities`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeader() },
         body: JSON.stringify({ name: newCityName, state: newCityState })
       });
       const data = await res.json();
@@ -494,7 +494,7 @@ function AddPropertyView({ onBack, apiUrl, editId }) {
     try {
       const res = await fetch(`${apiUrl}/api/locations/areas`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeader() },
         body: JSON.stringify({ name: newAreaName, cityId: cityObj._id, city: cityObj._id })
       });
       const data = await res.json();
@@ -524,8 +524,8 @@ function AddPropertyView({ onBack, apiUrl, editId }) {
       })
       .catch(err => console.error("Failed to load amenities", err));
 
-    // Load owners
-    fetch(`${apiUrl}/api/superadmin/owners`)
+    // Load owners — protected route, so the dropdown stays empty without this header
+    fetch(`${apiUrl}/api/superadmin/owners`, { headers: { ...getAuthHeader() } })
       .then(res => res.json())
       .then(data => {
         if (data.success) {
@@ -566,7 +566,7 @@ function AddPropertyView({ onBack, apiUrl, editId }) {
   // Fetch properties for edit mode
   useEffect(() => {
     if (editId) {
-      fetch(`${apiUrl}/api/properties/${editId}`)
+      fetch(`${apiUrl}/api/properties/${editId}`, { headers: { ...getAuthHeader() } })
         .then(res => res.json())
         .then(data => {
           if (data.success && data.property) {

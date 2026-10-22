@@ -43,20 +43,6 @@ const clearAllAuthStorage = () => {
   });
 };
 
-const loadScript = (src) =>
-  new Promise((resolve, reject) => {
-    const existing = document.querySelector(`script[src="${src}"]`);
-    if (existing) {
-      resolve();
-      return;
-    }
-    const script = document.createElement("script");
-    script.src = src;
-    script.onload = () => resolve();
-    script.onerror = reject;
-    document.head.appendChild(script);
-  });
-
 const resolvePanelPath = (folder, fileName) => `/${folder}/${fileName.replace(/\\$/i, "")}`;
 
 export const useSuperadminLogin = () => {
@@ -79,12 +65,6 @@ export const useSuperadminLogin = () => {
     token: "",
     source: ""
   });
-
-  useEffect(() => {
-    if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
-      loadScript("/seeder.js").catch(() => null);
-    }
-  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem("token") || sessionStorage.getItem("token");

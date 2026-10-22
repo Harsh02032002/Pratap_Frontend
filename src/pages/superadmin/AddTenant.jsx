@@ -7,7 +7,7 @@ import {
   CheckCircle2, Save, Info, Clock, User, Eye, LayoutGrid, Pencil, RefreshCw,
   Mail, Phone, Calendar, Fingerprint, Briefcase, Heart, MessageSquare, AlertCircle, ChevronDown, Camera, FileText
 } from "lucide-react";
-import { getApiBase, fetchJson } from "../../utils/api";
+import { getApiBase, fetchJson, getAuthHeader } from "../../utils/api";
 import { toast } from "react-hot-toast";
 import { PageHeader } from "../../components/superadmin/PageHeader";
 import Tesseract from 'tesseract.js';
@@ -412,23 +412,19 @@ export default function AddTenant() {
         firstTime: true
       };
 
-      const res = await fetch(`${apiUrl}/api/tenants/assign`, {
+      // fetchJson attaches the scoped Authorization header and Content-Type,
+      // and throws on a non-2xx so the backend's message reaches the toast.
+      const json = await fetchJson("/api/tenants/assign", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
-      const json = await res.json();
-      if (res.ok) {
-        setNewTenant(json.tenant);
-        setShowSuccess(true);
-        toast.success("Tenant Added Successfully!");
-      } else {
-        toast.error(json.message || "Failed to add tenant");
-      }
+      setNewTenant(json.tenant);
+      setShowSuccess(true);
+      toast.success("Tenant Added Successfully!");
     } catch (err) {
       console.error(err);
-      toast.error("An error occurred while adding tenant");
+      toast.error(err?.message || "An error occurred while adding tenant");
     } finally {
       setSubmitting(false);
     }
@@ -450,7 +446,11 @@ export default function AddTenant() {
     data.append("image", file);
 
     try {
-      const res = await fetch(`${apiUrl}/api/upload`, { method: "POST", body: data });
+      const res = await fetch(`${apiUrl}/api/upload`, {
+        method: "POST",
+        headers: { ...getAuthHeader() },   // NOT Content-Type: the browser sets the multipart boundary
+        body: data,
+      });
       const json = await res.json();
       console.log('[PREVIEW DEBUG] Upload response:', json);
       if (json.url) {
