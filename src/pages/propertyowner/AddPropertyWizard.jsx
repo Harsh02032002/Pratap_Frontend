@@ -161,21 +161,27 @@ export default function AddPropertyWizard() {
 
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.ownerName.trim()) newErrors.ownerName = 'Owner name is required';
-    if (!formData.email.trim()) {
+    // Edit mode fills formData straight from the API, where numeric fields
+    // arrive as numbers (monthlyRent, and phone on some records). Calling
+    // .trim() on a number throws and aborts submit before any request is
+    // sent, so coerce to a string first.
+    const text = (value) => String(value ?? '').trim();
+
+    if (!text(formData.ownerName)) newErrors.ownerName = 'Owner name is required';
+    if (!text(formData.email)) {
       newErrors.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text(formData.email))) {
       newErrors.email = 'Please enter a valid email';
     }
-    if (!formData.phone.trim()) {
+    if (!text(formData.phone)) {
       newErrors.phone = 'Phone number is required';
-    } else if (!/^[0-9]{10}$/.test(formData.phone.replace(/\D/g, ''))) {
+    } else if (!/^[0-9]{10}$/.test(text(formData.phone).replace(/\D/g, ''))) {
       newErrors.phone = 'Please enter a valid 10-digit phone number';
     }
-    if (!formData.propertyName.trim()) newErrors.propertyName = 'Property name is required';
+    if (!text(formData.propertyName)) newErrors.propertyName = 'Property name is required';
     if (!formData.propertyType) newErrors.propertyType = 'Property type is required';
-    if (!formData.city.trim()) newErrors.city = 'City is required';
-    if (!formData.rent.trim()) newErrors.rent = 'Rent amount is required';
+    if (!text(formData.city)) newErrors.city = 'City is required';
+    if (!text(formData.rent)) newErrors.rent = 'Rent amount is required';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
