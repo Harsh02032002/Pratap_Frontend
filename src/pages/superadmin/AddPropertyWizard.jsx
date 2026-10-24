@@ -13,6 +13,8 @@ import { toast } from "react-hot-toast";
 import { PageHeader } from "../../components/superadmin/PageHeader";
 import LocationMapPicker from "../../components/website/LocationMapPicker";
 import { compressImage } from "../../utils/imageCompression";
+import { removeRoomPhotos } from "../../utils/roomPhotoMap";
+import { validateStep, firstInvalidStep, getQualityChecks } from "../../utils/propertyWizardValidation";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
@@ -483,7 +485,11 @@ export default function AddPropertyWizard({ propEditId, isModal, onClose }) {
   };
 
   const addRoom = () => setRoomTypes([...roomTypes, { type: "", desc: "", totalRooms: "1", totalBeds: "1", occupancy: 1, pricePerBed: "0", pricePerRoom: "0", images: [] }]);
-  const removeRoom = (idx) => setRoomTypes(roomTypes.filter((_, i) => i !== idx));
+  const removeRoom = (idx) => {
+    setRoomTypes(roomTypes.filter((_, i) => i !== idx));
+    setRoomTypePhotos(prev => removeRoomPhotos(prev, idx));
+    setActivePhotoRoomIdx(0);
+  };
 
   const handlePhotoUpload = async (e, target = "property", index = null) => {
     const files = Array.from(e.target.files);
@@ -545,7 +551,85 @@ export default function AddPropertyWizard({ propEditId, isModal, onClose }) {
     toast.dismiss();
   };
 
+  // Everything the draft saves/restores. Photos are already uploaded URLs, so they fit in localStorage.
+  const DRAFT_KEY = "superadmin_property_draft";
+  const draftSetters = {
+    propertyType: setPropertyType, propertyName: setPropertyName, propertyCategory: setPropertyCategory, tier: setTier,
+    description: setDescription, address: setAddress, locality: setLocality, city: setCity, state: setState,
+    pincode: setPincode, landmark: setLandmark, latitude: setLatitude, longitude: setLongitude,
+    contactName: setContactName, contactNumber: setContactNumber, email: setEmail, ownerLoginId: setOwnerLoginId,
+    videoUrl: setVideoUrl, metaTitle: setMetaTitle, metaKeywords: setMetaKeywords, metaDescriptions: setMetaDescriptions,
+    metaSchema: setMetaSchema, roomTypes: setRoomTypes, totalArea: setTotalArea, yearBuilt: setYearBuilt,
+    propertyAge: setPropertyAge, preferredFor: setPreferredFor, genderPref: setGenderPref, floors: setFloors,
+    liftAvailable: setLiftAvailable, parkingAvailable: setParkingAvailable, noticePeriod: setNoticePeriod,
+    customAmenities: setCustomAmenities, propertyViews: setPropertyViews, roomTypePhotos: setRoomTypePhotos,
+    houseRules: setHouseRules, pricing: setPricing, includedInRent: setIncludedInRent,
+    additionalCharges: setAdditionalCharges, cancellationPolicy: setCancellationPolicy, tenantDescription: setTenantDescription,
+  };
+  const draftValues = {
+    propertyType, propertyName, propertyCategory, tier, description, address, locality, city, state, pincode, landmark,
+    latitude, longitude, contactName, contactNumber, email, ownerLoginId, videoUrl, metaTitle, metaKeywords,
+    metaDescriptions, metaSchema, roomTypes, totalArea, yearBuilt, propertyAge, preferredFor, genderPref, floors,
+    liftAvailable, parkingAvailable, noticePeriod, customAmenities, propertyViews, roomTypePhotos, houseRules, pricing,
+    includedInRent, additionalCharges, cancellationPolicy, tenantDescription,
+  };
+
+  const saveDraft = () => {
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({
+        ...draftValues, selectedAmenities: Array.from(selectedAmenities), step, savedAt: Date.now(),
+      }));
+      toast.success("Draft saved. It will be restored next time you open Add Property.");
+    } catch (err) {
+      console.error(err);
+      toast.error("Could not save draft");
+    }
+  };
+
+  // Reopen a saved draft (new properties only; edit mode loads the live property instead).
+  useEffect(() => {
+    if (editId) return;
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+      const d = JSON.parse(raw);
+      Object.entries(draftSetters).forEach(([key, set]) => { if (d[key] !== undefined) set(d[key]); });
+      if (Array.isArray(d.selectedAmenities)) setSelectedAmenities(new Set(d.selectedAmenities));
+      if (d.step >= 1 && d.step <= 7) setStep(d.step);
+      toast.success("Draft restored");
+    } catch (err) { console.error("Failed to restore draft", err); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const validationData = {
+    propertyName, propertyCategory, address, locality, city, state, pincode, contactName, contactNumber, email,
+    roomTypes, propertyPhotos, latitude, longitude,
+  };
+
+  // Move to a step; moving forward needs every step before it to be valid.
+  const goToStep = (target) => {
+    if (target > step) {
+      const bad = firstInvalidStep(target - 1, validationData);
+      if (bad) {
+        setStep(bad.step);
+        toast.error(bad.errors[0] + (bad.errors.length > 1 ? ` (+${bad.errors.length - 1} more)` : ""));
+        return;
+      }
+    }
+    setStep(target);
+  };
+
+  const submittingRef = useRef(false);
   const handleSubmit = async () => {
+    // Ref, not state: two clicks in the same frame both see submitting === false.
+    if (submittingRef.current) return;
+    const bad = firstInvalidStep(6, validationData);
+    if (bad) {
+      setStep(bad.step);
+      toast.error(bad.errors[0] + (bad.errors.length > 1 ? ` (+${bad.errors.length - 1} more)` : ""));
+      return;
+    }
+    submittingRef.current = true;
     setSubmitting(true);
     try {
       const minRent = roomTypes.reduce((min, r) => {
@@ -598,6 +682,7 @@ export default function AddPropertyWizard({ propEditId, isModal, onClose }) {
         body: JSON.stringify(payload),
       });
       if (res.ok) {
+        if (!editId) { try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ } }
         setSubmitted(true);
         toast.success(editId ? "Property Updated Successfully!" : "Property Added Successfully!");
         if (isModal && onClose) {
@@ -611,7 +696,7 @@ export default function AddPropertyWizard({ propEditId, isModal, onClose }) {
     } catch (err) { 
       console.error(err);
       toast.error("An error occurred");
-    } finally { setSubmitting(false); }
+    } finally { submittingRef.current = false; setSubmitting(false); }
   };
 
   if (submitted) {
@@ -654,12 +739,14 @@ export default function AddPropertyWizard({ propEditId, isModal, onClose }) {
           ]}
           actions={
             <div className="flex items-center gap-3">
-              <button className="px-6 py-2.5 rounded-xl border border-slate-200 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-all flex items-center gap-2">
-                 <Save className="w-3.5 h-3.5" /> Save as Draft
-              </button>
-              <button onClick={() => step < 7 ? setStep(s => s + 1) : handleSubmit()} 
-                className="bg-blue-600 text-white px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">
-                {step === 7 ? "Submit Property" : `Next: ${STEPS[step]?.label}`} <ChevronRight className="w-3.5 h-3.5" />
+              {!editId && (
+                <button onClick={saveDraft} disabled={submitting} className="px-6 py-2.5 rounded-xl border border-slate-200 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-all flex items-center gap-2 disabled:opacity-60">
+                   <Save className="w-3.5 h-3.5" /> Save as Draft
+                </button>
+              )}
+              <button onClick={() => step < 7 ? goToStep(step + 1) : handleSubmit()} disabled={submitting}
+                className="bg-blue-600 text-white px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all disabled:opacity-60 disabled:cursor-not-allowed">
+                {step === 7 ? (submitting ? "Submitting..." : "Submit Property") : `Next: ${STEPS[step]?.label}`} <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
           }
@@ -671,7 +758,7 @@ export default function AddPropertyWizard({ propEditId, isModal, onClose }) {
         <div className="max-w-[1200px] mx-auto flex items-center justify-between">
           {STEPS.map((s, i) => (
             <React.Fragment key={s.num}>
-              <button onClick={() => setStep(s.num)} className="flex flex-col items-center gap-3 relative group outline-none">
+              <button onClick={() => goToStep(s.num)} className="flex flex-col items-center gap-3 relative group outline-none">
                 <div className={cn("w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black transition-all",
                   step >= s.num ? "bg-blue-600 text-white shadow-xl shadow-blue-100" : "bg-slate-100 text-slate-400 group-hover:bg-slate-200")}>
                   {step > s.num ? <Check className="w-4 h-4" /> : s.num}
@@ -954,7 +1041,7 @@ export default function AddPropertyWizard({ propEditId, isModal, onClose }) {
                 </div>
               </div>
                <div className="mt-8 pt-8 border-t border-slate-50 flex justify-end">
-                  <button onClick={() => setStep(2)} className="flex items-center gap-2 px-10 py-3 rounded-xl bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">
+                  <button onClick={() => goToStep(2)} className="flex items-center gap-2 px-10 py-3 rounded-xl bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">
                      Next: Room Types & Pricing <ChevronRight className="w-4 h-4" />
                   </button>
                </div>
@@ -1223,7 +1310,7 @@ export default function AddPropertyWizard({ propEditId, isModal, onClose }) {
                    <button onClick={() => setStep(1)} className="flex items-center gap-2 px-6 py-3 rounded-xl border border-slate-200 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all">
                       <ChevronLeft className="w-4 h-4" /> Back: Basic Information
                    </button>
-                   <button onClick={() => setStep(3)} className="flex items-center gap-2 px-10 py-3 rounded-xl bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">
+                   <button onClick={() => goToStep(3)} className="flex items-center gap-2 px-10 py-3 rounded-xl bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">
                       Next: Amenities <ChevronRight className="w-4 h-4" />
                    </button>
                 </div>
@@ -1314,7 +1401,7 @@ export default function AddPropertyWizard({ propEditId, isModal, onClose }) {
                      <button onClick={() => setStep(2)} className="flex items-center gap-2 px-6 py-3 rounded-xl border border-slate-200 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all">
                         <ChevronLeft className="w-4 h-4" /> Back: Room Types
                      </button>
-                     <button onClick={() => setStep(4)} className="flex items-center gap-2 px-10 py-3 rounded-xl bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">
+                     <button onClick={() => goToStep(4)} className="flex items-center gap-2 px-10 py-3 rounded-xl bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">
                         Next: Photos & Videos <ChevronRight className="w-4 h-4" />
                      </button>
                   </div>
@@ -1479,7 +1566,7 @@ export default function AddPropertyWizard({ propEditId, isModal, onClose }) {
                         <button onClick={() => setStep(3)} className="flex items-center gap-2 px-6 py-3 rounded-xl border border-slate-200 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all">
                            <ChevronLeft className="w-4 h-4" /> Back: Amenities
                         </button>
-                        <button onClick={() => setStep(5)} className="flex items-center gap-2 px-10 py-3 rounded-xl bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">
+                        <button onClick={() => goToStep(5)} className="flex items-center gap-2 px-10 py-3 rounded-xl bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">
                            Next: Policies & Pricing <ChevronRight className="w-4 h-4" />
                         </button>
                      </div>
@@ -1840,7 +1927,7 @@ export default function AddPropertyWizard({ propEditId, isModal, onClose }) {
                   <button onClick={() => setStep(4)} className="flex items-center gap-2 px-6 py-3 rounded-xl border border-slate-200 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all">
                      <ChevronLeft className="w-4 h-4" /> Back: Photos & Videos
                   </button>
-                  <button onClick={() => setStep(6)} className="flex items-center gap-2 px-10 py-3 rounded-xl bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">
+                  <button onClick={() => goToStep(6)} className="flex items-center gap-2 px-10 py-3 rounded-xl bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">
                      Next: SEO Details <ChevronRight className="w-4 h-4" />
                   </button>
                </div>
@@ -1913,7 +2000,7 @@ export default function AddPropertyWizard({ propEditId, isModal, onClose }) {
                   <button onClick={() => setStep(5)} className="flex items-center gap-2 px-6 py-3 rounded-xl border border-slate-200 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all">
                      <ChevronLeft className="w-4 h-4" /> Back: Policies & Pricing
                   </button>
-                  <button onClick={() => setStep(7)} className="flex items-center gap-2 px-10 py-3 rounded-xl bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">
+                  <button onClick={() => goToStep(7)} className="flex items-center gap-2 px-10 py-3 rounded-xl bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">
                      Next: Review & Submit <ChevronRight className="w-4 h-4" />
                   </button>
                </div>
@@ -2075,7 +2162,7 @@ export default function AddPropertyWizard({ propEditId, isModal, onClose }) {
                         </div>
 
                         <div className="mt-10 space-y-3">
-                           <button onClick={handleSubmit} disabled={submitting} className="w-full bg-blue-600 text-white py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all flex items-center justify-center gap-3">
+                           <button onClick={handleSubmit} disabled={submitting} className="w-full bg-blue-600 text-white py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-3">
                               {submitting ? (editId ? "Updating..." : "Publishing...") : (editId ? "Update Property" : "Publish Listing")} <ChevronRight className="w-4 h-4" />
                            </button>
                            <p className="text-[8px] font-bold text-slate-400 text-center uppercase tracking-tight">By {editId ? "updating" : "publishing"}, you agree to our terms & conditions.</p>
@@ -2088,15 +2175,12 @@ export default function AddPropertyWizard({ propEditId, isModal, onClose }) {
                            <h4 className="text-[10px] font-black text-amber-800 uppercase tracking-widest">Quality Check</h4>
                         </div>
                         <ul className="space-y-3">
-                           {[
-                             "All mandatory fields are filled",
-                             "High resolution photos uploaded",
-                             "Accurate location coordinates",
-                             "Transparent pricing details"
-                           ].map((item, i) => (
+                           {getQualityChecks(validationData).map((item, i) => (
                              <li key={i} className="flex items-start gap-2.5">
-                                <CheckCircle2 className="w-3 h-3 text-amber-600 mt-0.5" />
-                                <p className="text-[9px] font-black text-amber-700/70 uppercase tracking-tight">{item}</p>
+                                {item.ok
+                                  ? <CheckCircle2 className="w-3 h-3 text-emerald-600 mt-0.5" />
+                                  : <X className="w-3 h-3 text-rose-500 mt-0.5" />}
+                                <p className={cn("text-[9px] font-black uppercase tracking-tight", item.ok ? "text-amber-700/70" : "text-rose-600")}>{item.label}</p>
                              </li>
                            ))}
                         </ul>
