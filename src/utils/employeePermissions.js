@@ -216,10 +216,17 @@ export const canEditInModule = (userObj, moduleOrPath) =>
 export const canDeleteInModule = (userObj, moduleOrPath) =>
   canEmployeePerformAction(userObj, moduleOrPath, "delete");
 
+export const isSuperadminOnlyPath = (path) =>
+  /^\/superadmin\/backup(\/|$)/.test(String(path || "").split("?")[0].toLowerCase().replace(/^\/employee\//, "/superadmin/"));
+
 export const hasEmployeePermission = (userObj, path) => {
   if (!userObj) return true;
   const role = String(userObj.role || "").toLowerCase();
   if (role === "superadmin" || role === "admin") return true;
+
+  // Backup download/restore/delete is platform-admin only. No permission key
+  // grants it, and the "no permissions listed = allow" fallbacks below must not either.
+  if (isSuperadminOnlyPath(path)) return false;
 
   const perms = readEmployeePermissionKeys(userObj);
   if (!perms) return true;
