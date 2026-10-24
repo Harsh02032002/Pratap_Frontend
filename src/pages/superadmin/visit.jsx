@@ -2515,6 +2515,8 @@ export default function Visit() {
               <button onClick={loadVisits} className="px-4 py-2 bg-white hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-[8px] text-[10px] font-bold uppercase transition-all cursor-pointer shrink-0">
                 Retry
               </button>
+            </div>
+          )}
 
           {/* ═══ BULK ACTIONS BAR (Light & Calm Roomhy Theme) ═══ */}
           {selectedIds.size > 0 && (
