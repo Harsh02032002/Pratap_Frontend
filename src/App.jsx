@@ -186,6 +186,19 @@ const RouteRoleGuard = () => {
     const isEmployeeRoute = path.startsWith('/employee/');
     if (!isAdminRoute && !isEmployeeRoute) return;
 
+    // Must have a valid auth token; stale user objects without a token cause 401 on every API call
+    const token = sessionStorage.getItem("token") || localStorage.getItem("token") || sessionStorage.getItem("accessToken") || localStorage.getItem("accessToken");
+    if (!token) {
+      try {
+        localStorage.removeItem("user");
+        localStorage.removeItem("staff_user");
+        sessionStorage.removeItem("user");
+        sessionStorage.removeItem("staff_user");
+      } catch (_) {}
+      navigate('/superadmin/index', { replace: true });
+      return;
+    }
+
     const getStoredUserObj = () => {
       const keys = ["staff_user", "user", "manager_user"];
       for (const k of keys) {

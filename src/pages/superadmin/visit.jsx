@@ -2512,9 +2512,15 @@ export default function Visit() {
                 <p className="text-xs font-bold uppercase tracking-wider">Could not load visit reports</p>
                 <p className="text-xs font-medium mt-0.5">{loadError}</p>
               </div>
-              <button onClick={loadVisits} className="px-4 py-2 bg-white hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-[8px] text-[10px] font-bold uppercase transition-all cursor-pointer shrink-0">
-                Retry
-              </button>
+              {loadError.toLowerCase().includes("token") || loadError.toLowerCase().includes("session") || loadError.toLowerCase().includes("unauthorized") || loadError.toLowerCase().includes("not authorized") ? (
+                <a href="/superadmin/index" className="px-4 py-2 bg-[#0E7C86] hover:bg-[#09626A] text-white rounded-[8px] text-xs font-bold uppercase transition-all cursor-pointer shrink-0">
+                  Login Again
+                </a>
+              ) : (
+                <button onClick={loadVisits} className="px-4 py-2 bg-white hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-[8px] text-[10px] font-bold uppercase transition-all cursor-pointer shrink-0">
+                  Retry
+                </button>
+              )}
             </div>
           )}
 
