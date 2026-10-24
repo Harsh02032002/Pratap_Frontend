@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useHtmlPage } from "../../utils/htmlPage";
+import { stripVisitSecrets, purgeStoredVisitSecrets } from "../../utils/visitStorage";
 
 const getApiUrl = () =>
   import.meta.env?.VITE_API_URL ||
@@ -18,7 +19,8 @@ const mergeVisitsByIdentity = (primary = [], secondary = []) => {
   return Array.from(map.values());
 };
 
-const toStorageSafeVisit = (visit) => {
+const toStorageSafeVisit = (rawVisit) => {
+  const visit = stripVisitSecrets(rawVisit);
   if (!visit || typeof visit !== "object") return visit;
 
   const propertyInfo = visit.propertyInfo && typeof visit.propertyInfo === "object"
@@ -202,6 +204,7 @@ export default function SuperadminEnquiry() {
   };
 
   const loadLocalVisits = () => {
+    purgeStoredVisitSecrets("roomhy_visits");
     let localList = [];
     let sessionList = [];
     try {

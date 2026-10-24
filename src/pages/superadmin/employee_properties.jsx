@@ -1,3 +1,4 @@
+import { stripVisitSecrets, purgeStoredVisitSecrets } from "../../utils/visitStorage";
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { 
   Building2, Users, Shield, Clock, Search, 
@@ -20,7 +21,8 @@ const getApiUrl = () =>
   (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
     ? "http://localhost:5001" : window.location.origin);
 
-const toStorageSafeVisit = (visit) => {
+const toStorageSafeVisit = (rawVisit) => {
+  const visit = stripVisitSecrets(rawVisit);
   if (!visit || typeof visit !== "object") return visit;
 
   const propertyInfo = visit.propertyInfo && typeof visit.propertyInfo === "object"
@@ -89,6 +91,7 @@ const persistLocalVisits = (list) => {
 };
 
 const loadLocalVisits = () => {
+  purgeStoredVisitSecrets("roomhy_visits");
   let localList = [];
   let sessionList = [];
   try {

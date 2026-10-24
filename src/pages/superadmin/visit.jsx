@@ -1457,10 +1457,9 @@ export default function Visit() {
   // ─── List helpers ───────────────────────────────────────────────────────────
 
   // Same page component serves /superadmin/visit (see everything) and
-  // /employee/visit (own submissions only). The API is asked to scope by
-  // staffId/staffName (loadVisits above), but that param isn't trustworthy
-  // server-side, so we also enforce it here as the real gate for what an
-  // employee can see, matching the owner-side visitor logs' own-id filtering.
+  // /employee/visit (own submissions only). The server is the real gate: GET
+  // /api/visits scopes by the logged-in account and ignores staffId/staffName.
+  // This filter is only a display-side backstop, never a security control.
   const currentStaffIdentity = useMemo(() => {
     if (!isEmployeeView) return null;
     const storedUser = JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user") || "{}");
