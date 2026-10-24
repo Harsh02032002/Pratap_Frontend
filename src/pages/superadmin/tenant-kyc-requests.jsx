@@ -3,6 +3,8 @@ import { CheckCircle, XCircle, Clock, Eye, AlertTriangle, Search } from "lucide-
 import { PageHeader } from "../../components/superadmin/PageHeader";
 import { fetchJson, getApiBase } from "../../utils/api";
 
+const cn = (...classes) => classes.filter(Boolean).join(" ");
+
 export default function TenantKycRequestsPage() {
   // Stable primitive read of the logged-in superadmin's ID — a fresh object
   // every render here would re-trigger the fetch effect on every render.

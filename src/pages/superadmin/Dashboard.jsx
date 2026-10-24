@@ -8,6 +8,8 @@ import {
   PieChart, Pie, Cell
 } from "recharts";
 
+const cn = (...classes) => classes.filter(Boolean).join(" ");
+
 const revenueData = [
   { name: "Jan", v: 5000 }, { name: "Feb", v: 10500 },
   { name: "Mar", v: 16000 }, { name: "Apr", v: 14500 }, { name: "May", v: 20000 },
