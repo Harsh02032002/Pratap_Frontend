@@ -489,6 +489,7 @@ export default function AddPropertyWizard({ propEditId, isModal, onClose }) {
     setRoomTypes(roomTypes.filter((_, i) => i !== idx));
     setRoomTypePhotos(prev => removeRoomPhotos(prev, idx));
     setActivePhotoRoomIdx(0);
+
   };
 
   const handlePhotoUpload = async (e, target = "property", index = null) => {
@@ -747,6 +748,7 @@ export default function AddPropertyWizard({ propEditId, isModal, onClose }) {
               <button onClick={() => step < 7 ? goToStep(step + 1) : handleSubmit()} disabled={submitting}
                 className="bg-blue-600 text-white px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all disabled:opacity-60 disabled:cursor-not-allowed">
                 {step === 7 ? (submitting ? "Submitting..." : "Submit Property") : `Next: ${STEPS[step]?.label}`} <ChevronRight className="w-3.5 h-3.5" />
+
               </button>
             </div>
           }

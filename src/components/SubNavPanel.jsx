@@ -70,6 +70,16 @@ const SUB_NAV_CONFIG = {
           { label: "Owner Subscriptions", path: "/superadmin/owner-subscriptions" },
         ],
       },
+      {
+        header: "TENANTS",
+        items: [
+          { label: "View All Tenants", path: "/superadmin/tenant" },
+          { label: "Add Tenant", path: "/superadmin/add-tenant" },
+          { label: "KYC / Documents", path: "/superadmin/kyc_verification" },
+          { label: "Request KYC Approve", path: "/superadmin/tenant-kyc-requests" },
+          { label: "Rent History", path: "/superadmin/rentcollection" },
+        ],
+      },
     ],
   },
   property_management: {

@@ -4,7 +4,7 @@ import {
   ArrowUpRight, ArrowDownRight, MoreVertical, 
   Filter, Globe, MapPin, Zap, Sheet, Trash2, 
   ChevronRight, Phone, Mail, User, UserCheck, Image as ImageIcon,
-  Activity, Home, CheckCircle2, XCircle, Hourglass,
+  Activity, Home, CheckCircle2, XCircle, Hourglass, PauseCircle,
   Check, X, Eye, ClipboardCheck, AlertTriangle,
   Camera, Map, Star, Edit3, Edit, Pencil, Trash, RefreshCw,
   Sparkles, Layers, Box, Globe2, IndianRupee,
@@ -815,6 +815,17 @@ export default function Visit() {
   // proper modal rather than a window.prompt.
   const [rejectModal, setRejectModal] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
+  // Single Hold state
+  const [holdModal, setHoldModal] = useState(null);
+  const [holdReason, setHoldReason] = useState("");
+  // Bulk selection and actions state
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [bulkTier, setBulkTier] = useState("Gold");
+  const [bulkRejectModal, setBulkRejectModal] = useState(false);
+  const [bulkRejectReason, setBulkRejectReason] = useState("");
+  const [bulkHoldModal, setBulkHoldModal] = useState(false);
+  const [bulkHoldReason, setBulkHoldReason] = useState("");
   const [selectedStaffModal, setSelectedStaffModal] = useState(null);
   const [staffDetailsLoading, setStaffDetailsLoading] = useState(false);
   const [fetchedStaffInfo, setFetchedStaffInfo] = useState(null);
@@ -1445,6 +1456,50 @@ export default function Visit() {
     }
   };
 
+  const holdVisit = async () => {
+    const v = holdModal;
+    if (!v) return;
+    const id = v.visitId || v._id;
+    setActingId(id);
+    try {
+      await fetchJson("/api/visits/hold", {
+        method: "POST",
+        headers: { ...getAuthHeader(), "Content-Type": "application/json" },
+        body: JSON.stringify({
+          visitId: id,
+          holdReason: holdReason.trim(),
+          holdAction: "edit",
+        }),
+      });
+      notify(
+        "info",
+        "Report placed on hold",
+        holdReason.trim()
+          ? "Reason: " + holdReason.trim()
+          : (v.propertyName || "The report") + " was placed on hold."
+      );
+      setHoldModal(null);
+      setHoldReason("");
+      setViewingVisit(null);
+      loadVisits();
+    } catch (err) {
+      notify("error", "Could not hold report", err?.message || "Please try again.");
+    } finally {
+      setActingId(null);
+    }
+  };
+
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+
+
   // ─── Photo Helpers ──────────────────────────────────────────────────────────
 
   const addPhotoUrl = () => {
@@ -1487,6 +1542,165 @@ export default function Visit() {
   const stats = serverStats
     ? { total: serverStats.total ?? 0, approved: serverStats.approved ?? 0, pending: serverStats.pending ?? 0 }
     : { total: 0, approved: 0, pending: 0 };
+
+  const allFilteredSelected = filteredVisits.length > 0 && filteredVisits.every(v => selectedIds.has(v.visitId || v._id));
+  const toggleSelectAll = () => {
+    if (allFilteredSelected) {
+      setSelectedIds(new Set());
+    } else {
+      const next = new Set(selectedIds);
+      filteredVisits.forEach(v => next.add(v.visitId || v._id));
+      setSelectedIds(next);
+    }
+  };
+
+  const handleBulkApprove = async () => {
+    if (selectedIds.size === 0) return;
+    const list = [...selectedIds];
+    const kycIncompleteCount = filteredVisits.filter(v => selectedIds.has(v.visitId || v._id) && !isKycDone(v)).length;
+    if (kycIncompleteCount > 0 && kycIncompleteCount === list.length) {
+      notify("warning", "KYC Required", "None of the selected visits have completed owner KYC. Send KYC links first.");
+      return;
+    }
+
+    if (!window.confirm("Approve " + list.length + " selected visit report(s) with tier \"" + bulkTier + "\"?")) return;
+
+    setBulkProcessing(true);
+    try {
+      const res = await fetchJson("/api/visits/bulk-approve", {
+        method: "POST",
+        headers: { ...getAuthHeader(), "Content-Type": "application/json" },
+        body: JSON.stringify({
+          visitIds: list,
+          tier: bulkTier,
+        }),
+      });
+
+      const approvedCount = res?.approved?.length || 0;
+      const alreadyApprovedCount = res?.alreadyApproved?.length || 0;
+      const failedCount = res?.failed?.length || 0;
+
+      if (approvedCount > 0) {
+        notify("success", "Bulk Approval Complete", "Successfully approved " + approvedCount + " property report(s).");
+      }
+      if (alreadyApprovedCount > 0) {
+        notify("info", "Already Approved", alreadyApprovedCount + " report(s) were already approved.");
+      }
+      if (failedCount > 0) {
+        const sampleReason = res.failed[0]?.reason || "Validation failed";
+        notify("warning", failedCount + " Report(s) Skipped", "Could not approve " + failedCount + " visit(s): " + sampleReason);
+      }
+
+      setSelectedIds(new Set());
+      loadVisits();
+    } catch (err) {
+      notify("error", "Bulk approval failed", err?.message || "Please try again.");
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
+
+  const handleBulkReject = async () => {
+    if (selectedIds.size === 0) return;
+    const list = [...selectedIds];
+    setBulkProcessing(true);
+    try {
+      const res = await fetchJson("/api/visits/bulk-reject", {
+        method: "POST",
+        headers: { ...getAuthHeader(), "Content-Type": "application/json" },
+        body: JSON.stringify({
+          visitIds: list,
+          rejectReason: bulkRejectReason.trim(),
+          rejectAction: "cancel",
+        }),
+      });
+
+      notify("success", "Bulk Rejection Complete", "Rejected " + (res?.count || list.length) + " visit report(s).");
+      setBulkRejectModal(false);
+      setBulkRejectReason("");
+      setSelectedIds(new Set());
+      loadVisits();
+    } catch (err) {
+      notify("error", "Bulk reject failed", err?.message || "Please try again.");
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
+
+  const handleBulkHold = async () => {
+    if (selectedIds.size === 0) return;
+    const list = [...selectedIds];
+    setBulkProcessing(true);
+    try {
+      const res = await fetchJson("/api/visits/bulk-hold", {
+        method: "POST",
+        headers: { ...getAuthHeader(), "Content-Type": "application/json" },
+        body: JSON.stringify({
+          visitIds: list,
+          holdReason: bulkHoldReason.trim(),
+          holdAction: "edit",
+        }),
+      });
+
+      notify("info", "Bulk Hold Complete", "Placed " + (res?.count || list.length) + " visit report(s) on hold.");
+      setBulkHoldModal(false);
+      setBulkHoldReason("");
+      setSelectedIds(new Set());
+      loadVisits();
+    } catch (err) {
+      notify("error", "Bulk hold failed", err?.message || "Please try again.");
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
+
+  const handleBulkSendKyc = async () => {
+    if (selectedIds.size === 0) return;
+    const list = [...selectedIds];
+    setBulkProcessing(true);
+    try {
+      const res = await fetchJson("/api/visits/bulk-send-kyc", {
+        method: "POST",
+        headers: { ...getAuthHeader(), "Content-Type": "application/json" },
+        body: JSON.stringify({
+          visitIds: list,
+        }),
+      });
+
+      notify("success", "Bulk KYC Links Sent", "Sent KYC links to " + (res?.sent || 0) + " owner(s). Skipped (already done): " + (res?.skipped || 0));
+      setSelectedIds(new Set());
+      loadVisits();
+    } catch (err) {
+      notify("error", "Bulk KYC send failed", err?.message || "Please try again.");
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    const list = [...selectedIds];
+    if (!window.confirm("Are you sure you want to permanently delete " + list.length + " selected visit report(s)? This action cannot be undone.")) return;
+
+    setBulkProcessing(true);
+    try {
+      const res = await fetchJson("/api/visits/bulk-delete", {
+        method: "POST",
+        headers: { ...getAuthHeader(), "Content-Type": "application/json" },
+        body: JSON.stringify({
+          visitIds: list,
+        }),
+      });
+
+      notify("success", "Bulk Deletion Complete", "Deleted " + (res?.count || list.length) + " visit report(s).");
+      setSelectedIds(new Set());
+      loadVisits();
+    } catch (err) {
+      notify("error", "Bulk deletion failed", err?.message || "Please try again.");
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
 
   // ─── Toggle Pill Component ──────────────────────────────────────────────────
   const TogglePill = ({ label, icon: Icon, active, onClick }) => (
@@ -2301,6 +2515,107 @@ export default function Visit() {
               <button onClick={loadVisits} className="px-4 py-2 bg-white hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-[8px] text-[10px] font-bold uppercase transition-all cursor-pointer shrink-0">
                 Retry
               </button>
+
+          {/* ═══ BULK ACTIONS BAR (Light & Calm Roomhy Theme) ═══ */}
+          {selectedIds.size > 0 && (
+            <div className="bg-white p-3.5 px-5 rounded-[16px] border border-[#0E7C86]/30 bg-gradient-to-r from-teal-50/70 via-white to-slate-50 shadow-xs flex flex-wrap items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="flex items-center gap-3">
+                <span className="w-8 h-8 rounded-[10px] bg-[#0E7C86] text-white font-bold text-xs flex items-center justify-center shadow-xs">
+                  {selectedIds.size}
+                </span>
+                <div>
+                  <p className="text-xs font-bold text-[#10242A] flex items-center gap-1.5">
+                    <span>{selectedIds.size} {selectedIds.size === 1 ? "report" : "reports"} selected</span>
+                    <span className="text-[10px] font-normal text-[#0E7C86] bg-teal-50 border border-teal-200/60 rounded px-1.5 py-0.5">Bulk Mode</span>
+                  </p>
+                  <p className="text-[11px] text-[#4A5961]">Choose an action to apply across all selected visits</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                {canApprove && (
+                  <div className="flex items-center bg-[#F4F6F8] border border-[#E1E6EA] rounded-[8px] px-2.5 py-1">
+                    <span className="text-[10px] text-[#4A5961] font-semibold mr-1.5 uppercase tracking-wider">Tier:</span>
+                    <select
+                      value={bulkTier}
+                      onChange={e => setBulkTier(e.target.value)}
+                      className="bg-transparent text-xs font-bold text-[#10242A] outline-none cursor-pointer"
+                    >
+                      {PROPERTY_TIERS.map(t => (
+                        <option key={t.key} value={t.key}>{t.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {canApprove && (
+                  <button
+                    type="button"
+                    disabled={bulkProcessing}
+                    onClick={handleBulkApprove}
+                    className="px-3.5 py-2 bg-[#0E7C86] hover:bg-[#0b646c] active:scale-95 text-white rounded-[8px] text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
+                    title="Bulk Approve selected visits with completed KYC"
+                  >
+                    <CheckCircle2 size={13} /> Bulk Approve
+                  </button>
+                )}
+
+                {canApprove && (
+                  <button
+                    type="button"
+                    disabled={bulkProcessing}
+                    onClick={() => { setBulkHoldModal(true); setBulkHoldReason(""); }}
+                    className="px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-[8px] text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
+                    title="Put selected visits on hold"
+                  >
+                    <PauseCircle size={13} /> Bulk Hold
+                  </button>
+                )}
+
+                {canApprove && (
+                  <button
+                    type="button"
+                    disabled={bulkProcessing}
+                    onClick={() => { setBulkRejectModal(true); setBulkRejectReason(""); }}
+                    className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-[8px] text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
+                    title="Reject selected visits"
+                  >
+                    <XCircle size={13} /> Bulk Reject
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  disabled={bulkProcessing}
+                  onClick={handleBulkSendKyc}
+                  className="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-[8px] text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
+                  title="Send or resend digital KYC link to owners"
+                >
+                  <Send size={13} /> Send KYC
+                </button>
+
+                {canApprove && (
+                  <button
+                    type="button"
+                    disabled={bulkProcessing}
+                    onClick={handleBulkDelete}
+                    className="px-3 py-2 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 rounded-[8px] text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
+                    title="Delete selected visits permanently"
+                  >
+                    <Trash2 size={13} /> Bulk Delete
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  disabled={bulkProcessing}
+                  onClick={() => setSelectedIds(new Set())}
+                  className="px-2.5 py-2 text-xs font-semibold text-[#4A5961] hover:text-[#10242A] hover:bg-slate-100 rounded-[8px] transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+
             </div>
           )}
 
@@ -2309,7 +2624,16 @@ export default function Visit() {
             <table className="w-full text-left border-collapse min-w-[1300px]">
               <thead>
                 <tr className="bg-[#F4F6F8] border-b border-[#E1E6EA] text-[11px] font-bold text-[#4A5961] uppercase tracking-wider whitespace-nowrap">
-                  <th className="p-4 pl-6 min-w-[200px]">Property / Owner</th>
+                  <th className="p-4 pl-4 w-12 text-center">
+                    <input
+                      type="checkbox"
+                      checked={allFilteredSelected}
+                      onChange={toggleSelectAll}
+                      className="w-4 h-4 rounded border-slate-300 text-[#0E7C86] focus:ring-[#0E7C86] cursor-pointer accent-[#0E7C86]"
+                      title="Select all filtered visit reports"
+                    />
+                  </th>
+                  <th className="p-4 min-w-[200px]">Property / Owner</th>
                   <th className="p-4 min-w-[160px]">Location</th>
                   <th className="p-4 min-w-[140px]">Type / Rent</th>
                   <th className="p-4 min-w-[160px]">Submitted By</th>
@@ -2324,12 +2648,21 @@ export default function Visit() {
                   <tr><td colSpan={8} className="p-8 text-center text-slate-400 font-bold uppercase tracking-widest">Loading visits...</td></tr>
                 ) : loadError ? (
                   <tr><td colSpan={8} className="p-8 text-center text-rose-400 font-bold uppercase tracking-widest">Could not load visit reports</td></tr>
+
                 ) : filteredVisits.length === 0 ? (
-                  <tr><td colSpan={8} className="p-8 text-center text-slate-400 font-bold uppercase tracking-widest">No visit reports found</td></tr>
+                  <tr><td colSpan={9} className="p-8 text-center text-slate-400 font-bold uppercase tracking-widest">No visit reports found</td></tr>
                 ) : (
                   filteredVisits.map((v, i) => (
-                    <tr key={v._id || i} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="p-4 pl-6">
+                    <tr key={v._id || i} className={cn("hover:bg-slate-50/50 transition-colors", selectedIds.has(v.visitId || v._id) && "bg-teal-50/30")}>
+                      <td className="p-4 pl-4 text-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(v.visitId || v._id)}
+                          onChange={() => toggleSelect(v.visitId || v._id)}
+                          className="w-4 h-4 rounded border-slate-300 text-[#0E7C86] focus:ring-[#0E7C86] cursor-pointer accent-[#0E7C86]"
+                        />
+                      </td>
+                      <td className="p-4">
                         <p className="font-bold text-slate-800">{v.propertyName || v.propertyInfo?.name || "Unnamed Property"}</p>
                         <p className="text-[10px] text-slate-400 font-normal mt-0.5">{v.ownerName || v.visitorName} • {v.ownerPhone || v.visitorPhone}</p>
                       </td>
@@ -2438,6 +2771,17 @@ export default function Visit() {
                               {canApprove && (
                                 <button
                                   type="button"
+                                  onClick={() => { setHoldModal(v); setHoldReason(""); }}
+                                  disabled={actingId === (v.visitId || v._id)}
+                                  title="Put this report on hold"
+                                  className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all border bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed cursor-pointer"
+                                >
+                                  Hold
+                                </button>
+                              )}
+                              {canApprove && (
+                                <button
+                                  type="button"
                                   onClick={() => { setRejectModal(v); setRejectReason(""); }}
                                   disabled={actingId === (v.visitId || v._id)}
                                   title="Reject this report and send the employee a reason"
@@ -2485,6 +2829,8 @@ export default function Visit() {
               </div>
             )}
           </div>
+
+
         </div>
       )}
 
@@ -2895,6 +3241,183 @@ export default function Visit() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ═══ HOLD MODAL ═══ */}
+      {holdModal && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl overflow-hidden max-w-md w-full shadow-2xl">
+            <div className="p-5 border-b border-slate-100 flex items-start gap-3">
+              <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-amber-50 text-amber-600">
+                <PauseCircle size={18} />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm font-black text-slate-900">Put visit report on hold</h3>
+                <p className="text-[11px] text-slate-500 mt-0.5 truncate">
+                  {holdModal.propertyName || "Unnamed property"} — submitted by {holdModal.staffName || "staff"}
+                </p>
+              </div>
+            </div>
+
+            <div className="p-5">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                Reason for hold <span className="text-slate-300">(optional)</span>
+              </label>
+              <textarea
+                value={holdReason}
+                onChange={(e) => setHoldReason(e.target.value)}
+                rows={4}
+                autoFocus
+                maxLength={500}
+                placeholder="e.g. Awaiting owner confirmation on rent / amenity details."
+                className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-[13px] text-slate-800 placeholder:text-slate-400 outline-none transition-colors focus:border-amber-400 focus:bg-white resize-none"
+              />
+              <div className="mt-1.5 flex items-center justify-between">
+                <p className="text-[10px] text-slate-400">
+                  Visible to staff so they can take necessary follow-up action.
+                </p>
+                <p className="text-[10px] text-slate-300 tabular-nums">{holdReason.length}/500</p>
+              </div>
+            </div>
+
+            <div className="p-5 pt-0 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => { setHoldModal(null); setHoldReason(""); }}
+                className="px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-wider text-slate-500 hover:bg-slate-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={holdVisit}
+                disabled={actingId === (holdModal.visitId || holdModal._id)}
+                className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-[11px] font-bold uppercase tracking-wider shadow-lg shadow-amber-600/20 transition-all disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+              >
+                {actingId === (holdModal.visitId || holdModal._id) && <Loader2 size={13} className="animate-spin" />}
+                Put on hold
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ BULK REJECT MODAL ═══ */}
+      {bulkRejectModal && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl overflow-hidden max-w-md w-full shadow-2xl">
+            <div className="p-5 border-b border-slate-100 flex items-start gap-3">
+              <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-rose-50 text-rose-600">
+                <XCircle size={18} />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm font-black text-slate-900">Bulk Reject Reports</h3>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Rejecting {selectedIds.size} selected visit report(s)
+                </p>
+              </div>
+            </div>
+
+            <div className="p-5">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                Reason for bulk rejection <span className="text-slate-300">(optional)</span>
+              </label>
+              <textarea
+                value={bulkRejectReason}
+                onChange={(e) => setBulkRejectReason(e.target.value)}
+                rows={4}
+                autoFocus
+                maxLength={500}
+                placeholder="e.g. Incomplete verification details or rejected by management."
+                className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-[13px] text-slate-800 placeholder:text-slate-400 outline-none transition-colors focus:border-rose-400 focus:bg-white resize-none"
+              />
+              <div className="mt-1.5 flex items-center justify-between">
+                <p className="text-[10px] text-slate-400">
+                  Reason will be recorded on all selected visit reports.
+                </p>
+                <p className="text-[10px] text-slate-300 tabular-nums">{bulkRejectReason.length}/500</p>
+              </div>
+            </div>
+
+            <div className="p-5 pt-0 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => { setBulkRejectModal(false); setBulkRejectReason(""); }}
+                className="px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-wider text-slate-500 hover:bg-slate-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleBulkReject}
+                disabled={bulkProcessing}
+                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-bold uppercase tracking-wider shadow-lg shadow-rose-600/20 transition-all disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+              >
+                {bulkProcessing && <Loader2 size={13} className="animate-spin" />}
+                Confirm Reject ({selectedIds.size})
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ BULK HOLD MODAL ═══ */}
+      {bulkHoldModal && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl overflow-hidden max-w-md w-full shadow-2xl">
+            <div className="p-5 border-b border-slate-100 flex items-start gap-3">
+              <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-amber-50 text-amber-600">
+                <PauseCircle size={18} />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm font-black text-slate-900">Bulk Hold Reports</h3>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Putting {selectedIds.size} selected visit report(s) on hold
+                </p>
+              </div>
+            </div>
+
+            <div className="p-5">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                Reason for bulk hold <span className="text-slate-300">(optional)</span>
+              </label>
+              <textarea
+                value={bulkHoldReason}
+                onChange={(e) => setBulkHoldReason(e.target.value)}
+                rows={4}
+                autoFocus
+                maxLength={500}
+                placeholder="e.g. Awaiting area manager audit or property paperwork."
+                className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-[13px] text-slate-800 placeholder:text-slate-400 outline-none transition-colors focus:border-amber-400 focus:bg-white resize-none"
+              />
+              <div className="mt-1.5 flex items-center justify-between">
+                <p className="text-[10px] text-slate-400">
+                  Reason will be recorded on all selected visit reports.
+                </p>
+                <p className="text-[10px] text-slate-300 tabular-nums">{bulkHoldReason.length}/500</p>
+              </div>
+            </div>
+
+            <div className="p-5 pt-0 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => { setBulkHoldModal(false); setBulkHoldReason(""); }}
+                className="px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-wider text-slate-500 hover:bg-slate-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleBulkHold}
+                disabled={bulkProcessing}
+                className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-[11px] font-bold uppercase tracking-wider shadow-lg shadow-amber-600/20 transition-all disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+              >
+                {bulkProcessing && <Loader2 size={13} className="animate-spin" />}
+                Confirm Hold ({selectedIds.size})
+              </button>
+            </div>
           </div>
         </div>
       )}

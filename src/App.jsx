@@ -602,7 +602,13 @@ const NotificationStartupInit = () => {
       // Superadmin / Employee / Website user
       if (!loginId) {
         const userSession = tryParse(
-          localStorage.getItem('roomhy_user') || localStorage.getItem('user') || localStorage.getItem('website_user')
+          sessionStorage.getItem('staff_user') ||
+          sessionStorage.getItem('manager_user') ||
+          localStorage.getItem('staff_user') ||
+          localStorage.getItem('manager_user') ||
+          localStorage.getItem('roomhy_user') ||
+          localStorage.getItem('user') ||
+          localStorage.getItem('website_user')
         );
         loginId = userSession.loginId || userSession._id || null;
       }
@@ -621,6 +627,13 @@ const NotificationStartupInit = () => {
 function useCurrentLoginId() {
   try {
     const tryParse = (str) => { try { return JSON.parse(str || '{}'); } catch (_) { return {}; } };
+    const staffSession = tryParse(
+      sessionStorage.getItem('staff_user') ||
+      sessionStorage.getItem('manager_user') ||
+      localStorage.getItem('staff_user') ||
+      localStorage.getItem('manager_user')
+    );
+    if (staffSession.loginId) return staffSession.loginId;
     const ownerSession = tryParse(localStorage.getItem('owner_session') || sessionStorage.getItem('owner_session'));
     if (ownerSession.loginId || ownerSession.ownerLoginId) return ownerSession.loginId || ownerSession.ownerLoginId;
     const tenantSession = tryParse(localStorage.getItem('tenant_session') || sessionStorage.getItem('tenant_session'));

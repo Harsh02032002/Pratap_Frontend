@@ -1,4 +1,4 @@
-import { fetchJson, getApiBase } from "./api";
+import { fetchJson, getApiBase, getScopedAuthToken } from "./api";
 import { getFirstAllowedEmployeeRoute, hasEmployeePermission } from "./employeePermissions";
 
 export const ACCESS_UPDATED_EVENT = "roomhy-access-updated";
@@ -86,7 +86,13 @@ export function subscribeEmployeeAccess(onChange) {
 
   import("socket.io-client").then(({ io }) => {
     if (cancelled) return;
-    socket = io(getApiBase(), { transports: ["websocket", "polling"], reconnection: true });
+    // The socket server rejects an unauthenticated handshake (socket/socketAuth.js), so without
+    // the token `staff_access_updated` never arrived and only the 20 s poll refreshed access.
+    socket = io(getApiBase(), {
+      transports: ["websocket", "polling"],
+      reconnection: true,
+      auth: { token: getScopedAuthToken() },
+    });
     const join = () => socket.emit("join_room", {
       login_id: user.loginId,
       role: "employee",
@@ -97,11 +103,16 @@ export function subscribeEmployeeAccess(onChange) {
     if (socket.connected) join();
   }).catch(() => {});
 
+  // Also refresh the moment the tab becomes visible again (laptop sleep, tab switch).
+  const onVisible = () => { if (document.visibilityState === "visible") pull(); };
+  document.addEventListener("visibilitychange", onVisible);
+
   pull();
   const timer = setInterval(pull, 20000);
   return () => {
     cancelled = true;
     clearInterval(timer);
+    document.removeEventListener("visibilitychange", onVisible);
     try { socket?.disconnect(); } catch (_) { /* ignore */ }
   };
 }

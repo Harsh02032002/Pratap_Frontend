@@ -156,10 +156,32 @@ export default function SuperadminEnquiry() {
     visibilityRef.current = null;
   };
 
+  const getEmployeeLoginId = () => {
+    try {
+      const raw =
+        sessionStorage.getItem("staff_user") ||
+        sessionStorage.getItem("manager_user") ||
+        localStorage.getItem("staff_user") ||
+        localStorage.getItem("manager_user") ||
+        sessionStorage.getItem("user") ||
+        localStorage.getItem("user") ||
+        "{}";
+      return String(JSON.parse(raw)?.loginId || "").trim();
+    } catch {
+      return "";
+    }
+  };
+
   const fetchNotifications = async () => {
     try {
+      const empLoginId = getEmployeeLoginId();
+      if (!empLoginId) {
+        setNotifications([]);
+        setUnreadCount(0);
+        return;
+      }
       const token = sessionStorage.getItem("token") || localStorage.getItem("token") || "";
-      const res = await fetch(`${apiUrl}/api/notifications?unread=true&toLoginId=superadmin`, {
+      const res = await fetch(`${apiUrl}/api/notifications?unread=true&toLoginId=${encodeURIComponent(empLoginId)}`, {
         headers: token ? { "Authorization": `Bearer ${token}` } : {}
       });
       const payload = await res.json();
@@ -173,6 +195,8 @@ export default function SuperadminEnquiry() {
 
   const markAllRead = async () => {
     try {
+      const empLoginId = getEmployeeLoginId();
+      if (!empLoginId) return;
       const token = sessionStorage.getItem("token") || localStorage.getItem("token") || "";
       await fetch(`${apiUrl}/api/notifications/mark-all-read`, {
         method: "PUT",
@@ -180,7 +204,7 @@ export default function SuperadminEnquiry() {
           "Content-Type": "application/json",
           ...(token ? { "Authorization": `Bearer ${token}` } : {})
         },
-        body: JSON.stringify({ toLoginId: "superadmin", toRole: "superadmin" })
+        body: JSON.stringify({ toLoginId: empLoginId, toRole: "employee" })
       });
       setNotifications([]);
       setUnreadCount(0);
@@ -191,8 +215,10 @@ export default function SuperadminEnquiry() {
 
   const clearAll = async () => {
     try {
+      const empLoginId = getEmployeeLoginId();
+      if (!empLoginId) return;
       const token = sessionStorage.getItem("token") || localStorage.getItem("token") || "";
-      await fetch(`${apiUrl}/api/notifications/delete-read?toLoginId=superadmin`, { 
+      await fetch(`${apiUrl}/api/notifications/delete-read?toLoginId=${encodeURIComponent(empLoginId)}`, { 
         method: "DELETE",
         headers: token ? { "Authorization": `Bearer ${token}` } : {}
       });

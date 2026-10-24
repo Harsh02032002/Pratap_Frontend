@@ -97,14 +97,26 @@ export default function SharedShell() {
 
   const resolveUser = () => {
     try {
-      return JSON.parse(
-        sessionStorage.getItem("manager_user") ||
-        sessionStorage.getItem("user") ||
-        localStorage.getItem("staff_user") ||
-        localStorage.getItem("manager_user") ||
-        localStorage.getItem("user") ||
-        "{}"
-      );
+      const isEmpPath = typeof window !== "undefined" && window.location.pathname.startsWith("/employee");
+      const raw = isEmpPath
+        ? (
+            sessionStorage.getItem("staff_user") ||
+            sessionStorage.getItem("manager_user") ||
+            localStorage.getItem("staff_user") ||
+            localStorage.getItem("manager_user") ||
+            sessionStorage.getItem("user") ||
+            localStorage.getItem("user") ||
+            "{}"
+          )
+        : (
+            sessionStorage.getItem("manager_user") ||
+            sessionStorage.getItem("user") ||
+            localStorage.getItem("staff_user") ||
+            localStorage.getItem("manager_user") ||
+            localStorage.getItem("user") ||
+            "{}"
+          );
+      return JSON.parse(raw);
     } catch {
       return {};
     }
@@ -112,6 +124,7 @@ export default function SharedShell() {
   const [user, setUser] = useState(resolveUser);
   useEffect(() => {
     const syncUser = () => setUser(resolveUser());
+    syncUser();
     window.addEventListener("roomhy-access-updated", syncUser);
     window.addEventListener("storage", syncUser);
     return () => {
@@ -130,12 +143,23 @@ export default function SharedShell() {
   const [notifications, setNotifications] = useState([]);
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [seenNotifIds, setSeenNotifIds] = useState(new Set());
+  const seenNotifIdsRef = useRef(new Set());
+  const initialFetchDoneRef = useRef(false);
+  const mountTimestampRef = useRef(Date.now());
+
+  const effectiveLoginId = useMemo(() => {
+    const isSuperAdmin = section !== "employee" && (roleLower === "superadmin" || roleLower === "admin");
+    return isSuperAdmin ? "superadmin" : String(user?.loginId || "").trim();
+  }, [section, roleLower, user?.loginId]);
 
   const fetchRecentNotifications = async () => {
     try {
-      const loginId = (user?.role === 'superadmin' || user?.role === 'admin') ? "superadmin" : (user?.loginId || "superadmin");
-      const data = await fetchJson(`/api/notifications?toLoginId=${encodeURIComponent(loginId)}`);
+      if (!effectiveLoginId) {
+        setNotifications([]);
+        setUnreadCount(0);
+        return;
+      }
+      const data = await fetchJson(`/api/notifications?toLoginId=${encodeURIComponent(effectiveLoginId)}`);
       if (Array.isArray(data)) {
         const formatted = data.map(n => {
           const meta = typeof n.meta === 'string' ? (JSON.parse(n.meta) || {}) : (n.meta || {});
@@ -180,22 +204,22 @@ export default function SharedShell() {
             title,
             msg,
             time: new Date(n.createdAt).toLocaleDateString(),
+            createdAtMs: n.createdAt ? new Date(n.createdAt).getTime() : 0,
             read: n.read
           };
         });
 
-        // Live pop-up for brand new unread notifications
-        setSeenNotifIds(prevSeen => {
-          if (prevSeen.size > 0) {
-            const newUnreads = formatted.filter(n => !n.read && !prevSeen.has(n.id));
-            newUnreads.forEach(n => {
-              showNativeNotification(n.title, { body: n.msg });
-            });
-          }
-          const updated = new Set(prevSeen);
-          formatted.forEach(n => updated.add(n.id));
-          return updated;
-        });
+        // Live pop-up ONLY for genuinely brand-new unread notifications created after page load
+        if (initialFetchDoneRef.current) {
+          const newUnreads = formatted.filter(
+            n => !n.read && !seenNotifIdsRef.current.has(n.id) && n.createdAtMs >= mountTimestampRef.current
+          );
+          newUnreads.forEach(n => {
+            showNativeNotification(n.title, { body: n.msg });
+          });
+        }
+        formatted.forEach(n => seenNotifIdsRef.current.add(n.id));
+        initialFetchDoneRef.current = true;
 
         setNotifications(formatted.slice(0, 6));
         setUnreadCount(formatted.filter(n => !n.read).length);
@@ -206,6 +230,9 @@ export default function SharedShell() {
   };
 
   useEffect(() => {
+    seenNotifIdsRef.current = new Set();
+    initialFetchDoneRef.current = false;
+    mountTimestampRef.current = Date.now();
     fetchRecentNotifications();
     // Every 10s while the tab is visible, as before. In a background tab only
     // every 6th tick (60s) — not stopped entirely, because this poll is also
@@ -229,7 +256,7 @@ export default function SharedShell() {
       clearInterval(interval);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [user?.loginId]);
+  }, [effectiveLoginId]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -405,7 +432,8 @@ export default function SharedShell() {
               {typeof window !== 'undefined' && 'Notification' in window && Notification.permission !== 'granted' && (
                 <button
                   onClick={async () => {
-                    const res = await requestNotificationPermission(user?.loginId || 'superadmin');
+                    if (!effectiveLoginId) return;
+                    const res = await requestNotificationPermission(effectiveLoginId);
                     if (res?.status === 'granted') {
                       showNativeNotification("🔔 Push Notifications Activated!", {
                         body: "You will now receive instant push alerts for complaints & updates."
@@ -453,7 +481,25 @@ export default function SharedShell() {
                       <div className="px-4 py-2 border-b border-slate-50 flex items-center justify-between">
                         <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Recent Alerts</span>
                         {unreadCount > 0 && (
-                          <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{unreadCount} unread</span>
+                          <button
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              try {
+                                if (!effectiveLoginId) return;
+                                await fetchJson('/api/notifications/mark-all-read', {
+                                  method: 'PUT',
+                                  body: JSON.stringify({ toLoginId: effectiveLoginId })
+                                });
+                                setNotifications(prev => prev.map(item => ({ ...item, read: true })));
+                                setUnreadCount(0);
+                              } catch (err) {
+                                console.error("Error marking all read:", err);
+                              }
+                            }}
+                            className="text-[10px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full transition-colors"
+                          >
+                            Mark {unreadCount} read
+                          </button>
                         )}
                       </div>
 
@@ -465,7 +511,7 @@ export default function SharedShell() {
                           </div>
                           <button
                             onClick={async () => {
-                              await requestNotificationPermission(user?.loginId || 'superadmin');
+                              await requestNotificationPermission(effectiveLoginId || 'superadmin');
                               setNotifDropdownOpen(false);
                             }}
                             className="text-[10px] font-bold bg-amber-600 hover:bg-amber-700 text-white px-2.5 py-1 rounded-lg transition-colors shrink-0"
@@ -482,7 +528,19 @@ export default function SharedShell() {
                           </div>
                         ) : (
                           notifications.map((n) => (
-                            <div key={n.id} className="p-3.5 hover:bg-slate-50 transition-colors flex items-start gap-3">
+                            <div
+                              key={n.id}
+                              onClick={async () => {
+                                if (!n.read && n.id) {
+                                  try {
+                                    await fetchJson(`/api/notifications/${n.id}/read`, { method: 'PUT' });
+                                    setNotifications(prev => prev.map(item => item.id === n.id ? { ...item, read: true } : item));
+                                    setUnreadCount(prev => Math.max(0, prev - 1));
+                                  } catch (_) {}
+                                }
+                              }}
+                              className="p-3.5 hover:bg-slate-50 transition-colors flex items-start gap-3 cursor-pointer"
+                            >
                               <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${!n.read ? 'bg-blue-600' : 'bg-transparent'}`} />
                               <div className="flex-1 min-w-0">
                                 <p className="text-xs font-bold text-slate-800 truncate">{n.title}</p>
@@ -555,7 +613,6 @@ export default function SharedShell() {
             onClick={() => setSidebarOpen(false)}
           />
         )}
-        <NotificationPromptBanner userLoginId={user?.loginId} />
       </div>
     );
   }
@@ -584,7 +641,6 @@ export default function SharedShell() {
         <main className="flex-1 overflow-y-auto">
           <Outlet />
         </main>
-        <NotificationPromptBanner userLoginId={user?.loginId} />
       </div>
     </div>
   );

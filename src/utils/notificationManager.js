@@ -137,6 +137,14 @@ export async function sendTokenToBackend(token, loginId = null) {
 
     if (!activeLoginId) {
       try {
+        const isEmpPath = typeof window !== 'undefined' && window.location.pathname.startsWith('/employee');
+        const staffSession = JSON.parse(
+          sessionStorage.getItem('staff_user') ||
+          sessionStorage.getItem('manager_user') ||
+          localStorage.getItem('staff_user') ||
+          localStorage.getItem('manager_user') ||
+          '{}'
+        );
         const ownerSession = JSON.parse(
           localStorage.getItem('owner_session') ||
           sessionStorage.getItem('owner_session') ||
@@ -153,12 +161,17 @@ export async function sendTokenToBackend(token, loginId = null) {
           sessionStorage.getItem('tenant_session') ||
           '{}'
         );
-        activeLoginId =
-          ownerSession.loginId || ownerSession.ownerLoginId ||
-          tenantSession.loginId ||
-          userSession.loginId || userSession._id || userSession.phone;
+        activeLoginId = isEmpPath
+          ? (staffSession.loginId || userSession.loginId || null)
+          : (
+              staffSession.loginId ||
+              ownerSession.loginId || ownerSession.ownerLoginId ||
+              tenantSession.loginId ||
+              userSession.loginId || userSession._id || userSession.phone
+            );
         jwtToken =
-          ownerSession.token || tenantSession.token || userSession.token ||
+          staffSession.token || ownerSession.token || tenantSession.token || userSession.token ||
+          sessionStorage.getItem('token') || localStorage.getItem('token') ||
           localStorage.getItem('roomhy_jwt') || null;
       } catch (_) {}
     }
