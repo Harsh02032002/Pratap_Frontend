@@ -21,8 +21,8 @@ function initializeSeeder() {
     // ============================================
     const superAdminDb = {
         id: 'SUPER_ADMIN',
-        email: 'roomhyadmin@gmail.com',
-        password: 'admin@123', // Development password only
+        email: 'admin@roomhy.local',
+        password: '', // Managed via secure server authentication
         name: 'Super Admin',
         phone: '',
         org: '',
@@ -91,8 +91,8 @@ function initializeSeeder() {
     console.log("✨ Seeder completed successfully!");
     console.log("\n📝 DEFAULT CREDENTIALS (Development Only):");
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-    console.log("Super Admin Email: roomhyadmin@gmail.com");
-    console.log("Super Admin Password: admin@123");
+    console.log("Super Admin Email: admin@roomhy.local");
+    console.log("Authentication is handled by backend JWT API");
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     console.log("\nArea Managers: To be created by Super Admin");
     console.log("Property Owners: To be created by Super Admin");

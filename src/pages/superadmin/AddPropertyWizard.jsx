@@ -483,7 +483,22 @@ export default function AddPropertyWizard({ propEditId, isModal, onClose }) {
   };
 
   const addRoom = () => setRoomTypes([...roomTypes, { type: "", desc: "", totalRooms: "1", totalBeds: "1", occupancy: 1, pricePerBed: "0", pricePerRoom: "0", images: [] }]);
-  const removeRoom = (idx) => setRoomTypes(roomTypes.filter((_, i) => i !== idx));
+  const removeRoom = (idx) => {
+    setRoomTypes(prev => prev.filter((_, i) => i !== idx));
+    setRoomTypePhotos(prev => {
+      const next = {};
+      Object.keys(prev).forEach(key => {
+        const k = parseInt(key, 10);
+        if (k < idx) {
+          next[k] = prev[k];
+        } else if (k > idx) {
+          next[k - 1] = prev[k];
+        }
+      });
+      return next;
+    });
+    setActivePhotoRoomIdx(prev => Math.max(0, prev >= idx ? prev - 1 : prev));
+  };
 
   const handlePhotoUpload = async (e, target = "property", index = null) => {
     const files = Array.from(e.target.files);
@@ -654,12 +669,12 @@ export default function AddPropertyWizard({ propEditId, isModal, onClose }) {
           ]}
           actions={
             <div className="flex items-center gap-3">
-              <button className="px-6 py-2.5 rounded-xl border border-slate-200 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-all flex items-center gap-2">
+              <button onClick={() => { try { localStorage.setItem('roomhy_property_wizard_draft', JSON.stringify({ basicInfo, location, roomTypes, amenities })); toast.success('Progress saved as draft!'); } catch (e) { toast.error('Could not save draft'); } }} className="px-6 py-2.5 rounded-xl border border-slate-200 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-all flex items-center gap-2 cursor-pointer">
                  <Save className="w-3.5 h-3.5" /> Save as Draft
               </button>
-              <button onClick={() => step < 7 ? setStep(s => s + 1) : handleSubmit()} 
+              <button disabled={submitting} onClick={() => step < 7 ? setStep(s => s + 1) : handleSubmit()}
                 className="bg-blue-600 text-white px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">
-                {step === 7 ? "Submit Property" : `Next: ${STEPS[step]?.label}`} <ChevronRight className="w-3.5 h-3.5" />
+                {submitting ? "Submitting..." : (step === 7 ? "Submit Property" : `Next: ${STEPS[step]?.label}`)} <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
           }

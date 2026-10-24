@@ -22,7 +22,21 @@ export default function NotificationPromptBanner({ userLoginId = null }) {
   const location = useLocation();
 
   const getPanelConfig = (pathname = '') => {
-    if (pathname.startsWith('/superadmin') || pathname.startsWith('/employee')) {
+    if (pathname.startsWith('/employee')) {
+      return {
+        key: 'roomhy_notif_panel_employee',
+        title: "Enable Employee Alerts",
+        description: "Get real-time push alerts on your laptop & phone for assigned tasks, visit reports & ticket updates.",
+        badge: "Employee Push",
+        color: "from-blue-600 via-indigo-600 to-violet-600",
+        btnColor: "linear-gradient(135deg, #2563EB, #4F46E5)",
+        btnShadow: "rgba(37, 99, 235, 0.4)",
+        iconBg: "linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)",
+        iconBorder: "rgba(37, 99, 235, 0.2)",
+        iconColor: "#2563EB"
+      };
+    }
+    if (pathname.startsWith('/superadmin')) {
       return {
         key: 'roomhy_notif_panel_admin',
         title: "Enable SuperAdmin Alerts",
@@ -86,6 +100,13 @@ export default function NotificationPromptBanner({ userLoginId = null }) {
     const currentPermission = Notification.permission;
     setPermissionStatus(currentPermission);
     setIsDenied(currentPermission === 'denied');
+
+    // If browser notification permission is already granted, don't show the prompt banner again
+    if (currentPermission === 'granted') {
+      localStorage.setItem(`${panel.key}_active`, 'true');
+      setShowPrompt(false);
+      return;
+    }
 
     // Check if this specific panel was already activated or dismissed for this session
     const isPanelActive = localStorage.getItem(`${panel.key}_active`) === 'true';

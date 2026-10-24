@@ -85,7 +85,7 @@ export default function SuperadminPropertyApprovals() {
           });
         } catch (_) {}
         setProperties(prev => prev.map(p => p.id === id ? { ...p, status: "Approved" } : p));
-        if (selected?.id === id) setSelected(prev => ({ ...prev, status: "Approved" }));
+        setSelected(prev => (prev && prev.id === id ? { ...prev, status: "Approved" } : prev));
         const approvedProp = properties.find(p => p.id === id);
         setApprovedPopup({ title: approvedProp?.title || "Property", id });
         toast.success("Property approved successfully");
@@ -108,7 +108,7 @@ export default function SuperadminPropertyApprovals() {
       const data = await res.json();
       if (data.success || res.ok) {
         setProperties(prev => prev.map(p => p.id === id ? { ...p, status: "Rejected" } : p));
-        if (selected?.id === id) setSelected(prev => ({ ...prev, status: "Rejected" }));
+        setSelected(prev => (prev && prev.id === id ? { ...prev, status: "Rejected" } : prev));
         toast.success("Property rejected successfully");
       }
     } catch (e) {
@@ -671,7 +671,7 @@ export default function SuperadminPropertyApprovals() {
             </div>
 
             <div className="p-5 overflow-y-auto space-y-5 flex-1">
-              {selected.photos.length > 0 && (
+              {selected.photos && selected.photos.length > 0 && (
                 <div className="flex gap-2 overflow-x-auto pb-1">
                   {selected.photos.map((img, i) => <img key={i} src={img} className="w-24 h-20 rounded-xl object-cover flex-shrink-0 border border-slate-100" />)}
                 </div>

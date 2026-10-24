@@ -7,7 +7,7 @@ import {
   CheckCircle2, Save, Info, Clock, User, Eye, LayoutGrid, Pencil, RefreshCw,
   Mail, Phone, Calendar, Fingerprint, Briefcase, Heart, MessageSquare, AlertCircle, ChevronDown, Camera, FileText
 } from "lucide-react";
-import { getApiBase, fetchJson } from "../../utils/api";
+import { getApiBase, fetchJson, getAuthHeader } from "../../utils/api";
 import { toast } from "react-hot-toast";
 import { PageHeader } from "../../components/superadmin/PageHeader";
 import Tesseract from 'tesseract.js';
@@ -75,7 +75,11 @@ const CustomDatePicker = ({ label, value, onChange, required, error, placeholder
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
   const handleDateChange = (type, val) => {
-    const current = value ? value.split('-') : ["1995", "01", "01"];
+    const now = new Date();
+    const defaultY = String(now.getFullYear() - 20);
+    const defaultM = String(now.getMonth() + 1).padStart(2, '0');
+    const defaultD = String(now.getDate()).padStart(2, '0');
+    const current = value ? value.split('-') : [defaultY, defaultM, defaultD];
     let [y, m, d] = current;
     if (type === 'y') y = val;
     if (type === 'm') m = val;
@@ -125,7 +129,7 @@ const CustomDatePicker = ({ label, value, onChange, required, error, placeholder
             </select>
           </div>
           <div className="grid grid-cols-7 gap-1">
-            {Array.from({ length: 31 }, (_, i) => {
+            {Array.from({ length: (selectedDate[0] && selectedDate[1]) ? new Date(parseInt(selectedDate[0], 10), parseInt(selectedDate[1], 10), 0).getDate() : 31 }, (_, i) => {
               const day = (i + 1).toString().padStart(2, '0');
               const isActive = selectedDate[2] === day;
               return (
@@ -289,9 +293,7 @@ export default function AddTenant() {
         // Try multiple possible rent field names
         const rent = selectedRoom.price || selectedRoom.rent || selectedRoom.rentAmount || selectedRoom.monthlyRent;
         console.log('Found rent value:', rent);
-        if (rent) {
-          setTenancyDetails(prev => ({ ...prev, rentAmount: rent }));
-        }
+        setTenancyDetails(prev => ({ ...prev, rentAmount: rent || '' }));
         // Reset bed selection when room changes
         setRoomAssignment(prev => ({ ...prev, bed: '' }));
       }
@@ -414,7 +416,7 @@ export default function AddTenant() {
 
       const res = await fetch(`${apiUrl}/api/tenants/assign`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeader() },
         body: JSON.stringify(payload),
       });
 
@@ -450,7 +452,7 @@ export default function AddTenant() {
     data.append("image", file);
 
     try {
-      const res = await fetch(`${apiUrl}/api/upload`, { method: "POST", body: data });
+      const res = await fetch(`${apiUrl}/api/upload`, { method: "POST", headers: { ...getAuthHeader() }, body: data });
       const json = await res.json();
       console.log('[PREVIEW DEBUG] Upload response:', json);
       if (json.url) {

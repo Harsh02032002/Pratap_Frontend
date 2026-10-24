@@ -16,22 +16,44 @@ export default function AllNotifications() {
   // Resolve current user from session or local storage
   const user = useMemo(() => {
     try {
-      return JSON.parse(
-        sessionStorage.getItem("manager_user") ||
-        sessionStorage.getItem("user") ||
-        localStorage.getItem("staff_user") ||
-        localStorage.getItem("manager_user") ||
-        localStorage.getItem("user") ||
-        "{}"
-      );
+      const isEmpPath = typeof window !== "undefined" && window.location.pathname.startsWith("/employee");
+      const raw = isEmpPath
+        ? (
+            sessionStorage.getItem("staff_user") ||
+            sessionStorage.getItem("manager_user") ||
+            localStorage.getItem("staff_user") ||
+            localStorage.getItem("manager_user") ||
+            sessionStorage.getItem("user") ||
+            localStorage.getItem("user") ||
+            "{}"
+          )
+        : (
+            sessionStorage.getItem("manager_user") ||
+            sessionStorage.getItem("user") ||
+            localStorage.getItem("staff_user") ||
+            localStorage.getItem("manager_user") ||
+            localStorage.getItem("user") ||
+            "{}"
+          );
+      return JSON.parse(raw);
     } catch {
       return {};
     }
   }, []);
 
-  const loginId = user?.loginId || "superadmin";
+  const loginId = useMemo(() => {
+    const isEmpPath = typeof window !== "undefined" && window.location.pathname.startsWith("/employee");
+    const roleLower = String(user?.role || "").toLowerCase();
+    const isSuperAdmin = !isEmpPath && (roleLower === "superadmin" || roleLower === "admin");
+    return isSuperAdmin ? "superadmin" : String(user?.loginId || "").trim();
+  }, [user]);
 
   const loadData = async () => {
+    if (!loginId) {
+      setNotifications([]);
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       // Fetch notifications filtered by recipient's loginId

@@ -229,19 +229,24 @@ export default function VerificationCenter() {
       const data = await res.json();
 
       if (data.success || res.ok) {
-        toast.success(`Successfully assigned to ${employeeName}`);
+        toast.success(data.message || `Successfully assigned to ${employeeName || 'Staff'}`);
         
+        const assignedId = data.property?.assignedTo || employeeId;
+        const assignedName = data.property?.assignedToName || employeeName;
+
         if (activeTab === "new_properties") {
-          setNewProperties(prev => prev.map(p => p._id === itemId ? { ...p, assignedTo: employeeId, assignedToName: employeeName } : p));
+          setNewProperties(prev => prev.map(p => p._id === itemId ? { ...p, assignedTo: assignedId, assignedToName: assignedName } : p));
         } else if (activeTab === "property_edits") {
           setPropertyEdits(prev => prev.map(p => p._id === itemId ? {
             ...p,
-            pendingChanges: { ...p.pendingChanges, assignedTo: employeeId, assignedToName: employeeName }
+            assignedTo: assignedId,
+            assignedToName: assignedName,
+            pendingChanges: { ...p.pendingChanges, assignedTo: assignedId, assignedToName: assignedName }
           } : p));
         } else {
           setRoomEdits(prev => prev.map(r => r._id === itemId ? {
             ...r,
-            pendingChanges: { ...r.pendingChanges, assignedTo: employeeId, assignedToName: employeeName }
+            pendingChanges: { ...r.pendingChanges, assignedTo: assignedId, assignedToName: assignedName }
           } : r));
         }
 
@@ -380,10 +385,15 @@ export default function VerificationCenter() {
                     </td>
                     {!isEmployeeView && (
                       <td className="px-5 py-3">
-                        {p.assignedToName ? (
-                          <span className="text-[10px] font-semibold text-[#10242A] bg-[#F4F6F8] border border-[#E1E6EA] px-2 py-0.5 rounded-[4px] inline-flex items-center gap-1"><User size={11} /> {p.assignedToName}</span>
+                        {p.assignedToName || p.assignedTo ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-semibold text-[#10242A] bg-[#F4F6F8] border border-[#E1E6EA] px-2 py-0.5 rounded-[4px] inline-flex items-center gap-1">
+                              <User size={11} className="text-[#0E7C86]" /> {p.assignedToName || p.assignedTo}
+                            </span>
+                            <button onClick={() => setAssignModal({ type: "property", id: p._id, city: p.city, title: p.title })} className="text-[10px] text-[#4A5961] hover:text-[#0E7C86] underline cursor-pointer" title="Reassign">Edit</button>
+                          </div>
                         ) : (
-                          <button onClick={() => setAssignModal({ type: "property", id: p._id })} className="text-[11px] font-semibold text-[#0E7C86] hover:underline flex items-center gap-1 cursor-pointer"><UserPlus size={11} /> Assign</button>
+                          <button onClick={() => setAssignModal({ type: "property", id: p._id, city: p.city, title: p.title })} className="text-[11px] font-semibold text-[#0E7C86] hover:underline flex items-center gap-1 cursor-pointer"><UserPlus size={11} /> Assign</button>
                         )}
                       </td>
                     )}
@@ -397,6 +407,9 @@ export default function VerificationCenter() {
                         </button>
                         <button onClick={() => handleApproveNewProperty(p._id)} className="px-2.5 py-1 bg-[#0E7C86] hover:bg-[#09626A] text-white rounded-[6px] text-[10px] font-semibold transition-all cursor-pointer">
                           Approve
+                        </button>
+                        <button onClick={() => handleRejectNewProperty(p._id)} className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-[6px] text-[10px] font-semibold transition-all cursor-pointer">
+                          Reject
                         </button>
                       </div>
                     </td>
@@ -430,10 +443,15 @@ export default function VerificationCenter() {
                     </td>
                     {!isEmployeeView && (
                       <td className="px-5 py-3">
-                        {p.pendingChanges?.assignedToName ? (
-                          <span className="text-[10px] font-semibold text-[#10242A] bg-[#F4F6F8] border border-[#E1E6EA] px-2 py-0.5 rounded-[4px] inline-flex items-center gap-1"><User size={11} /> {p.pendingChanges.assignedToName}</span>
+                        {p.pendingChanges?.assignedToName || p.pendingChanges?.assignedTo || p.assignedToName || p.assignedTo ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-semibold text-[#10242A] bg-[#F4F6F8] border border-[#E1E6EA] px-2 py-0.5 rounded-[4px] inline-flex items-center gap-1">
+                              <User size={11} className="text-[#0E7C86]" /> {p.pendingChanges?.assignedToName || p.pendingChanges?.assignedTo || p.assignedToName || p.assignedTo}
+                            </span>
+                            <button onClick={() => setAssignModal({ type: "property", id: p._id, city: p.city, title: p.title })} className="text-[10px] text-[#4A5961] hover:text-[#0E7C86] underline cursor-pointer" title="Reassign">Edit</button>
+                          </div>
                         ) : (
-                          <button onClick={() => setAssignModal({ type: "property", id: p._id })} className="text-[11px] font-semibold text-[#0E7C86] hover:underline flex items-center gap-1 cursor-pointer"><UserPlus size={11} /> Assign</button>
+                          <button onClick={() => setAssignModal({ type: "property", id: p._id, city: p.city, title: p.title })} className="text-[11px] font-semibold text-[#0E7C86] hover:underline flex items-center gap-1 cursor-pointer"><UserPlus size={11} /> Assign</button>
                         )}
                       </td>
                     )}
@@ -447,6 +465,9 @@ export default function VerificationCenter() {
                         </button>
                         <button onClick={() => handleApprovePropertyEdit(p._id)} className="px-2.5 py-1 bg-[#0E7C86] hover:bg-[#09626A] text-white rounded-[6px] text-[10px] font-semibold transition-all cursor-pointer">
                           Approve
+                        </button>
+                        <button onClick={() => handleRejectPropertyEdit(p._id)} className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-[6px] text-[10px] font-semibold transition-all cursor-pointer">
+                          Reject
                         </button>
                       </div>
                     </td>
@@ -480,10 +501,15 @@ export default function VerificationCenter() {
                     </td>
                     {!isEmployeeView && (
                       <td className="px-5 py-3">
-                        {r.pendingChanges?.assignedToName ? (
-                          <span className="text-[10px] font-semibold text-[#10242A] bg-[#F4F6F8] border border-[#E1E6EA] px-2 py-0.5 rounded-[4px] inline-flex items-center gap-1"><User size={11} /> {r.pendingChanges.assignedToName}</span>
+                        {r.pendingChanges?.assignedToName || r.pendingChanges?.assignedTo ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-semibold text-[#10242A] bg-[#F4F6F8] border border-[#E1E6EA] px-2 py-0.5 rounded-[4px] inline-flex items-center gap-1">
+                              <User size={11} className="text-[#0E7C86]" /> {r.pendingChanges?.assignedToName || r.pendingChanges?.assignedTo}
+                            </span>
+                            <button onClick={() => setAssignModal({ type: "room", id: r._id, city: r.property?.city, title: r.title })} className="text-[10px] text-[#4A5961] hover:text-[#0E7C86] underline cursor-pointer" title="Reassign">Edit</button>
+                          </div>
                         ) : (
-                          <button onClick={() => setAssignModal({ type: "room", id: r._id })} className="text-[11px] font-semibold text-[#0E7C86] hover:underline flex items-center gap-1 cursor-pointer"><UserPlus size={11} /> Assign</button>
+                          <button onClick={() => setAssignModal({ type: "room", id: r._id, city: r.property?.city, title: r.title })} className="text-[11px] font-semibold text-[#0E7C86] hover:underline flex items-center gap-1 cursor-pointer"><UserPlus size={11} /> Assign</button>
                         )}
                       </td>
                     )}
@@ -498,6 +524,9 @@ export default function VerificationCenter() {
                         <button onClick={() => handleApproveRoomEdit(r._id)} className="px-2.5 py-1 bg-[#0E7C86] hover:bg-[#09626A] text-white rounded-[6px] text-[10px] font-semibold transition-all cursor-pointer">
                           Approve
                         </button>
+                        <button onClick={() => handleRejectRoomEdit(r._id)} className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-[6px] text-[10px] font-semibold transition-all cursor-pointer">
+                          Reject
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -510,25 +539,95 @@ export default function VerificationCenter() {
 
       {/* Assign Modal */}
       {assignModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center" onClick={() => setAssignModal(null)}>
-          <div className="bg-white rounded-[16px] shadow-2xl p-5 w-72 border border-[#E1E6EA] flex flex-col" onClick={e => e.stopPropagation()}>
-            <h4 className="text-sm font-bold text-[#10242A] mb-3 shrink-0">Assign Verification Staff</h4>
-            <div className="space-y-1.5 overflow-y-auto max-h-60 flex-1">
-              {employees.length === 0 ? (
-                <p className="text-xs text-[#4A5961] text-center py-4">No employees registered.</p>
-              ) : (
-                employees.map(emp => (
-                  <button key={emp._id} onClick={() => handleAssignVerification(assignModal.id, emp.loginId, emp.name)} className="w-full text-left px-3 py-2 text-xs font-semibold text-[#10242A] hover:bg-[#E6F4F5] hover:text-[#0E7C86] rounded-[8px] transition-all flex items-center gap-2 cursor-pointer">
-                    <div className="w-6 h-6 rounded-full bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center text-[9px] font-bold shrink-0">
-                      {emp.name?.split(" ").map(n=>n[0]).join("")}
-                    </div>
-                    <div>
-                      <p className="font-bold text-[#10242A] leading-tight">{emp.name}</p>
-                      <p className="text-[10px] text-[#4A5961]">{emp.loginId}</p>
-                    </div>
-                  </button>
-                ))
-              )}
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4" onClick={() => setAssignModal(null)}>
+          <div className="bg-white rounded-[16px] shadow-2xl p-5 w-full max-w-sm border border-[#E1E6EA] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h4 className="text-sm font-bold text-[#10242A]">Assign Verification Staff</h4>
+                {assignModal.title && (
+                  <p className="text-[11px] text-[#4A5961] truncate max-w-[220px]">
+                    {assignModal.title} {assignModal.city ? `(${assignModal.city})` : ''}
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={() => setAssignModal(null)}
+                className="text-xs text-[#4A5961] hover:text-[#10242A] p-1 rounded-full cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Auto Assign Action */}
+            <button
+              onClick={() => handleAssignVerification(assignModal.id, null, null)}
+              className="w-full mb-3 px-3 py-2 bg-[#E6F4F5] hover:bg-[#d0edef] text-[#0E7C86] rounded-[8px] text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer border border-[#0E7C86]/20"
+            >
+              <span>🤖</span> Auto-Assign (Visit Creator / Local Agent)
+            </button>
+
+            <div className="text-[11px] font-semibold text-[#4A5961] mb-1.5 flex items-center justify-between">
+              <span>Or pick an employee:</span>
+              {assignModal.city && <span className="text-[10px] text-[#0E7C86]">Local first</span>}
+            </div>
+
+            <div className="space-y-1.5 overflow-y-auto max-h-64 flex-1 pr-1">
+              {(() => {
+                // Filter out non-verification / service staff roles
+                const NON_FIELD_ROLES = ['cook', 'cleaner', 'hostel staff', 'sweeper', 'housekeeping', 'driver', 'security', 'maintenance', 'peon', 'maid', 'warden'];
+                const eligible = employees.filter(emp => {
+                  const r = (emp.role || '').toLowerCase();
+                  return !NON_FIELD_ROLES.some(nfr => r.includes(nfr));
+                });
+
+                // Sort local city employees to top
+                const modalCity = (assignModal.city || '').toLowerCase().trim();
+                const sorted = [...eligible].sort((a, b) => {
+                  const aLocal = modalCity && (a.city || '').toLowerCase().includes(modalCity);
+                  const bLocal = modalCity && (b.city || '').toLowerCase().includes(modalCity);
+                  if (aLocal && !bLocal) return -1;
+                  if (!aLocal && bLocal) return 1;
+                  return (a.name || '').localeCompare(b.name || '');
+                });
+
+                if (sorted.length === 0) {
+                  return <p className="text-xs text-[#4A5961] text-center py-4">No verification staff available.</p>;
+                }
+
+                return sorted.map(emp => {
+                  const isLocal = modalCity && (emp.city || '').toLowerCase().includes(modalCity);
+                  return (
+                    <button
+                      key={emp._id || emp.loginId}
+                      onClick={() => handleAssignVerification(assignModal.id, emp.loginId, emp.name)}
+                      className={`w-full text-left px-3 py-2 text-xs rounded-[8px] transition-all flex items-center justify-between gap-2 cursor-pointer border ${
+                        isLocal
+                          ? 'bg-[#F0FDF4] border-emerald-200 hover:bg-[#DCFCE7]'
+                          : 'hover:bg-[#E6F4F5] hover:text-[#0E7C86] border-transparent'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 ${
+                          isLocal ? 'bg-emerald-100 text-emerald-800' : 'bg-[#E6F4F5] text-[#0E7C86]'
+                        }`}>
+                          {emp.name?.split(" ").map(n=>n[0]).join("").slice(0, 2)}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-bold text-[#10242A] leading-tight truncate">{emp.name}</p>
+                          <p className="text-[10px] text-[#4A5961] truncate">
+                            {emp.loginId} {emp.role ? `• ${emp.role}` : ''} {emp.city ? `• ${emp.city}` : ''}
+                          </p>
+                        </div>
+                      </div>
+                      {isLocal && (
+                        <span className="text-[9px] font-semibold text-emerald-700 bg-white border border-emerald-200 px-1.5 py-0.5 rounded shrink-0">
+                          📍 Local
+                        </span>
+                      )}
+                    </button>
+                  );
+                });
+              })()}
             </div>
           </div>
         </div>

@@ -67,7 +67,9 @@ export function Sidebar({ open, isMobile, onClose, onLogout, activeModuleId, set
   const visibleNav = MAIN_NAV.filter((item) => {
     if (!isStaffPanel || !permissionKeys) return true;
     if (permissionKeys.length === 0) return panelUser?.permissionSource === "role" ? item.id === "dashboard" : true;
-    if (item.id === "visits") return true;
+    if (item.id === "visits") {
+      return panelUser?.permissionSource === "role" ? permissionKeys.includes("visits") : true;
+    }
     return permissionKeys.includes(item.id);
   });
 
