@@ -4,7 +4,7 @@ import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLay
 import { MobileTabs, MobileEmptyState, cn } from "../../components/propertyowner/MobileComponents";
 import {
   Plus, Search, ArrowUpDown, Download, Users, ExternalLink,
-  User, CalendarClock, CheckCircle, AlertTriangle, Phone, Clock,
+  User, CalendarClock, CalendarX, CheckCircle, AlertTriangle, Phone, Clock,
   Shield, Building2, FileText, BadgeCheck, X, MapPin, Mail,
   CreditCard, Home, Edit, Eye, Activity, MessageSquare, IndianRupee, Send, Trash2, Undo2, Loader2
 } from "lucide-react";
@@ -75,6 +75,9 @@ const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 // One status line per tenant, derived from the live agreement-expiry item.
 const getAgreementLine = (item) => {
   if (!item) return null;
+  if (item.agreementCancelled) {
+    return { text: `Agreement cancelled · Ex-Tenant on ${fmtYmd(item.endDate)} · ${plural(Math.max(item.daysLeft, 0), "day")} left`, className: "text-rose-700" };
+  }
   if (item.pendingExtension) {
     return { text: `Extension request sent · ${plural(item.pendingExtension.months, "month")}`, title: "Tenant has not signed yet", className: "text-blue-700" };
   }
@@ -124,6 +127,11 @@ export default function Tenants() {
     !t?.moveoutRequest?.completedAt &&
     t?.status !== "inactive";
 
+  // Owner pressed Cancel Agreement — not the tenant's own move-out, so it has
+  // no Cancel Notice undo (the backend refuses it too).
+  const isAgreementCancelled = (t) =>
+    isOnNotice(t) && String(t?.moveoutRequest?.reason || "").startsWith("Agreement cancelled by owner");
+
   // Whole days left before the tenant moves out. Same logic as
   // moveout-requests.jsx's daysLeft() — negative/zero means the notice has
   // elapsed and the nightly job will close the tenancy on its next run.
@@ -137,8 +145,16 @@ export default function Tenants() {
     return Math.round((end - today) / 86400000);
   };
 
+  // Agreement in its last month, or on the one-day grace day after it ends.
+  // The nightly job exits the tenant the day after; until then the owner can
+  // Extend or Cancel from the On notice tab.
+  const isAgreementNotice = (t) => {
+    const phase = getAgreementItem(t)?.phase;
+    return phase === "notice" || phase === "expired";
+  };
+
   const getDisplayStatus = (t) => {
-    if (isOnNotice(t)) return "notice";
+    if (isOnNotice(t) || isAgreementNotice(t)) return "notice";
     if ((t.status === "active" || t.active) && (t.kycStatus !== "verified" && t.kyc !== "verified")) {
       return "pending";
     }
@@ -162,8 +178,16 @@ export default function Tenants() {
   const [agreementByTenantId, setAgreementByTenantId] = useState(new Map());
   const [extendModal, setExtendModal] = useState(null); // agreement-expiry item | null
   const [extendMonths, setExtendMonths] = useState("");
+  const [extendRent, setExtendRent] = useState("");
+  // Pre-fill the extension rent with the room's current price (owner may edit).
+  useEffect(() => {
+    if (extendModal) setExtendRent(String(extendModal.suggestedRent || extendModal.currentRent || ""));
+  }, [extendModal]);
   const [extendSubmitting, setExtendSubmitting] = useState(false);
   const [resendingExtensionId, setResendingExtensionId] = useState(null);
+  const [cancelAgreementModal, setCancelAgreementModal] = useState(null); // agreement-expiry item + tenant name | null
+  const [cancelAgreementReason, setCancelAgreementReason] = useState("");
+  const [cancellingAgreement, setCancellingAgreement] = useState(false);
   // Tenants with a Pending alternate-ID-proof request — they're waiting on
   // Superadmin, so an Aadhaar-OTP completion reminder doesn't apply to them.
   const [pendingKycRequestTenantIds, setPendingKycRequestTenantIds] = useState(new Set());
@@ -386,6 +410,33 @@ export default function Tenants() {
   };
   const getAgreementItem = (t) => agreementByTenantId.get(String(t?._id || t?.id));
 
+  const submitCancelAgreement = async () => {
+    const item = cancelAgreementModal;
+    if (!item || cancellingAgreement) return;
+    setCancellingAgreement(true);
+    try {
+      const res = await fetchJson(`/api/tenants/${item.tenantId}/agreement-cancel`, {
+        method: "POST",
+        body: JSON.stringify({ reason: cancelAgreementReason.trim() })
+      });
+      clearApiCache();
+      if (owner?.loginId) clearOwnerFetchCache(owner.loginId);
+      const data = await fetchOwnerTenants(owner.loginId, true);
+      setTenants((data || []).filter(x => x.status !== "inactive"));
+      await loadAgreementExpiry();
+      toast.success(res?.message || "Agreement cancelled.");
+      setCancelAgreementModal(null);
+      setCancelAgreementReason("");
+    } catch (err) {
+      toast.error(err.message || "Could not cancel the agreement.");
+      // The cancel may have saved even if the response failed — show the real state.
+      clearApiCache();
+      loadAgreementExpiry();
+    } finally {
+      setCancellingAgreement(false);
+    }
+  };
+
   const submitExtension = async () => {
     const item = extendModal;
     const months = Number(extendMonths);
@@ -394,11 +445,16 @@ export default function Tenants() {
       toast.error("Enter a whole number of months between 1 and 60.");
       return;
     }
+    const newRent = Number(extendRent);
+    if (!Number.isFinite(newRent) || newRent <= 0) {
+      toast.error("Enter the new monthly rent.");
+      return;
+    }
     setExtendSubmitting(true);
     try {
       const res = await fetchJson(`/api/tenants/${item.tenantId}/agreement-extension`, {
         method: "POST",
-        body: JSON.stringify({ months }),
+        body: JSON.stringify({ months, newRent }),
         timeout: 30000
       });
       toast.success(res?.message || "Extension request sent.");
@@ -517,7 +573,7 @@ export default function Tenants() {
     active: tenants.filter(t => getDisplayStatus(t) === "active").length,
     notice: tenants.filter(t => getDisplayStatus(t) === "notice").length,
     dues: tenants.filter(t => (t.dueAmount || t.dues || t.balance) > 0).length,
-  }), [tenants]);
+  }), [tenants, agreementByTenantId]);
 
   const filtered = useMemo(() => tenants.filter(t => {
     const matchTab = tab === "all" || (tab === "active" && getDisplayStatus(t) === "active") || (tab === "notice" && getDisplayStatus(t) === "notice") || (tab === "dues" && (t.dueAmount || t.dues || t.balance) > 0);
@@ -540,7 +596,7 @@ export default function Tenants() {
     if (valA < valB) return sortOrder === "asc" ? -1 : 1;
     if (valA > valB) return sortOrder === "asc" ? 1 : -1;
     return 0;
-  }), [tenants, tab, debouncedSearch, sortKey, sortOrder]);
+  }), [tenants, agreementByTenantId, tab, debouncedSearch, sortKey, sortOrder]);
 
   useEffect(() => { setPage(0); }, [filtered]);
 
@@ -925,7 +981,7 @@ export default function Tenants() {
                         </td>
                         <td className="px-4 py-3">
                           <Pill tone={getStatusTone(getDisplayStatus(t))}>{getDisplayStatus(t)}</Pill>
-                          {isOnNotice(t) && (() => {
+                          {isOnNotice(t) && !isAgreementCancelled(t) && (() => {
                             const d = daysLeftInNotice(t.moveoutRequest?.noticeEndDate);
                             if (d === null) return null;
                             return (
@@ -977,6 +1033,15 @@ export default function Tenants() {
                                 <CalendarClock size={13} /> Extend Agreement
                               </button>
                             )}
+                            {getAgreementItem(t)?.canCancel && (
+                              <button
+                                onClick={() => { setCancelAgreementModal({ ...getAgreementItem(t), name: t.name }); setCancelAgreementReason(""); }}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 text-[11.5px] font-bold text-rose-700 bg-rose-50 border border-rose-200/60 hover:bg-rose-100 rounded-lg transition-colors shrink-0"
+                                title="Do not renew — tenant moves to Ex-Tenants when the agreement ends"
+                              >
+                                <CalendarX size={13} /> Cancel Agreement
+                              </button>
+                            )}
                             {getAgreementItem(t)?.pendingExtension && (
                               <button
                                 onClick={() => resendExtensionLink(getAgreementItem(t))}
@@ -987,7 +1052,7 @@ export default function Tenants() {
                                 {resendingExtensionId === getAgreementItem(t).tenantId ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />} Resend extension link
                               </button>
                             )}
-                            {isOnNotice(t) && (
+                            {isOnNotice(t) && !isAgreementCancelled(t) && (
                               <button
                                 onClick={() => { setCancelNoticeModal({ tenant: t }); setCancelReason(""); }}
                                 className="inline-flex items-center gap-1 px-3 py-1.5 text-[11.5px] font-bold text-amber-700 bg-amber-50 border border-amber-200/60 hover:bg-amber-100 rounded-lg transition-colors shrink-0"
@@ -1092,7 +1157,7 @@ export default function Tenants() {
                       )}>
                         {getDisplayStatus(t)}
                       </span>
-                      {isOnNotice(t) && (() => {
+                      {isOnNotice(t) && !isAgreementCancelled(t) && (() => {
                         const d = daysLeftInNotice(t.moveoutRequest?.noticeEndDate);
                         if (d === null) return null;
                         return (
@@ -1164,12 +1229,17 @@ export default function Tenants() {
                             <CalendarClock size={12} /> Extend
                          </button>
                        )}
+                       {getAgreementItem(t)?.canCancel && (
+                         <button onClick={() => { setCancelAgreementModal({ ...getAgreementItem(t), name: t.name }); setCancelAgreementReason(""); }} className="h-8 px-3 rounded-full bg-rose-50 border border-rose-200/50 text-rose-700 flex items-center gap-1 hover:bg-rose-100 transition-colors text-[11px] font-bold" title="Do not renew — tenant moves to Ex-Tenants when the agreement ends">
+                            <CalendarX size={12} /> Cancel
+                         </button>
+                       )}
                        {getAgreementItem(t)?.pendingExtension && (
                          <button onClick={() => resendExtensionLink(getAgreementItem(t))} disabled={!!resendingExtensionId} className="h-8 px-3 rounded-full bg-blue-50 border border-blue-100/50 text-blue-700 flex items-center gap-1 hover:bg-blue-100 transition-colors text-[11px] font-bold disabled:opacity-60" title="Resend extension link">
                             {resendingExtensionId === getAgreementItem(t).tenantId ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />} Resend link
                          </button>
                        )}
-                       {isOnNotice(t) && (
+                       {isOnNotice(t) && !isAgreementCancelled(t) && (
                          <button onClick={() => { setCancelNoticeModal({ tenant: t }); setCancelReason(""); }} className="h-8 px-3 rounded-full bg-amber-50 border border-amber-200/50 text-amber-700 flex items-center gap-1 hover:bg-amber-100 transition-colors text-[11px] font-bold" title="Cancel the notice period and keep this tenant">
                             <Undo2 size={12} /> Cancel Notice
                          </button>
@@ -1403,6 +1473,9 @@ export default function Tenants() {
                                   Agreement Extension #{x.number}:{" "}
                                   <span className="font-medium text-foreground">{fmtYmd(x.newStartDate)} → {fmtYmd(x.newEndDate)}</span>
                                   {" · "}{plural(x.months, "month")}{" · "}
+                                  {Number(x.newRent) > 0 && (
+                                    <>₹{Number(x.previousRent || 0).toLocaleString("en-IN")} → ₹{Number(x.newRent).toLocaleString("en-IN")}{" · "}</>
+                                  )}
                                   <span className="font-semibold text-foreground">{EXTENSION_STATUS_LABEL[x.status] || x.status}</span>
                                 </span>
                                 {x.pdfUrl && (
@@ -2274,6 +2347,60 @@ export default function Tenants() {
         );
       })()}
 
+      {cancelAgreementModal && (() => {
+        const item = cancelAgreementModal;
+        return (
+          <div
+            className="fixed inset-0 z-[200] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={(e) => e.target === e.currentTarget && !cancellingAgreement && setCancelAgreementModal(null)}
+          >
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+              <div className="p-6">
+                <div className="w-12 h-12 rounded-full bg-rose-50 flex items-center justify-center mb-4">
+                  <CalendarX className="w-6 h-6 text-rose-600" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900">Cancel agreement?</h3>
+                <p className="text-sm text-slate-500 mt-1">
+                  <span className="font-semibold text-slate-700">{item.name || "This tenant"}</span>{" "}
+                  will not be renewed. They stay until the agreement ends on{" "}
+                  <span className="font-semibold text-slate-700">{fmtYmd(item.endDate)}</span>, then move to
+                  Ex-Tenants — their bed is freed and their tenant panel, emails and WhatsApp stop.
+                  This cannot be undone.
+                </p>
+
+                <label className="block mt-5 mb-1.5 text-[12px] font-bold text-slate-700">
+                  Reason <span className="font-medium text-slate-400">(optional)</span>
+                </label>
+                <textarea
+                  autoFocus
+                  rows={3}
+                  value={cancelAgreementReason}
+                  onChange={(e) => setCancelAgreementReason(e.target.value)}
+                  placeholder="e.g. Room needed for renovation"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-[13px] resize-none focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-400 placeholder:text-slate-400"
+                />
+              </div>
+              <div className="flex gap-3 px-6 py-4 bg-slate-50 border-t border-slate-100">
+                <button
+                  onClick={() => setCancelAgreementModal(null)}
+                  disabled={cancellingAgreement}
+                  className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 transition-colors disabled:opacity-50"
+                >
+                  Keep Agreement
+                </button>
+                <button
+                  onClick={submitCancelAgreement}
+                  disabled={cancellingAgreement}
+                  className="flex-1 py-2.5 rounded-lg text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {cancellingAgreement ? "Cancelling..." : "Cancel Agreement"}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {extendModal && (() => {
         const item = extendModal;
         const raw = String(extendMonths).trim();
@@ -2321,6 +2448,21 @@ export default function Tenants() {
                 {raw && !validMonths && (
                   <p className="mt-1.5 text-[11px] font-semibold text-rose-600">Enter a whole number between 1 and 60.</p>
                 )}
+                <label className="block mt-4 mb-1.5 text-[12px] font-bold text-slate-700">
+                  Monthly rent for the extension (₹)
+                </label>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  value={extendRent}
+                  onChange={(e) => setExtendRent(e.target.value)}
+                  placeholder="Monthly rent"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-[13px] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 placeholder:text-slate-400"
+                />
+                <p className="mt-1.5 text-[11px] text-slate-500">
+                  Current rent: ₹{Number(item.currentRent || 0).toLocaleString("en-IN")} · Room price today: ₹{Number(item.suggestedRent || 0).toLocaleString("en-IN")}. The new rent is billed from {fmtYmd(item.endDate)}'s month.
+                </p>
                 {proposedEnd && (
                   <p className="mt-3 text-[13px] text-slate-600">
                     Proposed extension: <span className="font-semibold text-slate-800">{fmtYmd(item.endDate)} → {fmtYmd(proposedEnd)}</span>
