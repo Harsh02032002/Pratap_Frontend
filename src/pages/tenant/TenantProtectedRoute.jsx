@@ -1,6 +1,19 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth, clearAllAuthKeys } from "../../contexts/AuthContext";
+import { fetchJson } from "../../utils/api";
+
+const isTenantLike = (u) =>
+  !!u && (u.role === "tenant" || u.tenantLoginId || String(u.loginId || "").toUpperCase().startsWith("ROOMHYTNT"));
+
+const readStoredUser = () => {
+  try {
+    const raw = sessionStorage.getItem("user") || localStorage.getItem("user");
+    return raw ? JSON.parse(raw) : null;
+  } catch (_) {
+    return null;
+  }
+};
 
 // Reads only the token — never the user-object — from storage.
 // The user-object stored in localStorage is attacker-controlled and MUST NOT
@@ -70,8 +83,29 @@ const Spinner = () => (
 export default function TenantProtectedRoute({ children }) {
   const { user, loading } = useAuth();
   const location = useLocation();
+  const [revoked, setRevoked] = useState(false);
 
   const hasToken = getStoredToken() || localStorage.getItem("user") || sessionStorage.getItem("user");
+  const tenantSession = isTenantLike(user) || isTenantLike(readStoredUser());
+
+  // An ex-tenant (agreement ended / move-out complete) can still have a session
+  // in this browser. /api/tenants/me checks the Tenant record itself and
+  // answers 401/403 once the tenancy is closed — sign them out on that.
+  useEffect(() => {
+    if (!hasToken || !tenantSession) return;
+    let alive = true;
+    fetchJson("/api/tenants/me").catch((err) => {
+      if (alive && (err?.status === 401 || err?.status === 403)) {
+        clearAllAuthKeys();
+        setRevoked(true);
+      }
+    });
+    return () => { alive = false; };
+  }, [hasToken, tenantSession, location.pathname]);
+
+  if (revoked) {
+    return <Navigate to="/tenant/tenantlogin" replace />;
+  }
 
   // Step 1 — fast synchronous check: no token or session at all.
   if (!hasToken) {
@@ -90,16 +124,10 @@ export default function TenantProtectedRoute({ children }) {
   }
 
   // Step 3 — verify tenant role
-  const isTenant = user && (user.role === "tenant" || user.tenantLoginId || String(user.loginId || "").toUpperCase().startsWith("ROOMHYTNT"));
+  const isTenant = isTenantLike(user);
 
   if (!isTenant) {
-    try {
-      const raw = sessionStorage.getItem("user") || localStorage.getItem("user");
-      const parsed = raw ? JSON.parse(raw) : null;
-      if (parsed && (parsed.role === "tenant" || parsed.tenantLoginId || String(parsed.loginId || "").toUpperCase().startsWith("ROOMHYTNT"))) {
-        return children;
-      }
-    } catch (_) {}
+    if (isTenantLike(readStoredUser())) return children;
 
     return (
       <Navigate

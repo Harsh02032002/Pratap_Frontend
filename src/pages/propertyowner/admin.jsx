@@ -153,6 +153,7 @@ export default function Admin() {
   const [notifications, setNotifications] = useState([]);
   const [changeRequests, setChangeRequests] = useState([]);
   const [propertiesCount, setPropertiesCount] = useState(0);
+  const [livePropertiesCount, setLivePropertiesCount] = useState(0);
   // Timestamp of the cached figures being shown because a refresh failed.
   const [staleSince, setStaleSince] = useState(null);
   // Dashboard-load failures only, kept separate from `errorMsg` (which carries
@@ -199,6 +200,7 @@ export default function Admin() {
     setTenantsCount(cached.tenantsCount);
     setTenants(cached.tenants);
     setPropertiesCount(cached.propertiesCount);
+    setLivePropertiesCount(cached.livePropertiesCount ?? 0);
     setRecentChats(cached.recentChats);
     setComplaints(cached.complaints);
     setRentTotal(cached.rentTotal);
@@ -273,6 +275,7 @@ export default function Admin() {
       setTenantsCount(filteredTenants.length);
       setTenants(filteredTenants);
       setPropertiesCount(scopedPropertiesCount);
+      setLivePropertiesCount(dashRes?.liveProperties ?? 0);
       setRecentChats(dashRes?.chats?.conversations || []);
       setComplaints(allComplaints);
       setRentTotal(rentTotal);
@@ -287,6 +290,7 @@ export default function Admin() {
         tenantsCount: filteredTenants.length,
         tenants: filteredTenants,
         propertiesCount: scopedPropertiesCount,
+        livePropertiesCount: dashRes?.liveProperties ?? 0,
         recentChats: dashRes?.chats?.conversations || [],
         complaints: allComplaints,
         rentTotal,
@@ -635,7 +639,7 @@ export default function Admin() {
             <p className="mt-1.5 text-[14px] text-muted-foreground">
               {loading
                 ? <span className="inline-block h-4 w-52 bg-muted/60 animate-pulse rounded" />
-                : `${tenantsCount} beds occupied across ${roomsCount} rooms · ${propertiesCount} ${propertiesCount === 1 ? 'property' : 'properties'}.`
+                : `${tenantsCount} beds occupied across ${roomsCount} rooms · ${livePropertiesCount} live ${livePropertiesCount === 1 ? 'property' : 'properties'}.`
               }
             </p>
           </div>

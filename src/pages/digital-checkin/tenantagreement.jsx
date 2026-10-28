@@ -200,11 +200,13 @@ export default function DigitalCheckinTenantagreement() {
               <div style={{ fontSize: 14, fontWeight: 700, color: "#1a237e", marginBottom: 6 }}>Previous Agreement</div>
               <Row label="Start" value={fmtExtDate(extension.previousStartDate)} />
               <Row label="End"   value={fmtExtDate(extension.previousEndDate)} />
+              {Number(extension.previousRent) > 0 && <Row label="Monthly rent" value={`₹${Number(extension.previousRent).toLocaleString("en-IN")}`} />}
             </div>
             <div style={{ flex: "1 1 240px", border: "1px solid #9fa8da", borderRadius: 6, padding: "10px 14px", background: "#f8f9ff" }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: "#1a237e", marginBottom: 6 }}>New Extension</div>
               <Row label="Extension duration"   value={extension.months ? `${extension.months} months` : ""} />
               <Row label="New agreement period" value={`${fmtExtDate(extension.newStartDate)} → ${fmtExtDate(extension.newEndDate)}`} />
+              {Number(extension.newRent) > 0 && <Row label="New monthly rent" value={`₹${Number(extension.newRent).toLocaleString("en-IN")} (from ${fmtExtDate(extension.newStartDate)})`} />}
             </div>
           </div>
         )}
@@ -346,7 +348,7 @@ export default function DigitalCheckinTenantagreement() {
                 const maskAadh = (v) => v ? `XXXX XXXX ${String(v).slice(-4)}` : "";
                 const backup = [d.backupEmail, d.backupPhone || td.guardianNumber].filter(Boolean).join(" / ");
                 const premises = [d.propertyName || td.propertyTitle, d.propertyAddress].filter(Boolean).join(", ");
-                const rent = d.rentAmount || td.agreedRent;
+                const rent = (isExt && Number(extension?.newRent) > 0) ? extension.newRent : (d.rentAmount || td.agreedRent);
                 const deposit = d.securityDeposit || td.securityDepositTotal;
                 return (
                   <>

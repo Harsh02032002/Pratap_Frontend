@@ -467,7 +467,7 @@ export default function MoveoutRequestsPage() {
 
                 {/* Actions — cancelling is only possible while the notice runs;
                     once it completes the bed is released and may be re-let. */}
-                {onNotice && (
+                {onNotice && !String(mr.reason || "").startsWith("Agreement cancelled by owner") && (
                   <div className="pt-1 border-t border-border/60">
                     <button
                       onClick={() => { setCancelModal(item); setCancelReason(""); }}
