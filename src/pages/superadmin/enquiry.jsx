@@ -19,12 +19,7 @@ import { fetchJson, getAuthHeader } from "../../utils/api";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
-const enquiryStatus = [
-  { name: "Approved", value: 1283, color: "#10b981", percent: "45.1%" },
-  { name: "Pending", value: 424, color: "#f59e0b", percent: "14.9%" },
-  { name: "Rejected", value: 233, color: "#ef4444", percent: "8.2%" },
-  { name: "On Hold", value: 156, color: "#2563eb", percent: "5.5%" },
-];
+
 
 const getApiUrl = () =>
   import.meta.env?.VITE_API_URL ||
@@ -117,6 +112,21 @@ export default function SuperadminEnquiry() {
     enq.property.toLowerCase().includes(search.toLowerCase())
   );
 
+  const enquiryStatus = useMemo(() => {
+    const total = enquiries.length;
+    const approved = enquiries.filter(e => e.status === "Approved").length;
+    const pending = enquiries.filter(e => e.status === "Pending").length;
+    const rejected = enquiries.filter(e => e.status === "Rejected").length;
+    const onHold = enquiries.filter(e => e.status === "On Hold").length;
+    const pct = (n) => total > 0 ? `${((n / total) * 100).toFixed(1)}%` : "0%";
+    return [
+      { name: "Approved", value: approved, color: "#10b981", percent: pct(approved) },
+      { name: "Pending", value: pending, color: "#f59e0b", percent: pct(pending) },
+      { name: "Rejected", value: rejected, color: "#ef4444", percent: pct(rejected) },
+      { name: "On Hold", value: onHold, color: "#2563eb", percent: pct(onHold) },
+    ];
+  }, [enquiries]);
+
   return (
     <div className="space-y-6">
       <PageHeader 
@@ -163,7 +173,7 @@ export default function SuperadminEnquiry() {
                     </PieChart>
                  </ResponsiveContainer>
                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                    <p className="text-xl font-bold text-slate-800 tracking-tight leading-none">2.8k</p>
+                    <p className="text-xl font-bold text-slate-800 tracking-tight leading-none">{enquiries.length}</p>
                     <p className="text-[7px] text-slate-400 font-bold uppercase mt-1 tracking-tighter">Total Pipeline</p>
                  </div>
               </div>

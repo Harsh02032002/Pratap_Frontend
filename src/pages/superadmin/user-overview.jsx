@@ -72,23 +72,23 @@ export default function UserOverview() {
   }, []);
 
   // Computed metrics
-  const totalStaffCount = employees.length || 8;
+  const totalStaffCount = employees.length;
   const approvedOwners = useMemo(() => owners.filter(o => o.status === "approved" || o.isApproved), [owners]);
-  const approvedOwnersCount = approvedOwners.length || 14;
+  const approvedOwnersCount = approvedOwners.length;
 
   const pendingOwners = useMemo(() => owners.filter(o => o.status === "pending" || !o.isApproved || o.kycStatus === "pending"), [owners]);
 
   const pendingKycCount = useMemo(() => {
     const pendingOwnerKyc = owners.filter(o => (o.kycStatus || "pending") === "pending").length;
     const pendingTenantKyc = tenants.filter(t => ["submitted", "pending"].includes(t.kycStatus || t.kyc?.status || "pending")).length;
-    return (pendingOwnerKyc + pendingTenantKyc) || 4;
+    return pendingOwnerKyc + pendingTenantKyc;
   }, [owners, tenants]);
 
-  const openOwnerRequestsCount = ownerRequests.length || 6;
+  const openOwnerRequestsCount = ownerRequests.length;
 
   // Subscriptions counts
-  const activeSubs = subscriptionsData?.summary?.subscribedCount || subscriptionsData?.summary?.activeCount || 14;
-  const expiringSubs = subscriptionsData?.summary?.expiringCount || 3;
+  const activeSubs = subscriptionsData?.summary?.subscribedCount || subscriptionsData?.summary?.activeCount || 0;
+  const expiringSubs = subscriptionsData?.summary?.expiringCount || 0;
 
   return (
     <div className="max-w-[1440px] text-[#10242A] space-y-3" style={{ fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
@@ -179,44 +179,11 @@ export default function UserOverview() {
                 </thead>
                 <tbody className="divide-y divide-[#F0F4F6] text-[13px]">
                   {pendingOwners.length === 0 ? (
-                    <>
-                      <tr>
-                        <td className="py-2 text-[#10242A] font-normal">[Owner name]</td>
-                        <td className="py-2 text-[#4A5961]">[Date]</td>
-                        <td className="py-2">
-                          <span className="bg-[#FDEBD0] text-[#7A3E00] text-[11px] font-semibold px-2.5 py-0.5 rounded-full">Pending</span>
-                        </td>
-                        <td className="py-2 text-right">
-                          <button onClick={() => navigate('/superadmin/kyc_verification')} className="border border-[#0E7C86] text-[#0E7C86] hover:bg-[#E6F4F5] text-[12px] font-semibold px-3 py-0.5 rounded-[6px] transition-colors cursor-pointer">
-                            Review
-                          </button>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="py-2 text-[#10242A] font-normal">[Owner name]</td>
-                        <td className="py-2 text-[#4A5961]">[Date]</td>
-                        <td className="py-2">
-                          <span className="bg-[#FADBD8] text-[#78281F] text-[11px] font-semibold px-2.5 py-0.5 rounded-full">Docs missing</span>
-                        </td>
-                        <td className="py-2 text-right">
-                          <button onClick={() => navigate('/superadmin/kyc_verification')} className="border border-[#0E7C86] text-[#0E7C86] hover:bg-[#E6F4F5] text-[12px] font-semibold px-3 py-0.5 rounded-[6px] transition-colors cursor-pointer">
-                            Review
-                          </button>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="py-2 text-[#10242A] font-normal">[Owner name]</td>
-                        <td className="py-2 text-[#4A5961]">[Date]</td>
-                        <td className="py-2">
-                          <span className="bg-[#FDEBD0] text-[#7A3E00] text-[11px] font-semibold px-2.5 py-0.5 rounded-full">Pending</span>
-                        </td>
-                        <td className="py-2 text-right">
-                          <button onClick={() => navigate('/superadmin/kyc_verification')} className="border border-[#0E7C86] text-[#0E7C86] hover:bg-[#E6F4F5] text-[12px] font-semibold px-3 py-0.5 rounded-[6px] transition-colors cursor-pointer">
-                            Review
-                          </button>
-                        </td>
-                      </tr>
-                    </>
+                    <tr>
+                      <td colSpan={4} className="py-6 text-center text-[#4A5961] text-[13px]">
+                        No pending owners
+                      </td>
+                    </tr>
                   ) : (
                     pendingOwners.slice(0, 3).map((o, idx) => (
                       <tr key={idx}>

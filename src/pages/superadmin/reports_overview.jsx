@@ -40,45 +40,28 @@ export default function ReportsOverview() {
   }, []);
 
   const summary = data?.summary || {
-    totalProperties: 11,
-    totalTenants: 13,
-    occupancyRate: 38.2,
+    totalProperties: 0,
+    totalTenants: 0,
+    occupancyRate: 0,
     monthlyRevenue: 0,
-    netProfit: 14399.9,
+    netProfit: 0,
     growthRate: 0
   };
   const charts = data?.charts || {};
   
-  const activeRevenueData = charts.revenueOverviewData || [
-    { name: "Jan", val: 2.5 },
-    { name: "Feb", val: 3.8 },
-    { name: "Mar", val: 4.2 },
-    { name: "Apr", val: 5.1 },
-    { name: "May", val: 7.8 },
-    { name: "Jun", val: 9.4 },
-  ];
+  const activeRevenueData = charts.revenueOverviewData || [];
   const activeOccupancyData = charts.occupancyData || [
-    { name: "Occupied", value: 38.2, color: "#0E7C86", percent: "38.2%" },
-    { name: "Vacant", value: 61.8, color: "#E1E6EA", percent: "61.8%" }
+    { name: "Occupied", value: 0, color: "#0E7C86", percent: "0%" },
+    { name: "Vacant", value: 0, color: "#E1E6EA", percent: "0%" }
   ];
-  const activePropertyPerformance = charts.propertyPerformance || [
-    { name: "Sunrise Residency", loc: "Mumbai", occupancy: "88%", revenue: "₹1,84,499" },
-    { name: "Green Valley PG", loc: "Bangalore", occupancy: "76%", revenue: "₹1,34,000" },
-    { name: "Urban Nest", loc: "Pune", occupancy: "65%", revenue: "₹98,200" },
-    { name: "Lakeview Apartments", loc: "Hyderabad", occupancy: "82%", revenue: "₹1,56,000" },
-    { name: "Skyline PG", loc: "Delhi", occupancy: "54%", revenue: "₹72,000" },
-  ];
-  const activeLocationWiseData = charts.locationWiseData || [
-    { name: "Bangalore", value: "₹4.2L", count: "4 Properties" },
-    { name: "Mumbai", value: "₹3.8L", count: "3 Properties" },
-    { name: "Hyderabad", value: "₹2.5L", count: "2 Properties" },
-    { name: "Pune", value: "₹1.9L", count: "2 Properties" },
-  ];
-  const activeStaffPerformance = charts.staffPerformance || [
-    { name: "Amit Verma", role: "Area Manager", managed: 5, leads: 42, perf: "94%" },
-    { name: "Priya Nair", role: "Property Executive", managed: 3, leads: 28, perf: "88%" },
-    { name: "Rohit Patil", role: "Operations Lead", managed: 3, leads: 35, perf: "91%" },
-  ];
+  const activePropertyPerformance = charts.propertyPerformance || [];
+  const activeLocationWiseData = charts.locationWiseData || [];
+  const activeStaffPerformance = (charts.staffPerformance || []).map(s => ({
+    ...s,
+    managed: s.managed ?? s.resolved ?? 0,
+    leads: s.leads ?? s.tasks ?? 0,
+    perf: s.perf ?? s.score ?? "0%"
+  }));
 
   return (
     <div className="space-y-6 pb-8">
@@ -247,7 +230,7 @@ export default function ReportsOverview() {
                  <div className="bg-[#F4F6F8] rounded-[12px] p-4 border border-[#E1E6EA] flex flex-col items-center text-center">
                     <div className="w-8 h-8 rounded-[8px] bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center mb-2"><MapPin size={16} /></div>
                     <p className="text-[11px] font-semibold text-[#4A5961] leading-tight">
-                       Bangalore is top performing location.
+                       {activeLocationWiseData[0]?.name ? `${activeLocationWiseData[0].name} is top performing location.` : "No top location data yet."}
                     </p>
                  </div>
                  <div className="bg-[#F4F6F8] rounded-[12px] p-4 border border-[#E1E6EA] flex flex-col items-center text-center">

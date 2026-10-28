@@ -1,16 +1,23 @@
 import { fetchJson, getApiBase, getScopedAuthToken } from "./api";
-import { getFirstAllowedEmployeeRoute, hasEmployeePermission } from "./employeePermissions";
+import { getFirstAllowedEmployeeRoute, hasEmployeePermission, isStaffRole } from "./employeePermissions";
 
 export const ACCESS_UPDATED_EVENT = "roomhy-access-updated";
 
 export function readPanelUser() {
-  const keys = ["manager_user", "user", "staff_user"];
+  const isEmployeePath = typeof window !== "undefined" && window.location.pathname.startsWith("/employee");
+  const keys = isEmployeePath ? ["staff_user", "user", "manager_user"] : ["manager_user", "user", "staff_user"];
   for (const key of keys) {
     try {
       const raw = sessionStorage.getItem(key) || localStorage.getItem(key);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (parsed && (parsed.role || parsed.loginId)) return parsed;
+        if (parsed && (parsed.role || parsed.loginId)) {
+          const role = String(parsed.role || "").toLowerCase();
+          if (isEmployeePath && (role === "superadmin" || role === "admin")) {
+            continue;
+          }
+          return parsed;
+        }
       }
     } catch (_) { /* ignore */ }
   }
@@ -44,7 +51,7 @@ const sameAccess = (prev, next) => {
 export async function refreshEmployeeAccess() {
   const prev = readPanelUser();
   const role = String(prev?.role || "").toLowerCase();
-  if (!prev?.loginId || !["employee", "areamanager"].includes(role)) return null;
+  if (!prev?.loginId || !isStaffRole(role)) return null;
 
   const res = await fetchJson("/api/auth/me");
   const next = res?.user;
@@ -66,13 +73,13 @@ export async function refreshEmployeeAccess() {
 
 /**
  * Socket room is the employee loginId (see chatSocket join_room). Superadmin
- * role edits emit `staff_access_updated` into that room. A slow poll covers a
+ * role edits emit `staff_access_updated` into that room. A periodic poll covers a
  * missed socket.
  */
 export function subscribeEmployeeAccess(onChange) {
   const user = readPanelUser();
   const role = String(user?.role || "").toLowerCase();
-  if (!user?.loginId || !["employee", "areamanager"].includes(role)) return () => {};
+  if (!user?.loginId || !isStaffRole(role)) return () => {};
 
   let cancelled = false;
   let socket = null;
@@ -86,8 +93,6 @@ export function subscribeEmployeeAccess(onChange) {
 
   import("socket.io-client").then(({ io }) => {
     if (cancelled) return;
-    // The socket server rejects an unauthenticated handshake (socket/socketAuth.js), so without
-    // the token `staff_access_updated` never arrived and only the 20 s poll refreshed access.
     socket = io(getApiBase(), {
       transports: ["websocket", "polling"],
       reconnection: true,
@@ -108,7 +113,7 @@ export function subscribeEmployeeAccess(onChange) {
   document.addEventListener("visibilitychange", onVisible);
 
   pull();
-  const timer = setInterval(pull, 20000);
+  const timer = setInterval(pull, 10000);
   return () => {
     cancelled = true;
     clearInterval(timer);

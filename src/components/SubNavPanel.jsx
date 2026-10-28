@@ -5,17 +5,24 @@ import { toPanelPath, canCreateInModule, isCreateOnlyPath } from "../utils/emplo
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
 const readPanelUser = () => {
-  try {
-    return JSON.parse(
-      sessionStorage.getItem("manager_user") ||
-      sessionStorage.getItem("user") ||
-      localStorage.getItem("staff_user") ||
-      localStorage.getItem("user") ||
-      "{}"
-    );
-  } catch {
-    return {};
+  const isEmpPath = typeof window !== "undefined" && window.location.pathname.startsWith("/employee");
+  const keys = isEmpPath
+    ? ["staff_user", "user", "manager_user"]
+    : ["manager_user", "user", "staff_user"];
+  for (const k of keys) {
+    try {
+      const raw = sessionStorage.getItem(k) || localStorage.getItem(k);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && (parsed.role || parsed.loginId)) {
+          const role = String(parsed.role || "").toLowerCase();
+          if (isEmpPath && (role === "superadmin" || role === "admin")) continue;
+          return parsed;
+        }
+      }
+    } catch (_) {}
   }
+  return {};
 };
 
 const SUB_NAV_CONFIG = {

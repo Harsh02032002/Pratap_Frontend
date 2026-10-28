@@ -94,7 +94,7 @@ export default function AllReviews() {
 
   const counts = {
     total: reviews.length,
-    avg: reviews.length > 0 ? (reviews.reduce((a, r) => a + r.rating, 0) / reviews.length).toFixed(1) : "4.6",
+    avg: reviews.length > 0 ? (reviews.reduce((a, r) => a + r.rating, 0) / reviews.length).toFixed(1) : "0.0",
     verified: reviews.filter(r => r.isVerifiedStay).length,
     hidden: reviews.filter(r => r.status === "Hidden").length,
   };
@@ -147,10 +147,10 @@ export default function AllReviews() {
           {/* KPI Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { label: "Total Reviews", val: counts.total || "8,742", icon: BookOpen },
+              { label: "Total Reviews", val: counts.total, icon: BookOpen },
               { label: "Average Rating", val: `${counts.avg} ★`, icon: Star },
-              { label: "Verified Stay", val: counts.verified || "6,128", icon: ShieldCheck },
-              { label: "Hidden Reviews", val: counts.hidden || "42", icon: EyeOff },
+              { label: "Verified Stay", val: counts.verified, icon: ShieldCheck },
+              { label: "Hidden Reviews", val: counts.hidden, icon: EyeOff },
             ].map(c => (
               <div key={c.label} className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col justify-between">
                 <div>

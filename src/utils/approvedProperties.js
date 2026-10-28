@@ -48,9 +48,7 @@ const mergeByVisitId = (items = []) => {
 
 export const loadApprovedProperties = async ({ includeOffline = true } = {}) => {
   const base = getApiBase();
-  const endpoints = includeOffline
-    ? [`${base}/api/approved-properties/public/approved`, `${base}/api/approved-properties/all`]
-    : [`${base}/api/approved-properties/public/approved`];
+  const endpoints = [`${base}/api/approved-properties/all`];
 
   let fallbackList = [];
   for (let index = 0; index < endpoints.length; index += 1) {

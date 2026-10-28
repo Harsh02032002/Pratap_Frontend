@@ -14,6 +14,14 @@ import {
 import { fetchJson, getApiBase, getAuthHeader } from "../../utils/api";
 import { PageHeader } from "../../components/superadmin/PageHeader";
 const FALLBACK_STAFF_ROLES = ["Admin", "Manager", "Accountant", "Support Agent", "Field Agent"];
+const SHIFT_PRESETS = {
+  "General Shift": { startTime: "09:30 AM", endTime: "06:30 PM" },
+  "Morning Shift": { startTime: "08:00 AM", endTime: "05:00 PM" },
+  "Afternoon Shift": { startTime: "12:00 PM", endTime: "09:00 PM" },
+  "Evening Shift": { startTime: "02:00 PM", endTime: "11:00 PM" },
+  "Night Shift": { startTime: "09:00 PM", endTime: "06:00 AM" },
+};
+const ALL_WEEK_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
@@ -56,6 +64,10 @@ export default function Manager() {
   const [formLoginId, setFormLoginId] = useState("");
   const [formPassword, setFormPassword] = useState("");
   const [formPhoto, setFormPhoto] = useState("");
+  const [formShiftName, setFormShiftName] = useState("General Shift");
+  const [formShiftStart, setFormShiftStart] = useState("09:30 AM");
+  const [formShiftEnd, setFormShiftEnd] = useState("06:30 PM");
+  const [formShiftDays, setFormShiftDays] = useState(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]);
 
   // ── New scope state ───────────────────────────────────────────────────────
   const [assignedProperties, setAssignedProperties]   = useState([]);   // array of {_id, title}
@@ -203,6 +215,10 @@ export default function Manager() {
       setFormPhoto(emp.photoDataUrl || emp.photoUrl || "");
       setAssignedProperties(emp.assignedProperties || []);
       setAssignedOwners(emp.assignedOwners || []);
+      setFormShiftName(emp.shift?.shiftName || "General Shift");
+      setFormShiftStart(emp.shift?.startTime || "09:30 AM");
+      setFormShiftEnd(emp.shift?.endTime || "06:30 PM");
+      setFormShiftDays(Array.isArray(emp.shift?.days) && emp.shift.days.length ? emp.shift.days : ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]);
     } else {
       setEditingId(null);
       setParentLoginId(parentId);
@@ -215,6 +231,10 @@ export default function Manager() {
       setFormPhoto("");
       setAssignedProperties([]);
       setAssignedOwners([]);
+      setFormShiftName("General Shift");
+      setFormShiftStart("09:30 AM");
+      setFormShiftEnd("06:30 PM");
+      setFormShiftDays(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]);
       generateCreds("", "");
     }
     setShowModal(true);
@@ -243,6 +263,12 @@ export default function Manager() {
       parentLoginId:     parentLoginId || undefined,
       assignedProperties: assignedProperties.map(p => p._id || p),
       assignedOwners:     assignedOwners.map(o => o._id || o),
+      shift: {
+        shiftName: formShiftName || "General Shift",
+        startTime: formShiftStart || "09:30 AM",
+        endTime: formShiftEnd || "06:30 PM",
+        days: formShiftDays.length ? formShiftDays : ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+      },
     };
 
     try {
@@ -398,56 +424,11 @@ export default function Manager() {
                          <p className="text-[13px] font-medium text-[#4A5961]">Loading staff directory...</p>
                       </td></tr>
                     ) : filteredEmployees.length === 0 ? (
-                      [
-                        { name: "[Name]", role: "[Role]", phone: "[Phone]", email: "[Email]", active: false },
-                        { name: "[Name]", role: "[Role]", phone: "[Phone]", email: "[Email]", active: true },
-                        { name: "[Name]", role: "[Role]", phone: "[Phone]", email: "[Email]", active: true },
-                        { name: "[Name]", role: "[Role]", phone: "[Phone]", email: "[Email]", active: false },
-                        { name: "[Name]", role: "[Role]", phone: "[Phone]", email: "[Email]", active: true },
-                        { name: "[Name]", role: "[Role]", phone: "[Phone]", email: "[Email]", active: true },
-                        { name: "[Name]", role: "[Role]", phone: "[Phone]", email: "[Email]", active: false },
-                      ].map((item, idx) => (
-                        <tr key={idx} className="hover:bg-[#F9FAFB] transition-colors">
-                          <td className="py-3 text-left pl-2">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-full bg-[#D9E1E7] shrink-0" />
-                              <span className="text-[13px] font-medium text-[#10242A]">{item.name}</span>
-                            </div>
-                          </td>
-                          <td className="py-3 text-left text-[13px] text-[#4A5961]">{item.role}</td>
-                          <td className="py-3 text-left text-[13px] text-[#4A5961]">{item.phone}</td>
-                          <td className="py-3 text-left text-[13px] text-[#4A5961]">{item.email}</td>
-                          <td className="py-3 text-left">
-                            <span className={`inline-block px-3 py-1 rounded-full text-[12px] font-semibold ${
-                              item.active ? "bg-[#DDF3E4] text-[#14532D]" : "bg-[#FDE8E8] text-[#991B1B]"
-                            }`}>
-                              {item.active ? "Active" : "Inactive"}
-                            </span>
-                          </td>
-                          <td className="py-3 text-left pr-2">
-                            <div className="flex items-center gap-2">
-                              <button 
-                                onClick={() => openModal()} 
-                                className="bg-white border border-[#CBD3D9] hover:bg-gray-50 text-[#10242A] text-[12px] font-semibold px-3 py-1 rounded-[6px] transition-all shadow-xs cursor-pointer"
-                              >
-                                View
-                              </button>
-                              <button 
-                                onClick={() => openModal()} 
-                                className="bg-white border border-[#CBD3D9] hover:bg-gray-50 text-[#10242A] text-[12px] font-semibold px-3 py-1 rounded-[6px] transition-all shadow-xs cursor-pointer"
-                              >
-                                Edit
-                              </button>
-                              <button 
-                                onClick={() => {}} 
-                                className="bg-white border border-rose-200 hover:bg-rose-50 text-rose-600 text-[12px] font-semibold px-3 py-1 rounded-[6px] transition-all shadow-xs cursor-pointer"
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
+                      <tr>
+                        <td colSpan="6" className="py-10 text-center text-[13px] text-[#4A5961]">
+                          No staff members found
+                        </td>
+                      </tr>
                     ) : filteredEmployees.map((e, i) => {
                        const active = e.isActive !== false;
                        return (
@@ -589,10 +570,96 @@ export default function Manager() {
                     </div>
                  </section>
 
-                 {/* Section 2: Credentials */}
+                 {/* Section 2: Work Shift & Timing */}
                  <section>
                     <div className="flex items-center gap-4 mb-8">
-                       <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold shadow-lg shadow-indigo-200">2</div>
+                       <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-bold shadow-lg shadow-emerald-200">2</div>
+                       <div>
+                          <h4 className="text-lg font-bold text-slate-800 tracking-tight">Work Shift & Timing</h4>
+                          <p className="text-[11px] text-slate-400 font-medium">Assign employee shift timing and working days for check-in / check-out</p>
+                       </div>
+                    </div>
+
+                    <div className="bg-emerald-50/50 rounded-[2.5rem] p-8 border border-emerald-100 space-y-6">
+                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                          <div className="space-y-2">
+                             <label className="text-[10px] font-bold text-emerald-700 uppercase tracking-widest ml-1">Shift Type / Name</label>
+                             <select
+                               value={formShiftName}
+                               onChange={e => {
+                                 const val = e.target.value;
+                                 setFormShiftName(val);
+                                 if (SHIFT_PRESETS[val]) {
+                                   setFormShiftStart(SHIFT_PRESETS[val].startTime);
+                                   setFormShiftEnd(SHIFT_PRESETS[val].endTime);
+                                 }
+                               }}
+                               className="w-full bg-white border border-emerald-200 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 focus:ring-4 focus:ring-emerald-100 transition-all outline-none shadow-sm"
+                             >
+                                {Object.keys(SHIFT_PRESETS).map(s => (
+                                  <option key={s} value={s}>{s} ({SHIFT_PRESETS[s].startTime} - {SHIFT_PRESETS[s].endTime})</option>
+                                ))}
+                                {!SHIFT_PRESETS[formShiftName] && formShiftName && (
+                                  <option value={formShiftName}>{formShiftName}</option>
+                                )}
+                             </select>
+                          </div>
+
+                          <div className="space-y-2">
+                             <label className="text-[10px] font-bold text-emerald-700 uppercase tracking-widest ml-1">Shift Start Time</label>
+                             <input
+                               value={formShiftStart}
+                               onChange={e => setFormShiftStart(e.target.value)}
+                               placeholder="09:30 AM"
+                               className="w-full bg-white border border-emerald-200 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 focus:ring-4 focus:ring-emerald-100 transition-all outline-none shadow-sm"
+                             />
+                          </div>
+
+                          <div className="space-y-2">
+                             <label className="text-[10px] font-bold text-emerald-700 uppercase tracking-widest ml-1">Shift End Time</label>
+                             <input
+                               value={formShiftEnd}
+                               onChange={e => setFormShiftEnd(e.target.value)}
+                               placeholder="06:30 PM"
+                               className="w-full bg-white border border-emerald-200 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 focus:ring-4 focus:ring-emerald-100 transition-all outline-none shadow-sm"
+                             />
+                          </div>
+                       </div>
+
+                       <div className="space-y-2">
+                          <label className="text-[10px] font-bold text-emerald-700 uppercase tracking-widest ml-1">Working Days</label>
+                          <div className="flex flex-wrap gap-2 pt-1">
+                             {ALL_WEEK_DAYS.map(day => {
+                               const selected = formShiftDays.includes(day);
+                               return (
+                                 <button
+                                   key={day}
+                                   type="button"
+                                   onClick={() => {
+                                     setFormShiftDays(prev =>
+                                       prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
+                                     );
+                                   }}
+                                   className={cn(
+                                     "px-4 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer",
+                                     selected
+                                       ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
+                                       : "bg-white text-slate-500 border-slate-200 hover:border-emerald-300"
+                                   )}
+                                 >
+                                   {day.slice(0, 3)}
+                                 </button>
+                               );
+                             })}
+                          </div>
+                       </div>
+                    </div>
+                 </section>
+
+                 {/* Section 3: Credentials */}
+                 <section>
+                    <div className="flex items-center gap-4 mb-8">
+                       <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold shadow-lg shadow-indigo-200">3</div>
                        <h4 className="text-lg font-bold text-slate-800 tracking-tight">Login Credentials</h4>
                     </div>
                     

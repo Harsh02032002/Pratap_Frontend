@@ -38,14 +38,14 @@ export default function TopPerformingLocations() {
     try {
       setLoading(true);
       const res = await fetchJson("/api/superadmin/booking/locations");
-      if (res.success && res.locations && res.locations.length > 0) {
+      if (res && res.success && Array.isArray(res.locations)) {
         setLocations(res.locations);
       } else {
-        setLocations(STATIC_LOCATIONS);
+        setLocations([]);
       }
     } catch (err) {
       console.error("Failed to load location performance data:", err);
-      setLocations(STATIC_LOCATIONS);
+      setLocations([]);
     } finally {
       setLoading(false);
     }

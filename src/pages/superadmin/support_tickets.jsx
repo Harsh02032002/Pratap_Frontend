@@ -739,11 +739,13 @@ export default function VerificationCenter() {
 
             <div className="space-y-1.5 overflow-y-auto max-h-64 flex-1 pr-1">
               {(() => {
-                // Filter out non-verification / service staff roles
-                const NON_FIELD_ROLES = ['cook', 'cleaner', 'hostel staff', 'sweeper', 'housekeeping', 'driver', 'security', 'maintenance', 'peon', 'maid', 'warden'];
+                // Filter out non-verification / service staff roles and owner hostel staff
+                const NON_FIELD_ROLES = ['cook', 'cleaner', 'hostel staff', 'sweeper', 'housekeeping', 'driver', 'security', 'maintenance', 'peon', 'maid', 'warden', 'staff', 'helper', 'guard'];
                 const eligible = employees.filter(emp => {
+                  if (emp.parentLoginId) return false;
+                  if (emp.isActive === false || emp.isDeleted === true) return false;
                   const r = (emp.role || '').toLowerCase();
-                  return !NON_FIELD_ROLES.some(nfr => r.includes(nfr));
+                  return !NON_FIELD_ROLES.some(nfr => r === nfr || r.includes(nfr));
                 });
 
                 // Sort local city employees to top

@@ -23,7 +23,12 @@ const PANEL_ROUTE_PREFIXES = [
   "/manager",
   "/tenant",
   "/admin",
-  "/digital-checkin"
+  "/digital-checkin",
+  "/visit",
+  "/visits",
+  "/areaadmin",
+  "/attendance",
+  "/dashboard"
 ];
 
 const currentPath = () => {
@@ -52,6 +57,16 @@ const read = (key) => {
   }
 };
 
+const readPanelToken = () => {
+  return (
+    read("token") ||
+    read("staff_token") ||
+    read("managerToken") ||
+    read("accessToken") ||
+    read("adminToken")
+  );
+};
+
 // Sessions the website/tenant/owner logins used to fabricate client-side when
 // the real login AND the temp-password retry both failed ("demo_token_...",
 // "tenant_token_...", "owner_token_..." followed by Date.now()). None of these
@@ -64,12 +79,27 @@ const isFabricatedToken = (token) => /^(demo|tenant|owner)_token_\d+$/i.test(Str
 
 // The JWT that is valid for the current route, or null.
 export const getScopedAuthToken = (pathname = currentPath()) => {
-  const token = isWebsiteRoute(pathname)
-    ? // Website: its own token only — never the panel `token`.
-      read("website_token") || read("accessToken")
-    : // Panels: sessionStorage first so an owner (tab A) and their staff (tab B)
-      // can stay signed in at the same time in one browser.
-      read("token") || read("accessToken");
+  let token = null;
+
+  if (isPanelRoute(pathname)) {
+    token = readPanelToken();
+  } else {
+    // Website route
+    token = read("website_token") || read("accessToken");
+    // Fallback: If no website token exists, but an employee/staff/panel user is signed in,
+    // allow using the panel token so administrative actions don't get 401 unauthenticated errors.
+    if (!token) {
+      const stored = read("staff_user") || read("user");
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          if (parsed && (parsed.loginId || parsed.role)) {
+            token = readPanelToken();
+          }
+        } catch (_) {}
+      }
+    }
+  }
 
   if (!token || isFabricatedToken(token)) return null;
   return token;
@@ -80,7 +110,7 @@ export const getScopedAuthToken = (pathname = currentPath()) => {
 export const hasFabricatedSession = (pathname = currentPath()) => {
   const raw = isWebsiteRoute(pathname)
     ? read("website_token") || read("accessToken")
-    : read("token") || read("accessToken");
+    : readPanelToken();
   return isFabricatedToken(raw);
 };
 

@@ -1,30 +1,49 @@
+import React, { useState, useEffect } from "react";
 import { PageHeader } from "../../components/dashboard/PageHeader";
 import { StatCard } from "../../components/dashboard/StatCard";
 import { DataTable, TableToolbar, StatusBadge } from "../../components/dashboard/DataTable";
-import { RotateCcw, Clock, CheckCircle2, XCircle, Plus, Eye } from "lucide-react";
-
-const refunds = [
-  { id: "RF-485", txn: "TXN-125482", customer: "Karan Mehta", reason: "Cancelled subscription", amount: "₹8,999", date: "24 May 2025", status: "Refunded" },
-  { id: "RF-484", txn: "TXN-125470", customer: "Anjali Roy", reason: "Duplicate payment", amount: "₹2,500", date: "23 May 2025", status: "Refunded" },
-  { id: "RF-483", txn: "TXN-125465", customer: "Rajesh Verma", reason: "Service not delivered", amount: "₹15,000", date: "22 May 2025", status: "Processing" },
-  { id: "RF-482", txn: "TXN-125455", customer: "Pooja Gupta", reason: "Billing error", amount: "₹999", date: "22 May 2025", status: "Pending" },
-  { id: "RF-481", txn: "TXN-125440", customer: "Suresh Kumar", reason: "Customer request", amount: "₹4,500", date: "21 May 2025", status: "Rejected" },
-  { id: "RF-480", txn: "TXN-125425", customer: "Meera Iyer", reason: "Cancelled booking", amount: "₹7,999", date: "20 May 2025", status: "Refunded" },
-];
+import { RotateCcw, Clock, CheckCircle2, XCircle, Eye } from "lucide-react";
+import { fetchJson } from "../../utils/api";
 
 export default function Refunds() {
+  const [refunds, setRefunds] = useState([]);
+
+  useEffect(() => {
+    fetchJson("/api/bookings/refund-requests")
+      .then((res) => {
+        const list = res?.data || res?.refundRequests || (Array.isArray(res) ? res : []);
+        setRefunds(
+          list.map((r, i) => ({
+            id: r._id ? `RF-${String(r._id).slice(-4).toUpperCase()}` : `RF-${i + 1}`,
+            txn: r.refund_transaction_id || r.payment_id || "N/A",
+            customer: r.user_name || "Guest",
+            reason: r.other_details || r.request_type || "Refund",
+            amount: `₹${Number(r.refund_amount || 0).toLocaleString("en-IN")}`,
+            rawAmount: Number(r.refund_amount || 0),
+            date: r.created_at ? new Date(r.created_at).toLocaleDateString("en-IN") : "N/A",
+            status: r.refund_status ? r.refund_status.charAt(0).toUpperCase() + r.refund_status.slice(1) : "Pending",
+          }))
+        );
+      })
+      .catch((err) => console.error("Failed to load refunds:", err));
+  }, []);
+
+  const totalAmount = refunds.reduce((s, r) => s + (r.rawAmount || 0), 0);
+  const processedCount = refunds.filter((r) => ["Processed", "Refunded", "Approved"].includes(r.status)).length;
+  const pendingCount = refunds.filter((r) => r.status === "Pending").length;
+  const rejectedCount = refunds.filter((r) => r.status === "Rejected").length;
+
   return (
     <div className="p-4 md:p-8 space-y-6">
       <PageHeader
         title="Refunds"
         subtitle="Process and track refund requests."
-        actions={<button className="h-11 px-5 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center gap-2 hover:opacity-90"><Plus className="h-4 w-4" /> Add Refund</button>}
       />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
-        <StatCard label="Total Refunds" value="₹45,250" delta="-3.2%" trend="down" icon={RotateCcw} iconColor="red" />
-        <StatCard label="Processed" value="42" delta="This month" icon={CheckCircle2} iconColor="green" />
-        <StatCard label="Pending" value="6" delta="₹12,400" icon={Clock} iconColor="yellow" />
-        <StatCard label="Rejected" value="3" delta="-1 vs last" trend="down" icon={XCircle} iconColor="purple" />
+        <StatCard label="Total Refunds" value={`₹${totalAmount.toLocaleString("en-IN")}`} delta="Scoped total" trend="down" icon={RotateCcw} iconColor="red" />
+        <StatCard label="Processed" value={String(processedCount)} delta="Completed" icon={CheckCircle2} iconColor="green" />
+        <StatCard label="Pending" value={String(pendingCount)} delta="Awaiting review" icon={Clock} iconColor="yellow" />
+        <StatCard label="Rejected" value={String(rejectedCount)} delta="Declined" trend="down" icon={XCircle} iconColor="purple" />
       </div>
 
       <div className="panel">

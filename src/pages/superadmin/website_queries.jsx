@@ -81,10 +81,10 @@ export default function WebsiteQueries() {
 
   const stats = useMemo(() => {
     return {
-      total: tickets.length || 42,
-      open: tickets.filter(t => t.status === "Open").length || 12,
-      inProgress: tickets.filter(t => t.status === "In Progress").length || 18,
-      resolved: tickets.filter(t => t.status === "Resolved" || t.status === "Closed").length || 12
+      total: tickets.length,
+      open: tickets.filter(t => t.status === "Open").length,
+      inProgress: tickets.filter(t => t.status === "In Progress").length,
+      resolved: tickets.filter(t => t.status === "Resolved" || t.status === "Closed").length
     };
   }, [tickets]);
 

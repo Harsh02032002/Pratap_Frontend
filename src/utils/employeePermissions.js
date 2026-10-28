@@ -1,5 +1,14 @@
 import { RESTRICTED_KEYS } from './permissionKeys';
 
+export const isStaffRole = (role) => {
+  const r = String(role || "").toLowerCase().replace(/[\s_-]+/g, "");
+  if (!r) return false;
+  if (r === "superadmin" || r === "admin" || r === "owner" || r === "propertyowner" || r === "tenant" || r === "websiteuser") {
+    return false;
+  }
+  return true;
+};
+
 const KNOWN_MODULES = new Set([
   "dashboard",
   "home",
@@ -20,7 +29,7 @@ export const getPermissionForPath = (path) => {
   if (KNOWN_MODULES.has(path)) return path;
 
   const cleanPath = String(path || "").split("?")[0].toLowerCase().replace(/^\/employee\//, "/superadmin/");
-  if (cleanPath === "/superadmin/superadmin" || cleanPath === "/superadmin/areaadmin") return "dashboard";
+  if (cleanPath === "/superadmin/superadmin" || cleanPath === "/superadmin/areaadmin" || cleanPath === "/superadmin/dashboard") return "dashboard";
 
   if (cleanPath.startsWith("/superadmin/home-overview") || 
       cleanPath.startsWith("/superadmin/home/revenue-overview")) return "home";
@@ -126,9 +135,18 @@ export const getModuleActionPermissions = (userObj, moduleOrPath) => {
   const moduleKey = getPermissionForPath(moduleOrPath);
   if (!moduleKey) return fullAccess;
 
+  // The Employee Overview / Dashboard / Attendance (check-in/check-out) is always fully usable
+  if (moduleKey === "dashboard" || moduleOrPath === "dashboard") {
+    return { view: true, create: true, edit: true, delete: false };
+  }
+
   const effectiveKey = moduleKey === "home" && userObj?.actions && !userObj.actions.home
     ? "dashboard"
     : moduleKey;
+
+  if (effectiveKey === "dashboard") {
+    return { view: true, create: true, edit: true, delete: false };
+  }
 
   if (userObj?.actions && typeof userObj.actions === "object") {
     const row = userObj.actions[effectiveKey] || userObj.actions[moduleKey];
@@ -228,6 +246,19 @@ export const hasEmployeePermission = (userObj, path) => {
   // grants it, and the "no permissions listed = allow" fallbacks below must not either.
   if (isSuperadminOnlyPath(path)) return false;
 
+  const cleanPath = (path || "").replace(/^\/employee\//, "/superadmin/");
+
+  // Employee dashboard / Overview / Areaadmin / Attendance is where employees punch in / punch out.
+  // Must ALWAYS be allowed without needing any permission keys!
+  if (
+    cleanPath === "/superadmin/superadmin" ||
+    cleanPath === "/superadmin/areaadmin" ||
+    cleanPath === "/superadmin/dashboard" ||
+    cleanPath.startsWith("/superadmin/attendance")
+  ) {
+    return true;
+  }
+
   const perms = readEmployeePermissionKeys(userObj);
   if (!perms) return true;
 
@@ -235,7 +266,6 @@ export const hasEmployeePermission = (userObj, path) => {
   // which is what made every module appear and then bounce the employee back.
   if (perms.length === 0) return userObj.permissionSource !== "role";
 
-  const cleanPath = (path || "").replace(/^\/employee\//, "/superadmin/");
   if (cleanPath.startsWith("/superadmin/rentcollection")) {
     return perms.includes("accounting") || perms.includes("home") || perms.includes("user_management");
   }
@@ -256,7 +286,7 @@ export const getFirstAllowedEmployeeRoute = (userObj) => {
   let perms = readEmployeePermissionKeys(userObj) || [];
 
   const permToRoute = {
-    dashboard: "/employee/superadmin",
+    dashboard: "/employee/areaadmin",
     home: "/employee/home-overview",
     user_management: "/employee/user-overview",
     property_management: "/employee/property-overview",
@@ -273,7 +303,7 @@ export const getFirstAllowedEmployeeRoute = (userObj) => {
   for (const perm of perms) {
     if (permToRoute[perm]) return permToRoute[perm];
   }
-  return "/employee/superadmin";
+  return "/employee/areaadmin";
 };
 
 /**

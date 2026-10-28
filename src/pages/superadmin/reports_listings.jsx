@@ -1,32 +1,58 @@
-import React from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { 
-  Building2, Users, Shield, Clock, Search, 
-  ArrowUpRight, ArrowDownRight, MoreVertical, 
-  Filter, Globe, MapPin, Zap, Sheet, Trash2, 
-  ChevronRight, Phone, Mail, User, Image as ImageIcon,
-  Activity, Home, CheckCircle2, XCircle, Wallet,
-  ArrowUpCircle, ArrowDownCircle, RotateCcw, Plus,
-  Download, Eye, Edit, Flag, LayoutGrid
+  Building2, Search, ArrowUpRight, ArrowDownRight, MoreVertical, 
+  MapPin, ChevronRight, Home, CheckCircle2, Download, Eye, Edit, Flag, Trash2
 } from "lucide-react";
-import { PageHeader } from "../../components/dashboard/PageHeader";
-import { DateRangePill } from "../../components/dashboard/DateRangePill";
+import { fetchJson } from "../../utils/api";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
-
-const allListings = [
-  { id: "L-2548", title: "Green Villa Residency", type: "Villa", owner: "Rahul Sharma", loc: "Bangalore", price: "₹ 25,000", status: "Active", views: 1245, date: "20 May 2024", color: "blue" },
-  { id: "L-2547", title: "Silver Heights PG", type: "PG", owner: "Priya Verma", loc: "Pune", price: "₹ 8,500", status: "Pending", views: 432, date: "20 May 2024", color: "amber" },
-  { id: "L-2546", title: "Blue Bells Apartment", type: "Apartment", owner: "Amit Kumar", loc: "Hyderabad", price: "₹ 18,000", status: "Active", views: 876, date: "19 May 2024", color: "indigo" },
-  { id: "L-2545", title: "Sunset Co-Living", type: "Co-Living", owner: "Neha Singh", loc: "Bangalore", price: "₹ 12,000", status: "Active", views: 1530, date: "19 May 2024", color: "emerald" },
-  { id: "L-2544", title: "Maple House", type: "House", owner: "Vikram Patel", loc: "Chennai", price: "₹ 30,000", status: "Flagged", views: 198, date: "18 May 2024", color: "rose" },
-  { id: "L-2543", title: "Royal Apartments", type: "Apartment", owner: "Sneha Iyer", loc: "Delhi", price: "₹ 22,000", status: "Active", views: 945, date: "17 May 2024", color: "purple" },
-  { id: "L-2542", title: "Pearl Residency", type: "PG", owner: "Karan Mehta", loc: "Mumbai", price: "₹ 9,500", status: "Inactive", views: 234, date: "16 May 2024", color: "slate" },
-];
+const COLORS = ["blue", "amber", "indigo", "emerald", "rose", "purple", "slate"];
 
 export default function ReportsListings() {
+  const [properties, setProperties] = useState([]);
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    fetchJson("/api/properties")
+      .then((res) => {
+        const list = res?.properties || res?.data || (Array.isArray(res) ? res : []);
+        setProperties(list);
+      })
+      .catch((err) => console.error("Failed to load listings:", err));
+  }, []);
+
+  const allListings = useMemo(() => {
+    return properties
+      .filter((p) => {
+        if (!search.trim()) return true;
+        const q = search.toLowerCase();
+        return (
+          String(p.title || "").toLowerCase().includes(q) ||
+          String(p.city || "").toLowerCase().includes(q) ||
+          String(p.ownerName || "").toLowerCase().includes(q)
+        );
+      })
+      .map((p, idx) => ({
+        id: p.propertyId || p.visitId || `L-${String(p._id || idx).slice(-4).toUpperCase()}`,
+        title: p.title || p.propertyName || "Property",
+        type: p.propertyType || "PG",
+        owner: p.ownerName || p.ownerLoginId || "Owner",
+        loc: p.city || p.area || "—",
+        price: `₹ ${Number(p.monthlyRent || p.price || 0).toLocaleString("en-IN")}`,
+        status: p.isPublished || p.status === "published" || p.status === "active" ? "Active" : (p.status || "Pending"),
+        views: p.views || 0,
+        date: p.createdAt ? new Date(p.createdAt).toLocaleDateString("en-IN") : "—",
+        color: COLORS[idx % COLORS.length],
+      }));
+  }, [properties, search]);
+
+  const totalCount = properties.length;
+  const activeCount = properties.filter((p) => p.isPublished || p.status === "published" || p.status === "active").length;
+  const totalViews = properties.reduce((acc, p) => acc + (Number(p.views) || 0), 0);
+  const flaggedCount = properties.filter((p) => p.status === "flagged" || p.status === "rejected").length;
+
   return (
     <div className="p-8 space-y-10 bg-[#F8FAFC] min-h-full">
-      {/* Header Area */}
       <div className="flex flex-col gap-2">
          <h1 className="text-4xl font-bold text-slate-800 tracking-tight leading-none">Inventory Intelligence Hub</h1>
          <div className="flex items-center gap-3 text-[10px] font-bold text-slate-400 uppercase mt-2">
@@ -36,24 +62,22 @@ export default function ReportsListings() {
          </div>
       </div>
 
-      <p className="text-sm font-bold text-slate-400">Detailed performance audit of global property listings, market reach and engagement velocity.</p>
+      <p className="text-sm font-bold text-slate-400">Detailed performance audit of property listings, market reach and engagement velocity.</p>
 
-      {/* Hero Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        <StatCardLarge label="Total Inventory" value="2,548" trend="+ 156 this month" up icon={Home} color="blue" />
-        <StatCardLarge label="Active Listings" value="2,102" trend="82.6% Health" up icon={CheckCircle2} color="green" />
-        <StatCardLarge label="Global Reach" value="128.5k" trend="+ 12.4% Views" up icon={Eye} color="indigo" />
-        <StatCardLarge label="Flagged Assets" value="07" trend="Requires Audit" up={false} icon={Flag} color="red" />
+        <StatCardLarge label="Total Inventory" value={String(totalCount)} trend="Scoped Inventory" up icon={Home} color="blue" />
+        <StatCardLarge label="Active Listings" value={String(activeCount)} trend={totalCount > 0 ? `${Math.round((activeCount / totalCount) * 100)}% Health` : "0% Health"} up icon={CheckCircle2} color="green" />
+        <StatCardLarge label="Global Reach" value={String(totalViews)} trend="Total Views" up icon={Eye} color="indigo" />
+        <StatCardLarge label="Flagged Assets" value={String(flaggedCount)} trend="Audit Queue" up={false} icon={Flag} color="red" />
       </div>
 
-      {/* Main Table Card */}
       <div className="bg-white rounded-[2.5rem] p-10 border border-slate-100 shadow-xl shadow-slate-200/50 overflow-hidden">
          <div className="flex items-center justify-between mb-10">
             <h3 className="text-2xl font-bold text-slate-800 tracking-tight">Property Ledger</h3>
             <div className="flex items-center gap-4">
                <div className="relative group">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-                  <input placeholder="Search properties..." className="bg-slate-50 border-none rounded-2xl py-3 pl-11 pr-4 text-xs font-bold shadow-sm w-64 outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all" />
+                  <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search properties..." className="bg-slate-50 border-none rounded-2xl py-3 pl-11 pr-4 text-xs font-bold shadow-sm w-64 outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all" />
                </div>
                <button className="flex items-center gap-2 bg-emerald-50 text-emerald-600 px-6 py-3 rounded-2xl text-[10px] font-bold uppercase hover:bg-emerald-600 hover:text-white transition-all shadow-sm">
                   <Download className="w-4 h-4" /> Export Ledger
@@ -75,7 +99,11 @@ export default function ReportsListings() {
                   </tr>
                </thead>
                <tbody className="divide-y divide-slate-50">
-                  {allListings.map((l, i) => (
+                  {allListings.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-12 text-center text-xs font-bold text-slate-400 uppercase">No listings found</td>
+                    </tr>
+                  ) : allListings.map((l, i) => (
                     <tr key={i} className="group hover:bg-slate-50/50 transition-colors cursor-pointer">
                        <td className="py-6">
                           <span className="text-xs font-mono bg-slate-50 text-slate-400 px-3 py-1.5 rounded-xl border border-slate-100 font-bold group-hover:bg-white group-hover:text-blue-600 group-hover:shadow-md transition-all">
@@ -154,8 +182,8 @@ export default function ReportsListings() {
 function StatCardLarge({ label, value, trend, up, icon: Icon, color }) {
   const bgColors = { 
     blue: "bg-blue-600 shadow-blue-200", 
-    green: "bg-emerald-600 shadow-emerald-200", 
     indigo: "bg-indigo-600 shadow-indigo-200", 
+    green: "bg-emerald-600 shadow-emerald-200", 
     red: "bg-rose-600 shadow-rose-200" 
   };
   

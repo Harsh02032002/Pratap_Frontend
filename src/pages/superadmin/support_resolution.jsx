@@ -59,24 +59,18 @@ export default function IssuesResolutionTracking() {
     loadData();
   }, []);
 
-  const counts = data?.counts || { total: 1248, resolved: 1086, pending: 162, escalated: 18 };
-  const resRate = data?.resRate || "87";
-  const avgTime = data?.avgTime || "2.4 Days";
-  const resolutionTrend = data?.resolutionTrend || [
-    { name: "May 22", raised: 15, resolved: 12 },
-    { name: "May 23", raised: 28, resolved: 18 },
-    { name: "May 24", raised: 21, resolved: 20 },
-    { name: "May 25", raised: 32, resolved: 24 },
-    { name: "May 26", raised: 25, resolved: 22 },
-    { name: "May 27", raised: 38, resolved: 31 },
-    { name: "May 28", raised: 34, resolved: 29 },
-  ];
-  const categoryData = data?.categoryData || [
-    { name: "Maintenance", count: 512, color: "#0E7C86" },
-    { name: "Billing", count: 226, color: "#10B981" },
-    { name: "Property", count: 184, color: "#F59E0B" },
-    { name: "Amenities", count: 158, color: "#6366F1" },
-  ];
+  const counts = data?.counts || { total: 0, resolved: 0, pending: 0, escalated: 0 };
+  const resRate = String(data?.resRate ?? "0").replace(/%/g, "");
+  const avgTime = data?.avgTime && data.avgTime !== "No Data Available" ? data.avgTime : "0 Days";
+  const resolutionTrend = (data?.resolutionTrend || []).map(t => ({
+    ...t,
+    raised: t.raised ?? t.opened ?? 0,
+    resolved: t.resolved ?? 0
+  }));
+  const categoryData = (data?.categoryData || []).map(c => ({
+    ...c,
+    count: c.count ?? c.value ?? 0
+  }));
   const issues = data?.issues || [];
 
   const tenantComplaints = useMemo(() => {

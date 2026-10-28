@@ -5,8 +5,9 @@ import { LogIn, LogOut, Clock, CalendarOff } from "lucide-react";
 import { useMyAttendance, useCheckIn, useCheckOut } from "../hooks/useAttendance";
 import { getMyLeaves, createLeave, getMyShift } from "../api/attendance";
 import { queryKeys } from "../lib/queryKeys";
+import { isStaffRole } from "../utils/employeePermissions";
 
-const EMPLOYEE_ROLES = ["employee", "manager"];
+const EMPLOYEE_ROLES = ["employee", "manager", "areamanager", "staff"];
 
 const pad = (n) => String(n).padStart(2, "0");
 const todayStr = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
@@ -36,7 +37,7 @@ const isSameLocalDay = (a, b) =>
 export default function EmployeeAttendanceWidget({ user }) {
   const role = String(user?.role || "").toLowerCase();
   const loginId = user?.loginId || "";
-  const isEmployee = EMPLOYEE_ROLES.includes(role) && !!loginId;
+  const isEmployee = (EMPLOYEE_ROLES.includes(role) || isStaffRole(role)) && !!loginId;
 
   const now = new Date();
   const month = now.getMonth() + 1;

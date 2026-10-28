@@ -29,6 +29,19 @@ export default function SuperadminDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const storedUser = JSON.parse(
+      sessionStorage.getItem('manager_user') || 
+      sessionStorage.getItem('user') || 
+      localStorage.getItem('manager_user') || 
+      localStorage.getItem('user') || 
+      'null'
+    );
+    const role = String(storedUser?.role || "").toLowerCase().trim();
+    if (role && role !== 'superadmin' && role !== 'admin') {
+      navigate('/employee/areaadmin', { replace: true });
+      return;
+    }
+
     (async () => {
       setLoading(true);
       try {
@@ -75,19 +88,15 @@ export default function SuperadminDashboard() {
 
   // Pending Actions Counts
   const propertyApprovals = stats?.stats?.pendingProperties ?? propData?.summary?.pending ?? 0;
-  const openSupportTickets = stats?.stats?.openTickets ?? 2;
-  const reviewsToModerate = stats?.stats?.pendingReviews ?? 1;
-  const visitReportsToCheck = stats?.stats?.pendingVisits ?? 3;
+  const openSupportTickets = stats?.stats?.openTickets ?? 0;
+  const reviewsToModerate = stats?.stats?.pendingReviews ?? 0;
+  const visitReportsToCheck = stats?.stats?.pendingVisits ?? 0;
 
   // Recent Bookings (Strictly 3 items to fit on 1 screen)
   const recentBookings = (() => {
     const raw = bookingData?.recentLeads || bookingData?.recentBookings || [];
     if (raw.length === 0) {
-      return [
-        { id: 1, guest: "[Guest name]", property: "[Property name]", date: "[Date]", status: "Confirmed" },
-        { id: 2, guest: "[Guest name]", property: "[Property name]", date: "[Date]", status: "Pending" },
-        { id: 3, guest: "[Guest name]", property: "[Property name]", date: "[Date]", status: "Confirmed" },
-      ];
+      return [];
     }
     return raw.slice(0, 3).map((b, i) => ({
       id: b._id || i,

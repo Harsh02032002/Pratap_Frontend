@@ -10,7 +10,8 @@ import { OwnerPanelShell } from "./components/propertyowner/OwnerPanelErrorBound
 import TenantProtectedRoute from "./pages/tenant/TenantProtectedRoute";
 import { getStaffSession, setStaffSession, clearStaffSession, canAccessOwnerPathAsStaff, STAFF_HOME_PATH, UNIFIED_LOGIN_PATH } from "./utils/staffAccess";
 import { fetchJson } from "./utils/api";
-import { hasEmployeePermission, getFirstAllowedEmployeeRoute } from "./utils/employeePermissions";
+import { hasEmployeePermission, getFirstAllowedEmployeeRoute, isStaffRole } from "./utils/employeePermissions";
+import { getScopedAuthToken } from "./utils/authScope";
 import { redirectIfAccessRevoked, subscribeEmployeeAccess } from "./utils/employeeAccessSync";
 import { Toaster, toast } from "react-hot-toast";
 import InstallPWA from "./components/InstallPWA";
@@ -107,7 +108,7 @@ const resolveHostHome = () => {
         !!localStorage.getItem("managerData");
       if (hasManagerSession) return "/propertyowner/admin";
     }
-    if (role === "areamanager" || role === "employee") return "/employee/areaadmin";
+    if (role === "areamanager" || role === "employee" || isStaffRole(role)) return "/employee/areaadmin";
     return "/superadmin/index";
   }
   if (metaTarget === "propertyowner" || host === "app.roomhy.com" || host === "www.app.roomhy.com") {
@@ -187,7 +188,7 @@ const RouteRoleGuard = () => {
     if (!isAdminRoute && !isEmployeeRoute) return;
 
     // Must have a valid auth token; stale user objects without a token cause 401 on every API call
-    const token = sessionStorage.getItem("token") || localStorage.getItem("token") || sessionStorage.getItem("accessToken") || localStorage.getItem("accessToken");
+    const token = getScopedAuthToken(path) || sessionStorage.getItem("token") || localStorage.getItem("token") || sessionStorage.getItem("staff_token") || localStorage.getItem("staff_token") || sessionStorage.getItem("managerToken") || localStorage.getItem("managerToken") || sessionStorage.getItem("accessToken") || localStorage.getItem("accessToken");
     if (!token) {
       try {
         localStorage.removeItem("user");
@@ -223,7 +224,9 @@ const RouteRoleGuard = () => {
       return;
     }
 
-    if (role === 'areamanager' || role === 'employee' || role === 'manager') {
+    const isStaff = role === 'areamanager' || role === 'employee' || role === 'manager' || isStaffRole(role);
+
+    if (isStaff) {
       if (isAdminRoute) {
         // Redirect /superadmin/* → /employee/* without a full-page reload.
         const empPath = path.replace('/superadmin/', '/employee/');
@@ -246,7 +249,7 @@ const RouteRoleGuard = () => {
       return;
     }
 
-    if (isEmployeeRoute && role !== 'areamanager' && role !== 'employee' && role !== 'manager' && role !== 'superadmin' && role !== 'admin') {
+    if (isEmployeeRoute && !isStaff && role !== 'superadmin' && role !== 'admin') {
       navigate('/superadmin/index', { replace: true });
     }
   }, [location.pathname, authUser, loading]);

@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { LogoutDialog } from "./superadmin/LogoutDialog";
-import { readEmployeePermissionKeys, toPanelPath } from "../utils/employeePermissions";
+import { readEmployeePermissionKeys, toPanelPath, isStaffRole } from "../utils/employeePermissions";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
@@ -26,17 +26,24 @@ const MAIN_NAV = [
 ];
 
 const readPanelUser = () => {
-  try {
-    return JSON.parse(
-      sessionStorage.getItem("manager_user") ||
-      sessionStorage.getItem("user") ||
-      localStorage.getItem("staff_user") ||
-      localStorage.getItem("user") ||
-      "{}"
-    );
-  } catch {
-    return {};
+  const isEmpPath = typeof window !== "undefined" && window.location.pathname.startsWith("/employee");
+  const keys = isEmpPath 
+    ? ["staff_user", "user", "manager_user"] 
+    : ["manager_user", "user", "staff_user"];
+  for (const k of keys) {
+    try {
+      const raw = sessionStorage.getItem(k) || localStorage.getItem(k);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && (parsed.role || parsed.loginId)) {
+          const role = String(parsed.role || "").toLowerCase();
+          if (isEmpPath && (role === "superadmin" || role === "admin")) continue;
+          return parsed;
+        }
+      }
+    } catch (_) {}
   }
+  return {};
 };
 
 export function Sidebar({ open, isMobile, onClose, onLogout, activeModuleId, setActiveModuleId }) {
@@ -62,11 +69,17 @@ export function Sidebar({ open, isMobile, onClose, onLogout, activeModuleId, set
   };
 
   const authRole = String(panelUser?.role || "").toLowerCase();
-  const isStaffPanel = authRole === "employee" || authRole === "areamanager";
+  const isStaffPanel = isStaffRole(authRole);
   const permissionKeys = isStaffPanel ? readEmployeePermissionKeys(panelUser) : null;
+  const DEFAULT_STAFF_MODULES = ["dashboard", "visits", "property_management", "booking_leads"];
   const visibleNav = MAIN_NAV.filter((item) => {
-    if (!isStaffPanel || !permissionKeys) return true;
-    if (permissionKeys.length === 0) return panelUser?.permissionSource === "role" ? item.id === "dashboard" : true;
+    // Overview (check-in/check-out dashboard) is ALWAYS visible for every employee
+    if (item.id === "dashboard") return true;
+    if (!isStaffPanel) return true;
+    // Fallback if permissions array is missing or empty so employee sidebar never goes blank
+    if (!permissionKeys || permissionKeys.length === 0) {
+      return DEFAULT_STAFF_MODULES.includes(item.id);
+    }
     if (item.id === "visits") {
       return panelUser?.permissionSource === "role" ? permissionKeys.includes("visits") : true;
     }
@@ -178,7 +191,12 @@ export function Sidebar({ open, isMobile, onClose, onLogout, activeModuleId, set
                 <div
                   onClick={() => {
                     if (setActiveModuleId) setActiveModuleId(item.id);
-                    if (item.path) navigate(toPanelPath(item.path, location.pathname));
+                    if (item.path) {
+                      const dest = item.id === "dashboard"
+                        ? (isStaffPanel ? "/employee/areaadmin" : "/superadmin/superadmin")
+                        : toPanelPath(item.path, location.pathname);
+                      navigate(dest);
+                    }
                     if (isMobile && onClose) onClose();
                   }}
                   className={cn(

@@ -1,39 +1,44 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { 
-  Building2, Users, Shield, Clock, Search, 
-  ArrowUpRight, ArrowDownRight, MoreVertical, 
-  Filter, Globe, MapPin, Zap, Sheet, Trash2, 
-  ChevronRight, Phone, Mail, User, Image as ImageIcon,
-  Activity, Home, CheckCircle2, XCircle, Wallet,
-  ArrowUpCircle, ArrowDownCircle, RotateCcw, Plus,
-  Download, Eye, Send, FileText, Receipt, LayoutGrid,
-  TrendingUp, Calendar, UserPlus, UserCheck, BarChart3
+  Users, ArrowUpRight, ArrowDownRight, Globe, ChevronRight, 
+  Activity, TrendingUp, UserPlus, UserCheck
 } from "lucide-react";
-import { PageHeader } from "../../components/dashboard/PageHeader";
-import { DateRangePill } from "../../components/dashboard/DateRangePill";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend
+  PieChart, Pie, Cell
 } from "recharts";
+import { fetchJson } from "../../utils/api";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
-const growthData = Array.from({ length: 7 }, (_, i) => ({
-  name: `${20 + i} May`,
-  newUsers: 450 + i * 120,
-  activeUsers: 12000 + i * 800,
-}));
-
-const userTypes = [
-  { name: "Tenants", value: 65, color: "#3B82F6", percent: "65%" },
-  { name: "Owners", value: 25, color: "#10B981", percent: "25%" },
-  { name: "Agents", value: 10, color: "#6366F1", percent: "10%" },
-];
-
 export default function ReportsUsers() {
+  const [dist, setDist] = useState([0, 0, 0]);
+
+  useEffect(() => {
+    fetchJson("/api/superadmin/user-distribution")
+      .then((res) => {
+        if (res?.success && Array.isArray(res.distribution?.data)) {
+          setDist(res.distribution.data);
+        }
+      })
+      .catch((err) => console.error("Failed to load user distribution:", err));
+  }, []);
+
+  const totalUsers = dist.reduce((a, b) => a + (Number(b) || 0), 0);
+  const pct = (val) => (totalUsers > 0 ? `${Math.round((val / totalUsers) * 100)}%` : "0%");
+
+  const userTypes = [
+    { name: "Tenants", value: dist[0] || 0, color: "#3B82F6", percent: pct(dist[0] || 0) },
+    { name: "Owners", value: dist[1] || 0, color: "#10B981", percent: pct(dist[1] || 0) },
+    { name: "Staff", value: dist[2] || 0, color: "#6366F1", percent: pct(dist[2] || 0) },
+  ];
+
+  const growthData = [
+    { name: "Current", newUsers: totalUsers, activeUsers: totalUsers }
+  ];
+
   return (
     <div className="p-8 space-y-10 bg-[#F8FAFC] min-h-full">
-      {/* Header Area */}
       <div className="flex flex-col gap-2">
          <h1 className="text-4xl font-bold text-slate-800 tracking-tight leading-none">User Demographic Intelligence</h1>
          <div className="flex items-center gap-3 text-[10px] font-bold text-slate-400 uppercase mt-2">
@@ -45,51 +50,32 @@ export default function ReportsUsers() {
 
       <p className="text-sm font-bold text-slate-400">Comprehensive analysis of user acquisition trends, retention velocity and platform demographic distribution.</p>
 
-      {/* Hero Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        <StatCardLarge label="Total Ecosystem" value="18.7k" trend="+ 8.6% Growth" up icon={Users} color="blue" />
-        <StatCardLarge label="New Signups" value="+ 2.4k" trend="This Month" up icon={UserPlus} color="indigo" />
-        <StatCardLarge label="Active Retention" value="94.2%" trend="Elite Engagement" up icon={UserCheck} color="green" />
-        <StatCardLarge label="Platform Reach" value="12 Regions" trend="Geographical Expansion" up icon={Globe} color="orange" />
+        <StatCardLarge label="Total Ecosystem" value={String(totalUsers)} trend="Scoped Users" up icon={Users} color="blue" />
+        <StatCardLarge label="Tenants" value={String(dist[0] || 0)} trend="Active Tenants" up icon={UserPlus} color="indigo" />
+        <StatCardLarge label="Owners" value={String(dist[1] || 0)} trend="Verified Owners" up icon={UserCheck} color="green" />
+        <StatCardLarge label="Staff" value={String(dist[2] || 0)} trend="Assigned Staff" up icon={Globe} color="orange" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-         {/* Growth Chart */}
          <div className="lg:col-span-8 bg-white rounded-[2.5rem] p-10 border border-slate-100 shadow-xl shadow-slate-200/50 flex flex-col">
             <div className="flex items-center justify-between mb-10">
                <h3 className="text-2xl font-bold text-slate-800 tracking-tight">Acquisition Velocity</h3>
-               <div className="flex items-center gap-6 text-[10px] font-bold text-slate-400 uppercase">
-                  <div className="flex items-center gap-2">
-                     <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />
-                     New Signups
-                  </div>
-                  <div className="flex items-center gap-2">
-                     <div className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
-                     Active Pulse
-                  </div>
-               </div>
             </div>
             <div className="flex-1 min-h-[400px]">
                <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={growthData}>
-                     <defs>
-                        <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
-                           <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.1}/>
-                           <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
-                        </linearGradient>
-                     </defs>
                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 700}} dy={15} />
-                     <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 700}} dx={-15} />
-                     <Tooltip contentStyle={{borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.15)'}} />
-                     <Area type="monotone" dataKey="newUsers" stroke="#3B82F6" strokeWidth={5} fillOpacity={1} fill="url(#colorUsers)" />
+                     <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                     <YAxis axisLine={false} tickLine={false} />
+                     <Tooltip />
+                     <Area type="monotone" dataKey="newUsers" stroke="#3B82F6" strokeWidth={5} fillOpacity={0.1} fill="#3B82F6" />
                      <Area type="monotone" dataKey="activeUsers" stroke="#10B981" strokeWidth={5} fill="transparent" />
                   </AreaChart>
                </ResponsiveContainer>
             </div>
          </div>
 
-         {/* Distribution */}
          <div className="lg:col-span-4 bg-white rounded-[2.5rem] p-10 border border-slate-100 shadow-xl shadow-slate-200/50 flex flex-col">
             <h3 className="text-xl font-bold text-slate-800 tracking-tight mb-10">User Distribution</h3>
             <div className="relative h-64 w-full flex items-center justify-center">
@@ -101,8 +87,8 @@ export default function ReportsUsers() {
                   </PieChart>
                </ResponsiveContainer>
                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <p className="text-4xl font-bold text-slate-800 tracking-tighter">100%</p>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase mt-2">Ecosystem Split</p>
+                  <p className="text-4xl font-bold text-slate-800 tracking-tighter">{totalUsers}</p>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase mt-2">Total Users</p>
                </div>
             </div>
             <div className="mt-10 space-y-6">
@@ -113,7 +99,7 @@ export default function ReportsUsers() {
                        <span className="text-sm font-bold text-slate-500 group-hover:text-slate-800 transition-colors">{c.name}</span>
                     </div>
                     <div className="flex items-center gap-4">
-                       <span className="text-xs font-bold text-slate-400">{c.value}%</span>
+                       <span className="text-xs font-bold text-slate-400">{c.value}</span>
                        <span className="text-sm font-bold text-slate-800">{c.percent}</span>
                     </div>
                  </div>
@@ -122,11 +108,10 @@ export default function ReportsUsers() {
          </div>
       </div>
 
-      {/* Retention Insights */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-         <InsightCard icon={TrendingUp} title="Acquisition Velocity" value="+ 12.4%" sub="Week-over-Week growth" color="blue" />
-         <InsightCard icon={UserCheck} title="Verified Profiles" value="98.2%" sub="KYC completion rate" color="green" />
-         <InsightCard icon={Activity} title="Churn Rate" value="1.2%" sub="Platform departure velocity" color="red" />
+         <InsightCard icon={TrendingUp} title="Total Users" value={String(totalUsers)} sub="Scoped ecosystem" color="blue" />
+         <InsightCard icon={UserCheck} title="Verified Owners" value={String(dist[1] || 0)} sub="Approved property owners" color="green" />
+         <InsightCard icon={Activity} title="Active Tenants" value={String(dist[0] || 0)} sub="Scoped tenants" color="red" />
       </div>
     </div>
   );

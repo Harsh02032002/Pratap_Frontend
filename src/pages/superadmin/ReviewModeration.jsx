@@ -48,7 +48,7 @@ export default function ReviewModeration() {
   const loadReviews = async () => {
     try {
       setLoading(true);
-      const res = await fetchJson("/api/reviews");
+      const res = await fetchJson("/api/reviews/admin/all");
       const list = Array.isArray(res) ? res : (res.data || []);
       setReviews(list);
     } catch (err) {

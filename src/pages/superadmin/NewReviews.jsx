@@ -15,7 +15,7 @@ export default function NewReviews() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const res = await fetchJson("/api/reviews");
+      const res = await fetchJson("/api/reviews/admin/all");
       setReviews(Array.isArray(res) ? res : (res.data || []));
     } catch (err) { console.error(err); }
     finally { setLoading(false); }

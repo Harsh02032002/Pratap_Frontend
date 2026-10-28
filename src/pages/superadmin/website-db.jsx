@@ -27,7 +27,7 @@ export default function WebsiteDb() {
     try {
       setErrorMsg("");
       setLoading(true);
-      const data = await fetchJson("/api/approved-properties/public/approved");
+      const data = await fetchJson("/api/approved-properties/all");
       const list = Array.isArray(data) ? data : (data.properties || data.visits || []);
       setProperties(list);
     } catch (err) {

@@ -25,12 +25,37 @@ export default function Locations() {
 
   useEffect(() => { fetchLocations(); }, []);
 
+  const isEmployeeView = typeof window !== "undefined" && window.location.pathname.startsWith("/employee");
+
   const fetchLocations = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${getApiUrl()}/api/locations/cities`, { headers: getAuthHeader() });
-      const data = await res.json();
-      if (data.success) setLocations(data.data || []);
+      if (isEmployeeView) {
+        const propRes = await fetchJson("/api/properties");
+        const props = propRes?.properties || propRes?.data || (Array.isArray(propRes) ? propRes : []);
+        const cityMap = {};
+        props.forEach(p => {
+          const cityName = String(p.city || p.location?.city || "").trim();
+          if (!cityName) return;
+          const key = cityName.toLowerCase();
+          if (!cityMap[key]) {
+            cityMap[key] = {
+              _id: key,
+              name: cityName,
+              state: p.state || p.location?.state || "India",
+              country: "India",
+              propertyCount: 0,
+              status: "Active"
+            };
+          }
+          cityMap[key].propertyCount += 1;
+        });
+        setLocations(Object.values(cityMap));
+      } else {
+        const res = await fetch(`${getApiUrl()}/api/locations/cities`, { headers: getAuthHeader() });
+        const data = await res.json();
+        if (data.success) setLocations(data.data || []);
+      }
     } catch (err) { 
       console.error("Error fetching locations:", err); 
     } finally { 

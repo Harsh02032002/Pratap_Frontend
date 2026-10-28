@@ -125,7 +125,7 @@ export default function HomeOverview() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <StatCard 
           label="Total Users" 
-          value={loading ? "..." : (stats.tenants + (stats.team || 11) + (stats.owners || 18)).toLocaleString()} 
+          value={loading ? "..." : ((stats.tenants || 0) + (stats.team || 0) + (stats.owners || 0)).toLocaleString()} 
           subtitle="Registered accounts" 
           loading={loading}
         />
@@ -137,7 +137,7 @@ export default function HomeOverview() {
         />
         <StatCard 
           label="Bookings" 
-          value={loading ? "..." : "12"} 
+          value={loading ? "..." : (stats.bookings || 0).toLocaleString()} 
           subtitle="This month" 
           loading={loading}
         />
@@ -183,19 +183,19 @@ export default function HomeOverview() {
           <div className="space-y-4 flex-1">
             <div className="flex items-center justify-between py-2 border-b border-[#E1E6EA] last:border-0 cursor-pointer hover:bg-slate-50 px-2 rounded-lg" onClick={() => navigate('/superadmin/property/approvals')}>
               <span className="text-sm text-[#4A5961]">Property approvals</span>
-              <span className="text-sm font-bold text-[#10242A] bg-slate-100 px-2.5 py-0.5 rounded-md">[{stats.alerts > 0 ? stats.alerts : '03'}]</span>
+              <span className="text-sm font-bold text-[#10242A] bg-slate-100 px-2.5 py-0.5 rounded-md">[{String(stats.alerts || 0).padStart(2, '0')}]</span>
             </div>
             <div className="flex items-center justify-between py-2 border-b border-[#E1E6EA] last:border-0 cursor-pointer hover:bg-slate-50 px-2 rounded-lg" onClick={() => navigate('/superadmin/complaint-history')}>
               <span className="text-sm text-[#4A5961]">Open support tickets</span>
-              <span className="text-sm font-bold text-[#10242A] bg-slate-100 px-2.5 py-0.5 rounded-md">[05]</span>
+              <span className="text-sm font-bold text-[#10242A] bg-slate-100 px-2.5 py-0.5 rounded-md">[00]</span>
             </div>
             <div className="flex items-center justify-between py-2 border-b border-[#E1E6EA] last:border-0 cursor-pointer hover:bg-slate-50 px-2 rounded-lg" onClick={() => navigate('/superadmin/reviews')}>
               <span className="text-sm text-[#4A5961]">Reviews to moderate</span>
-              <span className="text-sm font-bold text-[#10242A] bg-slate-100 px-2.5 py-0.5 rounded-md">[02]</span>
+              <span className="text-sm font-bold text-[#10242A] bg-slate-100 px-2.5 py-0.5 rounded-md">[00]</span>
             </div>
             <div className="flex items-center justify-between py-2 border-b border-[#E1E6EA] last:border-0 cursor-pointer hover:bg-slate-50 px-2 rounded-lg" onClick={() => navigate('/superadmin/visit')}>
               <span className="text-sm text-[#4A5961]">Visit reports to check</span>
-              <span className="text-sm font-bold text-[#10242A] bg-slate-100 px-2.5 py-0.5 rounded-md">[04]</span>
+              <span className="text-sm font-bold text-[#10242A] bg-slate-100 px-2.5 py-0.5 rounded-md">[00]</span>
             </div>
           </div>
         </div>
@@ -215,36 +215,26 @@ export default function HomeOverview() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E1E6EA] text-sm">
-              <tr className="hover:bg-slate-50/50 transition-colors">
-                <td className="py-3.5 px-4 text-[#10242A] font-medium">Aarav Sharma</td>
-                <td className="py-3.5 px-4 text-[#10242A]">Green Residency Hostel</td>
-                <td className="py-3.5 px-4 text-[#4A5961]">Oct 04, 2026</td>
-                <td className="py-3.5 px-4">
-                  <span className="bg-[#DDF3E4] text-[#14532D] text-xs font-semibold px-2.5 py-1 rounded-full inline-flex items-center">
-                    Confirmed
-                  </span>
-                </td>
-              </tr>
-              <tr className="hover:bg-slate-50/50 transition-colors">
-                <td className="py-3.5 px-4 text-[#10242A] font-medium">Priya Verma</td>
-                <td className="py-3.5 px-4 text-[#10242A]">Starlight Co-Living Space</td>
-                <td className="py-3.5 px-4 text-[#4A5961]">Oct 05, 2026</td>
-                <td className="py-3.5 px-4">
-                  <span className="bg-[#FDEBD0] text-[#7A3E00] text-xs font-semibold px-2.5 py-1 rounded-full inline-flex items-center">
-                    Pending
-                  </span>
-                </td>
-              </tr>
-              <tr className="hover:bg-slate-50/50 transition-colors">
-                <td className="py-3.5 px-4 text-[#10242A] font-medium">Rohan Gupta</td>
-                <td className="py-3.5 px-4 text-[#10242A]">Allen Heights Kota PG</td>
-                <td className="py-3.5 px-4 text-[#4A5961]">Oct 06, 2026</td>
-                <td className="py-3.5 px-4">
-                  <span className="bg-[#DDF3E4] text-[#14532D] text-xs font-semibold px-2.5 py-1 rounded-full inline-flex items-center">
-                    Confirmed
-                  </span>
-                </td>
-              </tr>
+              {recentActivities.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="py-6 px-4 text-center text-[#4A5961]">
+                    No recent bookings
+                  </td>
+                </tr>
+              ) : (
+                recentActivities.slice(0, 3).map((item, idx) => (
+                  <tr key={item.id || idx} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="py-3.5 px-4 text-[#10242A] font-medium">{item.title || "Guest"}</td>
+                    <td className="py-3.5 px-4 text-[#10242A]">{item.desc || "-"}</td>
+                    <td className="py-3.5 px-4 text-[#4A5961]">{item.time ? new Date(item.time).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "-"}</td>
+                    <td className="py-3.5 px-4">
+                      <span className="bg-[#DDF3E4] text-[#14532D] text-xs font-semibold px-2.5 py-1 rounded-full inline-flex items-center">
+                        Active
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

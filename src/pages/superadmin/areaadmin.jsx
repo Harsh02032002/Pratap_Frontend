@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { fetchJson } from "../../utils/api";
 import EmployeeAttendanceWidget from "../../components/EmployeeAttendanceWidget";
+import { isStaffRole } from "../../utils/employeePermissions";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
@@ -55,7 +56,9 @@ export default function SuperadminAreaadminPage() {
             'null'
         );
 
-        if (!storedUser || (storedUser.role !== 'areamanager' && storedUser.role !== 'employee' && storedUser.role !== 'superadmin')) {
+        const role = String(storedUser?.role || "").toLowerCase().replace(/[\s_-]+/g, "");
+        const isDisallowed = !role || role === 'owner' || role === 'propertyowner' || role === 'tenant' || role === 'websiteuser';
+        if (!storedUser || isDisallowed) {
             navigate('/superadmin/index');
             return;
         }
@@ -72,7 +75,7 @@ export default function SuperadminAreaadminPage() {
             console.warn("Auto-heal session keys failed", e);
         }
 
-        if (storedUser.role === 'areamanager' || storedUser.role === 'manager' || storedUser.role === 'employee') {
+        if (role !== 'superadmin' && role !== 'admin') {
             if (!window.location.pathname.startsWith('/employee/')) {
                 navigate('/employee/areaadmin');
                 return;
@@ -93,22 +96,20 @@ export default function SuperadminAreaadminPage() {
                 localStorage.getItem('user') || 
                 '{}'
             );
-            const isEmp = stored?.role === 'employee' || stored?.role === 'manager' || stored?.role === 'areamanager';
+            const isEmp = isStaffRole(stored?.role);
             
             if (isEmp) {
                 const empData = await fetchJson('/api/dashboard/employee').catch(() => null);
-                if (empData && empData.success) {
-                    setStats({
-                        properties: empData.assignedPropertiesCount || 0,
-                        tenants: empData.assignedComplaintsCount || 0,
-                        complaints: empData.assignedComplaintsCount || 0,
-                        visits: empData.pendingVisitsCount || 0,
-                        pendingApprovals: empData.assignedLeadsCount || 0, 
-                        activeOwners: empData.assignedOwnersCount || 0      
-                    });
-                    setLoading(false);
-                    return;
-                }
+                setStats({
+                    properties: empData?.assignedPropertiesCount || 0,
+                    tenants: empData?.assignedTenantsCount || 0,
+                    complaints: empData?.assignedComplaintsCount || 0,
+                    visits: empData?.pendingVisitsCount || 0,
+                    pendingApprovals: empData?.pendingApprovalsCount || 0, 
+                    activeOwners: empData?.assignedOwnersCount || 0      
+                });
+                setLoading(false);
+                return;
             }
 
             const [props, tenants, complaints, visits, pendingProps, owners] = await Promise.all([
@@ -304,34 +305,6 @@ function StatCardHorizontal({ label, value, trend, up, icon: Icon, color }) {
             {up ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
             {trend}
          </div>
-      </div>
-    </div>
-  );
-}
-
-function StatCardLarge({ label, value, trend, up, icon: Icon, color }) {
-  const bgColors = { 
-    blue: "bg-blue-600 shadow-blue-200", 
-    green: "bg-emerald-600 shadow-emerald-200", 
-    indigo: "bg-indigo-600 shadow-indigo-200", 
-    orange: "bg-amber-600 shadow-amber-200" 
-  };
-  
-  return (
-    <div className="bg-white rounded-[2.5rem] p-10 border border-slate-100 shadow-xl shadow-slate-200/50 flex flex-col gap-8 group hover:translate-y-[-8px] transition-all duration-500">
-      <div className={cn("w-20 h-20 rounded-[1.75rem] flex items-center justify-center text-white shadow-2xl transition-transform group-hover:rotate-6", bgColors[color])}>
-         <Icon className="w-10 h-10" />
-      </div>
-      <div>
-         <p className="text-[11px] font-bold text-slate-400 uppercase mb-4 leading-none truncate tracking-widest">{label}</p>
-         <p className="text-5xl font-bold text-slate-800 tracking-tighter leading-none">{value}</p>
-      </div>
-      <div className={cn(
-        "flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-2xl w-fit shadow-sm border",
-        up ? "text-emerald-600 bg-emerald-50 border-emerald-100" : "text-rose-600 bg-rose-50 border-rose-100"
-      )}>
-         {up ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-         {trend}
       </div>
     </div>
   );

@@ -78,7 +78,20 @@ export const getApiBase = () => {
 // authenticate every website visitor as that superadmin.
 // Cookie is also set by the backend for httpOnly support.
 export const getAuthHeader = () => {
-  const token = getScopedAuthToken();
+  let token = getScopedAuthToken();
+  if (!token) {
+    try {
+      token =
+        sessionStorage.getItem("token") ||
+        localStorage.getItem("token") ||
+        sessionStorage.getItem("staff_token") ||
+        localStorage.getItem("staff_token") ||
+        sessionStorage.getItem("managerToken") ||
+        localStorage.getItem("managerToken") ||
+        sessionStorage.getItem("accessToken") ||
+        localStorage.getItem("accessToken");
+    } catch (_) {}
+  }
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 

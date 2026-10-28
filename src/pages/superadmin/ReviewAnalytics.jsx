@@ -20,7 +20,7 @@ export default function ReviewAnalytics() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const res = await fetchJson("/api/reviews");
+      const res = await fetchJson("/api/reviews/admin/all");
       setReviews(Array.isArray(res) ? res : (res.data || []));
     } catch (err) { 
       console.error(err); 
@@ -42,21 +42,21 @@ export default function ReviewAnalytics() {
       }
     });
     return [
-      { name: "5 Stars", value: counts[5] || 5126, color: "#0E7C86" },
-      { name: "4 Stars", value: counts[4] || 2201, color: "#3B82F6" },
-      { name: "3 Stars", value: counts[3] || 879,  color: "#F59E0B" },
-      { name: "2 Stars", value: counts[2] || 312,  color: "#6366F1" },
-      { name: "1 Star",  value: counts[1] || 224,  color: "#EF4444" },
+      { name: "5 Stars", value: counts[5], color: "#0E7C86" },
+      { name: "4 Stars", value: counts[4], color: "#3B82F6" },
+      { name: "3 Stars", value: counts[3], color: "#F59E0B" },
+      { name: "2 Stars", value: counts[2], color: "#6366F1" },
+      { name: "1 Star",  value: counts[1], color: "#EF4444" },
     ];
   }, [reviews]);
 
   const stats = useMemo(() => {
-    const total = reviews.length || 8742;
-    const avg = reviews.length > 0 ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1) : "4.6";
-    const verified = reviews.filter(r => r.isVerified || r.bookingId).length || 6128;
-    const vRate = total > 0 ? Math.round((verified / total) * 100) : 70;
+    const total = reviews.length;
+    const avg = reviews.length > 0 ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1) : "0.0";
+    const verified = reviews.filter(r => r.isVerified || r.bookingId).length;
+    const vRate = total > 0 ? Math.round((verified / total) * 100) : 0;
     
-    let sentiment = "Positive";
+    let sentiment = "N/A";
     if (reviews.length > 0 && avg) {
       const parsedAvg = parseFloat(avg);
       if (parsedAvg >= 4.0) sentiment = "Positive";

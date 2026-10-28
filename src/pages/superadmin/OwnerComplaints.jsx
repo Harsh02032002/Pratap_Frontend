@@ -219,12 +219,12 @@ export default function OwnerComplaints() {
     const ownerTicketsList = tickets.filter(t => t.ticket_type === "Owner Complaint" || t.raised_by_role === "property_owner" || t.raised_by_role === "owner");
     const total = ownerTicketsList.length;
     return {
-      total: total || 352,
-      open: ownerTicketsList.filter(t => t.status === "Open").length || 84,
-      inProgress: ownerTicketsList.filter(t => t.status === "In Progress").length || 142,
-      resolved: ownerTicketsList.filter(t => t.status === "Resolved").length || 116,
-      critical: ownerTicketsList.filter(t => t.priority === "Critical").length || 10,
-      breached: ownerTicketsList.filter(t => t.sla_breached).length || 8,
+      total,
+      open: ownerTicketsList.filter(t => t.status === "Open").length,
+      inProgress: ownerTicketsList.filter(t => t.status === "In Progress").length,
+      resolved: ownerTicketsList.filter(t => t.status === "Resolved").length,
+      critical: ownerTicketsList.filter(t => t.priority === "Critical").length,
+      breached: ownerTicketsList.filter(t => t.sla_breached).length,
     };
   }, [tickets]);
 
