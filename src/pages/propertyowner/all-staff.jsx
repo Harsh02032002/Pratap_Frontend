@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useCallback } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerProperties } from "../../utils/propertyowner";
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerProperties, getActiveOwnerPropertyId } from "../../utils/propertyowner";
 import {
   Users, Search, Plus, CheckCircle2, AlertCircle, Phone, Mail,
   Building2, Clock, Shield, MoreVertical, X, TrendingUp,
@@ -9,6 +9,7 @@ import {
 import { apiFetch } from "../../utils/api";
 import { cacheGet, cacheSet } from "../../utils/cache";
 import { STAFF_MODULE_GROUPS } from "../../utils/staffAccess";
+import { filterStaffByProperty, summarizeStaff } from "../../utils/staffScope";
 
 const ROLE_COLORS = {
   Warden: "bg-blue-100 text-blue-700",
@@ -48,6 +49,9 @@ export default function AllStaffPage() {
     window.location.href = "/propertyowner/ownerlogin";
     return null;
   }
+
+  const activePropertyId = getActiveOwnerPropertyId();
+  const cacheKey = `staff:${owner.loginId}:${activePropertyId || "all"}`;
 
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("All");
@@ -93,7 +97,7 @@ export default function AllStaffPage() {
         : e);
       setStaff(newStaff);
       setDetailStaff(d => ({ ...d, assignedProperty: propertyDraft, assignedPropertyName: propName }));
-      cacheSet(`staff:${owner.loginId}`, { staff: newStaff, stats }, 2 * 60 * 1000);
+      cacheSet(cacheKey, { staff: newStaff, stats }, 2 * 60 * 1000);
       setEditingProperty(false);
     } catch (err) {
       alert("Failed to save assigned property: " + (err?.message || "Please try again."));
@@ -129,7 +133,7 @@ export default function AllStaffPage() {
       const newStaff = staff.map(e => e.id === detailStaff.id ? { ...e, permissions: permDraft } : e);
       setStaff(newStaff);
       setDetailStaff(d => ({ ...d, permissions: permDraft }));
-      cacheSet(`staff:${owner.loginId}`, { staff: newStaff, stats }, 2 * 60 * 1000);
+      cacheSet(cacheKey, { staff: newStaff, stats }, 2 * 60 * 1000);
       setEditingPerms(false);
     } catch (err) {
       alert("Failed to save permissions: " + (err?.message || "Please try again."));
@@ -139,7 +143,7 @@ export default function AllStaffPage() {
   };
 
   const fetchStaff = useCallback(async ({ silent = false } = {}) => {
-    const CACHE_KEY = `staff:${owner.loginId}`;
+    const CACHE_KEY = cacheKey;
     if (!silent) {
       const cached = cacheGet(CACHE_KEY);
       if (cached) {
@@ -152,14 +156,18 @@ export default function AllStaffPage() {
       setLoading(true);
     }
     try {
-      const [empData, statsData, shiftsData] = await Promise.allSettled([
+      const [empData, attData, shiftsData] = await Promise.allSettled([
         apiFetch(`/api/employees?parentLoginId=${owner.loginId}`),
-        apiFetch(`/api/employees/stats/${owner.loginId}`),
+        apiFetch(`/api/hr/attendance/${owner.loginId}`),
         apiFetch(`/api/hr/shifts/${owner.loginId}`),
       ]);
 
-      const employees = (empData.status === "fulfilled" ? empData.value?.data : null) || [];
-      const statsRes = statsData.status === "fulfilled" ? statsData.value?.data : {};
+      // The API returns every staff member of the owner; only the selected property's staff may be shown.
+      const employees = filterStaffByProperty(
+        (empData.status === "fulfilled" ? empData.value?.data : null) || [],
+        activePropertyId
+      );
+      const attendance = (attData.status === "fulfilled" ? attData.value?.data : null) || [];
       const shifts = (shiftsData.status === "fulfilled" ? shiftsData.value?.data : null) || [];
 
       const shiftsMap = {};
@@ -185,21 +193,16 @@ export default function AllStaffPage() {
         address: e.address || "",
       }));
 
-      const newStats = {
-        total: statsRes.total || mapped.length,
-        active: statsRes.active || mapped.filter(s => s.status === "Active").length,
-        inactive: statsRes.inactive || mapped.filter(s => s.status === "Inactive").length,
-        presentToday: statsRes.presentToday || 0,
-      };
+      const newStats = summarizeStaff(employees, attendance);
       setStaff(mapped);
       setStats(newStats);
-      cacheSet(`staff:${owner.loginId}`, { staff: mapped, stats: newStats }, 2 * 60 * 1000);
+      cacheSet(CACHE_KEY, { staff: mapped, stats: newStats }, 2 * 60 * 1000);
     } catch (err) {
       console.error(err);
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [owner.loginId]);
+  }, [owner.loginId, activePropertyId]);
 
   useEffect(() => { fetchStaff(); }, [fetchStaff]);
 

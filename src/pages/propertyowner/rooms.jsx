@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import { X, Plus, Building2, ChevronDown, UploadCloud, Loader2, Wind, Table as TableIcon, Tv, Bath, LayoutTemplate, Refrigerator, DoorClosed, Armchair, Utensils, Microwave, Flame, Shirt, Video, Fan, Check, Edit2, Trash2, BedDouble, Home, Layers, UserMinus, CheckSquare } from "lucide-react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
 import { getApiBase, getAuthHeader, fetchJson } from "../../utils/api";
+import { describeRentChange } from "../../utils/roomPriceChange";
 import {
   assignTenant, clearOwnerFetchCache, clearOwnerRuntimeSession, createRoom, updateRoom, deleteRoom, bulkCreateRooms, bulkDeleteRooms, bulkClearRoomTenants,
   fetchOwnerProperties, fetchOwnerRooms, fetchOwnerTenantsLite, getOwnerRuntimeSession
@@ -463,13 +464,15 @@ export default function Rooms() {
       };
 
       if (roomForm._id) {
-        await updateRoom(roomForm._id, payload);
+        const updated = await updateRoom(roomForm._id, payload);
         setErrorMsg("");
         setRoomModalOpen(false);
         setRoomForm(defaultRoomForm);
         clearOwnerFetchCache(owner.loginId);
         await load(owner, 1, ROOMS_PER_PAGE, true);
         toast.success("Room updated");
+        const rentNotice = describeRentChange(updated?.rentChange);
+        if (rentNotice) toast(rentNotice, { duration: 9000 });
       } else {
         const created = await createRoom(payload);
         setErrorMsg("");
