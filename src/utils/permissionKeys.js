@@ -245,7 +245,7 @@ export const RESTRICTED_MODULE_GROUPS = [
       { key: RESTRICTED_KEYS.SP_TENANT_COMPLAINTS, label: 'Tenants Complaints' },
       { key: RESTRICTED_KEYS.SP_OWNER_COMPLAINTS,  label: 'Owners Complaints' },
       { key: RESTRICTED_KEYS.SP_WEBSITE_QUERIES,   label: 'Website Queries' },
-      { key: RESTRICTED_KEYS.SP_VERIFICATION,      label: 'Verification System' },
+      { key: RESTRICTED_KEYS.SP_VERIFICATION,      label: 'Ticket System (Owner & Tenant)' },
       { key: RESTRICTED_KEYS.SP_RESOLUTION,        label: 'Issue Resolution Tracking' },
     ],
   },

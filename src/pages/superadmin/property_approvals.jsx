@@ -43,10 +43,13 @@ export default function SuperadminPropertyApprovals() {
   const fetchProperties = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${getApiUrl()}/api/properties?t=${Date.now()}`, { headers: getAuthHeader() });
+      const res = await fetch(`${getApiUrl()}/api/properties?hasVisitReport=true&t=${Date.now()}`, { headers: getAuthHeader() });
       const data = await res.json();
       if (data.success && data.properties) {
-        setProperties(data.properties.map(p => ({
+        const visitBackedProperties = data.properties.filter(
+          (p) => Boolean(p.visitId && String(p.visitId).trim())
+        );
+        setProperties(visitBackedProperties.map(p => ({
           id: p._id,
           propId: `PROP-${p._id.slice(-8).toUpperCase()}`,
           title: p.title || p.propertyInfo?.name || "Unknown Property",

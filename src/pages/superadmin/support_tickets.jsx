@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { useLocation } from "react-router-dom";
 import { fetchJson, getAuthHeader } from "../../utils/api";
 import {
   Check, X, Eye, UserCheck, Search, Filter, RefreshCw,
@@ -17,8 +18,18 @@ const getApiUrl = () =>
     ? "http://localhost:5001" : "https://roohmy-backend-xwa9.vercel.app");
 
 export default function VerificationCenter() {
+  const location = useLocation();
   const isEmployeeView = typeof window !== "undefined" && window.location.pathname.startsWith("/employee");
-  const [activeTab, setActiveTab] = useState("new_properties");
+  const initialTab = location.pathname.includes("room-edit-requests") ? "room_edits" : "property_edits";
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  useEffect(() => {
+    if (location.pathname.includes("room-edit-requests")) {
+      setActiveTab("room_edits");
+    } else {
+      setActiveTab("property_edits");
+    }
+  }, [location.pathname]);
   const [newProperties, setNewProperties] = useState([]);
   const [propertyEdits, setPropertyEdits] = useState([]);
   const [roomEdits, setRoomEdits] = useState([]);
@@ -50,9 +61,9 @@ export default function VerificationCenter() {
 
     setLoading(true);
     try {
-      const newPropsRes = await fetchJson("/api/properties?pendingApproval=true&limit=1000");
+      const newPropsRes = await fetchJson("/api/properties?pendingApproval=true&withoutVisitReport=true&limit=1000");
       if (newPropsRes.success) {
-        setNewProperties(newPropsRes.properties || []);
+        setNewProperties((newPropsRes.properties || []).filter(p => !p.visitId || !String(p.visitId).trim()));
       }
 
       const propEditsRes = await fetchJson("/api/properties?pendingChanges=true&limit=1000");
@@ -295,8 +306,8 @@ export default function VerificationCenter() {
   return (
     <div className="space-y-6 pb-8 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
       <PageHeader
-        title="Verification & Approvals Center"
-        subtitle="Manage pending property approvals, and track room/property picture modification requests."
+        title="Property & Room Edit Requests"
+        subtitle="Review and approve owner-submitted property modification requests and room edit/photo requests."
         actions={
           <button onClick={loadData} className="px-3.5 py-2 rounded-xl bg-white border border-slate-200/80 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-2 shadow-2xs cursor-pointer">
             <RefreshCw className={cn("w-3.5 h-3.5 text-[#095256]", loading && "animate-spin")} /> Refresh
@@ -305,9 +316,8 @@ export default function VerificationCenter() {
       />
 
       {/* Stats Quick Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {[
-          { key: "new_properties", label: "New Property Approvals", count: newProperties.length, icon: Building2 },
           { key: "property_edits", label: "Property Edit Requests", count: propertyEdits.length, icon: FileText },
           { key: "room_edits", label: "Room Edit Requests", count: roomEdits.length, icon: ImageIcon }
         ].map(tab => (
@@ -350,7 +360,6 @@ export default function VerificationCenter() {
       {/* Standalone Table Card */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
         <span className="text-xs font-semibold text-[#4A5961] ml-auto">
-          {activeTab === "new_properties" && `${filteredNewProperties.length} pending properties`}
           {activeTab === "property_edits" && `${filteredPropertyEdits.length} property edits`}
           {activeTab === "room_edits" && `${filteredRoomEdits.length} room edits`}
         </span>

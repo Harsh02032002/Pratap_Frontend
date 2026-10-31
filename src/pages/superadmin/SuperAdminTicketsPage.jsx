@@ -11,6 +11,7 @@ export default function SuperAdminTicketsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [roleFilter, setRoleFilter] = useState('all');
   const [selectedTicket, setSelectedTicket] = useState(null);
 
   // Resolve Modal State
@@ -156,7 +157,12 @@ export default function SuperAdminTicketsPage() {
 
     const matchesStatus = statusFilter === 'all' || t.status === statusFilter;
     const matchesType = typeFilter === 'all' || t.ticket_type === typeFilter;
-    return matchesSearch && matchesStatus && matchesType;
+    const raiserRole = String(t.raised_by_role || '').toLowerCase();
+    const matchesRole =
+      roleFilter === 'all' ||
+      (roleFilter === 'owner' && (raiserRole.includes('owner') || String(t.ticket_type || '').toLowerCase().includes('owner'))) ||
+      (roleFilter === 'tenant' && (raiserRole.includes('tenant') || String(t.ticket_type || '').toLowerCase().includes('tenant')));
+    return matchesSearch && matchesStatus && matchesType && matchesRole;
   });
 
   const getStatusBadge = (status) => {
@@ -196,13 +202,13 @@ export default function SuperAdminTicketsPage() {
         <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 md:p-8 text-white shadow-xl flex flex-wrap items-center justify-between gap-6">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-bold border border-indigo-500/30 mb-3">
-              <LifeBuoy className="w-4 h-4" /> SuperAdmin &amp; Staff Ticket Control Desk
+              <LifeBuoy className="w-4 h-4" /> Owner &amp; Tenant Raised Ticket Desk
             </div>
             <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">
-              Support Ticket Management &amp; Ref ID Tracker
+              Ticket System (Owner &amp; Tenant Raised Tickets)
             </h1>
             <p className="text-slate-300 text-sm mt-1.5 max-w-2xl">
-              Search any ticket by <strong>Ref ID (e.g. TKT-849201)</strong>, review history, and mark tickets as <strong>Resolved / Completed</strong> with automated Email, WhatsApp &amp; Push Alerts.
+              View and manage all tickets raised by <strong>Property Owners</strong> and <strong>Tenants</strong>. Search by <strong>Ref ID (e.g. TKT-849201)</strong> and mark tickets as <strong>Resolved / Completed</strong>.
             </p>
           </div>
 
@@ -244,6 +250,16 @@ export default function SuperAdminTicketsPage() {
                 </button>
               </>
             )}
+
+            <select
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+              className="bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-700 focus:outline-none"
+            >
+              <option value="all">All Raisers (Owner &amp; Tenant)</option>
+              <option value="owner">Owner Raised Tickets</option>
+              <option value="tenant">Tenant Raised Tickets</option>
+            </select>
 
             <select
               value={statusFilter}

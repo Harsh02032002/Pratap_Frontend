@@ -28,11 +28,11 @@ export default function PendingProperties() {
   const fetchPendingProperties = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${getApiUrl()}/api/properties?t=${Date.now()}`, { headers: getAuthHeader() });
+      const res = await fetch(`${getApiUrl()}/api/properties?hasVisitReport=true&t=${Date.now()}`, { headers: getAuthHeader() });
       const data = await res.json();
       if (data.success && data.properties) {
         // Filter for properties that are NOT published OR NOT active
-        const pending = data.properties.filter(p => !p.isPublished || p.status !== 'active');
+        const pending = data.properties.filter(p => Boolean(p.visitId && String(p.visitId).trim()) && (!p.isPublished || p.status !== 'active'));
         setQueue(pending.map(p => ({
           id: p._id,
           displayId: p.visitId || p.locationCode || p._id.slice(-6).toUpperCase(),
