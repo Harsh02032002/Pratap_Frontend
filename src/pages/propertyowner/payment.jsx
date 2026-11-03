@@ -507,10 +507,16 @@ export default function Payment() {
     return m;
   }, [invoices]);
 
+  // Ex-tenant = move-out finished (status flips to "inactive" and
+  // moveoutRequest.completedAt is set). The tenants list deliberately still
+  // contains them (the Ex-Tenants page reads it), so this page must drop them.
+  // A tenant still serving notice is NOT an ex-tenant: they stay billed.
+  const isExTenant = (t) => t?.status === "inactive" || !!t?.moveoutRequest?.completedAt;
+
   // Active tenants with rent > 0 who haven't checked out — only these get invoices.
   const invoiceableTenants = useMemo(() => {
     return tenants.filter(t => {
-      if ((t.agreedRent || t.rent || 0) <= 0 || t.checkoutDate) {
+      if ((t.agreedRent || t.rent || 0) <= 0 || t.checkoutDate || isExTenant(t)) {
         return false;
       }
       return true;
@@ -537,7 +543,7 @@ export default function Payment() {
   };
 
   // Merge tenant list with invoice data; recalculate phase + charges live from current config
-  const rows = useMemo(() => tenants.map(t => {
+  const allRows = useMemo(() => tenants.map(t => {
     const tId = String(t._id || t.id || "");
     const tLogin = String(t.loginId || "").toUpperCase();
     const inv = invoiceMap.get(tId) || invoices.find(i => {
@@ -555,6 +561,9 @@ export default function Payment() {
           : "due";
     return { ...t, payStatus, phase, invoice: inv, outstandingAmount: due, activePenalty: liveCalc.totalPenalty || 0 };
   }), [tenants, invoiceMap, penaltyConfig]);
+
+  // Collection / Pending / totals / reminders only ever see current tenants.
+  const rows = useMemo(() => allRows.filter(r => !isExTenant(r)), [allRows]);
 
   // Live phase breakdown computed from rows (not stale dashStats.phase1/2/3)
   const livePhaseCounts = useMemo(() => ({
@@ -574,14 +583,14 @@ export default function Payment() {
   const filtered = useMemo(() => (
     tab === "Collection" ? rows :
       tab === "Pending" ? rows.filter(r => r.payStatus === "due" || r.payStatus === "partial" || r.payStatus === "overdue") :
-        tab === "History" ? rows.filter(r => r.payStatus === "paid") :
-          tab === "Receipts" ? rows.filter(r => r.payStatus === "paid") :
+        tab === "History" ? allRows.filter(r => r.payStatus === "paid") :
+          tab === "Receipts" ? allRows.filter(r => r.payStatus === "paid") :
             rows
   ).filter(t =>
     !debouncedSearch ||
     (t.name || "").toLowerCase().includes(debouncedSearch.toLowerCase()) ||
     (t.roomNo || "").toLowerCase().includes(debouncedSearch.toLowerCase())
-  ), [rows, tab, debouncedSearch]);
+  ), [rows, allRows, tab, debouncedSearch]);
 
   const fmt = (n) => "₹" + (n || 0).toLocaleString("en-IN");
   const totalExpected = useMemo(() => rows.reduce((s, t) => s + ((t.invoice?.rentAmount) || t.agreedRent || t.rent || 0) + (t.invoice?.electricityBill || 0) + (t.activePenalty || 0), 0), [rows]);
