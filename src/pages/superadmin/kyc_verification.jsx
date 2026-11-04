@@ -156,7 +156,7 @@ export default function KycVerification() {
           {selectedOwner ? (
             <div>
               <h3 className="text-[14px] font-bold text-[#10242A] mb-4">
-                [{selectedOwner.name || "Owner name"}] – documents
+                {selectedOwner.name || "Owner"} – documents
               </h3>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

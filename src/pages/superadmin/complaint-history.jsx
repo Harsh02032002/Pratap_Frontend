@@ -172,52 +172,46 @@ export default function SupportOverview() {
   }, [tickets]);
 
   return (
-    <div className="space-y-6 pb-8">
-      <PageHeader 
-        title="Support Overview"
-        subtitle="Track, manage and resolve all tenant and owner complaints efficiently."
-        actions={
-          <div className="flex items-center gap-2 bg-white border border-[#E1E6EA] px-3.5 py-1.5 rounded-[12px] shadow-xs text-xs font-semibold text-[#4A5961]">
-            <Calendar size={14} className="text-[#0E7C86]" />
-            <span>{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-          </div>
-        }
-      />
+    <div className="space-y-4 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-[22px] font-bold text-[#10242A] tracking-tight leading-tight">Support Overview</h1>
+          <p className="text-[13px] text-[#4A5961] mt-0.5">Track, manage and resolve all tenant and owner complaints efficiently.</p>
+        </div>
+        <div className="flex items-center gap-2 bg-white border border-[#CBD3D9] px-3 py-1.5 rounded-[8px] shadow-xs text-[13px] font-medium text-[#10242A]">
+          <Calendar size={14} className="text-[#0E7C86]" />
+          <span>{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+        </div>
+      </div>
 
       {/* 6 STAT CARDS */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {[
-          { icon: Ticket,       label: "Total Tickets",        val: stats.totalTickets,        trend: "Live", sub: "total volume",  pos: true  },
-          { icon: Clock,        label: "Open Tickets",         val: stats.openTickets,         trend: "Active", sub: "open queue",  pos: false },
-          { icon: History,      label: "In Progress",          val: stats.inProgress,          trend: "Active", sub: "being worked",pos: true  },
-          { icon: CheckCircle2, label: "Resolved Tickets",     val: stats.resolvedTickets,     trend: "Closed", sub: "completed",   pos: true  },
-          { icon: AlertCircle,  label: "Overdue Tickets",      val: stats.overdueTickets,      trend: "SLA",    sub: "breached",    pos: false },
-          { icon: Clock,        label: "Avg. Resolution Time", val: stats.avgResolutionTime,   trend: "Avg",    sub: "turnaround",  pos: true  },
+          { label: "Total Tickets",        val: stats.totalTickets,      trend: "Live",   sub: "total volume" },
+          { label: "Open Tickets",         val: stats.openTickets,       trend: "Active", sub: "open queue"   },
+          { label: "In Progress",          val: stats.inProgress,        trend: "Active", sub: "being worked" },
+          { label: "Resolved Tickets",     val: stats.resolvedTickets,   trend: "Closed", sub: "completed"    },
+          { label: "Overdue Tickets",      val: stats.overdueTickets,    trend: "SLA",    sub: "breached"     },
+          { label: "Avg. Resolution Time", val: stats.avgResolutionTime, trend: "Avg",    sub: "turnaround"   },
         ].map((c,i)=>(
-          <div key={i} className="bg-white rounded-[16px] p-5 border border-[#E1E6EA] shadow-xs hover:border-[#0E7C86]/30 transition-all">
-            <div className="flex items-center gap-2 mb-2.5">
-              <div className="w-8 h-8 rounded-[10px] bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center shrink-0"><c.icon size={16}/></div>
-              <p className="text-[10px] font-bold text-[#4A5961] uppercase tracking-wider leading-tight">{c.label}</p>
-            </div>
-            <h4 className="text-xl font-bold text-[#10242A] mb-1">{c.val}</h4>
-            <div className="flex items-center gap-1 mb-2">
-              <TrendingUp size={10} className={c.pos ? "text-emerald-600" : "text-rose-600"}/>
-              <span className={cn("text-[10px] font-bold", c.pos ? "text-emerald-600" : "text-rose-600")}>{c.trend}</span>
-              <span className="text-[10px] text-[#4A5961] font-medium">{c.sub}</span>
+          <div key={i} className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
+            <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">{c.label}</p>
+            <div className="mt-2">
+              <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{loading ? "..." : c.val}</h3>
             </div>
           </div>
         ))}
       </div>
 
       {/* MAIN ROW: Trend + Category Donut + Source Donut */}
-      <div className="grid grid-cols-12 gap-6">
+      <div className="grid grid-cols-12 gap-4">
         {/* Tickets Trend */}
-        <div className="col-span-12 lg:col-span-5 bg-white rounded-[16px] p-6 border border-[#E1E6EA] shadow-xs flex flex-col" style={{height:380}}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-bold text-[#10242A]">Tickets Trend</h3>
-            <select className="bg-[#F4F6F8] rounded-[8px] px-2.5 py-1 text-[11px] font-semibold text-[#4A5961] outline-none border border-[#E1E6EA]"><option>This Week</option></select>
+        <div className="col-span-12 lg:col-span-5 bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col" style={{height:340}}>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[15px] font-bold text-[#10242A]">Tickets Trend</h3>
+            <select className="bg-white border border-[#CBD3D9] rounded-[8px] px-2.5 py-1 text-[12px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs"><option>This Week</option></select>
           </div>
-          <div className="flex items-center gap-5 mb-4">
+          <div className="flex items-center gap-5 mb-3">
             {[{c:"bg-[#0E7C86]",l:"Opened"},{c:"bg-emerald-500",l:"Resolved"},{c:"bg-rose-500",l:"Overdue"}].map(l=>(
               <div key={l.l} className="flex items-center gap-1.5"><div className={cn("w-2 h-2 rounded-full",l.c)}/><span className="text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider">{l.l}</span></div>
             ))}
@@ -238,18 +232,18 @@ export default function SupportOverview() {
         </div>
 
         {/* Tickets by Category */}
-        <div className="col-span-12 lg:col-span-3 bg-white rounded-[16px] p-6 border border-[#E1E6EA] shadow-xs flex flex-col items-center" style={{height:380}}>
-          <h3 className="text-base font-bold text-[#10242A] mb-4 self-start">Tickets by Category</h3>
-          <div className="relative flex items-center justify-center mb-4" style={{width:140,height:140}}>
+        <div className="col-span-12 lg:col-span-3 bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col items-center" style={{height:340}}>
+          <h3 className="text-[15px] font-bold text-[#10242A] mb-3 self-start">Tickets by Category</h3>
+          <div className="relative flex items-center justify-center mb-3" style={{width:130,height:130}}>
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart><Pie data={stats.categoryData} innerRadius={45} outerRadius={65} paddingAngle={3} dataKey="value" stroke="none">{stats.categoryData.map((e,i)=><Cell key={i} fill={e.color}/>)}</Pie></PieChart>
+              <PieChart><Pie data={stats.categoryData} innerRadius={42} outerRadius={60} paddingAngle={3} dataKey="value" stroke="none">{stats.categoryData.map((e,i)=><Cell key={i} fill={e.color}/>)}</Pie></PieChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
               <p className="text-lg font-bold text-[#10242A]">{stats.totalTickets}</p>
               <p className="text-[8px] font-bold text-[#4A5961] uppercase tracking-wider">Total Tickets</p>
             </div>
           </div>
-          <div className="w-full space-y-2 mt-auto">
+          <div className="w-full space-y-1.5 mt-auto">
             {stats.categoryData.map(c=>(
               <div key={c.name} className="flex items-center justify-between text-[11px] font-semibold">
                 <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full" style={{backgroundColor:c.color}}/><span className="text-[#4A5961] truncate max-w-[110px]">{c.name}</span></div>
@@ -260,18 +254,18 @@ export default function SupportOverview() {
         </div>
 
         {/* Tickets by Source */}
-        <div className="col-span-12 lg:col-span-4 bg-white rounded-[16px] p-6 border border-[#E1E6EA] shadow-xs flex flex-col items-center" style={{height:380}}>
-          <h3 className="text-base font-bold text-[#10242A] mb-4 self-start">Tickets by Source</h3>
-          <div className="relative flex items-center justify-center mb-4" style={{width:140,height:140}}>
+        <div className="col-span-12 lg:col-span-4 bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col items-center" style={{height:340}}>
+          <h3 className="text-[15px] font-bold text-[#10242A] mb-3 self-start">Tickets by Source</h3>
+          <div className="relative flex items-center justify-center mb-3" style={{width:130,height:130}}>
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart><Pie data={stats.sourceData} innerRadius={45} outerRadius={65} paddingAngle={3} dataKey="value" stroke="none">{stats.sourceData.map((e,i)=><Cell key={i} fill={e.color}/>)}</Pie></PieChart>
+              <PieChart><Pie data={stats.sourceData} innerRadius={42} outerRadius={60} paddingAngle={3} dataKey="value" stroke="none">{stats.sourceData.map((e,i)=><Cell key={i} fill={e.color}/>)}</Pie></PieChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
               <p className="text-lg font-bold text-[#10242A]">{stats.totalTickets}</p>
               <p className="text-[8px] font-bold text-[#4A5961] uppercase tracking-wider">Total Tickets</p>
             </div>
           </div>
-          <div className="w-full space-y-2.5 mt-auto">
+          <div className="w-full space-y-2 mt-auto">
             {stats.sourceData.map(s=>(
               <div key={s.name} className="flex items-center justify-between text-[11px] font-semibold">
                 <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full" style={{backgroundColor:s.color}}/><span className="text-[#4A5961]">{s.name}</span></div>
@@ -282,59 +276,60 @@ export default function SupportOverview() {
         </div>
       </div>
 
-      {/* MID METRICS BAR — 7 inline metrics */}
+      {/* MID METRICS BAR — 7 inline metrics (NO ICONS) */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
         {stats.midMetrics.map((m,i)=>(
-          <div key={i} className="bg-white rounded-[16px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col items-center text-center">
-            <div className={cn("w-8 h-8 rounded-[10px] flex items-center justify-center mb-2 shrink-0", iconColors[m.c])}><m.icon size={15}/></div>
-            <p className="text-[9px] font-bold text-[#4A5961] uppercase tracking-wider leading-tight mb-1">{m.label}</p>
-            <h4 className="text-lg font-bold text-[#10242A]">{m.val}</h4>
+          <div key={i} className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
+            <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">{m.label}</p>
+            <div className="mt-2">
+              <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{m.val}</h3>
+            </div>
           </div>
         ))}
       </div>
 
       {/* TABLES ROW */}
-      <div className="grid grid-cols-12 gap-6">
+      <div className="grid grid-cols-12 gap-4">
         {/* Recent Tickets */}
-        <div className="col-span-12 lg:col-span-8 bg-white rounded-[16px] p-6 border border-[#E1E6EA] shadow-xs">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-bold text-[#10242A]">Recent Tickets</h3>
+        <div className="col-span-12 lg:col-span-8 bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs overflow-hidden">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[15px] font-bold text-[#10242A]">Recent Tickets</h3>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-[12px] text-left">
+            <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-[#F8FAFC] text-[#4A5961] font-semibold text-[11px] uppercase tracking-wider border-b border-[#E1E6EA]">
-                  <th className="py-2.5 px-3">Ticket ID</th>
-                  <th className="py-2.5 px-3">Type</th>
-                  <th className="py-2.5 px-3">Raised By</th>
-                  <th className="py-2.5 px-3">Category</th>
-                  <th className="py-2.5 px-3">Priority</th>
-                  <th className="py-2.5 px-3">Status</th>
-                  <th className="py-2.5 px-3">Assignee</th>
-                  <th className="py-2.5 px-3 text-right">Created On</th>
+                <tr className="border-b border-[#E1E6EA]">
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider pl-2">Ticket ID</th>
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Type</th>
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Raised By</th>
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Category</th>
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Priority</th>
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Status</th>
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Assignee</th>
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-right pr-2">Created On</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#E1E6EA]">
+              <tbody className="divide-y divide-[#F0F4F6] text-[13px]">
                 {stats.recentTickets.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="py-8 text-center text-[#4A5961] text-xs font-medium">No tickets found.</td>
+                    <td colSpan={8} className="py-6 text-center text-[#4A5961] text-[13px]">No tickets found.</td>
                   </tr>
                 ) : stats.recentTickets.map((t,i)=>(
-                  <tr key={i} className="hover:bg-[#F4F6F8]/60 transition-colors">
-                    <td className="py-2.5 px-3 font-bold text-[#0E7C86]">{t.id}</td>
-                    <td className="py-2.5 px-3">
-                      <span className={cn("px-2 py-0.5 rounded-[4px] text-[10px] font-bold", t.type==="Tenant"?"bg-[#E6F4F5] text-[#0E7C86]":"bg-emerald-50 text-emerald-700")}>{t.type}</span>
+                  <tr key={i} className="hover:bg-[#F9FAFB] transition-colors">
+                    <td className="py-2.5 pl-2 font-bold text-[#0E7C86]">{t.id}</td>
+                    <td className="py-2.5">
+                      <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold", t.type==="Tenant"?"bg-[#E0F2FE] text-[#0369A1]":"bg-[#DDF3E4] text-[#14532D]")}>{t.type}</span>
                     </td>
-                    <td className="py-2.5 px-3 font-semibold text-[#10242A]">{t.raisedBy}</td>
-                    <td className="py-2.5 px-3 text-[#4A5961]">{t.category}</td>
-                    <td className="py-2.5 px-3">
-                      <span className={cn("px-2 py-0.5 rounded-[4px] text-[10px] font-bold", t.priority==="High"||t.priority==="Critical"?"bg-rose-50 text-rose-700":t.priority==="Med"||t.priority==="Medium"?"bg-amber-50 text-amber-700":"bg-slate-100 text-slate-600")}>{t.priority}</span>
+                    <td className="py-2.5 font-semibold text-[#10242A]">{t.raisedBy}</td>
+                    <td className="py-2.5 text-[#4A5961]">{t.category}</td>
+                    <td className="py-2.5">
+                      <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold", t.priority==="High"||t.priority==="Critical"?"bg-[#FDE8E8] text-[#991B1B]":t.priority==="Med"||t.priority==="Medium"?"bg-[#FDEBD0] text-[#7A3E00]":"bg-[#E8EDF1] text-[#4A5961]")}>{t.priority}</span>
                     </td>
-                    <td className="py-2.5 px-3">
-                      <span className={cn("px-2 py-0.5 rounded-[4px] text-[10px] font-bold", t.status==="Open"?"bg-[#E6F4F5] text-[#0E7C86]":t.status==="In Progress"?"bg-amber-50 text-amber-700":"bg-emerald-50 text-emerald-700")}>{t.status}</span>
+                    <td className="py-2.5">
+                      <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold", t.status==="Open"?"bg-[#E0F2FE] text-[#0369A1]":t.status==="In Progress"?"bg-[#FDEBD0] text-[#7A3E00]":"bg-[#DDF3E4] text-[#14532D]")}>{t.status}</span>
                     </td>
-                    <td className="py-2.5 px-3 font-semibold text-[#4A5961]">{t.assignee}</td>
-                    <td className="py-2.5 px-3 text-right text-[#4A5961] text-[10px]">{t.date}</td>
+                    <td className="py-2.5 font-medium text-[#4A5961]">{t.assignee}</td>
+                    <td className="py-2.5 pr-2 text-right text-[#4A5961] text-[12px] whitespace-nowrap">{t.date}</td>
                   </tr>
                 ))}
               </tbody>
@@ -343,29 +338,29 @@ export default function SupportOverview() {
         </div>
 
         {/* Issues Resolutions Tracking */}
-        <div className="col-span-12 lg:col-span-4 bg-white rounded-[16px] p-6 border border-[#E1E6EA] shadow-xs flex flex-col">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-bold text-[#10242A]">Issues Resolutions Tracking</h3>
-            <select className="bg-[#F4F6F8] rounded-[8px] px-2 py-1 text-[10px] font-semibold text-[#4A5961] outline-none border border-[#E1E6EA]"><option>This Week</option></select>
+        <div className="col-span-12 lg:col-span-4 bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[15px] font-bold text-[#10242A]">Issues Resolutions Tracking</h3>
+            <select className="bg-white border border-[#CBD3D9] rounded-[8px] px-2 py-1 text-[11px] font-medium text-[#10242A] outline-none cursor-pointer"><option>This Week</option></select>
           </div>
-          <div className="relative flex items-center justify-center mb-4" style={{width:130,height:130,alignSelf:'center'}}>
+          <div className="relative flex items-center justify-center mb-3" style={{width:120,height:120,alignSelf:'center'}}>
             <ResponsiveContainer width="100%" height="100%">
               <RadialBarChart innerRadius="70%" outerRadius="100%" data={[{ name: "Rate", value: stats.resolutionRate, fill: "#0E7C86" }]} startAngle={90} endAngle={-270}>
                 <RadialBar background dataKey="value" cornerRadius={8}/>
               </RadialBarChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <p className="text-2xl font-bold text-[#10242A]">{stats.resolutionRate}%</p>
+              <p className="text-xl font-bold text-[#10242A]">{stats.resolutionRate}%</p>
               <p className="text-[9px] font-bold text-[#4A5961] uppercase tracking-wider">Resolution Rate</p>
             </div>
           </div>
-          <div className="space-y-2 flex-1">
+          <div className="space-y-1.5 flex-1">
             {[
               {l:"Total Issues Raised",v:stats.totalTickets},{l:"Total Resolved",v:stats.resolvedTickets},
               {l:"Resolution Rate",v:`${stats.resolutionRate}%`},{l:"Avg. Resolution Time",v:stats.avgResolutionTime},
               {l:"SLA Met",v:`${stats.slaMetCount} (${stats.slaMetPct})`},{l:"SLA Breached",v:`${stats.slaBreachedCount} (${stats.slaBreachedPct})`},
             ].map(r=>(
-              <div key={r.l} className="flex items-center justify-between text-[11px] font-semibold">
+              <div key={r.l} className="flex items-center justify-between text-[12px] font-semibold">
                 <span className="text-[#4A5961]">{r.l}</span>
                 <span className="text-[#10242A] font-bold">{r.v}</span>
               </div>
@@ -377,12 +372,12 @@ export default function SupportOverview() {
       {/* FOOTER ROW: 6 columns */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
         {/* Top Issue Categories */}
-        <div className="col-span-2 bg-white rounded-[16px] p-5 border border-[#E1E6EA] shadow-xs">
-          <h4 className="text-[12px] font-bold text-[#10242A] mb-3">Top Issue Categories</h4>
+        <div className="col-span-2 bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs">
+          <h4 className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider mb-3">Top Issue Categories</h4>
           <div className="space-y-2.5">
             {stats.categoryData.slice(0,3).map(c=>(
               <div key={c.name}>
-                <div className="flex justify-between text-[10.5px] font-semibold mb-1">
+                <div className="flex justify-between text-[11px] font-semibold mb-1">
                   <span className="text-[#4A5961]">{c.name}</span>
                   <span className="text-[#10242A] font-bold">{c.value} ({c.pct})</span>
                 </div>
@@ -395,11 +390,12 @@ export default function SupportOverview() {
         </div>
 
         {/* Resolution Time */}
-        <div className="bg-white rounded-[16px] p-5 border border-[#E1E6EA] shadow-xs flex flex-col">
-          <h4 className="text-[12px] font-bold text-[#10242A] mb-2">Resolution Time (Avg.)</h4>
-          <p className="text-2xl font-bold text-[#10242A] leading-none mb-1">{stats.avgResolutionTime}</p>
-          <span className="text-[10px] font-semibold text-emerald-600 flex items-center gap-1 mb-2"><ArrowDownRight size={10}/> Live tracking</span>
-          <div className="flex-1 min-h-[35px]">
+        <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
+          <div>
+            <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Avg. Resolution Time</p>
+            <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none mt-2">{stats.avgResolutionTime}</h3>
+          </div>
+          <div className="h-[35px] mt-2">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={stats.sparkData}><Area type="monotone" dataKey="v" stroke="#10B981" fill="#D1FAE5" strokeWidth={1.5}/></AreaChart>
             </ResponsiveContainer>
@@ -407,11 +403,12 @@ export default function SupportOverview() {
         </div>
 
         {/* SLA Performance */}
-        <div className="bg-white rounded-[16px] p-5 border border-[#E1E6EA] shadow-xs flex flex-col">
-          <h4 className="text-[12px] font-bold text-[#10242A] mb-2">SLA Performance</h4>
-          <p className="text-2xl font-bold text-[#10242A] leading-none mb-1">{stats.slaMetPct}</p>
-          <p className="text-[9px] font-bold text-[#4A5961] uppercase tracking-wider mb-1">SLA Met</p>
-          <div className="flex-1 min-h-[35px]">
+        <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
+          <div>
+            <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">SLA Performance</p>
+            <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none mt-2">{stats.slaMetPct}</h3>
+          </div>
+          <div className="h-[35px] mt-2">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={stats.sparkData}><Area type="monotone" dataKey="v" stroke="#0E7C86" fill="#E6F4F5" strokeWidth={1.5}/></AreaChart>
             </ResponsiveContainer>
@@ -419,20 +416,22 @@ export default function SupportOverview() {
         </div>
 
         {/* Customer Satisfaction */}
-        <div className="bg-white rounded-[16px] p-5 border border-[#E1E6EA] shadow-xs">
-          <h4 className="text-[12px] font-bold text-[#10242A] mb-2">Resolution Score</h4>
-          <p className="text-2xl font-bold text-[#10242A] leading-none mb-1">{tickets.length > 0 ? `${(stats.resolutionRate / 20).toFixed(1)} / 5` : "0.0 / 5"}</p>
-          <div className="flex items-center gap-0.5 mb-2">
-            {[1,2,3,4,5].map(i=><Star key={i} size={11} className={tickets.length > 0 && i <= Math.round(stats.resolutionRate / 20) ? "text-amber-400 fill-amber-400" : "text-slate-200 fill-slate-200"}/>)}
+        <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
+          <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Resolution Score</p>
+          <div className="mt-2">
+            <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{tickets.length > 0 ? `${(stats.resolutionRate / 20).toFixed(1)} / 5` : "0.0 / 5"}</h3>
+            <div className="flex items-center gap-0.5 mt-1.5">
+              {[1,2,3,4,5].map(i=><Star key={i} size={11} className={tickets.length > 0 && i <= Math.round(stats.resolutionRate / 20) ? "text-amber-400 fill-amber-400" : "text-slate-200 fill-slate-200"}/>)}
+            </div>
           </div>
-          <span className="text-[10px] font-semibold text-[#4A5961] flex items-center gap-1">Based on resolved tickets</span>
         </div>
 
         {/* Pending High Priority */}
-        <div className="bg-white rounded-[16px] p-5 border border-[#E1E6EA] shadow-xs flex flex-col">
-          <h4 className="text-[12px] font-bold text-[#10242A] mb-2">Pending High Priority</h4>
-          <p className="text-2xl font-bold text-rose-600 leading-none mb-1">{stats.pendingHighPriorityCount}</p>
-          <p className="text-[10px] text-[#4A5961] font-medium mb-auto">Requires immediate attention</p>
+        <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
+          <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Pending High Priority</p>
+          <div className="mt-2">
+            <h3 className="text-[24px] font-bold text-rose-600 tracking-tight leading-none">{stats.pendingHighPriorityCount}</h3>
+          </div>
         </div>
       </div>
     </div>

@@ -110,22 +110,22 @@ export default function UserOverview() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard 
           label="Total Staff" 
-          value={`[${String(totalStaffCount).padStart(2, '0')}]`} 
+          value={String(totalStaffCount).padStart(2, '0')} 
           subtitle="All departments" 
         />
         <StatCard 
           label="Property Owners" 
-          value={`[${String(approvedOwnersCount).padStart(2, '0')}]`} 
+          value={String(approvedOwnersCount).padStart(2, '0')} 
           subtitle="Approved owners" 
         />
         <StatCard 
           label="Pending KYC" 
-          value={`[${String(pendingKycCount).padStart(2, '0')}]`} 
+          value={String(pendingKycCount).padStart(2, '0')} 
           subtitle="Awaiting review" 
         />
         <StatCard 
           label="Open Owner Requests" 
-          value={`[${String(openOwnerRequestsCount).padStart(2, '0')}]`} 
+          value={String(openOwnerRequestsCount).padStart(2, '0')} 
           subtitle="Need a response" 
         />
       </div>
@@ -145,19 +145,19 @@ export default function UserOverview() {
             <div className="space-y-2">
               <div className="flex items-center justify-between text-[13px]">
                 <span className="text-[#4A5961]">Present</span>
-                <span className="font-bold text-[#10242A]">[00]</span>
+                <span className="font-bold text-[#10242A]">00</span>
               </div>
               <div className="flex items-center justify-between text-[13px]">
                 <span className="text-[#4A5961]">On leave</span>
-                <span className="font-bold text-[#10242A]">[00]</span>
+                <span className="font-bold text-[#10242A]">00</span>
               </div>
               <div className="flex items-center justify-between text-[13px]">
                 <span className="text-[#4A5961]">Absent</span>
-                <span className="font-bold text-[#10242A]">[00]</span>
+                <span className="font-bold text-[#10242A]">00</span>
               </div>
               <div className="flex items-center justify-between text-[13px]">
                 <span className="text-[#4A5961]">Shifts running now</span>
-                <span className="font-bold text-[#10242A]">[00]</span>
+                <span className="font-bold text-[#10242A]">00</span>
               </div>
             </div>
           </div>
@@ -187,8 +187,8 @@ export default function UserOverview() {
                   ) : (
                     pendingOwners.slice(0, 3).map((o, idx) => (
                       <tr key={idx}>
-                        <td className="py-2 text-[#10242A] font-normal">{o.name || "[Owner name]"}</td>
-                        <td className="py-2 text-[#4A5961]">{o.createdAt ? new Date(o.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : "[Date]"}</td>
+                        <td className="py-2 text-[#10242A] font-normal">{o.name || "Owner"}</td>
+                        <td className="py-2 text-[#4A5961]">{o.createdAt ? new Date(o.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : "—"}</td>
                         <td className="py-2">
                           <span className={cn(
                             "text-[11px] font-semibold px-2.5 py-0.5 rounded-full",
@@ -221,15 +221,15 @@ export default function UserOverview() {
             <div className="space-y-2">
               <div className="flex items-center justify-between text-[13px]">
                 <span className="text-[#4A5961]">Active plans</span>
-                <span className="font-bold text-[#10242A]">[00]</span>
+                <span className="font-bold text-[#10242A]">00</span>
               </div>
               <div className="flex items-center justify-between text-[13px]">
                 <span className="text-[#4A5961]">Expiring in 7 days</span>
-                <span className="font-bold text-[#10242A]">[00]</span>
+                <span className="font-bold text-[#10242A]">00</span>
               </div>
               <div className="flex items-center justify-between text-[13px]">
                 <span className="text-[#4A5961]">Expired</span>
-                <span className="font-bold text-[#10242A]">[00]</span>
+                <span className="font-bold text-[#10242A]">00</span>
               </div>
             </div>
           </div>
@@ -242,15 +242,15 @@ export default function UserOverview() {
             <div className="space-y-2">
               <div className="flex items-center justify-between text-[13px]">
                 <span className="text-[#4A5961]">Agreements awaiting signature</span>
-                <span className="font-bold text-[#10242A]">[00]</span>
+                <span className="font-bold text-[#10242A]">00</span>
               </div>
               <div className="flex items-center justify-between text-[13px]">
                 <span className="text-[#4A5961]">New owner requests</span>
-                <span className="font-bold text-[#10242A]">[00]</span>
+                <span className="font-bold text-[#10242A]">00</span>
               </div>
               <div className="flex items-center justify-between text-[13px]">
                 <span className="text-[#4A5961]">Documents to verify</span>
-                <span className="font-bold text-[#10242A]">[00]</span>
+                <span className="font-bold text-[#10242A]">00</span>
               </div>
             </div>
           </div>

@@ -260,9 +260,11 @@ export default function SuperadminIndexPage() {
             <div className="w-full max-w-md bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 p-8 md:p-10 fade-in">
                 <div className="text-center mb-10">
                     <div className="inline-flex items-center justify-center mb-6">
-                        <span className="text-3xl font-black text-slate-900 tracking-tighter">
-                            Roomhy<span className="text-purple-600">.com</span>
-                        </span>
+                        <img
+                            src="/website/roomhy_logo.jpeg"
+                            alt="Roomhy Logo"
+                            className="h-12 w-auto object-contain"
+                        />
                     </div>
                     <h1 className="text-3xl font-extrabold text-slate-900 mb-2 tracking-tight">Superadmin Login</h1>
                     <p className="text-slate-500 text-sm">Enter your credentials to access Roomhy</p>

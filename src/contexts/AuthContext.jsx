@@ -25,40 +25,66 @@ const getAuthApiUrl = () =>
     : window.location.origin);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [panelUser, setPanelUser] = useState(null);
+  const [websiteUser, setWebsiteUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [pathname, setPathname] = useState(() => {
+    try { return window.location.pathname || "/"; } catch { return "/"; }
+  });
 
   useEffect(() => {
-    // Resolve the session that belongs to THIS route. On the public website the
-    // panel `token` is out of scope — reading it here is what made the website
-    // navbar show "Super Admin" for every visitor once a superadmin had signed
-    // in on the same browser.
-    const onWebsite = isWebsiteRoute();
+    const syncPath = () => {
+      try { setPathname(window.location.pathname || "/"); } catch (_) {}
+    };
+    window.addEventListener("popstate", syncPath);
+    const origPush = window.history.pushState;
+    const origReplace = window.history.replaceState;
+    window.history.pushState = function (...args) {
+      const ret = origPush.apply(this, args);
+      syncPath();
+      return ret;
+    };
+    window.history.replaceState = function (...args) {
+      const ret = origReplace.apply(this, args);
+      syncPath();
+      return ret;
+    };
+    return () => {
+      window.removeEventListener("popstate", syncPath);
+      window.history.pushState = origPush;
+      window.history.replaceState = origReplace;
+    };
+  }, []);
 
-    // Purge a leftover fabricated session so the UI shows signed-out rather
-    // than a signed-in shell whose every request 401s.
-    if (hasFabricatedSession()) {
-      clearScopedSession();
+  useEffect(() => {
+    const onWebsite = isWebsiteRoute(pathname);
+
+    if (hasFabricatedSession(pathname)) {
+      clearScopedSession(pathname);
+      if (onWebsite) setWebsiteUser(null);
+      else setPanelUser(null);
       setLoading(false);
       return;
     }
 
-    const token = getScopedAuthToken();
-    const parsedUser = getScopedStoredUser();
+    const token = getScopedAuthToken(pathname);
+    const parsedUser = getScopedStoredUser(pathname);
 
     if (!token || !parsedUser) {
+      if (onWebsite) setWebsiteUser(null);
+      else setPanelUser(null);
       setLoading(false);
       return;
     }
 
-    // A panel identity is never a website identity, even if a stale website
-    // token somehow resolves to one.
-    if (onWebsite && isAdminRole(parsedUser.role)) {
+    if (onWebsite && (isAdminRole(parsedUser.role) || parsedUser.team || /^RY[A-Z0-9]+/i.test(String(parsedUser.loginId || "")))) {
+      setWebsiteUser(null);
       setLoading(false);
       return;
     }
 
-    setUser(parsedUser);
+    if (onWebsite) setWebsiteUser(parsedUser);
+    else setPanelUser(parsedUser);
 
     fetch(`${getAuthApiUrl()}/api/auth/me`, {
       headers: { Authorization: `Bearer ${token}` }
@@ -68,11 +94,13 @@ export const AuthProvider = ({ children }) => {
         if (data) {
           const backendUser = (data?.user && typeof data.user === "object") ? data.user : data;
           if (backendUser && typeof backendUser === "object" && backendUser.role) {
-            if (onWebsite && isAdminRole(backendUser.role)) {
-              setUser(null);
+            if (onWebsite && (isAdminRole(backendUser.role) || backendUser.team || /^RY[A-Z0-9]+/i.test(String(backendUser.loginId || "")))) {
+              setWebsiteUser(null);
+              clearScopedSession(pathname);
               return;
             }
-            setUser(backendUser);
+            if (onWebsite) setWebsiteUser(backendUser);
+            else setPanelUser(backendUser);
           }
         }
       })
@@ -82,20 +110,34 @@ export const AuthProvider = ({ children }) => {
       .finally(() => {
         setLoading(false);
       });
-  }, []);
+  }, [pathname]);
+
+  const onWebsiteNow = isWebsiteRoute(pathname);
+  const user = onWebsiteNow ? websiteUser : panelUser;
 
   const login = (userData, token) => {
-    setUser(userData);
-    localStorage.setItem('token', token);
-    sessionStorage.setItem('token', token);
-    localStorage.setItem('userData', JSON.stringify(userData));
+    if (isWebsiteRoute()) {
+      if (!isAdminRole(userData?.role) && !userData?.team) {
+        setWebsiteUser(userData);
+        localStorage.setItem('website_token', token);
+        sessionStorage.setItem('website_token', token);
+        localStorage.setItem('website_user', JSON.stringify(userData));
+        sessionStorage.setItem('website_user', JSON.stringify(userData));
+      }
+    } else {
+      setPanelUser(userData);
+      localStorage.setItem('token', token);
+      sessionStorage.setItem('token', token);
+      localStorage.setItem('userData', JSON.stringify(userData));
+    }
   };
 
   const logout = () => {
-    setUser(null);
-    // Clears the keys for the current context: website routes drop the website
-    // session, panel routes drop the panel session. Clearing only the panel
-    // keys used to leave a website visitor still signed in.
+    if (isWebsiteRoute()) {
+      setWebsiteUser(null);
+    } else {
+      setPanelUser(null);
+    }
     clearScopedSession();
   };
 

@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from "react";
 import {
-  Banknote, RefreshCw, Search, CheckCircle2,
-  User, Home, Calendar, IndianRupee, TrendingDown
+  RefreshCw, Search, CheckCircle2, User, Home
 } from "lucide-react";
 import { fetchJson } from "../../utils/api";
-import { PageHeader } from "../../components/superadmin/PageHeader";
 import useSEO from "../../hooks/useSEO";
 
 const cn = (...c) => c.filter(Boolean).join(" ");
@@ -40,107 +38,100 @@ export default function PayoutsCashReceived() {
   const avgAmt = totalCount ? Math.round(totalCash / totalCount) : 0;
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Cash Received Details"
-        subtitle="Offline cash rent payments collected directly from tenants — reconciliation ledger"
-        actions={
-          <button onClick={load} className="flex items-center gap-2 bg-white border border-slate-100 px-4 py-2 rounded-xl shadow-sm text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all">
-            <RefreshCw className={cn("w-3.5 h-3.5", loading && "animate-spin")} /> Refresh
+    <div className="space-y-4 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-[22px] font-bold text-[#10242A] tracking-tight leading-tight">Cash Received Details</h1>
+          <p className="text-[13px] text-[#4A5961] mt-0.5">Offline cash rent payments collected directly from tenants — reconciliation ledger</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button onClick={load} className="flex items-center gap-2 bg-white border border-[#CBD3D9] hover:bg-gray-50 text-[#10242A] text-[13px] font-semibold px-4 py-1.5 rounded-[8px] transition-all shadow-xs cursor-pointer">
+            <RefreshCw className={cn("w-3.5 h-3.5 text-[#0E7C86]", loading && "animate-spin")} /> Refresh
           </button>
-        }
-      />
+        </div>
+      </div>
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { label: "Total Cash Entries", val: totalCount,  icon: Banknote,     color: "#10B981", bg: "#ECFDF5", txt: "#065F46", fmt: v => v },
-          { label: "Total Cash Received", val: totalCash,  icon: IndianRupee,  color: "#3B82F6", bg: "#EFF6FF", txt: "#1D4ED8", fmt: fmt },
-          { label: "Average per Entry",  val: avgAmt,      icon: TrendingDown, color: "#8B5CF6", bg: "#F5F3FF", txt: "#5B21B6", fmt: fmt },
+          { label: "Total Cash Entries", val: totalCount, fmt: v => v },
+          { label: "Total Cash Received", val: totalCash, fmt: fmt },
+          { label: "Average per Entry",  val: avgAmt,     fmt: fmt },
         ].map(card => (
-          <div key={card.label} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex items-center gap-4">
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ background: card.bg }}>
-              <card.icon size={20} style={{ color: card.color }} />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{card.label}</p>
-              {loading
-                ? <div className="h-6 w-24 bg-slate-100 rounded animate-pulse mt-1" />
-                : <p className="text-xl font-black mt-0.5" style={{ color: card.txt }}>{card.fmt(card.val)}</p>
-              }
+          <div key={card.label} className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
+            <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">{card.label}</p>
+            <div className="mt-2">
+              <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">
+                {loading ? "..." : card.fmt(card.val)}
+              </h3>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Main Table */}
-        <div className="xl:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h3 className="text-sm font-bold text-slate-800">Cash Ledger</h3>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                {loading ? "Loading..." : `${filtered.length} entries found`}
-              </p>
-            </div>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-300" />
-              <input
-                value={search} onChange={e => setSearch(e.target.value)}
-                placeholder="Tenant / property..."
-                className="bg-slate-50 border-none rounded-xl py-2 pl-9 pr-4 text-[10px] font-bold outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all shadow-sm w-48"
-              />
-            </div>
-          </div>
+      {/* Outside Search Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="relative w-full sm:w-[320px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8C9BA5]" />
+          <input
+            value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Search tenant / property..."
+            className="w-full bg-white border border-[#CBD3D9] rounded-[8px] pl-9 pr-3.5 py-1.5 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs"
+          />
+        </div>
+        <span className="text-[12px] font-medium text-[#4A5961]">
+          {loading ? "Loading..." : `${filtered.length} entries found`}
+        </span>
+      </div>
 
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        {/* Main Table */}
+        <div className="xl:col-span-2 bg-white rounded-[12px] border border-[#E1E6EA] shadow-xs p-4 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left">
+            <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="text-slate-400 text-[8px] font-bold uppercase border-b border-slate-50">
-                  <th className="pb-4">Tenant</th>
-                  <th className="pb-4">Property</th>
-                  <th className="pb-4 text-center">Month</th>
-                  <th className="pb-4 text-center">Cash</th>
-                  <th className="pb-4 text-center">Date</th>
-                  <th className="pb-4 text-center">Status</th>
-                  <th className="pb-4 text-right">Details</th>
+                <tr className="border-b border-[#E1E6EA]">
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Tenant</th>
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Property</th>
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-center">Month</th>
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-center">Cash</th>
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-center">Date</th>
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-center">Status</th>
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-right">Details</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50">
+              <tbody className="divide-y divide-[#F0F4F6] text-[13px]">
                 {loading ? (
-                  [1,2,3,4].map(i => (
-                    <tr key={i}>{[1,2,3,4,5,6,7].map(j => <td key={j} className="py-3"><div className="h-4 bg-slate-100 rounded animate-pulse" /></td>)}</tr>
-                  ))
+                  <tr><td colSpan={7} className="py-6 text-center text-[13px] text-[#4A5961]">Loading records...</td></tr>
                 ) : filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-16 text-center">
-                      <Banknote className="w-10 h-10 text-slate-200 mx-auto mb-2" />
-                      <p className="text-sm font-bold text-slate-400">No cash entries found</p>
-                      <p className="text-[10px] text-slate-300 mt-1">Cash collections will appear here</p>
+                    <td colSpan={7} className="py-8 text-center">
+                      <p className="text-[13px] font-semibold text-[#10242A]">No cash entries found</p>
+                      <p className="text-[12px] text-[#4A5961] mt-0.5">Cash collections will appear here</p>
                     </td>
                   </tr>
                 ) : filtered.map((c, i) => (
-                  <tr key={i} className="group hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => setSelected(c)}>
-                    <td className="py-3">
-                      <p className="font-bold text-slate-800 text-xs">{c.tenantName || "N/A"}</p>
-                      <p className="text-[9px] text-slate-400">{c.tenantPhone || ""}</p>
+                  <tr key={i} className="hover:bg-[#F9FAFB] transition-colors cursor-pointer" onClick={() => setSelected(c)}>
+                    <td className="py-2.5">
+                      <p className="font-medium text-[#10242A]">{c.tenantName || "N/A"}</p>
+                      <p className="text-[11px] text-[#708088]">{c.tenantPhone || ""}</p>
                     </td>
-                    <td className="py-3">
-                      <p className="font-medium text-slate-600 text-[11px]">{c.propertyName || "N/A"}</p>
-                      <p className="text-[9px] text-slate-400">{c.roomNumber ? `Room ${c.roomNumber}` : ""}</p>
+                    <td className="py-2.5">
+                      <p className="text-[#4A5961]">{c.propertyName || "N/A"}</p>
+                      <p className="text-[11px] text-[#708088]">{c.roomNumber ? `Room ${c.roomNumber}` : ""}</p>
                     </td>
-                    <td className="py-3 text-center text-[10px] font-bold text-slate-500">{c.collectionMonth || "N/A"}</td>
-                    <td className="py-3 text-center font-black text-slate-800">{fmt(c.paidAmount)}</td>
-                    <td className="py-3 text-center text-[10px] text-slate-500">
+                    <td className="py-2.5 text-center text-[#4A5961]">{c.collectionMonth || "N/A"}</td>
+                    <td className="py-2.5 text-center font-semibold text-[#10242A]">{fmt(c.paidAmount)}</td>
+                    <td className="py-2.5 text-center text-[#4A5961]">
                       {c.paymentDate ? new Date(c.paymentDate).toLocaleDateString("en-IN") : "N/A"}
                     </td>
-                    <td className="py-3 text-center">
-                      <span className="text-[8px] font-bold px-2 py-0.5 rounded-lg border bg-emerald-50 text-emerald-700 border-emerald-100 uppercase inline-flex items-center gap-1">
-                        <CheckCircle2 size={9} /> {c.paymentStatus || "Received"}
+                    <td className="py-2.5 text-center">
+                      <span className="inline-flex items-center gap-1 text-[12px] font-semibold px-2.5 py-0.5 rounded-full bg-[#DDF3E4] text-[#14532D]">
+                        <CheckCircle2 size={11} /> {c.paymentStatus || "Received"}
                       </span>
                     </td>
-                    <td className="py-3 text-right">
-                      <button className="text-[9px] font-bold text-blue-600 hover:underline">View</button>
+                    <td className="py-2.5 text-right">
+                      <button className="text-[12px] font-semibold text-[#0E7C86] hover:underline">View</button>
                     </td>
                   </tr>
                 ))}
@@ -152,60 +143,60 @@ export default function PayoutsCashReceived() {
         {/* Detail Panel */}
         <div className="xl:col-span-1">
           {selected ? (
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5 sticky top-6">
+            <div className="bg-white rounded-[12px] border border-[#E1E6EA] shadow-xs p-4 space-y-4 sticky top-6">
               <div className="flex items-center justify-between">
-                <h4 className="text-sm font-bold text-slate-800">Cash Entry Detail</h4>
-                <button onClick={() => setSelected(null)} className="text-slate-300 hover:text-slate-600 transition-colors">×</button>
+                <h4 className="text-[14px] font-bold text-[#10242A]">Cash Entry Detail</h4>
+                <button onClick={() => setSelected(null)} className="text-[#4A5961] hover:text-[#10242A] transition-colors">×</button>
               </div>
 
               {/* Tenant Info */}
-              <div className="bg-slate-50 rounded-2xl p-4 space-y-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center">
-                    <User size={16} className="text-blue-600" />
+              <div className="bg-[#F9FAFB] rounded-[8px] p-3 space-y-2 border border-[#E1E6EA]">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-7 h-7 rounded-full bg-[#E1ECF4] flex items-center justify-center">
+                    <User size={14} className="text-[#1E3A5F]" />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-slate-800">{selected.tenantName || "N/A"}</p>
-                    <p className="text-[9px] text-slate-400 font-semibold">Tenant</p>
+                    <p className="text-[13px] font-semibold text-[#10242A]">{selected.tenantName || "N/A"}</p>
+                    <p className="text-[11px] text-[#708088]">Tenant</p>
                   </div>
                 </div>
-                <div className="space-y-2 text-[11px]">
+                <div className="space-y-1.5 text-[12px]">
                   {[
                     { label: "Phone", val: selected.tenantPhone || "N/A" },
                     { label: "Email", val: selected.tenantEmail || "N/A" },
                     { label: "Move-In", val: selected.moveInDate ? new Date(selected.moveInDate).toLocaleDateString("en-IN") : "N/A" },
                   ].map(r => (
                     <div key={r.label} className="flex justify-between">
-                      <span className="text-slate-400 font-semibold">{r.label}</span>
-                      <span className="font-bold text-slate-700">{r.val}</span>
+                      <span className="text-[#4A5961]">{r.label}</span>
+                      <span className="font-semibold text-[#10242A]">{r.val}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* Property Info */}
-              <div className="bg-slate-50 rounded-2xl p-4 space-y-2">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center">
-                    <Home size={16} className="text-emerald-600" />
+              <div className="bg-[#F9FAFB] rounded-[8px] p-3 space-y-2 border border-[#E1E6EA]">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-7 h-7 rounded-full bg-[#DDF3E4] flex items-center justify-center">
+                    <Home size={14} className="text-[#14532D]" />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-slate-800">{selected.propertyName || "N/A"}</p>
-                    <p className="text-[9px] text-slate-400 font-semibold">Property</p>
+                    <p className="text-[13px] font-semibold text-[#10242A]">{selected.propertyName || "N/A"}</p>
+                    <p className="text-[11px] text-[#708088]">Property</p>
                   </div>
                 </div>
                 {selected.roomNumber && (
-                  <div className="flex justify-between text-[11px]">
-                    <span className="text-slate-400 font-semibold">Room</span>
-                    <span className="font-bold text-slate-700">{selected.roomNumber}</span>
+                  <div className="flex justify-between text-[12px]">
+                    <span className="text-[#4A5961]">Room</span>
+                    <span className="font-semibold text-[#10242A]">{selected.roomNumber}</span>
                   </div>
                 )}
               </div>
 
               {/* Payment Summary */}
-              <div className="bg-emerald-50 rounded-2xl p-4 border border-emerald-100">
-                <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider mb-2">Payment Summary</p>
-                <div className="space-y-2 text-[11px]">
+              <div className="bg-[#DDF3E4]/40 rounded-[8px] p-3 border border-[#DDF3E4]">
+                <p className="text-[11px] font-semibold text-[#14532D] uppercase tracking-wider mb-2">Payment Summary</p>
+                <div className="space-y-1.5 text-[12px]">
                   {[
                     { label: "Month", val: selected.collectionMonth || "N/A" },
                     { label: "Amount Paid", val: fmt(selected.paidAmount) },
@@ -214,17 +205,16 @@ export default function PayoutsCashReceived() {
                     { label: "Status", val: selected.paymentStatus || "Received" },
                   ].map(r => (
                     <div key={r.label} className="flex justify-between">
-                      <span className="text-emerald-600 font-semibold">{r.label}</span>
-                      <span className="font-black text-slate-800">{r.val}</span>
+                      <span className="text-[#14532D]">{r.label}</span>
+                      <span className="font-bold text-[#10242A]">{r.val}</span>
                     </div>
                   ))}
                 </div>
               </div>
             </div>
           ) : (
-            <div className="bg-slate-50 rounded-2xl border border-dashed border-slate-200 p-8 text-center h-48 flex flex-col items-center justify-center">
-              <Banknote className="w-8 h-8 text-slate-200 mb-2" />
-              <p className="text-xs font-bold text-slate-400">Click a row to see tenant details</p>
+            <div className="bg-white rounded-[12px] border border-[#E1E6EA] shadow-xs p-6 text-center h-48 flex flex-col items-center justify-center">
+              <p className="text-[13px] font-medium text-[#4A5961]">Click a row to see tenant details</p>
             </div>
           )}
         </div>

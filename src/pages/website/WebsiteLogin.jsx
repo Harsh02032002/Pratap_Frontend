@@ -50,7 +50,7 @@ export default function WebsiteLogin() {
             </div>
             
             <div className="relative">
-              <img src="https://res.cloudinary.com/dpwgvcibj/image/upload/v1768990260/roomhy/website/logoroomhy.png" alt="Roomhy" className="h-8 w-auto mb-8 brightness-0 invert" />
+              <img src="/website/roomhy_logo.jpeg" alt="Roomhy" className="h-10 w-auto mb-8 rounded-lg bg-white px-2.5 py-1 object-contain" />
               <h1 className="text-3xl font-extrabold tracking-tight mb-4 leading-tight">
                 Your journey to a better <span className="text-teal-400">stay</span> starts here.
               </h1>

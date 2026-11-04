@@ -68,17 +68,17 @@ export default function ReviewAnalytics() {
   }, [reviews]);
 
   return (
-    <div className="space-y-6 pb-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <PageHeader 
-          title="Review Analytics" 
-          subtitle="Deep Dive into Customer Satisfaction & Brand Perception Metrics" 
-        />
-        <div className="flex items-center gap-2">
-          <button onClick={loadData} className="p-2 rounded-[10px] bg-white border border-[#E1E6EA] shadow-xs text-[#4A5961] hover:text-[#0E7C86] transition-all">
-             <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
+    <div className="space-y-4 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-[22px] font-bold text-[#10242A] tracking-tight leading-tight">Review Analytics</h1>
+          <p className="text-[13px] text-[#4A5961] mt-0.5">Deep Dive into Customer Satisfaction & Brand Perception Metrics</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button onClick={loadData} className="bg-white border border-[#CBD3D9] hover:bg-gray-50 text-[#10242A] text-[13px] font-semibold px-3.5 py-1.5 rounded-[8px] transition-all shadow-xs cursor-pointer flex items-center gap-2">
+            <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} /> Refresh
           </button>
-          <div className="flex items-center gap-2 bg-white border border-[#E1E6EA] px-3.5 py-1.5 rounded-[12px] shadow-xs text-xs font-semibold text-[#4A5961]">
+          <div className="flex items-center gap-2 bg-white border border-[#CBD3D9] px-3 py-1.5 rounded-[8px] shadow-xs text-[13px] font-medium text-[#10242A]">
             <Calendar size={14} className="text-[#0E7C86]" />
             <span>Last 30 Days</span>
           </div>
@@ -86,21 +86,16 @@ export default function ReviewAnalytics() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard label="Average Rating" value={`${stats.avg} ★`} trend="+0.2" up icon={Star} />
-        <MetricCard label="Total Reviews" value={stats.total.toLocaleString()} trend="+12.4%" up icon={MessageSquare} />
-        <MetricCard label="Verified Rate" value={`${stats.vRate}%`} trend="+5.1%" up icon={Zap} />
-        <MetricCard label="Net Sentiment" value={stats.sentiment} trend="Stable" up icon={Target} />
+        <MetricCard label="Average Rating" value={`${stats.avg} ★`} trend="+0.2" />
+        <MetricCard label="Total Reviews" value={stats.total.toLocaleString()} trend="+12.4%" />
+        <MetricCard label="Verified Rate" value={`${stats.vRate}%`} trend="+5.1%" />
+        <MetricCard label="Net Sentiment" value={stats.sentiment} trend="Stable" />
       </div>
 
-      <div className="grid grid-cols-12 gap-6">
-        <div className="col-span-12 lg:col-span-7 bg-white rounded-[16px] p-6 border border-[#E1E6EA] shadow-xs flex flex-col justify-between" style={{height: 400}}>
-           <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                 <div className="w-8 h-8 rounded-[10px] bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center">
-                    <BarChart3 size={16} />
-                 </div>
-                 <h3 className="text-base font-bold text-[#10242A]">Rating Frequency</h3>
-              </div>
+      <div className="grid grid-cols-12 gap-4">
+        <div className="col-span-12 lg:col-span-7 bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between" style={{height: 360}}>
+           <div className="flex items-center justify-between mb-3">
+              <h3 className="text-[15px] font-bold text-[#10242A]">Rating Frequency</h3>
            </div>
            <div className="flex-1 min-h-0">
               <ResponsiveContainer width="100%" height="100%">
@@ -117,36 +112,31 @@ export default function ReviewAnalytics() {
            </div>
         </div>
 
-        <div className="col-span-12 lg:col-span-5 bg-white rounded-[16px] p-6 border border-[#E1E6EA] shadow-xs flex flex-col items-center justify-between" style={{height: 400}}>
-           <div className="flex items-center justify-between w-full mb-4">
-              <div className="flex items-center gap-3">
-                 <div className="w-8 h-8 rounded-[10px] bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center">
-                    <PieIcon size={16} />
-                 </div>
-                 <h3 className="text-base font-bold text-[#10242A]">Review Share</h3>
-              </div>
+        <div className="col-span-12 lg:col-span-5 bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col items-center justify-between" style={{height: 360}}>
+           <div className="flex items-center justify-between w-full mb-3">
+              <h3 className="text-[15px] font-bold text-[#10242A]">Review Share</h3>
            </div>
-           <div className="relative w-48 h-48 mb-4 flex items-center justify-center">
+           <div className="relative w-44 h-44 mb-3 flex items-center justify-center">
               <ResponsiveContainer width="100%" height="100%">
                  <PieChart>
-                    <Pie data={ratingDist} innerRadius={55} outerRadius={75} paddingAngle={4} dataKey="value" stroke="none">
+                    <Pie data={ratingDist} innerRadius={50} outerRadius={70} paddingAngle={4} dataKey="value" stroke="none">
                        {ratingDist.map((e, i) => <Cell key={i} fill={e.color} />)}
                     </Pie>
                  </PieChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                 <p className="text-2xl font-bold text-[#10242A] leading-none">{stats.total.toLocaleString()}</p>
+                 <p className="text-xl font-bold text-[#10242A] leading-none">{stats.total.toLocaleString()}</p>
                  <p className="text-[9px] text-[#4A5961] font-semibold uppercase mt-1 tracking-wider">Total Reviews</p>
               </div>
            </div>
-           <div className="w-full space-y-2 mt-auto">
+           <div className="w-full space-y-1.5 mt-auto">
               {ratingDist.slice(0, 3).map(r => (
-                <div key={r.name} className="flex items-center justify-between p-2.5 bg-[#F4F6F8] rounded-[8px] border border-[#E1E6EA]">
+                <div key={r.name} className="flex items-center justify-between p-2 bg-[#F9FAFB] rounded-[8px] border border-[#E1E6EA]">
                    <div className="flex items-center gap-2">
                       <div className="w-2.5 h-2.5 rounded-full" style={{backgroundColor: r.color}} />
-                      <span className="text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider">{r.name}</span>
+                      <span className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">{r.name}</span>
                    </div>
-                   <span className="text-xs font-bold text-[#10242A]">{r.value.toLocaleString()} Reviews</span>
+                   <span className="text-[13px] font-bold text-[#10242A]">{r.value.toLocaleString()} Reviews</span>
                 </div>
               ))}
            </div>
@@ -156,21 +146,12 @@ export default function ReviewAnalytics() {
   );
 }
 
-function MetricCard({ label, value, trend, up, icon: Icon }) {
+function MetricCard({ label, value, trend }) {
   return (
-    <div className="bg-white rounded-[16px] p-5 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
-      <div>
-        <div className="w-8 h-8 rounded-[10px] bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center mb-2.5">
-           <Icon className="w-4 h-4" />
-        </div>
-        <p className="text-[10px] font-bold text-[#4A5961] uppercase tracking-wider mb-1 leading-none">{label}</p>
-        <p className="text-2xl font-bold text-[#10242A] leading-none mb-2">{value}</p>
-      </div>
-      
-      <div className="flex items-center gap-1 mt-2">
-         <TrendingUp size={11} className="text-emerald-600" />
-         <span className="text-[10px] font-bold text-emerald-600">{trend}</span>
-         <span className="text-[10px] text-[#4A5961] font-medium ml-1">vs last period</span>
+    <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
+      <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">{label}</p>
+      <div className="mt-2">
+        <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{value}</h3>
       </div>
     </div>
   );

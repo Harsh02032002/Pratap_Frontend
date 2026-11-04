@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from "react";
 import {
-  Send, RefreshCw, AlertCircle, Wallet, Clock,
-  Search, CheckCircle2, X, IndianRupee, Users
+  Send, RefreshCw, AlertCircle, Search, CheckCircle2, X
 } from "lucide-react";
 import { fetchJson } from "../../utils/api";
-import { PageHeader } from "../../components/superadmin/PageHeader";
 import useSEO from "../../hooks/useSEO";
 
 const cn = (...c) => c.filter(Boolean).join(" ");
@@ -66,20 +64,22 @@ export default function PayoutsPending() {
   const totalCount = pending.length;
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Pending Payouts"
-        subtitle="Owner disbursements waiting for approval & bank transfer"
-        actions={
-          <button onClick={load} className="flex items-center gap-2 bg-white border border-slate-100 px-4 py-2 rounded-xl shadow-sm text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all">
-            <RefreshCw className={cn("w-3.5 h-3.5", loading && "animate-spin")} /> Refresh
+    <div className="space-y-4 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-[22px] font-bold text-[#10242A] tracking-tight leading-tight">Pending Payouts</h1>
+          <p className="text-[13px] text-[#4A5961] mt-0.5">Owner disbursements waiting for approval & bank transfer</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button onClick={load} className="flex items-center gap-2 bg-white border border-[#CBD3D9] hover:bg-gray-50 text-[#10242A] text-[13px] font-semibold px-4 py-1.5 rounded-[8px] transition-all shadow-xs cursor-pointer">
+            <RefreshCw className={cn("w-3.5 h-3.5 text-[#0E7C86]", loading && "animate-spin")} /> Refresh
           </button>
-        }
-      />
+        </div>
+      </div>
 
       {/* Success Message */}
       {successMsg && (
-        <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 text-emerald-700 rounded-2xl px-5 py-3 text-sm font-bold shadow-sm">
+        <div className="flex items-center gap-3 bg-[#DDF3E4] border border-[#B7E4C7] text-[#14532D] rounded-[12px] px-4 py-3 text-[13px] font-semibold">
           <CheckCircle2 className="w-4 h-4 shrink-0" /> {successMsg}
           <button onClick={() => setSuccessMsg("")} className="ml-auto"><X className="w-4 h-4" /></button>
         </div>
@@ -88,103 +88,90 @@ export default function PayoutsPending() {
       {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { label: "Pending Queue",  val: totalCount,       icon: Clock,    color: "#F59E0B", bg: "#FFFBEB", txt: "#B45309", fmt: (v) => v },
-          { label: "Total Pending",  val: totalAmt,         icon: Wallet,   color: "#EF4444", bg: "#FEF2F2", txt: "#B91C1C", fmt: fmt },
-          { label: "Avg Payout",     val: totalCount ? Math.round(totalAmt / totalCount) : 0, icon: IndianRupee, color: "#6366F1", bg: "#EEF2FF", txt: "#3730A3", fmt: fmt },
+          { label: "Pending Queue",  val: totalCount, fmt: (v) => v },
+          { label: "Total Pending",  val: totalAmt,   fmt: fmt },
+          { label: "Avg Payout",     val: totalCount ? Math.round(totalAmt / totalCount) : 0, fmt: fmt },
         ].map(card => (
-          <div key={card.label} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex items-center gap-4">
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ background: card.bg }}>
-              <card.icon size={20} style={{ color: card.color }} />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{card.label}</p>
-              {loading
-                ? <div className="h-6 w-24 bg-slate-100 rounded animate-pulse mt-1" />
-                : <p className="text-xl font-black mt-0.5" style={{ color: card.txt }}>{card.fmt(card.val)}</p>
-              }
+          <div key={card.label} className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
+            <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">{card.label}</p>
+            <div className="mt-2">
+              <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">
+                {loading ? "..." : card.fmt(card.val)}
+              </h3>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Table Card */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h3 className="text-sm font-bold text-slate-800">Disbursement Queue</h3>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-              {loading ? "Loading..." : `${filtered.length} payouts pending`}
-            </p>
-          </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-300" />
-            <input
-              value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search owner / property..."
-              className="bg-slate-50 border-none rounded-xl py-2 pl-9 pr-4 text-[10px] font-bold outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all shadow-sm w-56"
-            />
-          </div>
+      {/* Search Bar (Outside Table Card) */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="relative w-full sm:w-[320px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8C9BA5]" />
+          <input
+            value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Search owner / property..."
+            className="w-full bg-white border border-[#CBD3D9] rounded-[8px] pl-9 pr-3.5 py-1.5 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs"
+          />
         </div>
+        <span className="text-[12px] font-medium text-[#4A5961]">
+          {loading ? "Loading..." : `${filtered.length} payouts pending`}
+        </span>
+      </div>
 
+      {/* Table Card */}
+      <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
+          <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="text-slate-400 text-[8px] font-bold uppercase border-b border-slate-50">
-                <th className="pb-4">Txn ID</th>
-                <th className="pb-4">Owner</th>
-                <th className="pb-4">Property</th>
-                <th className="pb-4 text-center">Booking Amt</th>
-                <th className="pb-4 text-center">Net Payout</th>
-                <th className="pb-4 text-center">Commission</th>
-                <th className="pb-4 text-center">Status</th>
-                <th className="pb-4 text-right">Action</th>
+              <tr className="border-b border-[#E1E6EA]">
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Txn ID</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Owner</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Property</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-center">Booking Amt</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-center">Net Payout</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-center">Commission</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-center">Status</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
+            <tbody className="divide-y divide-[#F0F4F6] text-[13px]">
               {loading ? (
-                [1,2,3].map(i => (
-                  <tr key={i}>
-                    {[1,2,3,4,5,6,7,8].map(j => (
-                      <td key={j} className="py-3"><div className="h-4 bg-slate-100 rounded animate-pulse" /></td>
-                    ))}
-                  </tr>
-                ))
+                <tr><td colSpan={8} className="py-6 text-center text-[13px] text-[#4A5961]">Loading records...</td></tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-16 text-center">
-                    <CheckCircle2 className="w-10 h-10 text-emerald-300 mx-auto mb-2" />
-                    <p className="text-sm font-bold text-slate-400">No pending payouts</p>
-                    <p className="text-[10px] text-slate-300 mt-1">All payouts have been processed!</p>
+                  <td colSpan={8} className="py-8 text-center">
+                    <p className="text-[13px] font-semibold text-[#10242A]">No pending payouts</p>
+                    <p className="text-[12px] text-[#4A5961] mt-0.5">All payouts have been processed!</p>
                   </td>
                 </tr>
               ) : filtered.map((p, i) => (
-                <tr key={i} className="group hover:bg-slate-50 transition-colors">
-                  <td className="py-3">
-                    <span className="font-mono text-[9px] font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded-lg border border-purple-100">
+                <tr key={i} className="hover:bg-[#F9FAFB] transition-colors">
+                  <td className="py-2.5">
+                    <span className="font-mono text-[12px] font-semibold text-[#0E7C86] bg-[#E8F3F4] px-2 py-0.5 rounded-[6px]">
                       {String(p._id).slice(-8).toUpperCase()}
                     </span>
                   </td>
-                  <td className="py-3">
-                    <p className="font-bold text-slate-800 text-xs">{p.owner_name || "N/A"}</p>
-                    <p className="text-[9px] text-slate-400 font-semibold">{p.owner_loginId || ""}</p>
+                  <td className="py-2.5">
+                    <p className="font-medium text-[#10242A]">{p.owner_name || "N/A"}</p>
+                    <p className="text-[11px] text-[#708088]">{p.owner_loginId || ""}</p>
                   </td>
-                  <td className="py-3">
-                    <p className="font-medium text-slate-600 text-[11px]">{p.property_name || "N/A"}</p>
+                  <td className="py-2.5 text-[#4A5961]">
+                    {p.property_name || "N/A"}
                   </td>
-                  <td className="py-3 text-center font-bold text-slate-700">{fmt(p.booking_amount)}</td>
-                  <td className="py-3 text-center font-black text-emerald-600">{fmt(p.owner_amount)}</td>
-                  <td className="py-3 text-center font-semibold text-purple-600">{fmt(p.commission_amount)}</td>
-                  <td className="py-3 text-center">
-                    <span className="text-[8px] font-bold px-2 py-0.5 rounded-lg border bg-amber-50 text-amber-700 border-amber-100 uppercase">
+                  <td className="py-2.5 text-center font-semibold text-[#10242A]">{fmt(p.booking_amount)}</td>
+                  <td className="py-2.5 text-center font-bold text-[#14532D]">{fmt(p.owner_amount)}</td>
+                  <td className="py-2.5 text-center font-semibold text-[#0E7C86]">{fmt(p.commission_amount)}</td>
+                  <td className="py-2.5 text-center">
+                    <span className="inline-block text-[12px] font-semibold px-2.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E]">
                       {p.payout_status || "Pending"}
                     </span>
                   </td>
-                  <td className="py-3 text-right">
+                  <td className="py-2.5 text-right">
                     <button
                       onClick={() => { setSelectedTx(p); setErrorMsg(""); }}
-                      className="bg-slate-800 hover:bg-slate-900 text-white font-bold px-3 py-1.5 rounded-lg text-[9px] uppercase tracking-wider transition-all inline-flex items-center gap-1.5"
+                      className="bg-[#0E7C86] hover:bg-[#095256] text-white font-semibold px-3 py-1 rounded-[6px] text-[12px] transition-all inline-flex items-center gap-1.5 cursor-pointer"
                     >
-                      <Send size={9} /> Transfer
+                      <Send size={12} /> Transfer
                     </button>
                   </td>
                 </tr>

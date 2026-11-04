@@ -211,388 +211,305 @@ export default function ChatAlerts() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <PageHeader 
-          title="Moderation & Alerts"
-          subtitle="Review chat violations, spam attempts, and offline settlement warnings."
-          breadcrumbs={[
-            { label: "Chat Management" },
-            { label: "Alerts & Moderation", active: true }
-          ]}
-        />
+        <div>
+          <h1 className="text-[22px] font-bold text-[#10242A] tracking-tight leading-tight">Moderation & Alerts</h1>
+          <p className="text-[13px] text-[#4A5961] mt-0.5">Review chat violations, spam attempts, and offline settlement warnings.</p>
+        </div>
         <button 
           onClick={loadData} 
-          className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/80 px-4 py-2.5 rounded-2xl text-xs font-black shadow-sm shrink-0 flex items-center gap-2 transition-all hover:scale-105 active:scale-95 duration-200 w-fit self-end sm:self-auto"
+          className="bg-white hover:bg-[#F4F6F8] text-[#10242A] border border-[#CBD3D9] px-3.5 py-1.5 rounded-[8px] text-[13px] font-semibold shadow-xs shrink-0 flex items-center gap-2 transition-all cursor-pointer w-fit self-end sm:self-auto"
         >
-          <RefreshCw size={14} className={`text-slate-500 ${loading ? "animate-spin text-blue-600" : ""}`} /> 
+          <RefreshCw size={14} className={`text-[#4A5961] ${loading ? "animate-spin text-[#0E7C86]" : ""}`} /> 
           <span>Refresh Data</span>
         </button>
       </div>
 
-      {/* Analytics Metric Bar */}
+      {/* Analytics Metric Bar (NO ICONS) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Contact Sharing */}
         <div 
           onClick={() => handleFilterChange("contact_sharing")}
-          className={`relative overflow-hidden bg-white p-6 rounded-3xl border shadow-md cursor-pointer hover:scale-[1.02] transition-all duration-300 group ${
+          className={`bg-white rounded-[12px] p-4 border shadow-xs flex flex-col justify-between cursor-pointer transition-all ${
             filterType === "contact_sharing" 
-              ? "border-blue-500 ring-2 ring-blue-500/20 shadow-blue-100/50" 
-              : "border-slate-100/80 shadow-slate-100/30 hover:shadow-xl hover:shadow-slate-200/40"
+              ? "border-[#095256] ring-1 ring-[#095256]/20" 
+              : "border-[#E1E6EA] hover:border-[#CBD3D9]"
           }`}
         >
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400 group-hover:text-slate-500 transition-colors">Contact Sharing Attempts</p>
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center border transition-all duration-300 group-hover:scale-110 ${
-              filterType === "contact_sharing"
-                ? "bg-blue-600 text-white border-blue-600"
-                : "bg-blue-50 text-blue-600 border-blue-100/50 group-hover:bg-blue-600 group-hover:text-white"
-            }`}>
-              <PhoneCall size={16} />
-            </div>
+          <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Contact Sharing Attempts</p>
+          <div className="mt-2">
+            <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{analytics.contactSharingAttempts}</h3>
           </div>
-          <p className="text-3xl font-black text-slate-900 mt-4 tracking-tight group-hover:translate-x-1 transition-transform duration-300">{analytics.contactSharingAttempts}</p>
-          <div className={`h-1 rounded-full mt-4 transition-all duration-300 ${
-            filterType === "contact_sharing" ? "w-full bg-blue-600" : "w-12 bg-blue-500 group-hover:w-full"
-          }`}></div>
         </div>
 
         {/* Commission Bypass */}
         <div 
           onClick={() => handleFilterChange("commission_bypass")}
-          className={`relative overflow-hidden bg-white p-6 rounded-3xl border shadow-md cursor-pointer hover:scale-[1.02] transition-all duration-300 group ${
+          className={`bg-white rounded-[12px] p-4 border shadow-xs flex flex-col justify-between cursor-pointer transition-all ${
             filterType === "commission_bypass" 
-              ? "border-purple-500 ring-2 ring-purple-500/20 shadow-purple-100/50" 
-              : "border-slate-100/80 shadow-slate-100/30 hover:shadow-xl hover:shadow-slate-200/40"
+              ? "border-[#095256] ring-1 ring-[#095256]/20" 
+              : "border-[#E1E6EA] hover:border-[#CBD3D9]"
           }`}
         >
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400 group-hover:text-slate-500 transition-colors">Commission Bypass Attempts</p>
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center border transition-all duration-300 group-hover:scale-110 ${
-              filterType === "commission_bypass"
-                ? "bg-purple-600 text-white border-purple-600"
-                : "bg-purple-50 text-purple-600 border-purple-100/50 group-hover:bg-purple-600 group-hover:text-white"
-            }`}>
-              <DollarSign size={16} />
-            </div>
+          <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Commission Bypass Attempts</p>
+          <div className="mt-2">
+            <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{analytics.commissionBypassAttempts}</h3>
           </div>
-          <p className="text-3xl font-black text-slate-900 mt-4 tracking-tight group-hover:translate-x-1 transition-transform duration-300">{analytics.commissionBypassAttempts}</p>
-          <div className={`h-1 rounded-full mt-4 transition-all duration-300 ${
-            filterType === "commission_bypass" ? "w-full bg-purple-600" : "w-12 bg-purple-500 group-hover:w-full"
-          }`}></div>
         </div>
 
         {/* External Settlement */}
         <div 
           onClick={() => handleFilterChange("external_settlement")}
-          className={`relative overflow-hidden bg-white p-6 rounded-3xl border shadow-md cursor-pointer hover:scale-[1.02] transition-all duration-300 group ${
+          className={`bg-white rounded-[12px] p-4 border shadow-xs flex flex-col justify-between cursor-pointer transition-all ${
             filterType === "external_settlement" 
-              ? "border-amber-500 ring-2 ring-amber-500/20 shadow-amber-100/50" 
-              : "border-slate-100/80 shadow-slate-100/30 hover:shadow-xl hover:shadow-slate-200/40"
+              ? "border-[#095256] ring-1 ring-[#095256]/20" 
+              : "border-[#E1E6EA] hover:border-[#CBD3D9]"
           }`}
         >
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400 group-hover:text-slate-500 transition-colors">External Settlement Attempts</p>
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center border transition-all duration-300 group-hover:scale-110 ${
-              filterType === "external_settlement"
-                ? "bg-amber-600 text-white border-amber-600"
-                : "bg-amber-50 text-amber-600 border-amber-100/50 group-hover:bg-amber-600 group-hover:text-white"
-            }`}>
-              <CreditCard size={16} />
-            </div>
+          <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">External Settlement Attempts</p>
+          <div className="mt-2">
+            <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{analytics.externalSettlementAttempts}</h3>
           </div>
-          <p className="text-3xl font-black text-slate-900 mt-4 tracking-tight group-hover:translate-x-1 transition-transform duration-300">{analytics.externalSettlementAttempts}</p>
-          <div className={`h-1 rounded-full mt-4 transition-all duration-300 ${
-            filterType === "external_settlement" ? "w-full bg-amber-600" : "w-12 bg-amber-500 group-hover:w-full"
-          }`}></div>
         </div>
 
         {/* Repeated Violators */}
         <div 
           onClick={() => handleFilterChange("repeated_violators")}
-          className={`relative overflow-hidden bg-white p-6 rounded-3xl border shadow-md cursor-pointer hover:scale-[1.02] transition-all duration-300 group ${
+          className={`bg-white rounded-[12px] p-4 border shadow-xs flex flex-col justify-between cursor-pointer transition-all ${
             filterType === "repeated_violators" 
-              ? "border-rose-500 ring-2 ring-rose-500/20 shadow-rose-100/50" 
-              : "border-slate-100/80 shadow-slate-100/30 hover:shadow-xl hover:shadow-slate-200/40"
+              ? "border-[#095256] ring-1 ring-[#095256]/20" 
+              : "border-[#E1E6EA] hover:border-[#CBD3D9]"
           }`}
         >
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400 group-hover:text-slate-500 transition-colors">Repeated Violators</p>
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center border transition-all duration-300 group-hover:scale-110 ${
-              filterType === "repeated_violators"
-                ? "bg-rose-600 text-white border-rose-600"
-                : "bg-rose-50 text-rose-600 border-rose-100/50 group-hover:bg-rose-600 group-hover:text-white group-hover:animate-pulse"
-            }`}>
-              <UserX size={16} />
-            </div>
+          <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Repeated Violators</p>
+          <div className="mt-2">
+            <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{analytics.repeatedViolators}</h3>
           </div>
-          <p className="text-3xl font-black text-rose-600 mt-4 tracking-tight group-hover:translate-x-1 transition-transform duration-300">{analytics.repeatedViolators}</p>
-          <div className={`h-1 rounded-full mt-4 transition-all duration-300 ${
-            filterType === "repeated_violators" ? "w-full bg-rose-600" : "w-12 bg-rose-500 group-hover:w-full"
-          }`}></div>
         </div>
 
         {/* Blocked Owners */}
         <div 
           onClick={() => handleFilterChange("blocked_owners")}
-          className={`relative overflow-hidden bg-white p-6 rounded-3xl border shadow-md cursor-pointer hover:scale-[1.02] transition-all duration-300 group ${
+          className={`bg-white rounded-[12px] p-4 border shadow-xs flex flex-col justify-between cursor-pointer transition-all ${
             filterType === "blocked_owners" 
-              ? "border-red-600 ring-2 ring-red-600/20 shadow-red-100/50" 
-              : "border-slate-100/80 shadow-slate-100/30 hover:shadow-xl hover:shadow-slate-200/40"
+              ? "border-[#095256] ring-1 ring-[#095256]/20" 
+              : "border-[#E1E6EA] hover:border-[#CBD3D9]"
           }`}
         >
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] uppercase font-extrabold tracking-wider text-slate-400 group-hover:text-slate-500 transition-colors">Blocked Owners</p>
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center border transition-all duration-300 group-hover:scale-110 ${
-              filterType === "blocked_owners"
-                ? "bg-red-600 text-white border-red-600"
-                : "bg-red-50 text-red-600 border-red-100/50 group-hover:bg-red-600 group-hover:text-white group-hover:animate-bounce"
-            }`}>
-              <Lock size={16} />
-            </div>
+          <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Blocked Owners</p>
+          <div className="mt-2">
+            <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{analytics.blockedOwnersCount}</h3>
           </div>
-          <p className="text-3xl font-black text-red-600 mt-4 tracking-tight group-hover:translate-x-1 transition-transform duration-300">{analytics.blockedOwnersCount}</p>
-          <div className={`h-1 rounded-full mt-4 transition-all duration-300 ${
-            filterType === "blocked_owners" ? "w-full bg-red-600" : "w-12 bg-red-500 group-hover:w-full"
-          }`}></div>
         </div>
       </div>
 
-      {filterType && (
-        <div className="flex items-center justify-between bg-slate-50 border border-slate-250 p-4 rounded-[20px] animate-in fade-in duration-200 shadow-sm">
-          <div className="flex items-center gap-2.5">
-            <div className={`w-6 h-6 rounded-lg flex items-center justify-center ${
-              filterType === "contact_sharing" ? "bg-blue-50 text-blue-600" :
-              filterType === "commission_bypass" ? "bg-purple-50 text-purple-600" :
-              filterType === "external_settlement" ? "bg-amber-50 text-amber-600" :
-              "bg-rose-50 text-rose-600 animate-pulse"
-            }`}>
-              <ShieldAlert size={14} />
-            </div>
-            <span className="text-xs font-bold text-slate-700">
-              Filtering table results by: <span className="text-slate-900 font-black uppercase tracking-wider text-[11px]">{filterType.replace('_', ' ')}</span>
-            </span>
-          </div>
-          <button 
-            onClick={() => handleFilterChange(null)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-black shadow-sm transition-all active:scale-95 duration-200"
+      {/* Filter & Tab Row (Outside & Above Table Card) */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <select
+            value={activeTab}
+            onChange={(e) => setActiveTab(e.target.value)}
+            className="bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-1.5 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs"
           >
-            Clear Filter (Show All)
+            <option value="logs">Violation Logs ({getFilteredViolations().length})</option>
+            <option value="flagged">Flagged Conversations ({getFilteredFlagged().length})</option>
+            <option value="blocked">Blocked Owners ({blockedOwnersList.length})</option>
+          </select>
+
+          <select
+            value={filterType || ""}
+            onChange={(e) => handleFilterChange(e.target.value || null)}
+            className="bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-1.5 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs"
+          >
+            <option value="">All Alert Types</option>
+            <option value="contact_sharing">Contact Sharing Attempts</option>
+            <option value="commission_bypass">Commission Bypass Attempts</option>
+            <option value="external_settlement">External Settlement Attempts</option>
+            <option value="repeated_violators">Repeated Violators</option>
+            <option value="blocked_owners">Blocked Owners</option>
+          </select>
+
+          {filterType && (
+            <button 
+              onClick={() => handleFilterChange(null)}
+              className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-[8px] text-[13px] font-medium transition-all cursor-pointer"
+            >
+              Clear Filter
+            </button>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1.5 bg-white border border-[#CBD3D9] p-1 rounded-[8px] shadow-xs">
+          <button 
+            onClick={() => setActiveTab("logs")}
+            className={`px-3 py-1 rounded-[6px] text-[12px] font-semibold transition-all cursor-pointer ${
+              activeTab === "logs" 
+                ? "bg-[#095256] text-white" 
+                : "text-[#4A5961] hover:text-[#10242A]"
+            }`}
+          >
+            Violation Logs ({getFilteredViolations().length})
+          </button>
+          <button 
+            onClick={() => setActiveTab("flagged")}
+            className={`px-3 py-1 rounded-[6px] text-[12px] font-semibold transition-all cursor-pointer ${
+              activeTab === "flagged" 
+                ? "bg-[#095256] text-white" 
+                : "text-[#4A5961] hover:text-[#10242A]"
+            }`}
+          >
+            Flagged ({getFilteredFlagged().length})
+          </button>
+          <button 
+            onClick={() => setActiveTab("blocked")}
+            className={`px-3 py-1 rounded-[6px] text-[12px] font-semibold transition-all cursor-pointer ${
+              activeTab === "blocked" 
+                ? "bg-[#095256] text-white" 
+                : "text-[#4A5961] hover:text-[#10242A]"
+            }`}
+          >
+            Blocked Owners ({blockedOwnersList.length})
           </button>
         </div>
-      )}
-
-      {/* Tabs */}
-      <div className="flex items-center gap-2 bg-slate-100/80 p-1.5 rounded-2xl w-fit">
-        <button 
-          onClick={() => setActiveTab("logs")}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 ${
-            activeTab === "logs" 
-              ? "bg-white text-slate-900 shadow-md shadow-slate-200/50" 
-              : "text-slate-500 hover:text-slate-800"
-          }`}
-        >
-          <ShieldAlert size={14} className={activeTab === "logs" ? "text-blue-600 animate-pulse" : "text-slate-400"} />
-          <span>Violation Logs</span>
-          {getFilteredViolations().length > 0 && (
-            <span className={`ml-1 px-1.5 py-0.5 rounded-md text-[9px] font-black ${
-              activeTab === "logs" ? "bg-blue-50 text-blue-600" : "bg-slate-200 text-slate-600"
-            }`}>
-              {getFilteredViolations().length}
-            </span>
-          )}
-        </button>
-        <button 
-          onClick={() => setActiveTab("flagged")}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 ${
-            activeTab === "flagged" 
-              ? "bg-white text-slate-900 shadow-md shadow-slate-200/50" 
-              : "text-slate-500 hover:text-slate-800"
-          }`}
-        >
-          <MessageSquare size={14} className={activeTab === "flagged" ? "text-purple-600" : "text-slate-400"} />
-          <span>Flagged Conversations</span>
-          <span className={`ml-1 px-1.5 py-0.5 rounded-md text-[9px] font-black ${
-            activeTab === "flagged" ? "bg-purple-50 text-purple-600" : "bg-slate-200 text-slate-600"
-          }`}>
-            {getFilteredFlagged().length}
-          </span>
-        </button>
-        <button 
-          onClick={() => setActiveTab("blocked")}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 ${
-            activeTab === "blocked" 
-              ? "bg-white text-slate-900 shadow-md shadow-slate-200/50" 
-              : "text-slate-500 hover:text-slate-800"
-          }`}
-        >
-          <Lock size={14} className={activeTab === "blocked" ? "text-rose-600 animate-pulse" : "text-slate-400"} />
-          <span>Blocked Owners</span>
-          <span className={`ml-1 px-1.5 py-0.5 rounded-md text-[9px] font-black ${
-            activeTab === "blocked" ? "bg-rose-50 text-rose-600" : "bg-slate-200 text-slate-600"
-          }`}>
-            {blockedOwnersList.length}
-          </span>
-        </button>
       </div>
 
-      <div className="transition-all duration-300">
+      <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs overflow-hidden">
         {activeTab === "logs" && (
-          <div className="overflow-x-auto pb-4">
-            <table className="w-full border-separate border-spacing-y-3.5 text-left text-sm">
-              <thead className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                <tr>
-                  <th className="px-6 pb-1">Offender</th>
-                  <th className="px-6 pb-1">Participant Flow</th>
-                  <th className="px-6 pb-1">Violation Details</th>
-                  <th className="px-6 pb-1">Timestamp</th>
-                  <th className="px-6 py-1">Status</th>
-                  <th className="pl-6 pr-24 pb-1 text-right">Actions</th>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-[#E1E6EA]">
+                  <th className="pb-2 pr-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Offender</th>
+                  <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Participant Flow</th>
+                  <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Violation Details</th>
+                  <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Timestamp</th>
+                  <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Status</th>
+                  <th className="pb-2 pl-4 text-right text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-[#F0F4F6] text-[13px]">
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="bg-white border border-slate-200/60 rounded-3xl px-6 py-12 text-center text-slate-400 shadow-sm">
+                    <td colSpan={6} className="py-12 text-center text-[#4A5961]">
                       <div className="flex flex-col items-center gap-2">
-                        <RefreshCw size={24} className="animate-spin text-blue-500" />
-                        <span className="text-xs font-bold text-slate-400">Loading violations...</span>
+                        <RefreshCw size={20} className="animate-spin text-[#0E7C86]" />
+                        <span className="text-[12px] font-semibold text-[#4A5961]">Loading violations...</span>
                       </div>
                     </td>
                   </tr>
                 ) : getFilteredViolations().length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="bg-white border border-slate-200/60 rounded-3xl px-6 py-16 text-center text-slate-400 shadow-sm">
-                      <div className="flex flex-col items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-300">
-                          <ShieldAlert size={24} />
-                        </div>
-                        <div>
-                          <p className="text-sm font-black text-slate-700">No violations logged yet</p>
-                          <p className="text-xs text-slate-400 mt-0.5">Everything looks quiet on the security logs.</p>
-                        </div>
-                      </div>
+                    <td colSpan={6} className="py-12 text-center text-[#4A5961]">
+                      <p className="text-[13px] font-semibold text-[#10242A]">No violations logged yet</p>
+                      <p className="text-[12px] text-[#4A5961] mt-0.5">Everything looks quiet on the security logs.</p>
                     </td>
                   </tr>
                 ) : getFilteredViolations().map(v => (
-                  <tr key={v._id} className="group/row transition-all duration-300 hover:-translate-y-0.5">
+                  <tr key={v._id} className="hover:bg-[#F9FAFB] transition-colors">
                     {/* Offender */}
-                    <td className="bg-white border-y border-l border-slate-200/50 rounded-l-3xl px-6 py-5 shadow-sm shadow-slate-100/20 group-hover/row:border-blue-200 group-hover/row:bg-slate-50/20 transition-all">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200/80 flex items-center justify-center text-slate-700 font-black text-xs uppercase border border-slate-200/50 shrink-0 shadow-sm">
+                    <td className="py-2.5 pr-4">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-[#E6F4F5] flex items-center justify-center text-[#0E7C86] font-bold text-[11px] uppercase shrink-0">
                           {(v.participantName || v.participantLoginId || "U").slice(0, 2)}
                         </div>
                         <div>
-                          <div className="font-extrabold text-slate-800 text-sm tracking-tight">{v.participantName || v.participantLoginId}</div>
-                          <div className="text-[10px] text-slate-400 font-mono mt-0.5">{v.participantLoginId}</div>
+                          <div className="font-semibold text-[#10242A] text-[13px]">{v.participantName || v.participantLoginId}</div>
+                          <div className="text-[11px] text-[#4A5961] font-mono mt-0.5">{v.participantLoginId}</div>
                         </div>
                       </div>
                     </td>
                     {/* Participant Flow */}
-                    <td className="bg-white border-y border-slate-200/50 px-6 py-5 shadow-sm shadow-slate-100/20 group-hover/row:border-blue-200 group-hover/row:bg-slate-50/20 transition-all">
+                    <td className="py-2.5 px-4">
                       <div className="max-w-xs">
-                        <div className="flex items-center gap-2 text-[10px] font-bold flex-wrap">
-                          <div className="bg-blue-50/80 text-blue-700 px-2.5 py-1 rounded-lg border border-blue-100/50 shadow-sm shadow-blue-500/5">
+                        <div className="flex items-center gap-1.5 text-[11px] font-semibold flex-wrap">
+                          <span className="bg-[#F4F6F8] text-[#10242A] px-2 py-0.5 rounded-[4px] border border-[#E1E6EA]">
                             Owner: {v.ownerName || "Owner"}
-                          </div>
-                          <ArrowRight size={12} className="text-slate-400 shrink-0" />
-                          <div className="bg-purple-50/80 text-purple-700 px-2.5 py-1 rounded-lg border border-purple-100/50 shadow-sm shadow-purple-500/5">
+                          </span>
+                          <ArrowRight size={11} className="text-[#8C9BA5] shrink-0" />
+                          <span className="bg-[#E6F4F5] text-[#0E7C86] px-2 py-0.5 rounded-[4px]">
                             Tenant: {v.tenantName || "Tenant"}
-                          </div>
+                          </span>
                         </div>
                         {v.conversationContext && (
-                          <div className="text-[10px] text-slate-550 mt-2 bg-slate-50 border border-slate-100/80 p-2 rounded-xl flex items-start gap-1.5 shadow-sm shadow-slate-100/20 leading-relaxed">
-                            <Info size={12} className="text-blue-550 shrink-0 mt-0.5" />
-                            <div>
-                              <span className="font-bold text-slate-755">Context:</span> {v.conversationContext}
-                            </div>
+                          <div className="text-[11px] text-[#4A5961] mt-1">
+                            <span className="font-semibold text-[#10242A]">Context:</span> {v.conversationContext}
                           </div>
                         )}
                       </div>
                     </td>
                     {/* Violation Details */}
-                    <td className="bg-white border-y border-slate-200/50 px-6 py-5 shadow-sm shadow-slate-100/20 group-hover/row:border-blue-200 group-hover/row:bg-slate-50/20 transition-all">
+                    <td className="py-2.5 px-4">
                       <div className="max-w-xs">
-                        <div className="mb-2">
-                          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border shadow-sm ${
+                        <div className="mb-1">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider border ${
                             v.violationType === "commission_bypass" 
                               ? "bg-rose-50 text-rose-700 border-rose-100" 
                               : v.violationType === "contact_sharing" 
                               ? "bg-blue-50 text-blue-700 border-blue-100" 
                               : "bg-amber-50 text-amber-700 border-amber-100"
                           }`}>
-                            <AlertTriangle size={9} />
                             {formatViolationType(v.violationType)}
                           </span>
                         </div>
-                        <div className="relative bg-slate-50 hover:bg-slate-100/80 p-3 rounded-2xl rounded-tl-none border border-slate-200/60 text-xs text-slate-700 transition-colors group/msg shadow-sm shadow-slate-100/10">
-                          <div className="absolute top-0 left-0 w-2.5 h-2.5 bg-slate-50 border-l border-t border-slate-200/60 -ml-1.25 -mt-px rotate-45 group-hover/msg:bg-slate-100/80 transition-colors"></div>
-                          <p className="italic leading-relaxed line-clamp-2" title={v.messageSnippet}>
-                            "{v.messageSnippet}"
-                          </p>
-                        </div>
+                        <p className="italic text-[12px] text-[#4A5961] line-clamp-2" title={v.messageSnippet}>
+                          "{v.messageSnippet}"
+                        </p>
                       </div>
                     </td>
                     {/* Timestamp */}
-                    <td className="bg-white border-y border-slate-200/50 px-6 py-5 shadow-sm shadow-slate-100/20 group-hover/row:border-blue-200 group-hover/row:bg-slate-50/20 transition-all text-xs">
-                      <div className="flex items-center gap-1.5 text-slate-700 font-bold">
-                        <Clock size={12} className="text-slate-400" />
-                        <span>{new Date(v.createdAt).toLocaleDateString()}</span>
+                    <td className="py-2.5 px-4">
+                      <div className="text-[12px] text-[#10242A] font-medium">
+                        {new Date(v.createdAt).toLocaleDateString()}
                       </div>
-                      <div className="text-[10px] text-slate-400 font-medium ml-4.5 mt-0.5">
+                      <div className="text-[11px] text-[#4A5961] mt-0.5">
                         {new Date(v.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </td>
                     {/* Status */}
-                    <td className="bg-white border-y border-slate-200/50 px-6 py-5 shadow-sm shadow-slate-100/20 group-hover/row:border-blue-200 group-hover/row:bg-slate-50/20 transition-all">
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border shadow-sm ${
-                        v.status === 'Resolved' ? 'bg-emerald-50/80 text-emerald-700 border-emerald-100' :
-                        v.status === 'Warning Sent' ? 'bg-amber-50/80 text-amber-700 border-amber-100' :
-                        v.status === 'Reviewed' ? 'bg-sky-50/80 text-sky-700 border-sky-100' :
-                        'bg-rose-50/80 text-rose-700 border-rose-100 animate-pulse'
+                    <td className="py-2.5 px-4">
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider border ${
+                        v.status === 'Resolved' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+                        v.status === 'Warning Sent' ? 'bg-amber-50 text-amber-700 border-amber-100' :
+                        v.status === 'Reviewed' ? 'bg-sky-50 text-sky-700 border-sky-100' :
+                        'bg-rose-50 text-rose-700 border-rose-100'
                       }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${
-                          v.status === 'Resolved' ? 'bg-emerald-500' :
-                          v.status === 'Warning Sent' ? 'bg-amber-500' :
-                          v.status === 'Reviewed' ? 'bg-sky-500' :
-                          'bg-rose-500'
-                        }`} />
                         {v.status}
                       </span>
                     </td>
                     {/* Actions */}
-                    <td className="bg-white border-y border-r border-slate-200/50 rounded-r-3xl px-6 py-5 shadow-sm shadow-slate-100/20 group-hover/row:border-blue-200 group-hover/row:bg-slate-50/20 transition-all">
-                      <div className="flex items-center justify-end gap-2 w-full">
+                    <td className="py-2.5 pl-4 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
                         <a 
                           href={`/superadmin/superchat?roomId=${v.ownerId}&user1=${v.ownerId}&user2=${v.tenantId}${v.messageId ? `&highlightId=${v.messageId}` : ''}&fromAlerts=${filterType || 'all'}`}
-                          className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-black inline-flex items-center justify-center gap-1.5 whitespace-nowrap shadow-md shadow-blue-500/10 hover:shadow-lg hover:shadow-blue-500/20 active:scale-95 transition-all duration-200 shrink-0"
+                          className="px-2.5 py-1 bg-[#095256] hover:bg-[#073E42] text-white rounded-[6px] text-[12px] font-semibold inline-flex items-center justify-center gap-1 whitespace-nowrap transition-all shrink-0"
                         >
                           <Eye size={12} className="shrink-0" />
                           <span>View Chat</span>
                         </a>
                         <div className="relative group">
-                          <button className="p-2 hover:bg-slate-100 rounded-xl transition-all duration-200 text-slate-400 hover:text-slate-700 border border-transparent hover:border-slate-200/50">
-                            <MoreVertical size={16} />
+                          <button className="p-1.5 hover:bg-[#F4F6F8] rounded-[6px] transition-all text-[#4A5961] hover:text-[#10242A] border border-[#CBD3D9]">
+                            <MoreVertical size={14} />
                           </button>
-                          <div className="absolute right-0 bottom-full z-50 mb-2 hidden group-hover:block bg-white border border-slate-200/80 rounded-2xl shadow-xl shadow-slate-900/10 p-1.5 min-w-[170px] text-left animate-in fade-in duration-100">
-                            <button onClick={() => openActionModal(v, "mark_reviewed")} className="w-full text-left px-3 py-2.5 text-xs font-bold hover:bg-slate-50 rounded-xl text-slate-700 flex items-center gap-2 transition-colors">
-                              <ShieldCheck size={14} className="text-sky-500" />
+                          <div className="absolute right-0 bottom-full z-50 mb-1 hidden group-hover:block bg-white border border-[#E1E6EA] rounded-[10px] shadow-lg p-1.5 min-w-[160px] text-left">
+                            <button onClick={() => openActionModal(v, "mark_reviewed")} className="w-full text-left px-3 py-2 text-[12px] font-medium hover:bg-[#F4F6F8] rounded-[6px] text-[#10242A] flex items-center gap-2 transition-colors">
+                              <ShieldCheck size={13} className="text-sky-500" />
                               <span>Mark Reviewed</span>
                             </button>
-                            <button onClick={() => openActionModal(v, "send_warning")} className="w-full text-left px-3 py-2.5 text-xs font-bold hover:bg-slate-50 rounded-xl text-amber-600 flex items-center gap-2 transition-colors">
-                              <AlertTriangle size={14} className="text-amber-500" />
+                            <button onClick={() => openActionModal(v, "send_warning")} className="w-full text-left px-3 py-2 text-[12px] font-medium hover:bg-[#F4F6F8] rounded-[6px] text-amber-600 flex items-center gap-2 transition-colors">
+                              <AlertTriangle size={13} className="text-amber-500" />
                               <span>Send Warning</span>
                             </button>
-                            <button onClick={() => openActionModal(v, "restrict_chat")} className="w-full text-left px-3 py-2.5 text-xs font-bold hover:bg-slate-50 rounded-xl text-rose-600 flex items-center gap-2 transition-colors">
-                              <Lock size={14} className="text-rose-500" />
+                            <button onClick={() => openActionModal(v, "restrict_chat")} className="w-full text-left px-3 py-2 text-[12px] font-medium hover:bg-[#F4F6F8] rounded-[6px] text-rose-600 flex items-center gap-2 transition-colors">
+                              <Lock size={13} className="text-rose-500" />
                               <span>Restrict Chat (24h)</span>
                             </button>
-                            <button onClick={() => openActionModal(v, "suspend_user")} className="w-full text-left px-3 py-2.5 text-xs font-bold hover:bg-slate-50 rounded-xl text-red-700 flex items-center gap-2 transition-colors">
-                              <UserX size={14} className="text-red-650" />
+                            <button onClick={() => openActionModal(v, "suspend_user")} className="w-full text-left px-3 py-2 text-[12px] font-medium hover:bg-[#F4F6F8] rounded-[6px] text-red-700 flex items-center gap-2 transition-colors">
+                              <UserX size={13} className="text-red-650" />
                               <span>Suspend User</span>
                             </button>
-                            <button onClick={() => openActionModal(v, "mark_resolved")} className="w-full text-left px-3 py-2.5 text-xs font-bold hover:bg-slate-50 rounded-xl text-emerald-600 flex items-center gap-2 transition-colors">
-                              <CheckCircle2 size={14} className="text-emerald-500" />
+                            <button onClick={() => openActionModal(v, "mark_resolved")} className="w-full text-left px-3 py-2 text-[12px] font-medium hover:bg-[#F4F6F8] rounded-[6px] text-emerald-600 flex items-center gap-2 transition-colors">
+                              <CheckCircle2 size={13} className="text-emerald-500" />
                               <span>Mark Resolved</span>
                             </button>
                           </div>
@@ -607,118 +524,100 @@ export default function ChatAlerts() {
         )}
 
         {activeTab === "flagged" && (
-          <div className="overflow-x-auto pb-4">
-            <table className="w-full border-separate border-spacing-y-3.5 text-left text-sm">
-              <thead className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                <tr>
-                  <th className="px-6 pb-1">Sender</th>
-                  <th className="px-6 pb-1">Room ID</th>
-                  <th className="px-6 pb-1">Violation Details</th>
-                  <th className="px-6 pb-1">Timestamp</th>
-                  <th className="px-6 py-1">Moderation Status</th>
-                  <th className="pl-6 pr-24 pb-1 text-right">Actions</th>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-[#E1E6EA]">
+                  <th className="pb-2 pr-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Sender</th>
+                  <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Room ID</th>
+                  <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Violation Details</th>
+                  <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Timestamp</th>
+                  <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Moderation Status</th>
+                  <th className="pb-2 pl-4 text-right text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-[#F0F4F6] text-[13px]">
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="bg-white border border-slate-200/60 rounded-3xl px-6 py-12 text-center text-slate-400 shadow-sm">
+                    <td colSpan={6} className="py-12 text-center text-[#4A5961]">
                       <div className="flex flex-col items-center gap-2">
-                        <RefreshCw size={24} className="animate-spin text-blue-500" />
-                        <span className="text-xs font-bold text-slate-400">Loading flagged messages...</span>
+                        <RefreshCw size={20} className="animate-spin text-[#0E7C86]" />
+                        <span className="text-[12px] font-semibold text-[#4A5961]">Loading flagged messages...</span>
                       </div>
                     </td>
                   </tr>
                 ) : getFilteredFlagged().length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="bg-white border border-slate-200/60 rounded-3xl px-6 py-16 text-center text-slate-400 shadow-sm">
-                      <div className="flex flex-col items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-300">
-                          <MessageSquare size={24} />
-                        </div>
-                        <div>
-                          <p className="text-sm font-black text-slate-700">No flagged messages found</p>
-                          <p className="text-xs text-slate-400 mt-0.5">Everything looks clear on flagged scans.</p>
-                        </div>
-                      </div>
+                    <td colSpan={6} className="py-12 text-center text-[#4A5961]">
+                      <p className="text-[13px] font-semibold text-[#10242A]">No flagged messages found</p>
+                      <p className="text-[12px] text-[#4A5961] mt-0.5">Everything looks clear on flagged scans.</p>
                     </td>
                   </tr>
                 ) : getFilteredFlagged().map((m, idx) => (
-                  <tr key={m._id} className="group/row transition-all duration-300 hover:-translate-y-0.5">
+                  <tr key={m._id} className="hover:bg-[#F9FAFB] transition-colors">
                     {/* Sender */}
-                    <td className="bg-white border-y border-l border-slate-200/50 rounded-l-3xl px-6 py-5 shadow-sm shadow-slate-100/20 group-hover/row:border-blue-200 group-hover/row:bg-slate-50/20 transition-all">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200/80 flex items-center justify-center text-slate-700 font-black text-xs uppercase border border-slate-200/50 shrink-0 shadow-sm">
+                    <td className="py-2.5 pr-4">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-[#E6F4F5] flex items-center justify-center text-[#0E7C86] font-bold text-[11px] uppercase shrink-0">
                           {(m.sender_name || m.sender_login_id || "U").slice(0, 2)}
                         </div>
                         <div>
-                          <div className="font-extrabold text-slate-800 text-sm tracking-tight">{m.sender_name || m.sender_login_id}</div>
-                          <span className="inline-block mt-1 px-2 py-0.5 rounded-md text-[8px] bg-slate-100 text-slate-600 font-black uppercase tracking-wider border border-slate-200/40">
+                          <div className="font-semibold text-[#10242A] text-[13px]">{m.sender_name || m.sender_login_id}</div>
+                          <span className="inline-block mt-0.5 px-1.5 py-0.5 rounded-[4px] text-[10px] bg-[#F4F6F8] text-[#4A5961] font-semibold uppercase">
                             {m.sender_role}
                           </span>
                         </div>
                       </div>
                     </td>
                     {/* Room ID */}
-                    <td className="bg-white border-y border-slate-200/50 px-6 py-5 shadow-sm shadow-slate-100/20 group-hover/row:border-blue-200 group-hover/row:bg-slate-50/20 transition-all">
-                      <div className="font-extrabold text-slate-700 text-xs font-mono bg-slate-50 border border-slate-200/60 px-2.5 py-1 rounded-lg w-fit">
+                    <td className="py-2.5 px-4">
+                      <div className="font-semibold text-[#10242A] text-[12px] font-mono bg-[#F4F6F8] border border-[#E1E6EA] px-2 py-0.5 rounded-[4px] w-fit">
                         {m.room_id}
                       </div>
                     </td>
                     {/* Violation Details */}
-                    <td className="bg-white border-y border-slate-200/50 px-6 py-5 shadow-sm shadow-slate-100/20 group-hover/row:border-blue-200 group-hover/row:bg-slate-50/20 transition-all">
+                    <td className="py-2.5 px-4">
                       <div className="max-w-xs">
-                        <div className="flex flex-wrap gap-1.5 mb-2">
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-100 text-[9px] font-black uppercase tracking-wider shadow-sm">
-                            <AlertTriangle size={9} />
+                        <div className="flex flex-wrap gap-1.5 mb-1">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-100 text-[10px] font-semibold uppercase tracking-wider">
                             {formatViolationType(m.violation_type)}
                           </span>
                           {m.is_blocked && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border-rose-100 text-[9px] font-black uppercase tracking-wider shadow-sm">
-                              <Lock size={9} />
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border-rose-100 text-[10px] font-semibold uppercase tracking-wider">
                               Blocked
                             </span>
                           )}
                         </div>
-                        <div className="relative bg-slate-50 hover:bg-slate-100/80 p-3 rounded-2xl rounded-tl-none border border-slate-200/60 text-xs text-slate-700 transition-colors group/msg shadow-sm shadow-slate-100/10">
-                          <div className="absolute top-0 left-0 w-2.5 h-2.5 bg-slate-50 border-l border-t border-slate-200/60 -ml-1.25 -mt-px rotate-45 group-hover/msg:bg-slate-100/80 transition-colors"></div>
-                          <p className="italic leading-relaxed break-words">
-                            "{m.message}"
-                          </p>
-                        </div>
+                        <p className="italic text-[12px] text-[#4A5961] break-words">
+                          "{m.message}"
+                        </p>
                       </div>
                     </td>
                     {/* Timestamp */}
-                    <td className="bg-white border-y border-slate-200/50 px-6 py-5 shadow-sm shadow-slate-100/20 group-hover/row:border-blue-200 group-hover/row:bg-slate-50/20 transition-all text-xs">
-                      <div className="flex items-center gap-1.5 text-slate-700 font-bold">
-                        <Clock size={12} className="text-slate-400" />
-                        <span>{new Date(m.created_at).toLocaleDateString()}</span>
+                    <td className="py-2.5 px-4">
+                      <div className="text-[12px] text-[#10242A] font-medium">
+                        {new Date(m.created_at).toLocaleDateString()}
                       </div>
-                      <div className="text-[10px] text-slate-400 font-medium ml-4.5 mt-0.5">
+                      <div className="text-[11px] text-[#4A5961] mt-0.5">
                         {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </td>
                     {/* Moderation Status */}
-                    <td className="bg-white border-y border-slate-200/50 px-6 py-5 shadow-sm shadow-slate-100/20 group-hover/row:border-blue-200 group-hover/row:bg-slate-50/20 transition-all">
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border shadow-sm ${
-                        m.moderation_status === 'action_taken' ? 'bg-emerald-50/80 text-emerald-700 border-emerald-100' :
+                    <td className="py-2.5 px-4">
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider border ${
+                        m.moderation_status === 'action_taken' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
                         m.moderation_status === 'false_positive' ? 'bg-slate-100 text-slate-500 border border-slate-200' :
-                        'bg-amber-50/80 text-amber-700 border-amber-100 animate-pulse'
+                        'bg-amber-50 text-amber-700 border-amber-100'
                       }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${
-                          m.moderation_status === 'action_taken' ? 'bg-emerald-500' :
-                          m.moderation_status === 'false_positive' ? 'bg-slate-400' :
-                          'bg-amber-500'
-                        }`} />
                         {m.moderation_status || 'Pending Review'}
                       </span>
                     </td>
                     {/* Actions */}
-                    <td className="bg-white border-y border-r border-slate-200/50 rounded-r-3xl px-6 py-5 shadow-sm shadow-slate-100/20 group-hover/row:border-blue-200 group-hover/row:bg-slate-50/20 transition-all">
-                      <div className="flex items-center justify-end gap-2 flex-wrap w-full">
+                    <td className="py-2.5 pl-4 text-right">
+                      <div className="flex items-center justify-end gap-1.5 flex-wrap">
                         <a 
                           href={`/superadmin/superchat?roomId=${m.room_id}&user1=${m.sender_login_id}&user2=${m.room_id}&highlightId=${m._id}&fromAlerts=${filterType || 'all'}`}
-                          className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-black inline-flex items-center justify-center gap-1.5 whitespace-nowrap shadow-md shadow-blue-500/10 hover:shadow-lg hover:shadow-blue-500/20 active:scale-95 transition-all duration-200 shrink-0"
+                          className="px-2.5 py-1 bg-[#095256] hover:bg-[#073E42] text-white rounded-[6px] text-[12px] font-semibold inline-flex items-center justify-center gap-1 whitespace-nowrap transition-all shrink-0"
                         >
                           <Eye size={12} className="shrink-0" />
                           <span>View Chat</span>
@@ -726,20 +625,20 @@ export default function ChatAlerts() {
                         {!m.isDecrypted && m.original_message_encrypted && (
                           <button 
                             onClick={() => handleDecryptMessage(m._id, idx)}
-                            className="px-3 py-1.5 bg-sky-50 hover:bg-sky-100 text-sky-700 rounded-xl text-xs font-bold border border-sky-100/50 shadow-sm transition-all active:scale-95 duration-200"
+                            className="px-2.5 py-1 bg-sky-50 hover:bg-sky-100 text-sky-700 rounded-[6px] text-[12px] font-semibold border border-sky-200 transition-all cursor-pointer"
                           >
                             Decrypt
                           </button>
                         )}
                         <button 
                           onClick={() => handleResolveFlagged(m._id, 'action_taken')} 
-                          className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-105 text-emerald-700 border border-emerald-105 rounded-xl text-xs font-bold shadow-sm transition-all active:scale-95 duration-200"
+                          className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-[6px] text-[12px] font-semibold transition-all cursor-pointer"
                         >
                           Confirm Action
                         </button>
                         <button 
                           onClick={() => handleResolveFlagged(m._id, 'false_positive')} 
-                          className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 rounded-xl text-xs font-bold shadow-sm transition-all active:scale-95 duration-200"
+                          className="px-2.5 py-1 bg-white hover:bg-[#F4F6F8] text-[#4A5961] border border-[#CBD3D9] rounded-[6px] text-[12px] font-semibold transition-all cursor-pointer"
                         >
                           Dismiss
                         </button>
@@ -753,100 +652,90 @@ export default function ChatAlerts() {
         )}
 
         {activeTab === "blocked" && (
-          <div className="overflow-x-auto pb-4">
-            <table className="w-full border-separate border-spacing-y-3.5 text-left text-sm">
-              <thead className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                <tr>
-                  <th className="px-6 pb-1">Owner Profile</th>
-                  <th className="px-6 pb-1">Contact Info</th>
-                  <th className="px-6 pb-1">Block Reason / Violations</th>
-                  <th className="px-6 pb-1">Blocked Date</th>
-                  <th className="px-6 py-1">Status</th>
-                  <th className="pl-6 pr-24 pb-1 text-right">Actions</th>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-[#E1E6EA]">
+                  <th className="pb-2 pr-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Owner Profile</th>
+                  <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Contact Info</th>
+                  <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Block Reason / Violations</th>
+                  <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Blocked Date</th>
+                  <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Status</th>
+                  <th className="pb-2 pl-4 text-right text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-[#F0F4F6] text-[13px]">
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="bg-white border border-slate-200/60 rounded-3xl px-6 py-12 text-center text-slate-400 shadow-sm">
+                    <td colSpan={6} className="py-12 text-center text-[#4A5961]">
                       <div className="flex flex-col items-center gap-2">
-                        <RefreshCw size={24} className="animate-spin text-blue-500" />
-                        <span className="text-xs font-bold text-slate-400">Loading blocked owners...</span>
+                        <RefreshCw size={20} className="animate-spin text-[#0E7C86]" />
+                        <span className="text-[12px] font-semibold text-[#4A5961]">Loading blocked owners...</span>
                       </div>
                     </td>
                   </tr>
                 ) : blockedOwnersList.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="bg-white border border-slate-200/60 rounded-3xl px-6 py-16 text-center text-slate-400 shadow-sm">
-                      <div className="flex flex-col items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-300">
-                          <UserCheck size={24} />
-                        </div>
-                        <div>
-                          <p className="text-sm font-black text-slate-700">No blocked owners found</p>
-                          <p className="text-xs text-slate-400 mt-0.5">No owner accounts are currently suspended or blocked.</p>
-                        </div>
-                      </div>
+                    <td colSpan={6} className="py-12 text-center text-[#4A5961]">
+                      <p className="text-[13px] font-semibold text-[#10242A]">No blocked owners found</p>
+                      <p className="text-[12px] text-[#4A5961] mt-0.5">No owner accounts are currently suspended or blocked.</p>
                     </td>
                   </tr>
                 ) : blockedOwnersList.map((owner) => (
-                  <tr key={owner._id} className="group/row transition-all duration-300 hover:-translate-y-0.5">
+                  <tr key={owner._id} className="hover:bg-[#F9FAFB] transition-colors">
                     {/* Owner Profile */}
-                    <td className="bg-white border-y border-l border-slate-200/50 rounded-l-3xl px-6 py-5 shadow-sm shadow-slate-100/20 group-hover/row:border-red-200 group-hover/row:bg-red-50/10 transition-all">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-red-50 to-rose-100 flex items-center justify-center text-rose-700 font-black text-xs uppercase border border-rose-200/50 shrink-0 shadow-sm">
+                    <td className="py-2.5 pr-4">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-rose-50 flex items-center justify-center text-rose-700 font-bold text-[11px] uppercase border border-rose-200 shrink-0">
                           {(owner.name || owner.loginId || "O").slice(0, 2)}
                         </div>
                         <div>
-                          <div className="font-extrabold text-slate-800 text-sm tracking-tight">{owner.name}</div>
-                          <div className="text-[10px] text-slate-500 font-mono font-bold mt-0.5">{owner.loginId}</div>
+                          <div className="font-semibold text-[#10242A] text-[13px]">{owner.name}</div>
+                          <div className="text-[11px] text-[#4A5961] font-mono mt-0.5">{owner.loginId}</div>
                         </div>
                       </div>
                     </td>
                     {/* Contact Info */}
-                    <td className="bg-white border-y border-slate-200/50 px-6 py-5 shadow-sm shadow-slate-100/20 group-hover/row:border-red-200 group-hover/row:bg-red-50/10 transition-all text-xs">
-                      <div className="font-bold text-slate-800">{owner.phone}</div>
-                      <div className="text-[10px] text-slate-400 font-medium mt-0.5">{owner.email}</div>
+                    <td className="py-2.5 px-4">
+                      <div className="font-medium text-[#10242A] text-[13px]">{owner.phone}</div>
+                      <div className="text-[11px] text-[#4A5961] mt-0.5">{owner.email}</div>
                     </td>
                     {/* Block Reason */}
-                    <td className="bg-white border-y border-slate-200/50 px-6 py-5 shadow-sm shadow-slate-100/20 group-hover/row:border-red-200 group-hover/row:bg-red-50/10 transition-all">
+                    <td className="py-2.5 px-4">
                       <div className="max-w-xs">
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-100 text-[9px] font-black uppercase tracking-wider shadow-sm mb-1.5">
-                          <Lock size={9} />
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-100 text-[10px] font-semibold uppercase tracking-wider mb-1">
                           {owner.violationsCount} Violation{owner.violationsCount !== 1 ? 's' : ''}
                         </span>
-                        <p className="text-xs text-slate-600 italic line-clamp-2" title={owner.violationsSnippet}>
+                        <p className="text-[12px] text-[#4A5961] italic line-clamp-2" title={owner.violationsSnippet}>
                           "{owner.violationsSnippet}"
                         </p>
                       </div>
                     </td>
                     {/* Timestamp */}
-                    <td className="bg-white border-y border-slate-200/50 px-6 py-5 shadow-sm shadow-slate-100/20 group-hover/row:border-red-200 group-hover/row:bg-red-50/10 transition-all text-xs">
-                      <div className="flex items-center gap-1.5 text-slate-700 font-bold">
-                        <Clock size={12} className="text-slate-400" />
-                        <span>{new Date(owner.blockedAt).toLocaleDateString()}</span>
+                    <td className="py-2.5 px-4">
+                      <div className="text-[12px] text-[#10242A] font-medium">
+                        {new Date(owner.blockedAt).toLocaleDateString()}
                       </div>
                     </td>
                     {/* Status */}
-                    <td className="bg-white border-y border-slate-200/50 px-6 py-5 shadow-sm shadow-slate-100/20 group-hover/row:border-red-200 group-hover/row:bg-red-50/10 transition-all">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border shadow-sm bg-rose-50 text-rose-700 border-rose-200 animate-pulse">
-                        <span className="w-1.5 h-1.5 rounded-full bg-rose-600" />
+                    <td className="py-2.5 px-4">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider border bg-rose-50 text-rose-700 border-rose-200">
                         ACCOUNT BLOCKED
                       </span>
                     </td>
                     {/* Actions */}
-                    <td className="bg-white border-y border-r border-slate-200/50 rounded-r-3xl px-6 py-5 shadow-sm shadow-slate-100/20 group-hover/row:border-red-200 group-hover/row:bg-red-50/10 transition-all">
-                      <div className="flex items-center justify-end gap-2 shrink-0">
+                    <td className="py-2.5 pl-4 text-right">
+                      <div className="flex items-center justify-end gap-1.5 shrink-0">
                         <button
                           onClick={() => handleUnblockOwner(owner.loginId)}
-                          className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black inline-flex items-center gap-1.5 shadow-md shadow-emerald-500/20 active:scale-95 transition-all"
+                          className="px-2.5 py-1 bg-[#095256] hover:bg-[#073E42] text-white rounded-[6px] text-[12px] font-semibold inline-flex items-center gap-1 transition-all cursor-pointer"
                         >
-                          <UserCheck size={14} />
-                          <span>Unblock Account</span>
+                          <UserCheck size={12} />
+                          <span>Unblock</span>
                         </button>
                         <a 
                           href={`/superadmin/superchat?search=${owner.loginId}&fromAlerts=blocked_owners`}
-                          className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold inline-flex items-center gap-1 transition-all"
+                          className="px-2.5 py-1 bg-white hover:bg-[#F4F6F8] text-[#10242A] border border-[#CBD3D9] rounded-[6px] text-[12px] font-semibold inline-flex items-center gap-1 transition-all"
                         >
                           <Eye size={12} />
                           <span>View Chat</span>

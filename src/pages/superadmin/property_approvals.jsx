@@ -303,363 +303,334 @@ export default function SuperadminPropertyApprovals() {
     }));
 
   return (
-    <div className="space-y-6 text-[#10242A]">
+    <div className="space-y-4 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
       {/* Header */}
-      <div className="mb-4">
-        <h1 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-tight">Approve / Reject Properties</h1>
-        <p className="text-[13px] text-[#4A5961] mt-0.5">Review and approve or reject property listings submitted by property owners.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-[22px] font-bold text-[#10242A] tracking-tight leading-tight">Approve / Reject Properties</h1>
+          <p className="text-[13px] text-[#4A5961] mt-0.5">Review and approve or reject property listings submitted by property owners.</p>
+        </div>
+        <div className="flex items-center gap-2.5">
+          <button onClick={fetchProperties} className="flex items-center gap-2 px-3.5 py-1.5 bg-white border border-[#CBD3D9] text-[#10242A] rounded-[8px] text-[13px] font-semibold hover:bg-[#F4F6F8] shadow-xs transition-all cursor-pointer">
+            <RefreshCw className={cn("w-3.5 h-3.5 text-[#4A5961]", loading && "animate-spin")} /> Refresh
+          </button>
+          <button onClick={handleExport} className="flex items-center gap-2 px-3.5 py-1.5 bg-white border border-[#CBD3D9] text-[#10242A] rounded-[8px] text-[13px] font-semibold hover:bg-[#F4F6F8] shadow-xs transition-all cursor-pointer">
+            <Download className="w-3.5 h-3.5 text-[#4A5961]" /> Export
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-12 gap-6">
-        {/* Left: Main Content */}
-        <div className="col-span-9 space-y-4">
-
-          {/* Search + Actions Bar */}
-          <div className="flex items-center gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-300" />
-              <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="Search by property name, owner, location or ID..." className="w-full bg-white border border-slate-200 rounded-xl py-2.5 pl-9 pr-3 text-[10px] font-bold outline-none focus:ring-2 focus:ring-blue-100 transition-all shadow-sm" />
-            </div>
-            <button onClick={() => setShowFilters(v => !v)} className={cn("flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 text-[10px] font-black shadow-sm transition-all", showFilters ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-600 hover:bg-slate-50")}>
-              <Filter className="w-3.5 h-3.5" /> Filters
-            </button>
-            <button onClick={handleExport} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-[10px] font-black text-slate-600 hover:bg-slate-50 transition-all shadow-sm">
-              <Download className="w-3.5 h-3.5" /> Export
-            </button>
-          </div>
-
-          {/* Dynamic Filters Panel */}
-          {showFilters && (
-            <div className="flex flex-wrap items-center gap-3 p-4 bg-white border border-slate-100 rounded-2xl shadow-sm animate-in slide-in-from-top-2 duration-200 animate-in">
-              <div className="flex flex-col gap-1">
-                <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Property Type</span>
-                <select value={fType} onChange={e => { setFType(e.target.value); setPage(1); }} className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold text-slate-600 outline-none focus:border-blue-400 cursor-pointer">
-                  <option value="all">All Types</option>
-                  <option value="pg">PG</option>
-                  <option value="hostel">Hostel</option>
-                  <option value="co-living">Co-Living</option>
-                  <option value="apartment">Apartment</option>
-                  <option value="room">Room</option>
-                </select>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider">City</span>
-                <select value={fCity} onChange={e => { setFCity(e.target.value); setPage(1); }} className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold text-slate-600 outline-none focus:border-blue-400 cursor-pointer">
-                  <option value="all">All Cities</option>
-                  {cities.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Gender</span>
-                <select value={fGender} onChange={e => { setFGender(e.target.value); setPage(1); }} className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-bold text-slate-600 outline-none focus:border-blue-400 cursor-pointer">
-                  <option value="all">All Genders</option>
-                  <option value="male">Boys</option>
-                  <option value="female">Girls</option>
-                  <option value="any">Co-ed</option>
-                </select>
-              </div>
-
-              {(fType !== "all" || fCity !== "all" || fGender !== "all") && (
-                <button onClick={() => { setFType("all"); setFCity("all"); setFGender("all"); setPage(1); }} className="px-3.5 py-2 bg-rose-50 border border-rose-200 rounded-xl text-[10px] font-bold text-rose-600 hover:bg-rose-100 transition-all flex items-center gap-1">
-                  <X className="w-3 h-3" /> Clear Filters
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Bulk Actions Banner */}
-          {selectedIds.size > 0 && (
-            <div className="flex items-center justify-between px-6 py-3 bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border border-blue-100 rounded-2xl backdrop-blur-sm animate-in slide-in-from-top-2 duration-300 flex-wrap gap-3">
-              <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-black shadow-sm">
-                  {selectedIds.size}
-                </div>
-                <span className="text-xs font-bold text-blue-900 tracking-wide">properties selected for bulk operations</span>
-              </div>
-              <div className="flex items-center gap-2.5">
-                <button 
-                  disabled={bulkProcessing}
-                  onClick={handleBulkApprove} 
-                  className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl text-[11px] font-bold shadow-md shadow-emerald-100 hover:shadow-lg hover:from-emerald-600 hover:to-teal-700 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {bulkProcessing ? "Publishing..." : "Bulk Approve"}
-                </button>
-                <button 
-                  disabled={bulkProcessing}
-                  onClick={handleBulkReject} 
-                  className="px-4 py-2 bg-gradient-to-r from-rose-500 to-red-600 text-white rounded-xl text-[11px] font-bold shadow-md shadow-rose-100 hover:shadow-lg hover:from-rose-600 hover:to-red-700 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {bulkProcessing ? "Rejecting..." : "Bulk Reject"}
-                </button>
-                <button 
-                  disabled={bulkProcessing}
-                  onClick={() => setSelectedIds(new Set())} 
-                  className="px-3.5 py-2 text-[11px] font-bold text-slate-500 hover:text-slate-800 transition-colors uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Tabs + Sort + Select Page Checkbox */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-wider cursor-pointer hover:bg-slate-50 select-none shadow-sm">
-                <input
-                  type="checkbox"
-                  disabled={bulkProcessing}
-                  checked={paginated.length > 0 && paginated.every(p => selectedIds.has(p.id))}
-                  onChange={() => {
-                    const allSelected = paginated.every(p => selectedIds.has(p.id));
-                    const next = new Set(selectedIds);
-                    if (allSelected) {
-                      paginated.forEach(p => next.delete(p.id));
-                    } else {
-                      paginated.forEach(p => next.add(p.id));
-                    }
-                    setSelectedIds(next);
-                  }}
-                  className="rounded border-slate-300 cursor-pointer disabled:opacity-50 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5"
-                />
-                Select Page
-              </label>
-
-              <div className="flex items-center gap-1">
-                {STATUS_TABS.map(tab => (
-                  <button key={tab} onClick={() => { setActiveTab(tab); setPage(1); }}
-                    className={cn("px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all",
-                      activeTab === tab ? "bg-blue-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-700 hover:bg-slate-100")}>
-                    {tab} {counts[tab] > 0 && <span className={cn("ml-1 px-1.5 py-0.5 rounded-full text-[8px] font-black", activeTab === tab ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500")}>({counts[tab]})</span>}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400">
-              Sort by:
-              <button className="flex items-center gap-1 text-slate-600 hover:text-slate-800">Newest First <ChevronDown className="w-3 h-3" /></button>
+      {/* Stat Cards (NO ICONS) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {STATUS_TABS.map(tab => (
+          <div
+            key={tab}
+            onClick={() => { setActiveTab(tab); setPage(1); }}
+            className={cn(
+              "bg-white rounded-[12px] p-4 border shadow-xs flex flex-col justify-between cursor-pointer transition-all",
+              activeTab === tab ? "border-[#095256] ring-1 ring-[#095256]/20" : "border-[#E1E6EA] hover:border-[#CBD3D9]"
+            )}
+          >
+            <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">{tab} Properties</p>
+            <div className="mt-2">
+              <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{counts[tab]}</h3>
             </div>
           </div>
+        ))}
+      </div>
 
-          {/* Property Cards */}
-          <div className="space-y-3">
-            {loading ? (
-              <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center text-slate-400 text-[10px] font-bold">Loading properties...</div>
-            ) : paginated.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center">
-                <ClipboardList className="w-8 h-8 text-slate-200 mx-auto mb-3" />
-                <p className="text-[10px] font-bold text-slate-400 uppercase">No properties found</p>
-              </div>
-            ) : paginated.map(p => (
-              <div key={p.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow flex items-center pr-4">
-                <div className="pl-4 pr-1 shrink-0">
+      {/* Search & Filter Row (Outside & Above Table Card) */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="relative flex-1 min-w-[240px] max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8C9BA5]" />
+          <input
+            value={search}
+            onChange={e => { setSearch(e.target.value); setPage(1); }}
+            placeholder="Search by property name, owner, location or ID..."
+            className="w-full bg-white border border-[#CBD3D9] rounded-[8px] pl-9 pr-3.5 py-1.5 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs"
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2.5">
+          <select
+            value={activeTab}
+            onChange={e => { setActiveTab(e.target.value); setPage(1); }}
+            className="bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-1.5 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs"
+          >
+            {STATUS_TABS.map(tab => (
+              <option key={tab} value={tab}>{tab} ({counts[tab]})</option>
+            ))}
+          </select>
+
+          <select
+            value={fType}
+            onChange={e => { setFType(e.target.value); setPage(1); }}
+            className="bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-1.5 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs"
+          >
+            <option value="all">All Types</option>
+            <option value="pg">PG</option>
+            <option value="hostel">Hostel</option>
+            <option value="co-living">Co-Living</option>
+            <option value="apartment">Apartment</option>
+            <option value="room">Room</option>
+          </select>
+
+          <select
+            value={fCity}
+            onChange={e => { setFCity(e.target.value); setPage(1); }}
+            className="bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-1.5 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs"
+          >
+            <option value="all">All Cities</option>
+            {cities.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+
+          <select
+            value={fGender}
+            onChange={e => { setFGender(e.target.value); setPage(1); }}
+            className="bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-1.5 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs"
+          >
+            <option value="all">All Genders</option>
+            <option value="male">Boys</option>
+            <option value="female">Girls</option>
+            <option value="any">Co-ed</option>
+          </select>
+
+          <select
+            value={filterType}
+            onChange={e => { setFilterType(e.target.value); setPage(1); }}
+            className="bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-1.5 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs"
+          >
+            <option value="all">Quick Filter: All</option>
+            <option value="today">Submitted Today ({quickFilters.today})</option>
+            <option value="week">Submitted This Week ({quickFilters.week})</option>
+            <option value="highRent">High Rent ₹15,000+ ({quickFilters.highRent})</option>
+            <option value="fewPhotos">Few Photos &lt;5 ({quickFilters.fewPhotos})</option>
+            <option value="missingInfo">Missing Info ({quickFilters.missingInfo})</option>
+          </select>
+
+          {(fType !== "all" || fCity !== "all" || fGender !== "all" || filterType !== "all" || search) && (
+            <button
+              onClick={() => { setFType("all"); setFCity("all"); setFGender("all"); setFilterType("all"); setSearch(""); setPage(1); }}
+              className="px-3 py-1.5 bg-rose-50 border border-rose-200 rounded-[8px] text-[13px] font-medium text-rose-600 hover:bg-rose-100 transition-all flex items-center gap-1 cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" /> Clear
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Bulk Actions Banner */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center justify-between px-4 py-2.5 bg-[#F4F6F8] border border-[#E1E6EA] rounded-[8px] flex-wrap gap-3">
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 rounded-full bg-[#095256] text-white flex items-center justify-center text-[10px] font-bold">
+              {selectedIds.size}
+            </div>
+            <span className="text-[12px] font-semibold text-[#10242A]">properties selected for bulk operations</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              disabled={bulkProcessing}
+              onClick={handleBulkApprove}
+              className="px-3 py-1.5 bg-[#095256] text-white rounded-[6px] text-[12px] font-semibold hover:bg-[#073E42] transition-all disabled:opacity-50 cursor-pointer"
+            >
+              {bulkProcessing ? "Publishing..." : "Bulk Approve"}
+            </button>
+            <button
+              disabled={bulkProcessing}
+              onClick={handleBulkReject}
+              className="px-3 py-1.5 bg-rose-600 text-white rounded-[6px] text-[12px] font-semibold hover:bg-rose-700 transition-all disabled:opacity-50 cursor-pointer"
+            >
+              {bulkProcessing ? "Rejecting..." : "Bulk Reject"}
+            </button>
+            <button
+              disabled={bulkProcessing}
+              onClick={() => setSelectedIds(new Set())}
+              className="px-2.5 py-1.5 text-[12px] font-semibold text-[#4A5961] hover:text-[#10242A] transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Table Card */}
+      <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-[#E1E6EA]">
+                <th className="pb-2 pr-3 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider w-8">
                   <input
                     type="checkbox"
                     disabled={bulkProcessing}
-                    checked={selectedIds.has(p.id)}
+                    checked={paginated.length > 0 && paginated.every(p => selectedIds.has(p.id))}
                     onChange={() => {
+                      const allSelected = paginated.every(p => selectedIds.has(p.id));
                       const next = new Set(selectedIds);
-                      if (next.has(p.id)) next.delete(p.id);
-                      else next.add(p.id);
+                      if (allSelected) {
+                        paginated.forEach(p => next.delete(p.id));
+                      } else {
+                        paginated.forEach(p => next.add(p.id));
+                      }
                       setSelectedIds(next);
                     }}
-                    className="rounded border-slate-300 cursor-pointer disabled:opacity-50 text-blue-600 focus:ring-blue-500 w-4 h-4"
+                    className="rounded border-[#CBD3D9] cursor-pointer disabled:opacity-50"
                   />
-                </div>
-                <div className="flex flex-1">
-                  {/* Thumbnail */}
-                  <div className="w-40 h-32 flex-shrink-0 bg-slate-100 relative">
-                    {p.photos[0] ? (
-                      <img src={p.photos[0]} alt={p.title} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-slate-100">
-                        <Home className="w-8 h-8 text-slate-300" />
+                </th>
+                <th className="pb-2 pr-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Property</th>
+                <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Type & Rooms</th>
+                <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Rent Range</th>
+                <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Submitted By</th>
+                <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Status</th>
+                <th className="pb-2 pl-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#F0F4F6] text-[13px]">
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center text-[13px] font-medium text-[#4A5961]">Loading properties...</td>
+                </tr>
+              ) : paginated.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center text-[13px] font-medium text-[#4A5961]">No properties found</td>
+                </tr>
+              ) : paginated.map(p => (
+                <tr key={p.id} className="hover:bg-[#F9FAFB] transition-colors">
+                  <td className="py-2.5 pr-3">
+                    <input
+                      type="checkbox"
+                      disabled={bulkProcessing}
+                      checked={selectedIds.has(p.id)}
+                      onChange={() => {
+                        const next = new Set(selectedIds);
+                        if (next.has(p.id)) next.delete(p.id);
+                        else next.add(p.id);
+                        setSelectedIds(next);
+                      }}
+                      className="rounded border-[#CBD3D9] cursor-pointer disabled:opacity-50"
+                    />
+                  </td>
+                  <td className="py-2.5 pr-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-9 rounded-[6px] overflow-hidden bg-[#F4F6F8] border border-[#E1E6EA] shrink-0 relative">
+                        {p.photos[0] ? (
+                          <img src={p.photos[0]} alt={p.title} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-[#8C9BA5]">
+                            <Home className="w-4 h-4" />
+                          </div>
+                        )}
                       </div>
-                    )}
-                    <div className="absolute bottom-2 left-2 px-2 py-0.5 bg-black/50 backdrop-blur-sm rounded text-[7px] font-black text-white flex items-center gap-1">
-                      <ImageIcon className="w-2.5 h-2.5" /> {p.photos.length} Photos
-                    </div>
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 p-4 grid grid-cols-12 gap-4 items-center">
-                    {/* Property Info */}
-                    <div className="col-span-4">
-                      <div className="flex items-start justify-between mb-1">
-                        <h3 className="text-[11px] font-black text-slate-800 leading-tight">{p.title}</h3>
-                        <span className={cn("ml-2 px-2 py-0.5 rounded text-[7px] font-black uppercase tracking-wide flex-shrink-0", statusBadge(p.status))}>{p.status}</span>
-                      </div>
-                      <span className={cn("inline-block px-2 py-0.5 rounded text-[7px] font-black uppercase tracking-wide mb-2", roomTypeBadge(p.roomType))}>{p.roomType}</span>
-                      <p className="text-[8px] font-bold text-slate-400 flex items-center gap-1"><MapPin className="w-2.5 h-2.5" /> {p.location}</p>
-                      <p className="text-[8px] font-bold text-slate-300 mt-0.5">{p.propId}</p>
-                    </div>
-
-                    {/* Stats */}
-                    <div className="col-span-3 space-y-1.5">
-                      <div>
-                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Property Type</p>
-                        <p className="text-[10px] font-black text-slate-700">{p.type}</p>
-                      </div>
-                      <div>
-                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Total Rooms</p>
-                        <p className="text-[10px] font-black text-slate-700">{p.totalRooms} Rooms</p>
-                      </div>
-                      {(p.minRent || p.maxRent) && (
-                        <div>
-                          <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Rent Range</p>
-                          <p className="text-[10px] font-black text-slate-700 flex items-center">
-                            <IndianRupee className="w-2.5 h-2.5" />
-                            {p.minRent && `${Number(p.minRent).toLocaleString("en-IN")}`}
-                            {p.maxRent && ` – ₹ ${Number(p.maxRent).toLocaleString("en-IN")}`}
-                            /bed
-                          </p>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-[13px] font-semibold text-[#10242A] truncate max-w-[200px]">{p.title}</p>
+                          <span className="text-[10px] font-semibold text-[#4A5961] bg-[#F4F6F8] px-1.5 py-0.5 rounded-[4px]">{p.photos.length} photos</span>
                         </div>
-                      )}
-                    </div>
-
-                    {/* Submission Info */}
-                    <div className="col-span-3 space-y-1.5">
-                      <div>
-                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Submitted by</p>
-                        <p className="text-[10px] font-black text-slate-700 flex items-center gap-1"><User className="w-2.5 h-2.5 text-slate-400" /> {p.submittedBy}</p>
-                      </div>
-                      <div>
-                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Submitted on</p>
-                        <p className="text-[10px] font-black text-slate-700">{p.submittedOn}</p>
+                        <p className="text-[11px] text-[#4A5961] flex items-center gap-1 truncate max-w-[240px] mt-0.5">
+                          <MapPin className="w-3 h-3 text-[#8C9BA5] shrink-0" /> {p.location} • <span className="font-mono">{p.propId}</span>
+                        </p>
                       </div>
                     </div>
-
-                    {/* Actions */}
-                    <div className="col-span-2 flex flex-col gap-2 items-end">
-                      <button onClick={() => setSelected(p)} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-[9px] font-black text-slate-600 hover:bg-slate-50 transition-all text-center">
+                  </td>
+                  <td className="py-2.5 px-4">
+                    <p className="text-[13px] font-medium text-[#10242A]">{p.type}</p>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className={cn("inline-block px-1.5 py-0.5 rounded-[4px] text-[10px] font-semibold", roomTypeBadge(p.roomType))}>{p.roomType}</span>
+                      <span className="text-[11px] text-[#4A5961]">• {p.totalRooms} Rooms</span>
+                    </div>
+                  </td>
+                  <td className="py-2.5 px-4">
+                    {(p.minRent || p.maxRent) ? (
+                      <p className="text-[13px] font-semibold text-[#10242A]">
+                        ₹{p.minRent ? Number(p.minRent).toLocaleString("en-IN") : "0"}
+                        {p.maxRent ? ` – ₹${Number(p.maxRent).toLocaleString("en-IN")}` : ""}
+                        <span className="text-[11px] font-normal text-[#4A5961]">/bed</span>
+                      </p>
+                    ) : (
+                      <span className="text-[12px] text-[#8C9BA5]">—</span>
+                    )}
+                  </td>
+                  <td className="py-2.5 px-4">
+                    <p className="text-[13px] font-medium text-[#10242A]">{p.submittedBy}</p>
+                    <p className="text-[11px] text-[#4A5961] mt-0.5">{p.submittedOn}</p>
+                  </td>
+                  <td className="py-2.5 px-4">
+                    <span className={cn("px-2.5 py-0.5 rounded-full text-[11px] font-semibold", statusBadge(p.status))}>{p.status}</span>
+                  </td>
+                  <td className="py-2.5 pl-4 text-right whitespace-nowrap">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button onClick={() => setSelected(p)} className="px-2.5 py-1 rounded-[6px] border border-[#CBD3D9] bg-white text-[12px] font-semibold text-[#10242A] hover:bg-[#F4F6F8] transition-all cursor-pointer">
                         View Details
                       </button>
                       {p.status === "Pending" && (
                         <>
-                          <button onClick={() => handleApprove(p.id)} className="w-full px-3 py-2 rounded-lg bg-emerald-600 text-white text-[9px] font-black hover:bg-emerald-700 transition-all text-center">
+                          <button onClick={() => handleApprove(p.id)} className="px-2.5 py-1 rounded-[6px] bg-[#095256] text-white text-[12px] font-semibold hover:bg-[#073E42] transition-all cursor-pointer">
                             Approve
                           </button>
-                          <button onClick={() => handleReject(p.id)} className="w-full px-3 py-2 rounded-lg border border-rose-200 text-rose-600 text-[9px] font-black hover:bg-rose-50 transition-all text-center">
+                          <button onClick={() => handleReject(p.id)} className="px-2.5 py-1 rounded-[6px] border border-rose-200 bg-rose-50 text-rose-600 text-[12px] font-semibold hover:bg-rose-100 transition-all cursor-pointer">
                             Reject
                           </button>
                         </>
                       )}
                     </div>
-                  </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination */}
+        {filtered.length > 0 && (
+          <div className="flex items-center justify-between pt-3 mt-2 border-t border-[#E1E6EA]">
+            <p className="text-[12px] text-[#4A5961]">
+              Showing <span className="font-semibold text-[#10242A]">{Math.min((page - 1) * PER_PAGE + 1, filtered.length)}</span> to <span className="font-semibold text-[#10242A]">{Math.min(page * PER_PAGE, filtered.length)}</span> of <span className="font-semibold text-[#10242A]">{filtered.length}</span> entries
+            </p>
+            <div className="flex items-center gap-1.5">
+              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="p-1 rounded-[6px] border border-[#CBD3D9] text-[#4A5961] hover:bg-[#F4F6F8] disabled:opacity-40 transition-all cursor-pointer">
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
+                <button key={n} onClick={() => setPage(n)} className={cn("w-7 h-7 rounded-[6px] text-[12px] font-semibold transition-all cursor-pointer", page === n ? "bg-[#095256] text-white" : "border border-[#CBD3D9] text-[#4A5961] hover:bg-[#F4F6F8]")}>
+                  {n}
+                </button>
+              ))}
+              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="p-1 rounded-[6px] border border-[#CBD3D9] text-[#4A5961] hover:bg-[#F4F6F8] disabled:opacity-40 transition-all cursor-pointer">
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Recent Activity & Review Checklist */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2 bg-white rounded-[12px] border border-[#E1E6EA] shadow-xs p-4">
+          <h3 className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider mb-3">Recent Activity</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {recentActivity.map((a, i) => (
+              <div key={i} className="flex items-start gap-2.5 p-2.5 rounded-[8px] bg-[#F9FAFB] border border-[#E1E6EA]">
+                <div className="min-w-0">
+                  <p className="text-[13px] font-semibold text-[#10242A] leading-tight truncate">
+                    {a.name}
+                    <span className="ml-1.5 text-[10px] font-semibold text-[#4A5961] bg-white border border-[#E1E6EA] px-1.5 py-0.5 rounded-[4px]">{a.type}</span>
+                  </p>
+                  <p className="text-[12px] text-[#4A5961] mt-0.5 capitalize">{a.action} • <span className="text-[11px]">{a.time}</span></p>
                 </div>
               </div>
             ))}
           </div>
-
-          {/* Pagination */}
-          {filtered.length > 0 && (
-            <div className="flex items-center justify-between pt-2">
-              <p className="text-[10px] font-bold text-slate-400">
-                Showing {Math.min((page - 1) * PER_PAGE + 1, filtered.length)} to {Math.min(page * PER_PAGE, filtered.length)} of {filtered.length} entries
-              </p>
-              <div className="flex items-center gap-1">
-                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:text-slate-700 disabled:opacity-30 transition-all">
-                  <ChevronLeft className="w-3.5 h-3.5" />
-                </button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
-                  <button key={n} onClick={() => setPage(n)} className={cn("w-7 h-7 rounded-lg text-[10px] font-black transition-all", page === n ? "bg-blue-600 text-white" : "border border-slate-200 text-slate-500 hover:bg-slate-50")}>
-                    {n}
-                  </button>
-                ))}
-                <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:text-slate-700 disabled:opacity-30 transition-all">
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Right: Sidebar */}
-        <div className="col-span-3 space-y-4">
-          {/* Approval Summary */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-            <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-4">Approval Summary</h3>
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              {[
-                { label: "Pending", val: counts.Pending, color: "text-amber-600 bg-amber-50 border-amber-100" },
-                { label: "Approved", val: counts.Approved, color: "text-emerald-600 bg-emerald-50 border-emerald-100" },
-                { label: "Rejected", val: counts.Rejected, color: "text-rose-600 bg-rose-50 border-rose-100" },
-                { label: "Total", val: counts.All, color: "text-blue-600 bg-blue-50 border-blue-100" },
-              ].map(s => (
-                <div key={s.label} className={cn("rounded-xl border p-3 text-center", s.color)}>
-                  <p className="text-lg font-black leading-none">{s.val}</p>
-                  <p className="text-[8px] font-black uppercase tracking-widest mt-1 opacity-70">{s.label}</p>
-                </div>
-              ))}
-            </div>
+        <div className="bg-white rounded-[12px] border border-[#E1E6EA] shadow-xs p-4 flex flex-col justify-between">
+          <div>
+            <h3 className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider mb-1.5">Review Checklist</h3>
+            <p className="text-[13px] text-[#4A5961] leading-relaxed">Verify property details, photos, pricing, amenities, and policies before approving.</p>
           </div>
-
-          {/* Quick Filters */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-            <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-3">Quick Filters</h3>
-            <div className="space-y-2">
-              {[
-                { type: "today", icon: CalendarDays, label: "Submitted Today", count: quickFilters.today, color: "text-blue-600" },
-                { type: "week", icon: CalendarDays, label: "Submitted This Week", count: quickFilters.week, color: "text-blue-600" },
-                { type: "highRent", icon: IndianRupee, label: "High Rent (₹15,000+)", count: quickFilters.highRent, color: "text-amber-500" },
-                { type: "fewPhotos", icon: ImageIcon, label: "Properties with Few Photos (<5)", count: quickFilters.fewPhotos, color: "text-rose-500" },
-                { type: "missingInfo", icon: AlertCircle, label: "Missing Information", count: quickFilters.missingInfo, color: "text-orange-500" },
-              ].map(f => (
-                <button key={f.label} 
-                  onClick={() => {
-                    setFilterType(prev => prev === f.type ? "all" : f.type);
-                    setPage(1);
-                  }}
-                  className={cn("w-full flex items-center justify-between px-3 py-2 rounded-xl border transition-all group text-left",
-                    filterType === f.type ? "bg-blue-50 border-blue-100 text-blue-700 font-bold" : "hover:bg-slate-50 border-transparent text-slate-600")}
-                >
-                  <div className="flex items-center gap-2">
-                    <f.icon className={cn("w-3.5 h-3.5", f.color)} />
-                    <span className="text-[10px] font-bold">{f.label}</span>
-                  </div>
-                  <span className="text-[9px] font-black bg-slate-100 text-slate-400 rounded px-1.5 py-0.5">{f.count}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Recent Activity */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-            <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-3">Recent Activity</h3>
-            <div className="space-y-3">
-              {recentActivity.map((a, i) => (
-                <div key={i} className="flex items-start gap-2.5">
-                  <div className={cn("w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5",
-                    a.ok === true ? "bg-emerald-100" : a.ok === false ? "bg-rose-100" : "bg-amber-100")}>
-                    {a.ok === true ? <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                      : a.ok === false ? <XCircle className="w-3 h-3 text-rose-600" />
-                      : <Clock className="w-3 h-3 text-amber-600" />}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-black text-slate-700 leading-tight">{a.name}
-                      <span className="ml-1 text-[8px] font-bold text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded">{a.type}</span>
-                    </p>
-                    <p className="text-[9px] font-bold text-slate-400 mt-0.5">{a.action}</p>
-                    <p className="text-[8px] font-bold text-slate-300">{a.time}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Review Checklist */}
-          <div className="bg-blue-50 rounded-2xl border border-blue-100 p-5">
-            <div className="flex items-center gap-2 mb-2">
-              <AlertCircle className="w-4 h-4 text-blue-500" />
-              <h3 className="text-[10px] font-black text-blue-700 uppercase tracking-widest">Review Checklist</h3>
-            </div>
-            <p className="text-[9px] font-bold text-blue-500 leading-relaxed mb-3">Verify property details, photos, pricing, amenities, and policies before approving.</p>
-            <button className="flex items-center gap-1 text-[9px] font-black text-blue-600 hover:text-blue-700 transition-all">
-              View Checklist <ArrowRight className="w-3 h-3" />
-            </button>
-          </div>
+          <button className="mt-3 flex items-center gap-1 text-[12px] font-semibold text-[#0E7C86] hover:underline transition-all">
+            View Checklist <ArrowRight className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
 

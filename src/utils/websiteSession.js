@@ -22,8 +22,6 @@ export const getStoredWebsiteToken = () => {
     return (
       localStorage.getItem(WEBSITE_TOKEN_KEY) ||
       sessionStorage.getItem(WEBSITE_TOKEN_KEY) ||
-      localStorage.getItem(ACCESS_TOKEN_KEY) ||
-      sessionStorage.getItem(ACCESS_TOKEN_KEY) ||
       ""
     );
   } catch {
@@ -31,11 +29,29 @@ export const getStoredWebsiteToken = () => {
   }
 };
 
+const NON_WEBSITE_ROLES = new Set([
+  "superadmin",
+  "admin",
+  "areamanager",
+  "area_manager",
+  "employee",
+  "staff",
+  "owner",
+  "propertyowner",
+  "manager",
+  "field_executive",
+  "field executive",
+  "field_agent",
+  "field agent",
+  "accountant",
+  "support_agent",
+  "support agent"
+]);
+
 const normalizeWebsiteUser = (user) => {
   if (!user || typeof user !== "object") return null;
-  // Administrative roles must NEVER be treated as website tenant users
-  const role = String(user.role || "").toLowerCase();
-  if (role === "superadmin" || role === "admin" || role === "areamanager" || role === "employee" || role === "owner" || role === "manager") {
+  const role = String(user.role || "").trim().toLowerCase();
+  if (NON_WEBSITE_ROLES.has(role) || user.team || /^RY[A-Z0-9]+/i.test(String(user.loginId || ""))) {
     return null;
   }
   const loginId = user.loginId || user.email || user.id || user.userId || "";
@@ -43,7 +59,7 @@ const normalizeWebsiteUser = (user) => {
     ...user,
     loginId,
     email: user.email || user.gmail || user.userEmail || "",
-    role: user.role || "tenant"
+    role: role === "tenant" ? "tenant" : "website_user"
   };
 };
 

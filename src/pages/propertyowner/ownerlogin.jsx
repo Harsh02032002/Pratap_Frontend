@@ -316,7 +316,7 @@ export default function Ownerlogin() {
   return (
     <main className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
       <div className="bg-card rounded-xl shadow-soft w-full max-w-md p-8 text-center relative overflow-hidden border border-border">
-        <div className="text-3xl font-bold text-primary mb-2">Roomhy</div>
+        <div className="flex justify-center mb-3"><img src="/website/roomhy_logo.jpeg" alt="Roomhy Logo" className="h-12 w-auto object-contain" /></div>
 
         {step === "login" && (
           <div className="fade-in">

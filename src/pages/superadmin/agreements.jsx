@@ -152,10 +152,10 @@ export default function Agreements() {
                         );
                         const startDateStr = o.createdAt
                            ? new Date(o.createdAt).toLocaleDateString("en-IN", { day: 'numeric', month: 'short', year: 'numeric' })
-                           : "[Date]";
+                           : "—";
                         const endDateStr = o.agreementExpiryDate
                            ? new Date(o.agreementExpiryDate).toLocaleDateString("en-IN", { day: 'numeric', month: 'short', year: 'numeric' })
-                           : "[Date]";
+                           : "—";
 
                         return (
                            <tr key={i} className="hover:bg-[#F9FAFB] transition-colors">
@@ -164,10 +164,10 @@ export default function Agreements() {
                                     <div className="w-7 h-7 rounded-full bg-[#D9E1E7] flex items-center justify-center font-bold text-[11px] text-[#4A5961]">
                                        {(o.name || "U").charAt(0).toUpperCase()}
                                     </div>
-                                    <span className="font-semibold text-[13px] text-[#10242A]">{o.name || "[Name]"}</span>
+                                    <span className="font-semibold text-[13px] text-[#10242A]">{o.name || "—"}</span>
                                  </div>
                               </td>
-                              <td className="py-2.5 px-4 text-[#4A5961] text-[13px]">{o.propertyName || o.propertyType || "[Property name]"}</td>
+                              <td className="py-2.5 px-4 text-[#4A5961] text-[13px]">{o.propertyName || o.propertyType || "—"}</td>
                               <td className="py-2.5 px-4 text-[#4A5961] text-[13px]">{startDateStr}</td>
                               <td className="py-2.5 px-4 text-[#4A5961] text-[13px]">{endDateStr}</td>
                               <td className="py-2.5 px-4">

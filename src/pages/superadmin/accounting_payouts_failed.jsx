@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from "react";
 import {
   AlertTriangle, RefreshCw, Search, RotateCcw,
-  X, AlertCircle, CheckCircle2, TrendingDown,
-  ShieldAlert
+  X, AlertCircle, CheckCircle2
 } from "lucide-react";
 import { fetchJson } from "../../utils/api";
-import { PageHeader } from "../../components/superadmin/PageHeader";
 import useSEO from "../../hooks/useSEO";
 
 const cn = (...c) => c.filter(Boolean).join(" ");
@@ -64,26 +62,28 @@ export default function PayoutsFailed() {
   const totalAmt = failed.reduce((s, f) => s + (f.amount || 0), 0);
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Failed Payout Alerts"
-        subtitle="Disbursement failures, gateway errors and retry dashboard"
-        actions={
-          <button onClick={load} className="flex items-center gap-2 bg-white border border-slate-100 px-4 py-2 rounded-xl shadow-sm text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all">
-            <RefreshCw className={cn("w-3.5 h-3.5", loading && "animate-spin")} /> Refresh
+    <div className="space-y-4 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-[22px] font-bold text-[#10242A] tracking-tight leading-tight">Failed Payout Alerts</h1>
+          <p className="text-[13px] text-[#4A5961] mt-0.5">Disbursement failures, gateway errors and retry dashboard</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button onClick={load} className="flex items-center gap-2 bg-white border border-[#CBD3D9] hover:bg-gray-50 text-[#10242A] text-[13px] font-semibold px-4 py-1.5 rounded-[8px] transition-all shadow-xs cursor-pointer">
+            <RefreshCw className={cn("w-3.5 h-3.5 text-[#0E7C86]", loading && "animate-spin")} /> Refresh
           </button>
-        }
-      />
+        </div>
+      </div>
 
       {/* Alerts */}
       {successMsg && (
-        <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 text-emerald-700 rounded-2xl px-5 py-3 text-sm font-bold shadow-sm">
+        <div className="flex items-center gap-3 bg-[#DDF3E4] border border-[#B7E4C7] text-[#14532D] rounded-[12px] px-4 py-3 text-[13px] font-semibold">
           <CheckCircle2 className="w-4 h-4 shrink-0" /> {successMsg}
           <button onClick={() => setSuccessMsg("")} className="ml-auto"><X className="w-4 h-4" /></button>
         </div>
       )}
       {errorMsg && (
-        <div className="flex items-center gap-3 bg-rose-50 border border-rose-100 text-rose-600 rounded-2xl px-5 py-3 text-sm font-bold shadow-sm">
+        <div className="flex items-center gap-3 bg-[#FDE8E8] border border-[#F8B4B4] text-[#991B1B] rounded-[12px] px-4 py-3 text-[13px] font-semibold">
           <AlertCircle className="w-4 h-4 shrink-0" /> {errorMsg}
           <button onClick={() => setErrorMsg("")} className="ml-auto"><X className="w-4 h-4" /></button>
         </div>
@@ -92,20 +92,16 @@ export default function PayoutsFailed() {
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { label: "Failed Transactions", val: totalFailed, icon: AlertTriangle, color: "#EF4444", bg: "#FEF2F2", txt: "#B91C1C", fmt: v => v },
-          { label: "Amount at Risk",      val: totalAmt,    icon: TrendingDown,  color: "#F97316", bg: "#FFF7ED", txt: "#C2410C", fmt: fmt },
-          { label: "Needs Attention",     val: totalFailed, icon: ShieldAlert,   color: "#8B5CF6", bg: "#F5F3FF", txt: "#5B21B6", fmt: v => `${v} Alerts` },
+          { label: "Failed Transactions", val: totalFailed, fmt: v => v },
+          { label: "Amount at Risk",      val: totalAmt,    fmt: fmt },
+          { label: "Needs Attention",     val: totalFailed, fmt: v => `${v} Alerts` },
         ].map(card => (
-          <div key={card.label} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex items-center gap-4">
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ background: card.bg }}>
-              <card.icon size={20} style={{ color: card.color }} />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{card.label}</p>
-              {loading
-                ? <div className="h-6 w-24 bg-slate-100 rounded animate-pulse mt-1" />
-                : <p className="text-xl font-black mt-0.5" style={{ color: card.txt }}>{card.fmt(card.val)}</p>
-              }
+          <div key={card.label} className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
+            <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">{card.label}</p>
+            <div className="mt-2">
+              <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">
+                {loading ? "..." : card.fmt(card.val)}
+              </h3>
             </div>
           </div>
         ))}
@@ -113,90 +109,85 @@ export default function PayoutsFailed() {
 
       {/* Alert Banner */}
       {!loading && totalFailed > 0 && (
-        <div className="flex items-start gap-4 bg-rose-50 border border-rose-100 rounded-2xl px-5 py-4">
-          <AlertTriangle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 bg-[#FDE8E8] border border-[#F8B4B4] rounded-[12px] px-4 py-3">
+          <AlertTriangle className="w-4 h-4 text-[#991B1B] shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-black text-rose-700">{totalFailed} payout failure{totalFailed > 1 ? "s" : ""} detected</p>
-            <p className="text-[10px] text-rose-500 font-bold mt-0.5">
+            <p className="text-[13px] font-bold text-[#991B1B]">{totalFailed} payout failure{totalFailed > 1 ? "s" : ""} detected</p>
+            <p className="text-[12px] text-[#991B1B] mt-0.5">
               Total amount at risk: {fmt(totalAmt)}. Review each failure and retry or contact your payment gateway.
             </p>
           </div>
         </div>
       )}
 
-      {/* Table */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h3 className="text-sm font-bold text-slate-800">Failure Log</h3>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-              {loading ? "Loading..." : `${filtered.length} failures in queue`}
-            </p>
-          </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-300" />
-            <input
-              value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search owner / error..."
-              className="bg-slate-50 border-none rounded-xl py-2 pl-9 pr-4 text-[10px] font-bold outline-none focus:bg-white focus:ring-2 focus:ring-rose-100 transition-all shadow-sm w-52"
-            />
-          </div>
+      {/* Outside Search Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="relative w-full sm:w-[320px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8C9BA5]" />
+          <input
+            value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Search owner / error..."
+            className="w-full bg-white border border-[#CBD3D9] rounded-[8px] pl-9 pr-3.5 py-1.5 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs"
+          />
         </div>
+        <span className="text-[12px] font-medium text-[#4A5961]">
+          {loading ? "Loading..." : `${filtered.length} failures in queue`}
+        </span>
+      </div>
 
+      {/* Table */}
+      <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
+          <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="text-slate-400 text-[8px] font-bold uppercase border-b border-slate-50">
-                <th className="pb-4">Owner</th>
-                <th className="pb-4 text-center">Amount</th>
-                <th className="pb-4 text-center">Bank Account</th>
-                <th className="pb-4">Error Details</th>
-                <th className="pb-4 text-center">Failed At</th>
-                <th className="pb-4 text-right">Action</th>
+              <tr className="border-b border-[#E1E6EA]">
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Owner</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-center">Amount</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-center">Bank Account</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Error Details</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-center">Failed At</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
+            <tbody className="divide-y divide-[#F0F4F6] text-[13px]">
               {loading ? (
-                [1,2,3].map(i => (
-                  <tr key={i}>{[1,2,3,4,5,6].map(j => <td key={j} className="py-3"><div className="h-4 bg-slate-100 rounded animate-pulse" /></td>)}</tr>
-                ))
+                <tr><td colSpan={6} className="py-6 text-center text-[13px] text-[#4A5961]">Loading records...</td></tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-16 text-center">
-                    <CheckCircle2 className="w-10 h-10 text-emerald-300 mx-auto mb-2" />
-                    <p className="text-sm font-bold text-slate-400">No failed payouts!</p>
-                    <p className="text-[10px] text-slate-300 mt-1">All disbursements are running smoothly.</p>
+                  <td colSpan={6} className="py-8 text-center">
+                    <p className="text-[13px] font-semibold text-[#10242A]">No failed payouts!</p>
+                    <p className="text-[12px] text-[#4A5961] mt-0.5">All disbursements are running smoothly.</p>
                   </td>
                 </tr>
               ) : filtered.map((f, i) => (
-                <tr key={i} className="group hover:bg-rose-50/40 transition-colors">
-                  <td className="py-3">
-                    <p className="font-bold text-slate-800 text-xs">{f.owner_name || "N/A"}</p>
-                    <p className="text-[9px] text-slate-400 font-mono mt-0.5">{f.owner_id || ""}</p>
+                <tr key={i} className="hover:bg-[#F9FAFB] transition-colors">
+                  <td className="py-2.5">
+                    <p className="font-medium text-[#10242A]">{f.owner_name || "N/A"}</p>
+                    <p className="text-[11px] text-[#708088] font-mono">{f.owner_id || ""}</p>
                   </td>
-                  <td className="py-3 text-center font-black text-slate-800">{fmt(f.amount)}</td>
-                  <td className="py-3 text-center">
-                    <p className="text-[10px] font-bold text-slate-700">{f.bank_name || "N/A"}</p>
-                    <p className="text-[9px] text-slate-400 font-mono">
+                  <td className="py-2.5 text-center font-semibold text-[#10242A]">{fmt(f.amount)}</td>
+                  <td className="py-2.5 text-center">
+                    <p className="text-[13px] font-medium text-[#10242A]">{f.bank_name || "N/A"}</p>
+                    <p className="text-[11px] text-[#708088] font-mono">
                       {f.account_number ? `••••${String(f.account_number).slice(-4)}` : "N/A"}
                     </p>
                   </td>
-                  <td className="py-3 max-w-[220px]">
-                    <span className="text-[9px] font-semibold text-rose-600 bg-rose-50 border border-rose-100 px-2 py-1 rounded inline-flex items-start gap-1 leading-snug">
-                      <AlertTriangle size={10} className="shrink-0 mt-0.5" />
-                      {f.error_message || "Payment gateway returned an error"}
+                  <td className="py-2.5 max-w-[240px]">
+                    <span className="text-[12px] font-medium text-[#991B1B] bg-[#FDE8E8] px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                      <AlertTriangle size={11} className="shrink-0" />
+                      <span className="truncate">{f.error_message || "Payment gateway returned an error"}</span>
                     </span>
                   </td>
-                  <td className="py-3 text-center text-[10px] text-slate-500">
+                  <td className="py-2.5 text-center text-[#4A5961]">
                     {f.failed_at ? new Date(f.failed_at).toLocaleDateString("en-IN") : "N/A"}
                   </td>
-                  <td className="py-3 text-right">
+                  <td className="py-2.5 text-right">
                     <button
                       onClick={() => handleRetry(f)}
                       disabled={retryingId === f._id}
-                      className="bg-rose-600 hover:bg-rose-700 text-white font-bold px-3 py-1.5 rounded-lg text-[9px] uppercase tracking-wider transition-all inline-flex items-center gap-1.5 disabled:opacity-50"
+                      className="bg-[#991B1B] hover:bg-[#7F1D1D] text-white font-semibold px-3 py-1 rounded-[6px] text-[12px] transition-all inline-flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
                     >
-                      <RotateCcw size={9} className={cn(retryingId === f._id && "animate-spin")} />
+                      <RotateCcw size={11} className={cn(retryingId === f._id && "animate-spin")} />
                       {retryingId === f._id ? "Retrying..." : "Retry"}
                     </button>
                   </td>

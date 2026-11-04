@@ -1,15 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { 
-  Users, Calendar, ChevronRight, TrendingUp, ArrowUpRight, 
-  MapPin, IndianRupee, Clock, Percent, Search, Filter,
-  MoreVertical, Download, Plus, CheckCircle2, AlertCircle,
-  XCircle, RefreshCw, Eye, Trash2, Mail, Phone,
-  Building2, CreditCard, Banknote, ShieldCheck,
-  Zap, ArrowDownRight, LayoutGrid, Sheet, Loader2,
-  CalendarCheck, User, Info, Check, X, Globe
+  Users, Calendar, MapPin, Clock, Search,
+  MoreVertical, CheckCircle2, RefreshCw, Eye, Mail, Phone,
+  Building2, Banknote, ShieldCheck,
+  Zap, Sheet, Loader2,
+  CalendarCheck, User, X, Globe
 } from "lucide-react";
 import { fetchJson, getAuthHeader } from "../../utils/api";
-import { PageHeader } from "../../components/superadmin/PageHeader";
 import * as XLSX from 'xlsx';
 
 const cn = (...c) => c.filter(Boolean).join(" ");
@@ -109,198 +106,190 @@ export default function DirectBookings() {
   };
 
   return (
-    <div className="space-y-6 text-[#10242A]">
+    <div className="space-y-4 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
       {/* Header */}
-      <PageHeader
-        title="Direct Bookings"
-        subtitle="Verified direct reservations and guest stay intelligence hub."
-        actions={
-          <button 
-            onClick={exportToExcel}
-            className="bg-white border border-slate-200/80 text-slate-700 px-4 py-2 rounded-xl text-xs font-semibold shadow-2xs hover:bg-slate-50 transition-all flex items-center gap-2 cursor-pointer"
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-[22px] font-bold text-[#10242A] tracking-tight leading-tight">Direct Bookings</h1>
+          <p className="text-[13px] text-[#4A5961] mt-0.5">Verified direct reservations and guest stay intelligence hub.</p>
+        </div>
+        <button 
+          onClick={exportToExcel}
+          className="bg-white border border-[#CBD3D9] text-[#10242A] px-4 py-1.5 rounded-[8px] text-[13px] font-semibold shadow-xs hover:bg-gray-50 transition-all flex items-center gap-2 cursor-pointer"
+        >
+          <Sheet size={14} /> Export Fiscal Audit
+        </button>
+      </div>
+
+      {/* Stats Grid (No Icons) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard label="Total Bookings" val={stats.total} trend="+12% Delta" />
+        <StatCard label="Confirmed Pulse" val={stats.confirmed} trend="Optimal" />
+        <StatCard label="Pending Audit" val={stats.pending} trend="Awaiting" />
+        <StatCard label="Gross Value" val={`₹${(stats.revenue / 100000).toFixed(1)}L`} trend="Revenue Flow" />
+      </div>
+
+      {/* Outside Controls Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative w-full sm:w-[280px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#708088]" />
+            <input 
+              value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Search Guests, Properties..." 
+              className="w-full bg-white border border-[#CBD3D9] rounded-[8px] pl-9 pr-3.5 py-1.5 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs" 
+            />
+          </div>
+
+          {/* Filter */}
+          <select 
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+            className="bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-1.5 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs"
           >
-            <Sheet size={14} /> Export Fiscal Audit
+            <option value="all">All States</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="pending">Pending</option>
+            <option value="rejected">Rejected</option>
+          </select>
+
+          <button onClick={loadBookings} className="p-2 rounded-[8px] bg-white text-[#4A5961] hover:text-[#0E7C86] transition-all border border-[#CBD3D9] shadow-xs cursor-pointer">
+            <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
           </button>
-        }
-      />
-
-      <div className="space-y-6">
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard icon={CalendarCheck} label="Total Bookings" val={stats.total} color="blue" trend="+12% Delta" up />
-          <StatCard icon={CheckCircle2} label="Confirmed Pulse" val={stats.confirmed} color="emerald" trend="Optimal" up />
-          <StatCard icon={AlertCircle} label="Pending Audit" val={stats.pending} color="amber" trend="Awaiting" />
-          <StatCard icon={Banknote} label="Gross Value" val={`₹${(stats.revenue / 100000).toFixed(1)}L`} color="indigo" trend="Revenue Flow" up />
         </div>
 
-        {/* Outside Controls Bar */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Tabs switcher */}
-            <div className="flex bg-white border border-slate-200/80 p-1 rounded-xl shadow-2xs">
-              {[
-                { id: "direct", label: "Direct Bookings", icon: Users },
-                { id: "online", label: "Online Requests", icon: Globe }
-              ].map(t => (
-                <button
-                  key={t.id}
-                  onClick={() => setActiveTab(t.id)}
-                  className={cn(
-                    "flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
-                    activeTab === t.id ? "bg-[#095256] text-white shadow-2xs" : "text-slate-600 hover:text-slate-900"
-                  )}
-                >
-                  <t.icon size={13} />
-                  {t.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Filter */}
-            <select 
-              value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value)}
-              className="bg-white border border-slate-200/80 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-700 outline-none shadow-2xs cursor-pointer"
+        {/* Tabs switcher */}
+        <div className="flex bg-white border border-[#CBD3D9] p-1 rounded-[8px] shadow-xs">
+          {[
+            { id: "direct", label: "Direct Bookings", icon: Users },
+            { id: "online", label: "Online Requests", icon: Globe }
+          ].map(t => (
+            <button
+              key={t.id}
+              onClick={() => setActiveTab(t.id)}
+              className={cn(
+                "flex items-center gap-2 px-3.5 py-1 rounded-[6px] text-[13px] font-medium transition-all cursor-pointer",
+                activeTab === t.id ? "bg-[#0E7C86] text-white font-semibold" : "text-[#4A5961] hover:text-[#10242A]"
+              )}
             >
-              <option value="all">All States</option>
-              <option value="confirmed">Confirmed</option>
-              <option value="pending">Pending</option>
-              <option value="rejected">Rejected</option>
-            </select>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="relative group w-full lg:w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input 
-                value={search} onChange={e => setSearch(e.target.value)}
-                placeholder="Search Guests, Properties..." 
-                className="w-full bg-white border border-slate-200/80 rounded-xl py-2 pl-9 pr-4 text-xs font-medium text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-[#095256]/20 focus:border-[#095256] transition-all shadow-2xs" 
-              />
-            </div>
-            <button onClick={loadBookings} className="p-2 rounded-xl bg-white text-slate-500 hover:text-[#095256] transition-all border border-slate-200/80 shadow-2xs cursor-pointer">
-              <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
+              <t.icon size={13} />
+              {t.label}
             </button>
-          </div>
+          ))}
         </div>
+      </div>
 
-        {/* Standalone Table Card */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="bg-slate-50/50 text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em] border-b border-slate-100">
-                  <th className="px-10 py-8">Guest Identity</th>
-                  <th className="px-6 py-8">Asset Allocation</th>
-                  <th className="px-6 py-8 text-center">Check-In Index</th>
-                  <th className="px-6 py-8 text-center">Stay Status</th>
-                  <th className="px-10 py-8 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {loading ? (
-                  <tr><td colSpan="5" className="py-40 text-center">
-                    <div className="w-16 h-16 border-4 border-blue-600/10 border-t-blue-600 rounded-full animate-spin mx-auto mb-8" />
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em]">Accessing Stay Intelligence...</p>
-                  </td></tr>
-                ) : filteredBookings.length === 0 ? (
-                  <tr><td colSpan="5" className="py-40 text-center">
-                    <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-200">
-                      <CalendarCheck size={40} />
+      {/* Standalone Table Card */}
+      <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse min-w-[700px]">
+            <thead>
+              <tr className="border-b border-[#E1E6EA]">
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider pl-2">Guest Identity</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Asset Allocation</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-center">Check-In Index</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-center">Stay Status</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-right pr-2">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#F0F4F6] text-[13px]">
+              {loading ? (
+                <tr><td colSpan="5" className="py-10 text-center text-[13px] text-[#4A5961]">
+                  Accessing Stay Intelligence...
+                </td></tr>
+              ) : filteredBookings.length === 0 ? (
+                <tr><td colSpan="5" className="py-10 text-center text-[13px] text-[#4A5961]">
+                  No matching bookings found
+                </td></tr>
+              ) : filteredBookings.map((b, i) => (
+                <tr key={i} className="hover:bg-[#F9FAFB] transition-colors cursor-pointer" onClick={() => setSelectedBooking(b)}>
+                  <td className="py-2.5 pl-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-[8px] bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center font-bold text-xs shrink-0">
+                        {(b.name || "G").charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-[#10242A]">{b.name}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[11px] text-[#708088] truncate max-w-[150px]">
+                            {b.email || b.phone || 'NO CONTACT'}
+                          </span>
+                          <span className={cn(
+                            "px-1.5 py-0.5 rounded-[4px] text-[10px] font-semibold uppercase",
+                            b.request_type?.toLowerCase() === 'direct' ? "bg-amber-50 text-amber-600" : "bg-purple-50 text-purple-600"
+                          )}>
+                            {b.request_type || 'DIRECT'}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">No matching bookings found</p>
-                  </td></tr>
-                ) : filteredBookings.map((b, i) => (
-                  <tr key={i} className="group hover:bg-slate-50/50 transition-all duration-300 cursor-pointer" onClick={() => setSelectedBooking(b)}>
-                    <td className="px-10 py-8">
-                      <div className="flex items-center gap-6">
-                        <div className="w-14 h-14 rounded-2xl bg-white border border-slate-100 text-blue-600 flex items-center justify-center font-bold text-xl shadow-xl shadow-slate-200/40 transition-transform group-hover:scale-110 shrink-0">
-                          {(b.name || "G").charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="text-base font-bold text-slate-800 tracking-tight">{b.name}</p>
-                          <div className="flex items-center gap-3 mt-2">
-                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest truncate max-w-[150px]">
-                              {b.email || b.phone || 'NO CONTACT'}
-                            </span>
-                            <span className={cn(
-                              "px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest",
-                              b.request_type?.toLowerCase() === 'direct' ? "bg-amber-100 text-amber-600" : "bg-purple-100 text-purple-600"
-                            )}>
-                              {b.request_type || 'DIRECT'}
-                            </span>
-                          </div>
-                        </div>
+                  </td>
+                  <td className="py-2.5">
+                    <div>
+                      <p className="font-semibold text-[#10242A] truncate max-w-[220px]">{b.property_name}</p>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <MapPin className="w-3 h-3 text-[#708088]" />
+                        <span className="text-[11px] text-[#4A5961]">{b.area}</span>
                       </div>
-                    </td>
-                    <td className="px-6 py-8">
-                      <div className="flex flex-col gap-1.5">
-                        <p className="text-xs font-bold text-slate-700 leading-none truncate max-w-[220px]">{b.property_name}</p>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-3 h-3 text-slate-300" />
-                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{b.area}</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-8 text-center">
-                      <div className="inline-flex flex-col items-center gap-1.5">
-                        <p className="text-xs font-bold text-slate-800 leading-none">{b.check_in_date ? new Date(b.check_in_date).toLocaleDateString('en-IN', {day:'2-digit', month:'short'}) : 'N/A'}</p>
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest opacity-60">Entry Protocol</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-8 text-center">
-                      <span className={cn(
-                        "text-[8px] font-bold px-4 py-1.5 rounded-xl border uppercase tracking-[0.2em] shadow-sm",
-                        ["confirmed", "booked", "active"].includes(b.booking_status || b.status) ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
-                        (b.booking_status || b.status) === "pending" ? "bg-amber-50 text-amber-600 border-amber-100" :
-                        "bg-rose-50 text-rose-600 border-rose-100"
-                      )}>
-                        {b.booking_status || b.status}
-                      </span>
-                    </td>
-                    <td className="px-10 py-8 text-right">
-                      <div className="flex items-center justify-end gap-3" onClick={e => e.stopPropagation()}>
-                        <button onClick={() => setSelectedBooking(b)} className="p-3.5 rounded-2xl bg-white text-slate-400 hover:text-blue-600 hover:border-blue-100 transition-all border border-slate-100 shadow-md active:scale-95"><Eye className="w-5 h-5" /></button>
-                        <button className="p-3.5 rounded-2xl bg-white text-slate-400 hover:text-blue-600 transition-all border border-slate-100 shadow-md active:scale-95"><MoreVertical className="w-5 h-5" /></button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </div>
+                  </td>
+                  <td className="py-2.5 text-center">
+                    <div>
+                      <p className="font-semibold text-[#10242A]">{b.check_in_date ? new Date(b.check_in_date).toLocaleDateString('en-IN', {day:'2-digit', month:'short'}) : 'N/A'}</p>
+                      <span className="text-[11px] text-[#708088]">Entry Protocol</span>
+                    </div>
+                  </td>
+                  <td className="py-2.5 text-center">
+                    <span className={cn(
+                      "text-[11px] font-semibold px-2.5 py-0.5 rounded-full border uppercase",
+                      ["confirmed", "booked", "active"].includes(b.booking_status || b.status) ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                      (b.booking_status || b.status) === "pending" ? "bg-amber-50 text-amber-600 border-amber-100" :
+                      "bg-rose-50 text-rose-600 border-rose-100"
+                    )}>
+                      {b.booking_status || b.status}
+                    </span>
+                  </td>
+                  <td className="py-2.5 pr-2 text-right">
+                    <div className="flex items-center justify-end gap-1.5" onClick={e => e.stopPropagation()}>
+                      <button onClick={() => setSelectedBooking(b)} className="p-1.5 rounded-[8px] bg-[#F4F6F8] text-[#4A5961] hover:text-[#0E7C86] hover:bg-[#E6F4F5] transition-all border border-[#E1E6EA] cursor-pointer"><Eye className="w-4 h-4" /></button>
+                      <button className="p-1.5 rounded-[8px] bg-[#F4F6F8] text-[#4A5961] hover:text-[#0E7C86] transition-all border border-[#E1E6EA] cursor-pointer"><MoreVertical className="w-4 h-4" /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
       {/* Booking Detail Slide-over */}
       {selectedBooking && (
         <div className="fixed inset-0 z-[120] flex items-center justify-end p-6 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-white w-full max-w-2xl h-full rounded-[3rem] shadow-2xl relative overflow-hidden flex flex-col animate-in slide-in-from-right duration-500">
-            <div className="px-10 py-10 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
-              <div className="flex items-center gap-6">
-                <div className="w-20 h-20 rounded-3xl bg-slate-900 text-white flex items-center justify-center font-bold text-3xl shadow-2xl">
+          <div className="bg-white w-full max-w-2xl h-full rounded-[24px] shadow-2xl relative overflow-hidden flex flex-col animate-in slide-in-from-right duration-500">
+            <div className="px-8 py-6 border-b border-[#E1E6EA] flex items-center justify-between bg-[#F4F6F8]">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-[12px] bg-[#10242A] text-white flex items-center justify-center font-bold text-xl">
                   {selectedBooking.name[0].toUpperCase()}
                 </div>
                 <div>
-                  <h3 className="text-3xl font-bold text-slate-800 tracking-tight">{selectedBooking.name}</h3>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-2">Reservation ID: {selectedBooking._id.slice(-8).toUpperCase()}</p>
+                  <h3 className="text-xl font-bold text-[#10242A] tracking-tight">{selectedBooking.name}</h3>
+                  <p className="text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider mt-1">Reservation ID: {selectedBooking._id.slice(-8).toUpperCase()}</p>
                 </div>
               </div>
-              <button onClick={() => setSelectedBooking(null)} className="p-4 rounded-3xl bg-white text-slate-400 hover:text-rose-600 transition-all shadow-xl border border-slate-100 active:scale-90">
-                <X size={24} />
+              <button onClick={() => setSelectedBooking(null)} className="p-2.5 rounded-[10px] bg-white text-[#4A5961] hover:text-rose-600 transition-all border border-[#E1E6EA] cursor-pointer">
+                <X size={20} />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-12 custom-scrollbar space-y-12">
+            <div className="flex-1 overflow-y-auto p-8 space-y-8">
               <section>
-                <div className="flex items-center gap-4 mb-10">
-                  <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-bold shadow-lg shadow-blue-200">
-                    <User size={20} />
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 rounded-[8px] bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center font-bold">
+                    <User size={16} />
                   </div>
-                  <h4 className="text-lg font-bold text-slate-800 uppercase tracking-widest">Guest Identity</h4>
+                  <h4 className="text-sm font-bold text-[#10242A] uppercase tracking-wider">Guest Identity</h4>
                 </div>
-                <div className="grid grid-cols-2 gap-8">
+                <div className="grid grid-cols-2 gap-6">
                   <DetailItem icon={Mail} label="Guest Email" value={selectedBooking.email} />
                   <DetailItem icon={Phone} label="Pulse Contact" value={selectedBooking.phone || "N/A"} />
                   <DetailItem icon={Calendar} label="Booking Date" value={new Date(selectedBooking.created_at).toLocaleDateString()} />
@@ -308,14 +297,14 @@ export default function DirectBookings() {
                 </div>
               </section>
 
-              <section className="bg-indigo-50/30 p-8 rounded-[2.5rem] border border-indigo-100">
-                <div className="flex items-center gap-4 mb-10">
-                  <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold shadow-lg shadow-indigo-200">
-                    <Building2 size={20} />
+              <section className="bg-[#F4F6F8] p-6 rounded-[12px] border border-[#E1E6EA]">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 rounded-[8px] bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center font-bold">
+                    <Building2 size={16} />
                   </div>
-                  <h4 className="text-lg font-bold text-slate-800 uppercase tracking-widest">Asset Allocation</h4>
+                  <h4 className="text-sm font-bold text-[#10242A] uppercase tracking-wider">Asset Allocation</h4>
                 </div>
-                <div className="grid grid-cols-2 gap-8">
+                <div className="grid grid-cols-2 gap-6">
                   <DetailItem icon={Building2} label="Target Property" value={selectedBooking.property_name} />
                   <DetailItem icon={MapPin} label="Area Segment" value={selectedBooking.area} />
                   <DetailItem icon={Calendar} label="Check-In Index" value={selectedBooking.check_in_date ? new Date(selectedBooking.check_in_date).toLocaleDateString() : "Not Fixed"} />
@@ -324,40 +313,40 @@ export default function DirectBookings() {
               </section>
 
               <section>
-                <div className="flex items-center gap-4 mb-10">
-                  <div className="w-10 h-10 rounded-2xl bg-amber-600 text-white flex items-center justify-center font-bold shadow-lg shadow-amber-200">
-                    <Zap size={20} />
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 rounded-[8px] bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+                    <Zap size={16} />
                   </div>
-                  <h4 className="text-lg font-bold text-slate-800 uppercase tracking-widest">Operational Protocol</h4>
+                  <h4 className="text-sm font-bold text-[#10242A] uppercase tracking-wider">Operational Protocol</h4>
                 </div>
-                <div className="p-8 bg-slate-50 rounded-3xl border border-slate-100 flex flex-col gap-6">
+                <div className="p-5 bg-[#F4F6F8] rounded-[12px] border border-[#E1E6EA] flex flex-col gap-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Current Status</p>
-                      <p className="text-lg font-bold text-slate-800 mt-1 uppercase tracking-tighter">{(selectedBooking.booking_status || selectedBooking.status).toUpperCase()}</p>
+                      <p className="text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider">Current Status</p>
+                      <p className="text-base font-bold text-[#10242A] mt-0.5 uppercase">{(selectedBooking.booking_status || selectedBooking.status).toUpperCase()}</p>
                     </div>
                   </div>
-                  <p className="text-xs text-slate-500 italic">"{(selectedBooking.message || "No special instructions from the guest.")}"</p>
+                  <p className="text-xs text-[#4A5961] italic">"{(selectedBooking.message || "No special instructions from the guest.")}"</p>
                 </div>
               </section>
             </div>
 
-            <div className="px-10 py-10 border-t border-slate-50 bg-slate-50/50 flex justify-between items-center">
-              <button className="text-[10px] font-bold text-rose-500 uppercase tracking-widest hover:underline">Revoke Reservation</button>
-              <div className="flex gap-4">
+            <div className="px-8 py-5 border-t border-[#E1E6EA] bg-[#F4F6F8] flex justify-between items-center">
+              <button className="text-xs font-bold text-rose-500 uppercase tracking-wider hover:underline cursor-pointer">Revoke Reservation</button>
+              <div className="flex gap-3">
                 {(selectedBooking.booking_status || selectedBooking.status) === "pending" ? (
                   <>
                     <button 
                       onClick={() => handleStatusChange(selectedBooking._id, "rejected")}
                       disabled={isProcessing}
-                      className="px-8 py-4 bg-white text-slate-600 border border-slate-200 rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-slate-50 transition-all disabled:opacity-50"
+                      className="px-5 py-2.5 bg-white text-[#4A5961] border border-[#CBD3D9] rounded-[8px] text-xs font-bold uppercase tracking-wider hover:bg-gray-50 transition-all disabled:opacity-50 cursor-pointer"
                     >
                       Reject Lead
                     </button>
                     <button 
                       onClick={() => handleStatusChange(selectedBooking._id, "confirmed")}
                       disabled={isProcessing}
-                      className="px-8 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:bg-black transition-all flex items-center gap-3 disabled:opacity-50"
+                      className="px-5 py-2.5 bg-[#0E7C86] text-white rounded-[8px] text-xs font-bold uppercase tracking-wider hover:bg-[#0B656D] transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
                     >
                       {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
                       Confirm Booking
@@ -366,7 +355,7 @@ export default function DirectBookings() {
                 ) : (
                   <button 
                     disabled
-                    className="px-8 py-4 bg-emerald-100 text-emerald-600 rounded-2xl text-[10px] font-bold uppercase tracking-widest flex items-center gap-3"
+                    className="px-5 py-2.5 bg-emerald-50 text-emerald-600 rounded-[8px] text-xs font-bold uppercase tracking-wider flex items-center gap-2"
                   >
                     <CheckCircle2 className="w-4 h-4" /> Finalized
                   </button>
@@ -380,27 +369,12 @@ export default function DirectBookings() {
   );
 }
 
-function StatCard({ icon: Icon, label, val, color, trend, up }) {
-  const colors = {
-    blue: "bg-blue-50 text-blue-600 border-blue-100",
-    emerald: "bg-emerald-50 text-emerald-600 border-emerald-100",
-    amber: "bg-amber-50 text-amber-600 border-amber-100",
-    indigo: "bg-indigo-50 text-indigo-600 border-indigo-100",
-  };
+function StatCard({ label, val, trend }) {
   return (
-    <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-xl shadow-slate-200/40 flex items-start gap-5 group hover:translate-y-[-5px] transition-all duration-500">
-      <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 border-2 shadow-sm transition-transform group-hover:rotate-6", colors[color])}>
-        <Icon className="w-7 h-7" />
-      </div>
-      <div className="min-w-0">
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2 leading-none truncate">{label}</p>
-        <p className="text-3xl font-black text-slate-800 tracking-tighter leading-none mb-3">{val}</p>
-        <div className={cn(
-          "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider",
-          up ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
-        )}>
-          {trend}
-        </div>
+    <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
+      <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">{label}</p>
+      <div className="mt-2">
+        <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{val}</h3>
       </div>
     </div>
   );
@@ -408,15 +382,15 @@ function StatCard({ icon: Icon, label, val, color, trend, up }) {
 
 function DetailItem({ icon: Icon, label, value, highlight }) {
   return (
-    <div className="space-y-2">
-       <div className="flex items-center gap-2 text-slate-400">
+    <div className="space-y-1">
+       <div className="flex items-center gap-1.5 text-[#4A5961]">
           <Icon size={12} />
-          <span className="text-[9px] font-bold uppercase tracking-widest">{label}</span>
+          <span className="text-[10px] font-semibold uppercase tracking-wider">{label}</span>
        </div>
        <p className={cn(
          "text-sm font-bold tracking-tight",
-         highlight ? "text-blue-600" : "text-slate-700",
-         !value && "text-slate-300 italic font-medium"
+         highlight ? "text-[#0E7C86]" : "text-[#10242A]",
+         !value && "text-[#8C9BA5] italic font-medium"
        )}>
           {value || "Field Null"}
        </p>

@@ -183,19 +183,19 @@ export default function HomeOverview() {
           <div className="space-y-4 flex-1">
             <div className="flex items-center justify-between py-2 border-b border-[#E1E6EA] last:border-0 cursor-pointer hover:bg-slate-50 px-2 rounded-lg" onClick={() => navigate('/superadmin/property/approvals')}>
               <span className="text-sm text-[#4A5961]">Property approvals</span>
-              <span className="text-sm font-bold text-[#10242A] bg-slate-100 px-2.5 py-0.5 rounded-md">[{String(stats.alerts || 0).padStart(2, '0')}]</span>
+              <span className="text-sm font-bold text-[#10242A] bg-slate-100 px-2.5 py-0.5 rounded-md">{String(stats.alerts || 0).padStart(2, '0')}</span>
             </div>
             <div className="flex items-center justify-between py-2 border-b border-[#E1E6EA] last:border-0 cursor-pointer hover:bg-slate-50 px-2 rounded-lg" onClick={() => navigate('/superadmin/complaint-history')}>
               <span className="text-sm text-[#4A5961]">Open support tickets</span>
-              <span className="text-sm font-bold text-[#10242A] bg-slate-100 px-2.5 py-0.5 rounded-md">[00]</span>
+              <span className="text-sm font-bold text-[#10242A] bg-slate-100 px-2.5 py-0.5 rounded-md">00</span>
             </div>
             <div className="flex items-center justify-between py-2 border-b border-[#E1E6EA] last:border-0 cursor-pointer hover:bg-slate-50 px-2 rounded-lg" onClick={() => navigate('/superadmin/reviews')}>
               <span className="text-sm text-[#4A5961]">Reviews to moderate</span>
-              <span className="text-sm font-bold text-[#10242A] bg-slate-100 px-2.5 py-0.5 rounded-md">[00]</span>
+              <span className="text-sm font-bold text-[#10242A] bg-slate-100 px-2.5 py-0.5 rounded-md">00</span>
             </div>
             <div className="flex items-center justify-between py-2 border-b border-[#E1E6EA] last:border-0 cursor-pointer hover:bg-slate-50 px-2 rounded-lg" onClick={() => navigate('/superadmin/visit')}>
               <span className="text-sm text-[#4A5961]">Visit reports to check</span>
-              <span className="text-sm font-bold text-[#10242A] bg-slate-100 px-2.5 py-0.5 rounded-md">[00]</span>
+              <span className="text-sm font-bold text-[#10242A] bg-slate-100 px-2.5 py-0.5 rounded-md">00</span>
             </div>
           </div>
         </div>

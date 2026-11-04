@@ -164,53 +164,47 @@ export default function ReviewOverview() {
   }, [reviews]);
 
   return (
-    <div className="space-y-6 pb-8">
-      <PageHeader 
-        title="Review Overview"
-        subtitle="Track, manage and analyze all property reviews and ratings."
-        actions={
-          <div className="flex items-center gap-2 bg-white border border-[#E1E6EA] px-3.5 py-1.5 rounded-[12px] shadow-xs text-xs font-semibold text-[#4A5961]">
-            <Calendar size={14} className="text-[#0E7C86]" />
-            <span>{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-          </div>
-        }
-      />
+    <div className="space-y-4 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-[22px] font-bold text-[#10242A] tracking-tight leading-tight">Review Overview</h1>
+          <p className="text-[13px] text-[#4A5961] mt-0.5">Track, manage and analyze all property reviews and ratings.</p>
+        </div>
+        <div className="flex items-center gap-2 bg-white border border-[#CBD3D9] px-3 py-1.5 rounded-[8px] shadow-xs text-[13px] font-medium text-[#10242A]">
+          <Calendar size={14} className="text-[#0E7C86]" />
+          <span>{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+        </div>
+      </div>
 
       {/* 6 STAT CARDS */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {[
-          { icon: MessageSquare, label: "Reviews Today",      val: stats.countToday,            trend: "Live",   sub: "live pulse", extra: null },
-          { icon: MessageSquare, label: "Reviews This Week",  val: stats.countWeek,             trend: "7d",     sub: "growth",     extra: null },
-          { icon: MessageSquare, label: "Reviews This Month", val: stats.countMonth,            trend: "30d",    sub: "volume",     extra: null },
-          { icon: Star,          label: "Average Rating",     val: `${stats.avg} / 5`,          trend: "Stable", sub: "consensus",  extra: "stars" },
-          { icon: ThumbsUp,      label: "Total Reviews",      val: stats.total.toLocaleString(),trend: "Total",  sub: "total reach",extra: null },
-          { icon: Clock,         label: "Pending Moderation", val: stats.pending,               trend: "Active", sub: "queue",      extra: null },
+          { label: "Reviews Today",      val: stats.countToday,             trend: "Live",   sub: "live pulse", extra: null },
+          { label: "Reviews This Week",  val: stats.countWeek,              trend: "7d",     sub: "growth",     extra: null },
+          { label: "Reviews This Month", val: stats.countMonth,             trend: "30d",    sub: "volume",     extra: null },
+          { label: "Average Rating",     val: `${stats.avg} / 5`,           trend: "Stable", sub: "consensus",  extra: "stars" },
+          { label: "Total Reviews",      val: stats.total.toLocaleString(), trend: "Total",  sub: "total reach",extra: null },
+          { label: "Pending Moderation", val: stats.pending,                trend: "Active", sub: "queue",      extra: null },
         ].map((c, i) => (
-          <div key={i} className="bg-white rounded-[16px] p-5 border border-[#E1E6EA] shadow-xs hover:border-[#0E7C86]/30 transition-all">
-            <div className="flex items-center gap-2 mb-2.5">
-              <div className="w-8 h-8 rounded-[10px] bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center shrink-0"><c.icon size={16} /></div>
-              <p className="text-[10px] font-bold text-[#4A5961] uppercase tracking-wider leading-tight">{c.label}</p>
-            </div>
-            <h4 className="text-xl font-bold text-[#10242A] mb-1">{loading ? "..." : c.val}</h4>
-            {c.extra === "stars" && <div className="mb-1"><Stars count={Math.floor(Number(stats.avg))} size={10} /></div>}
-            <div className="flex items-center gap-1 mb-2">
-              <TrendingUp size={10} className="text-emerald-600" />
-              <span className="text-[10px] font-bold text-emerald-600">{c.trend}</span>
-              <span className="text-[10px] text-[#4A5961] font-medium ml-1">{c.sub}</span>
+          <div key={i} className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
+            <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">{c.label}</p>
+            <div className="mt-2">
+              <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{loading ? "..." : c.val}</h3>
+              {c.extra === "stars" && <div className="mt-1"><Stars count={Math.floor(Number(stats.avg))} size={10} /></div>}
             </div>
           </div>
         ))}
       </div>
 
       {/* MAIN ROW: Trend + Rating Donut + Platform Donut */}
-      <div className="grid grid-cols-12 gap-6">
+      <div className="grid grid-cols-12 gap-4">
         {/* Review Trend */}
-        <div className="col-span-12 lg:col-span-5 bg-white rounded-[16px] p-6 border border-[#E1E6EA] shadow-xs flex flex-col" style={{height:380}}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-bold text-[#10242A]">Review Trend</h3>
-            <select className="bg-[#F4F6F8] rounded-[8px] px-2.5 py-1 text-[11px] font-semibold text-[#4A5961] outline-none border border-[#E1E6EA]"><option>This Week</option></select>
+        <div className="col-span-12 lg:col-span-5 bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col" style={{height:340}}>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[15px] font-bold text-[#10242A]">Review Trend</h3>
+            <select className="bg-white border border-[#CBD3D9] rounded-[8px] px-2.5 py-1 text-[12px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs"><option>This Week</option></select>
           </div>
-          <div className="flex items-center gap-6 mb-4">
+          <div className="flex items-center gap-6 mb-3">
             <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-[#0E7C86]"/><span className="text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider">New Reviews</span></div>
             <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-emerald-500"/><span className="text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider">Average Rating</span></div>
           </div>
@@ -230,22 +224,22 @@ export default function ReviewOverview() {
         </div>
 
         {/* Rating Distribution */}
-        <div className="col-span-12 lg:col-span-3 bg-white rounded-[16px] p-6 border border-[#E1E6EA] shadow-xs flex flex-col items-center" style={{height:380}}>
-          <h3 className="text-base font-bold text-[#10242A] mb-4 self-start">Rating Distribution</h3>
-          <div className="relative flex items-center justify-center mb-4" style={{width:150,height:150}}>
+        <div className="col-span-12 lg:col-span-3 bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col items-center" style={{height:340}}>
+          <h3 className="text-[15px] font-bold text-[#10242A] mb-3 self-start">Rating Distribution</h3>
+          <div className="relative flex items-center justify-center mb-3" style={{width:140,height:140}}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={stats.ratingData} innerRadius={48} outerRadius={70} paddingAngle={3} dataKey="value" stroke="none">
+                <Pie data={stats.ratingData} innerRadius={44} outerRadius={64} paddingAngle={3} dataKey="value" stroke="none">
                   {stats.ratingData.map((e,i)=><Cell key={i} fill={e.color}/>)}
                 </Pie>
               </PieChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <p className="text-xl font-bold text-[#10242A]">{stats.total.toLocaleString()}</p>
+              <p className="text-lg font-bold text-[#10242A]">{stats.total.toLocaleString()}</p>
               <p className="text-[9px] font-bold text-[#4A5961] uppercase tracking-wider">Total Reviews</p>
             </div>
           </div>
-          <div className="w-full space-y-2 mt-auto">
+          <div className="w-full space-y-1.5 mt-auto">
             {stats.ratingData.map(r=>(
               <div key={r.name} className="flex items-center justify-between text-[11px] font-semibold">
                 <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full" style={{backgroundColor:r.color}}/><span className="text-[#4A5961]">{r.name}</span></div>
@@ -256,22 +250,22 @@ export default function ReviewOverview() {
         </div>
 
         {/* Reviews by Platform */}
-        <div className="col-span-12 lg:col-span-4 bg-white rounded-[16px] p-6 border border-[#E1E6EA] shadow-xs flex flex-col items-center" style={{height:380}}>
-          <h3 className="text-base font-bold text-[#10242A] mb-4 self-start">Reviews by Platform</h3>
-          <div className="relative flex items-center justify-center mb-4" style={{width:150,height:150}}>
+        <div className="col-span-12 lg:col-span-4 bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col items-center" style={{height:340}}>
+          <h3 className="text-[15px] font-bold text-[#10242A] mb-3 self-start">Reviews by Platform</h3>
+          <div className="relative flex items-center justify-center mb-3" style={{width:140,height:140}}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={stats.platformData} innerRadius={48} outerRadius={70} paddingAngle={3} dataKey="value" stroke="none">
+                <Pie data={stats.platformData} innerRadius={44} outerRadius={64} paddingAngle={3} dataKey="value" stroke="none">
                   {stats.platformData.map((e,i)=><Cell key={i} fill={e.color}/>)}
                 </Pie>
               </PieChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <p className="text-xl font-bold text-[#10242A]">{stats.total.toLocaleString()}</p>
+              <p className="text-lg font-bold text-[#10242A]">{stats.total.toLocaleString()}</p>
               <p className="text-[9px] font-bold text-[#4A5961] uppercase tracking-wider">Total Reviews</p>
             </div>
           </div>
-          <div className="w-full space-y-2 mt-auto">
+          <div className="w-full space-y-1.5 mt-auto">
             {stats.platformData.map(p=>(
               <div key={p.name} className="flex items-center justify-between text-[11px] font-semibold">
                 <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full" style={{backgroundColor:p.color}}/><span className="text-[#4A5961]">{p.name}</span></div>
@@ -283,43 +277,43 @@ export default function ReviewOverview() {
       </div>
 
       {/* TABLES ROW */}
-      <div className="grid grid-cols-12 gap-6">
+      <div className="grid grid-cols-12 gap-4">
         {/* Recent Reviews */}
-        <div className="col-span-12 lg:col-span-7 bg-white rounded-[16px] p-6 border border-[#E1E6EA] shadow-xs">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-bold text-[#10242A]">Recent Reviews</h3>
+        <div className="col-span-12 lg:col-span-7 bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs overflow-hidden">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[15px] font-bold text-[#10242A]">Recent Reviews</h3>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-[12px] text-left">
+            <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-[#F8FAFC] text-[#4A5961] font-semibold text-[11px] uppercase tracking-wider border-b border-[#E1E6EA]">
-                  <th className="py-2.5 px-3">Reviewer</th>
-                  <th className="py-2.5 px-3">Property</th>
-                  <th className="py-2.5 px-3">Rating</th>
-                  <th className="py-2.5 px-3">Review</th>
-                  <th className="py-2.5 px-3">Date</th>
-                  <th className="py-2.5 px-3 text-right">Status</th>
+                <tr className="border-b border-[#E1E6EA]">
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider pl-2">Reviewer</th>
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Property</th>
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Rating</th>
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Review</th>
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Date</th>
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-right pr-2">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#E1E6EA]">
+              <tbody className="divide-y divide-[#F0F4F6] text-[13px]">
                 {stats.recentReviews.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-[#4A5961] text-xs font-medium">No reviews found.</td>
+                    <td colSpan={6} className="py-6 text-center text-[#4A5961] text-[13px]">No reviews found.</td>
                   </tr>
                 ) : stats.recentReviews.map((r,i)=>(
-                  <tr key={i} className="hover:bg-[#F4F6F8]/60 transition-colors">
-                    <td className="py-2.5 px-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center font-bold text-[10px] shrink-0">{(r.reviewer || "G").split(' ').map(n=>n[0]).join('')}</div>
-                        <span className="font-bold text-[#10242A] whitespace-nowrap">{r.reviewer}</span>
+                  <tr key={i} className="hover:bg-[#F9FAFB] transition-colors">
+                    <td className="py-2.5 pl-2">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-full bg-[#D9E1E7] text-[#4A5961] flex items-center justify-center font-bold text-[11px] shrink-0">{(r.reviewer || "G").split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()}</div>
+                        <span className="font-semibold text-[#10242A] whitespace-nowrap">{r.reviewer}</span>
                       </div>
                     </td>
-                    <td className="py-2.5 px-3 text-[#4A5961]"><div className="font-semibold text-[#10242A] text-[11px]">{r.property}</div><div className="text-[#4A5961] text-[10px]">{r.loc}</div></td>
-                    <td className="py-2.5 px-3"><Stars count={r.rating} size={10}/></td>
-                    <td className="py-2.5 px-3 text-[#4A5961] max-w-[150px] truncate">{r.review}</td>
-                    <td className="py-2.5 px-3 text-[#4A5961] whitespace-nowrap text-[10px]">{r.date}</td>
-                    <td className="py-2.5 px-3 text-right">
-                      <span className={cn("px-2 py-0.5 rounded-[6px] text-[10px] font-bold", r.status === "Published" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-[#E6F4F5] text-[#0E7C86] border border-[#0E7C86]/20")}>{r.status}</span>
+                    <td className="py-2.5 text-[#4A5961]"><div className="font-semibold text-[#10242A] text-[13px]">{r.property}</div><div className="text-[#708088] text-[11px]">{r.loc}</div></td>
+                    <td className="py-2.5"><Stars count={r.rating} size={11}/></td>
+                    <td className="py-2.5 text-[#4A5961] max-w-[150px] truncate">{r.review}</td>
+                    <td className="py-2.5 text-[#4A5961] whitespace-nowrap text-[12px]">{r.date}</td>
+                    <td className="py-2.5 text-right pr-2">
+                      <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold", r.status === "Published" ? "bg-[#DDF3E4] text-[#14532D]" : "bg-[#E0F2FE] text-[#0369A1]")}>{r.status}</span>
                     </td>
                   </tr>
                 ))}
@@ -329,33 +323,40 @@ export default function ReviewOverview() {
         </div>
 
         {/* Top Rated Properties */}
-        <div className="col-span-12 lg:col-span-5 bg-white rounded-[16px] p-6 border border-[#E1E6EA] shadow-xs flex flex-col">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-bold text-[#10242A]">Top Rated Properties</h3>
+        <div className="col-span-12 lg:col-span-5 bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs overflow-hidden flex flex-col">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[15px] font-bold text-[#10242A]">Top Rated Properties</h3>
           </div>
-          <div className="text-[10px] font-bold text-[#4A5961] uppercase tracking-wider grid grid-cols-12 gap-2 mb-2 bg-[#F8FAFC] p-2 rounded-[8px] border border-[#E1E6EA]">
-            <span className="col-span-5">Property</span>
-            <span className="col-span-2">Location</span>
-            <span className="col-span-3 text-center">Avg. Rating</span>
-            <span className="col-span-2 text-right">Reviews</span>
-          </div>
-          <div className="space-y-3 flex-1">
-            {stats.topProperties.length === 0 ? (
-              <div className="py-8 text-center text-[#4A5961] text-xs font-medium">No rated properties found.</div>
-            ) : stats.topProperties.map((p,i)=>(
-              <div key={i} className="grid grid-cols-12 gap-2 items-center p-1.5 hover:bg-[#F4F6F8] rounded-[8px] transition-colors">
-                <div className="col-span-5 flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-[8px] bg-[#E6F4F5] flex items-center justify-center shrink-0"><Building2 size={13} className="text-[#0E7C86]"/></div>
-                  <span className="text-[11.5px] font-bold text-[#10242A] truncate">{p.name}</span>
-                </div>
-                <span className="col-span-2 text-[10.5px] text-[#4A5961] font-medium">{p.loc}</span>
-                <div className="col-span-3 flex flex-col items-center gap-0.5">
-                  <span className="text-[11.5px] font-bold text-[#10242A]">{p.rating}</span>
-                  <Stars count={Math.floor(p.rating)} size={9}/>
-                </div>
-                <span className="col-span-2 text-right text-[11.5px] font-bold text-[#0E7C86]">{p.count}</span>
-              </div>
-            ))}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-[#E1E6EA]">
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider pl-2">Property</th>
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Location</th>
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-center">Avg. Rating</th>
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-right pr-2">Reviews</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#F0F4F6] text-[13px]">
+                {stats.topProperties.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="py-6 text-center text-[#4A5961] text-[13px]">No rated properties found.</td>
+                  </tr>
+                ) : stats.topProperties.map((p,i)=>(
+                  <tr key={i} className="hover:bg-[#F9FAFB] transition-colors">
+                    <td className="py-2.5 pl-2 font-semibold text-[#10242A] truncate max-w-[160px]">{p.name}</td>
+                    <td className="py-2.5 text-[#4A5961]">{p.loc}</td>
+                    <td className="py-2.5 text-center">
+                      <div className="inline-flex flex-col items-center gap-0.5">
+                        <span className="font-bold text-[#10242A]">{p.rating}</span>
+                        <Stars count={Math.floor(p.rating)} size={9}/>
+                      </div>
+                    </td>
+                    <td className="py-2.5 text-right pr-2 font-bold text-[#0E7C86]">{p.count}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -363,8 +364,8 @@ export default function ReviewOverview() {
       {/* FOOTER ROW: 4 columns */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Reviews by Sentiment */}
-        <div className="bg-white rounded-[16px] p-5 border border-[#E1E6EA] shadow-xs">
-          <h4 className="text-[12px] font-bold text-[#10242A] mb-3">Reviews by Sentiment</h4>
+        <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs">
+          <h4 className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider mb-3">Reviews by Sentiment</h4>
           <div className="flex items-center gap-3">
             <div style={{width:75,height:75}}>
               <ResponsiveContainer width="100%" height="100%">
@@ -377,7 +378,7 @@ export default function ReviewOverview() {
             </div>
             <div className="flex-1 space-y-1.5">
               {stats.sentimentData.map(s=>(
-                <div key={s.name} className="flex justify-between items-center text-[10.5px] font-semibold">
+                <div key={s.name} className="flex justify-between items-center text-[12px] font-semibold">
                   <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full" style={{backgroundColor:s.color}}/><span className="text-[#4A5961]">{s.name}</span></div>
                   <div className="text-right"><div className="text-[#10242A] font-bold">{s.value.toLocaleString()}</div></div>
                 </div>
@@ -387,14 +388,14 @@ export default function ReviewOverview() {
         </div>
 
         {/* New Reviews Summary */}
-        <div className="bg-white rounded-[16px] p-5 border border-[#E1E6EA] shadow-xs">
-          <h4 className="text-[12px] font-bold text-[#10242A] mb-3">New Reviews Summary</h4>
+        <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs">
+          <h4 className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider mb-3">New Reviews Summary</h4>
           <div className="grid grid-cols-3 gap-2 mb-3 text-center">
             {[{p:"Today",v:String(stats.countToday),t:"Live"},{p:"This Week",v:String(stats.countWeek),t:"7d"},{p:"This Month",v:String(stats.countMonth),t:"30d"}].map(s=>(
               <div key={s.p}>
-                <p className="text-[9px] font-bold text-[#4A5961] uppercase tracking-wider mb-0.5">{s.p}</p>
+                <p className="text-[10px] font-semibold text-[#4A5961] uppercase tracking-wider mb-0.5">{s.p}</p>
                 <p className="text-base font-bold text-[#10242A] leading-none">{s.v}</p>
-                <p className="text-[9px] font-bold text-emerald-600 mt-0.5">{s.t}</p>
+                <p className="text-[10px] font-medium text-[#708088] mt-0.5">{s.t}</p>
               </div>
             ))}
           </div>
@@ -406,24 +407,24 @@ export default function ReviewOverview() {
         </div>
 
         {/* Moderation Summary */}
-        <div className="bg-white rounded-[16px] p-5 border border-[#E1E6EA] shadow-xs">
-          <h4 className="text-[12px] font-bold text-[#10242A] mb-3">Moderation Summary</h4>
+        <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs">
+          <h4 className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider mb-3">Moderation Summary</h4>
           <div className="grid grid-cols-3 gap-2 mb-3 text-center">
             {[{l:"Pending",v:String(stats.pending),c:"text-amber-600"},{l:"Approved",v:String(stats.approved),c:"text-emerald-600"},{l:"Rejected",v:String(stats.rejected),c:"text-rose-600"}].map(s=>(
               <div key={s.l} className="flex flex-col items-center">
                 <span className={cn("text-xl font-bold mb-0.5", s.c)}>{s.v}</span>
-                <span className="text-[9px] font-bold text-[#4A5961] uppercase tracking-wider">{s.l}</span>
+                <span className="text-[10px] font-semibold text-[#4A5961] uppercase tracking-wider">{s.l}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Quick Actions */}
-        <div className="bg-white rounded-[16px] p-5 border border-[#E1E6EA] shadow-xs">
-          <h4 className="text-[12px] font-bold text-[#10242A] mb-3">Quick Actions</h4>
+        <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs">
+          <h4 className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider mb-3">Quick Actions</h4>
           <div className="grid grid-cols-2 gap-2">
             {["View All Reviews","Moderation Queue","Review Analytics","Add New Review"].map(a=>(
-              <button key={a} className="bg-[#F4F6F8] hover:bg-[#E6F4F5] hover:text-[#0E7C86] border border-[#E1E6EA] text-[#4A5961] rounded-[8px] py-2 px-1.5 text-[10px] font-bold transition-all text-center leading-tight">{a}</button>
+              <button key={a} className="bg-white hover:bg-gray-50 border border-[#CBD3D9] text-[#10242A] rounded-[8px] py-2 px-1.5 text-[11px] font-semibold transition-all text-center leading-tight shadow-xs cursor-pointer">{a}</button>
             ))}
           </div>
         </div>

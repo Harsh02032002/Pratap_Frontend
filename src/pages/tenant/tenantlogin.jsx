@@ -220,11 +220,10 @@ export default function Tenantlogin() {
     <div className="html-page min-h-screen flex items-center justify-center p-4">
       <div className="light-card w-full max-w-md p-8">
         <div className="text-center mb-8">
-          <div className="bg-purple-100 w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-3">
-            <Home className="w-6 h-6 text-purple-600" />
+          <div className="flex items-center justify-center mx-auto mb-3">
+            <img src="/website/roomhy_logo.jpeg" alt="Roomhy Logo" className="h-12 w-auto object-contain" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-800">Roomhy</h1>
-          <p className="text-xs text-gray-500 mt-1">TENANT PORTAL</p>
+          <p className="text-xs font-bold tracking-widest text-gray-500 mt-1">TENANT PORTAL</p>
         </div>
 
         {step === "login" && (

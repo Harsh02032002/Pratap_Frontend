@@ -304,132 +304,125 @@ export default function VerificationCenter() {
   }, [roomEdits, searchQuery]);
 
   return (
-    <div className="space-y-6 pb-8 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
-      <PageHeader
-        title="Property & Room Edit Requests"
-        subtitle="Review and approve owner-submitted property modification requests and room edit/photo requests."
-        actions={
-          <button onClick={loadData} className="px-3.5 py-2 rounded-xl bg-white border border-slate-200/80 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-2 shadow-2xs cursor-pointer">
-            <RefreshCw className={cn("w-3.5 h-3.5 text-[#095256]", loading && "animate-spin")} /> Refresh
-          </button>
-        }
-      />
+    <div className="space-y-4 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-[22px] font-bold text-[#10242A] tracking-tight leading-tight">Property & Room Edit Requests</h1>
+          <p className="text-[13px] text-[#4A5961] mt-0.5">Review and approve owner-submitted property modification requests and room edit/photo requests.</p>
+        </div>
+        <button onClick={loadData} className="px-3.5 py-1.5 rounded-[8px] bg-white border border-[#CBD3D9] text-[13px] font-semibold text-[#10242A] hover:bg-[#F4F6F8] transition-all flex items-center gap-2 shadow-xs cursor-pointer">
+          <RefreshCw className={cn("w-3.5 h-3.5 text-[#4A5961]", loading && "animate-spin")} /> Refresh
+        </button>
+      </div>
 
-      {/* Stats Quick Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Stats Quick Cards (NO ICONS) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {[
-          { key: "property_edits", label: "Property Edit Requests", count: propertyEdits.length, icon: FileText },
-          { key: "room_edits", label: "Room Edit Requests", count: roomEdits.length, icon: ImageIcon }
+          { key: "property_edits", label: "Property Edit Requests", count: propertyEdits.length },
+          { key: "room_edits", label: "Room Edit Requests", count: roomEdits.length }
         ].map(tab => (
-          <button
+          <div
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
             className={cn(
-              "p-5 rounded-2xl border text-left transition-all duration-200 cursor-pointer flex items-center justify-between shadow-2xs",
+              "bg-white rounded-[12px] p-4 border shadow-xs flex flex-col justify-between cursor-pointer transition-all",
               activeTab === tab.key
-                ? "bg-white border-[#095256] ring-2 ring-[#095256]/10"
-                : "bg-white border-slate-200/80 hover:border-slate-300"
+                ? "border-[#095256] ring-1 ring-[#095256]/20"
+                : "border-[#E1E6EA] hover:border-[#CBD3D9]"
             )}
           >
-            <div className="space-y-1">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">{tab.label}</span>
-              <p className="text-2xl font-bold text-slate-900 leading-none">{tab.count}</p>
+            <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">{tab.label}</p>
+            <div className="mt-2">
+              <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{tab.count}</h3>
             </div>
-            <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border",
-              activeTab === tab.key ? "bg-[#095256]/10 text-[#095256] border-[#095256]/20" : "bg-slate-50 text-slate-500 border-slate-200/80"
-            )}>
-              <tab.icon className="w-5 h-5" />
-            </div>
-          </button>
+          </div>
         ))}
       </div>
 
-      {/* Outside Search Bar */}
-      <div className="flex justify-end">
-        <div className="relative group w-full sm:w-80">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
+      {/* Search & Filter Row (Outside & Above Table Card) */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="relative flex-1 min-w-[240px] max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8C9BA5]" size={15} />
           <input
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             placeholder="Search by title, owner details, location..."
-            className="w-full bg-white border border-slate-200/80 rounded-xl pl-9 pr-4 py-2 text-xs font-medium text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-[#095256]/20 focus:border-[#095256] transition-all shadow-2xs"
+            className="w-full bg-white border border-[#CBD3D9] rounded-[8px] pl-9 pr-3.5 py-1.5 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs"
           />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <select
+            value={activeTab}
+            onChange={e => setActiveTab(e.target.value)}
+            className="bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-1.5 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs"
+          >
+            <option value="property_edits">Property Edit Requests ({filteredPropertyEdits.length})</option>
+            <option value="room_edits">Room Edit Requests ({filteredRoomEdits.length})</option>
+          </select>
         </div>
       </div>
 
-      {/* Standalone Table Card */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
-        <span className="text-xs font-semibold text-[#4A5961] ml-auto">
-          {activeTab === "property_edits" && `${filteredPropertyEdits.length} property edits`}
-          {activeTab === "room_edits" && `${filteredRoomEdits.length} room edits`}
-        </span>
-      </div>
-
       {/* List Ledger */}
-      <div className="bg-white rounded-[16px] border border-[#E1E6EA] shadow-xs overflow-hidden">
+      <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left">
-            <thead className="bg-[#F8FAFC] text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider border-b border-[#E1E6EA]">
-              <tr>
-                <th className="px-5 py-3">Property / Room Details</th>
-                <th className="px-5 py-3">Owner Details</th>
-                <th className="px-5 py-3">Location</th>
-                {!isEmployeeView && <th className="px-5 py-3">Assigned Employee</th>}
-                <th className="px-5 py-3">Date Requested</th>
-                <th className="px-5 py-3 text-right">Actions</th>
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-[#E1E6EA]">
+                <th className="pb-2 pr-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Property / Room Details</th>
+                <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Owner Details</th>
+                <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Location</th>
+                {!isEmployeeView && <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Assigned Employee</th>}
+                <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Date Requested</th>
+                <th className="pb-2 pl-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E1E6EA]">
+            <tbody className="divide-y divide-[#F0F4F6] text-[13px]">
               {/* Tab 1: New Properties */}
               {activeTab === "new_properties" && (
                 filteredNewProperties.length === 0 ? (
-                  <tr><td colSpan={isEmployeeView ? 5 : 6} className="px-6 py-12 text-center text-xs font-semibold text-[#4A5961]">No property approvals pending</td></tr>
+                  <tr><td colSpan={isEmployeeView ? 5 : 6} className="py-12 text-center text-[13px] font-medium text-[#4A5961]">No property approvals pending</td></tr>
                 ) : filteredNewProperties.map(p => (
-                  <tr key={p._id} className="hover:bg-[#F4F6F8]/60 transition-colors">
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-[8px] bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center shrink-0">
-                          <Building2 size={15} />
-                        </div>
-                        <div>
-                          <p className="font-bold text-[#10242A] text-xs">{p.title || "No Title"}</p>
-                          <p className="text-[10px] text-[#4A5961] mt-0.5">{p.propertyType || "Property"}</p>
-                        </div>
+                  <tr key={p._id} className="hover:bg-[#F9FAFB] transition-colors">
+                    <td className="py-2.5 pr-4">
+                      <div>
+                        <p className="font-semibold text-[#10242A] text-[13px]">{p.title || "No Title"}</p>
+                        <p className="text-[11px] text-[#4A5961] mt-0.5">{p.propertyType || "Property"}</p>
                       </div>
                     </td>
-                    <td className="px-5 py-3">
-                      <p className="text-xs font-bold text-[#10242A]">{p.ownerName || "Unknown Owner"}</p>
-                      <p className="text-[10px] text-[#4A5961] font-mono mt-0.5">{p.ownerLoginId || "N/A"}</p>
+                    <td className="py-2.5 px-4">
+                      <p className="text-[13px] font-semibold text-[#10242A]">{p.ownerName || "Unknown Owner"}</p>
+                      <p className="text-[11px] text-[#4A5961] font-mono mt-0.5">{p.ownerLoginId || "N/A"}</p>
                     </td>
-                    <td className="px-5 py-3">
-                      <p className="text-xs font-semibold text-[#4A5961] flex items-center gap-1"><MapPin size={11} className="text-[#0E7C86]" /> {p.city || "N/A"}</p>
+                    <td className="py-2.5 px-4">
+                      <p className="text-[13px] font-medium text-[#4A5961] flex items-center gap-1"><MapPin size={12} className="text-[#0E7C86]" /> {p.city || "N/A"}</p>
                     </td>
                     {!isEmployeeView && (
-                      <td className="px-5 py-3">
+                      <td className="py-2.5 px-4">
                         {p.assignedToName || p.assignedTo ? (
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] font-semibold text-[#10242A] bg-[#F4F6F8] border border-[#E1E6EA] px-2 py-0.5 rounded-[4px] inline-flex items-center gap-1">
+                            <span className="text-[11px] font-semibold text-[#10242A] bg-[#F4F6F8] border border-[#E1E6EA] px-2 py-0.5 rounded-[4px] inline-flex items-center gap-1">
                               <User size={11} className="text-[#0E7C86]" /> {p.assignedToName || p.assignedTo}
                             </span>
-                            <button onClick={() => setAssignModal({ type: "property", id: p._id, city: p.city, title: p.title })} className="text-[10px] text-[#4A5961] hover:text-[#0E7C86] underline cursor-pointer" title="Reassign">Edit</button>
+                            <button onClick={() => setAssignModal({ type: "property", id: p._id, city: p.city, title: p.title })} className="text-[11px] text-[#4A5961] hover:text-[#0E7C86] underline cursor-pointer" title="Reassign">Edit</button>
                           </div>
                         ) : (
-                          <button onClick={() => setAssignModal({ type: "property", id: p._id, city: p.city, title: p.title })} className="text-[11px] font-semibold text-[#0E7C86] hover:underline flex items-center gap-1 cursor-pointer"><UserPlus size={11} /> Assign</button>
+                          <button onClick={() => setAssignModal({ type: "property", id: p._id, city: p.city, title: p.title })} className="text-[12px] font-semibold text-[#0E7C86] hover:underline flex items-center gap-1 cursor-pointer"><UserPlus size={12} /> Assign</button>
                         )}
                       </td>
                     )}
-                    <td className="px-5 py-3 text-xs text-[#4A5961]">
+                    <td className="py-2.5 px-4 text-[12px] text-[#4A5961]">
                       {new Date(p.createdAt).toLocaleDateString()}
                     </td>
-                    <td className="px-5 py-3 text-right">
+                    <td className="py-2.5 pl-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
-                        <button onClick={() => setSelectedItem({ type: "new_property", data: p })} className="px-2.5 py-1 bg-[#F4F6F8] hover:bg-[#E6F4F5] text-[#10242A] border border-[#E1E6EA] rounded-[6px] text-[10px] font-semibold transition-all flex items-center gap-1 cursor-pointer">
+                        <button onClick={() => setSelectedItem({ type: "new_property", data: p })} className="px-2.5 py-1 bg-white hover:bg-[#F4F6F8] text-[#10242A] border border-[#CBD3D9] rounded-[6px] text-[12px] font-semibold transition-all flex items-center gap-1 cursor-pointer">
                           <Eye size={12} /> View
                         </button>
-                        <button onClick={() => handleApproveNewProperty(p._id)} className="px-2.5 py-1 bg-[#0E7C86] hover:bg-[#09626A] text-white rounded-[6px] text-[10px] font-semibold transition-all cursor-pointer">
+                        <button onClick={() => handleApproveNewProperty(p._id)} className="px-2.5 py-1 bg-[#095256] hover:bg-[#073E42] text-white rounded-[6px] text-[12px] font-semibold transition-all cursor-pointer">
                           Approve
                         </button>
-                        <button onClick={() => handleRejectNewProperty(p._id)} className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-[6px] text-[10px] font-semibold transition-all cursor-pointer">
+                        <button onClick={() => handleRejectNewProperty(p._id)} className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-[6px] text-[12px] font-semibold transition-all cursor-pointer">
                           Reject
                         </button>
                       </div>
@@ -441,53 +434,48 @@ export default function VerificationCenter() {
               {/* Tab 2: Property Edits */}
               {activeTab === "property_edits" && (
                 filteredPropertyEdits.length === 0 ? (
-                  <tr><td colSpan={isEmployeeView ? 5 : 6} className="px-6 py-12 text-center text-xs font-semibold text-[#4A5961]">No property edit requests pending</td></tr>
+                  <tr><td colSpan={isEmployeeView ? 5 : 6} className="py-12 text-center text-[13px] font-medium text-[#4A5961]">No property edit requests pending</td></tr>
                 ) : filteredPropertyEdits.map(p => (
-                  <tr key={p._id} className="hover:bg-[#F4F6F8]/60 transition-colors">
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-[8px] bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center shrink-0">
-                          <FileText size={15} />
-                        </div>
-                        <div>
-                          <p className="font-bold text-[#10242A] text-xs">{p.title || "No Title"}</p>
-                          <p className="text-[10px] text-[#4A5961] mt-0.5">Edit Request</p>
-                        </div>
+                  <tr key={p._id} className="hover:bg-[#F9FAFB] transition-colors">
+                    <td className="py-2.5 pr-4">
+                      <div>
+                        <p className="font-semibold text-[#10242A] text-[13px]">{p.title || "No Title"}</p>
+                        <p className="text-[11px] text-[#4A5961] mt-0.5">Edit Request</p>
                       </div>
                     </td>
-                    <td className="px-5 py-3">
-                      <p className="text-xs font-bold text-[#10242A]">{p.ownerName || "Unknown Owner"}</p>
-                      <p className="text-[10px] text-[#4A5961] font-mono mt-0.5">{p.ownerLoginId || "N/A"}</p>
+                    <td className="py-2.5 px-4">
+                      <p className="text-[13px] font-semibold text-[#10242A]">{p.ownerName || "Unknown Owner"}</p>
+                      <p className="text-[11px] text-[#4A5961] font-mono mt-0.5">{p.ownerLoginId || "N/A"}</p>
                     </td>
-                    <td className="px-5 py-3">
-                      <p className="text-xs font-semibold text-[#4A5961] flex items-center gap-1"><MapPin size={11} className="text-[#0E7C86]" /> {p.city || "N/A"}</p>
+                    <td className="py-2.5 px-4">
+                      <p className="text-[13px] font-medium text-[#4A5961] flex items-center gap-1"><MapPin size={12} className="text-[#0E7C86]" /> {p.city || "N/A"}</p>
                     </td>
                     {!isEmployeeView && (
-                      <td className="px-5 py-3">
+                      <td className="py-2.5 px-4">
                         {p.pendingChanges?.assignedToName || p.pendingChanges?.assignedTo || p.assignedToName || p.assignedTo ? (
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] font-semibold text-[#10242A] bg-[#F4F6F8] border border-[#E1E6EA] px-2 py-0.5 rounded-[4px] inline-flex items-center gap-1">
+                            <span className="text-[11px] font-semibold text-[#10242A] bg-[#F4F6F8] border border-[#E1E6EA] px-2 py-0.5 rounded-[4px] inline-flex items-center gap-1">
                               <User size={11} className="text-[#0E7C86]" /> {p.pendingChanges?.assignedToName || p.pendingChanges?.assignedTo || p.assignedToName || p.assignedTo}
                             </span>
-                            <button onClick={() => setAssignModal({ type: "property", id: p._id, city: p.city, title: p.title })} className="text-[10px] text-[#4A5961] hover:text-[#0E7C86] underline cursor-pointer" title="Reassign">Edit</button>
+                            <button onClick={() => setAssignModal({ type: "property", id: p._id, city: p.city, title: p.title })} className="text-[11px] text-[#4A5961] hover:text-[#0E7C86] underline cursor-pointer" title="Reassign">Edit</button>
                           </div>
                         ) : (
-                          <button onClick={() => setAssignModal({ type: "property", id: p._id, city: p.city, title: p.title })} className="text-[11px] font-semibold text-[#0E7C86] hover:underline flex items-center gap-1 cursor-pointer"><UserPlus size={11} /> Assign</button>
+                          <button onClick={() => setAssignModal({ type: "property", id: p._id, city: p.city, title: p.title })} className="text-[12px] font-semibold text-[#0E7C86] hover:underline flex items-center gap-1 cursor-pointer"><UserPlus size={12} /> Assign</button>
                         )}
                       </td>
                     )}
-                    <td className="px-5 py-3 text-xs text-[#4A5961]">
+                    <td className="py-2.5 px-4 text-[12px] text-[#4A5961]">
                       {new Date(p.updatedAt || p.createdAt).toLocaleDateString()}
                     </td>
-                    <td className="px-5 py-3 text-right">
+                    <td className="py-2.5 pl-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
-                        <button onClick={() => setSelectedItem({ type: "property_edit", data: p })} className="px-2.5 py-1 bg-[#F4F6F8] hover:bg-[#E6F4F5] text-[#10242A] border border-[#E1E6EA] rounded-[6px] text-[10px] font-semibold transition-all flex items-center gap-1 cursor-pointer">
+                        <button onClick={() => setSelectedItem({ type: "property_edit", data: p })} className="px-2.5 py-1 bg-white hover:bg-[#F4F6F8] text-[#10242A] border border-[#CBD3D9] rounded-[6px] text-[12px] font-semibold transition-all flex items-center gap-1 cursor-pointer">
                           <Eye size={12} /> Review
                         </button>
-                        <button onClick={() => handleApprovePropertyEdit(p._id)} className="px-2.5 py-1 bg-[#0E7C86] hover:bg-[#09626A] text-white rounded-[6px] text-[10px] font-semibold transition-all cursor-pointer">
+                        <button onClick={() => handleApprovePropertyEdit(p._id)} className="px-2.5 py-1 bg-[#095256] hover:bg-[#073E42] text-white rounded-[6px] text-[12px] font-semibold transition-all cursor-pointer">
                           Approve
                         </button>
-                        <button onClick={() => handleRejectPropertyEdit(p._id)} className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-[6px] text-[10px] font-semibold transition-all cursor-pointer">
+                        <button onClick={() => handleRejectPropertyEdit(p._id)} className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-[6px] text-[12px] font-semibold transition-all cursor-pointer">
                           Reject
                         </button>
                       </div>
@@ -499,53 +487,48 @@ export default function VerificationCenter() {
               {/* Tab 3: Room Edits */}
               {activeTab === "room_edits" && (
                 filteredRoomEdits.length === 0 ? (
-                  <tr><td colSpan={isEmployeeView ? 5 : 6} className="px-6 py-12 text-center text-xs font-semibold text-[#4A5961]">No room edit requests pending</td></tr>
+                  <tr><td colSpan={isEmployeeView ? 5 : 6} className="py-12 text-center text-[13px] font-medium text-[#4A5961]">No room edit requests pending</td></tr>
                 ) : filteredRoomEdits.map(r => (
-                  <tr key={r._id} className="hover:bg-[#F4F6F8]/60 transition-colors">
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-[8px] bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center shrink-0">
-                          <ImageIcon size={15} />
-                        </div>
-                        <div>
-                          <p className="font-bold text-[#10242A] text-xs">{r.title || "Room"}</p>
-                          <p className="text-[10px] text-[#4A5961] mt-0.5">{r.property?.title || "Property"}</p>
-                        </div>
+                  <tr key={r._id} className="hover:bg-[#F9FAFB] transition-colors">
+                    <td className="py-2.5 pr-4">
+                      <div>
+                        <p className="font-semibold text-[#10242A] text-[13px]">{r.title || "Room"}</p>
+                        <p className="text-[11px] text-[#4A5961] mt-0.5">{r.property?.title || "Property"}</p>
                       </div>
                     </td>
-                    <td className="px-5 py-3">
-                      <p className="text-xs font-bold text-[#10242A]">{r.property?.ownerName || "Unknown Owner"}</p>
-                      <p className="text-[10px] text-[#4A5961] font-mono mt-0.5">{r.property?.ownerLoginId || "N/A"}</p>
+                    <td className="py-2.5 px-4">
+                      <p className="text-[13px] font-semibold text-[#10242A]">{r.property?.ownerName || "Unknown Owner"}</p>
+                      <p className="text-[11px] text-[#4A5961] font-mono mt-0.5">{r.property?.ownerLoginId || "N/A"}</p>
                     </td>
-                    <td className="px-5 py-3">
-                      <p className="text-xs font-semibold text-[#4A5961] flex items-center gap-1"><MapPin size={11} className="text-[#0E7C86]" /> {r.property?.city || "N/A"}</p>
+                    <td className="py-2.5 px-4">
+                      <p className="text-[13px] font-medium text-[#4A5961] flex items-center gap-1"><MapPin size={12} className="text-[#0E7C86]" /> {r.property?.city || "N/A"}</p>
                     </td>
                     {!isEmployeeView && (
-                      <td className="px-5 py-3">
+                      <td className="py-2.5 px-4">
                         {r.pendingChanges?.assignedToName || r.pendingChanges?.assignedTo ? (
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] font-semibold text-[#10242A] bg-[#F4F6F8] border border-[#E1E6EA] px-2 py-0.5 rounded-[4px] inline-flex items-center gap-1">
+                            <span className="text-[11px] font-semibold text-[#10242A] bg-[#F4F6F8] border border-[#E1E6EA] px-2 py-0.5 rounded-[4px] inline-flex items-center gap-1">
                               <User size={11} className="text-[#0E7C86]" /> {r.pendingChanges?.assignedToName || r.pendingChanges?.assignedTo}
                             </span>
-                            <button onClick={() => setAssignModal({ type: "room", id: r._id, city: r.property?.city, title: r.title })} className="text-[10px] text-[#4A5961] hover:text-[#0E7C86] underline cursor-pointer" title="Reassign">Edit</button>
+                            <button onClick={() => setAssignModal({ type: "room", id: r._id, city: r.property?.city, title: r.title })} className="text-[11px] text-[#4A5961] hover:text-[#0E7C86] underline cursor-pointer" title="Reassign">Edit</button>
                           </div>
                         ) : (
-                          <button onClick={() => setAssignModal({ type: "room", id: r._id, city: r.property?.city, title: r.title })} className="text-[11px] font-semibold text-[#0E7C86] hover:underline flex items-center gap-1 cursor-pointer"><UserPlus size={11} /> Assign</button>
+                          <button onClick={() => setAssignModal({ type: "room", id: r._id, city: r.property?.city, title: r.title })} className="text-[12px] font-semibold text-[#0E7C86] hover:underline flex items-center gap-1 cursor-pointer"><UserPlus size={12} /> Assign</button>
                         )}
                       </td>
                     )}
-                    <td className="px-5 py-3 text-xs text-[#4A5961]">
+                    <td className="py-2.5 px-4 text-[12px] text-[#4A5961]">
                       {new Date(r.updatedAt || r.createdAt).toLocaleDateString()}
                     </td>
-                    <td className="px-5 py-3 text-right">
+                    <td className="py-2.5 pl-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
-                        <button onClick={() => setSelectedItem({ type: "room_edit", data: r })} className="px-2.5 py-1 bg-[#F4F6F8] hover:bg-[#E6F4F5] text-[#10242A] border border-[#E1E6EA] rounded-[6px] text-[10px] font-semibold transition-all flex items-center gap-1 cursor-pointer">
+                        <button onClick={() => setSelectedItem({ type: "room_edit", data: r })} className="px-2.5 py-1 bg-white hover:bg-[#F4F6F8] text-[#10242A] border border-[#CBD3D9] rounded-[6px] text-[12px] font-semibold transition-all flex items-center gap-1 cursor-pointer">
                           <Eye size={12} /> Review
                         </button>
-                        <button onClick={() => handleApproveRoomEdit(r._id)} className="px-2.5 py-1 bg-[#0E7C86] hover:bg-[#09626A] text-white rounded-[6px] text-[10px] font-semibold transition-all cursor-pointer">
+                        <button onClick={() => handleApproveRoomEdit(r._id)} className="px-2.5 py-1 bg-[#095256] hover:bg-[#073E42] text-white rounded-[6px] text-[12px] font-semibold transition-all cursor-pointer">
                           Approve
                         </button>
-                        <button onClick={() => handleRejectRoomEdit(r._id)} className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-[6px] text-[10px] font-semibold transition-all cursor-pointer">
+                        <button onClick={() => handleRejectRoomEdit(r._id)} className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-[6px] text-[12px] font-semibold transition-all cursor-pointer">
                           Reject
                         </button>
                       </div>

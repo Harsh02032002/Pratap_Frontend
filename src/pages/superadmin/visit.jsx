@@ -829,6 +829,7 @@ export default function Visit() {
   const [selectedStaffModal, setSelectedStaffModal] = useState(null);
   const [staffDetailsLoading, setStaffDetailsLoading] = useState(false);
   const [fetchedStaffInfo, setFetchedStaffInfo] = useState(null);
+  const [staffPhotoPreview, setStaffPhotoPreview] = useState(null);
 
   const openStaffModal = async (v) => {
     const staffName = v.staffName || v.submittedBy || v.visitorName || "Staff Member";
@@ -840,6 +841,7 @@ export default function Visit() {
       staffId: staffId || "N/A",
       email: v.visitorEmail || v.staffEmail || "",
       phone: v.visitorPhone || v.staffPhone || "",
+      photoDataUrl: v.staffPhoto || v.visitorPhoto || v.photoDataUrl || "",
       submittedAt: v.submittedAt
     });
 
@@ -847,15 +849,26 @@ export default function Visit() {
     if (staffId || staffName) {
       setStaffDetailsLoading(true);
       try {
-        const res = await fetchJson(`/api/employees`);
-        const list = res?.data || res || [];
-        const match = Array.isArray(list) ? list.find(e => 
-          (e.loginId && String(e.loginId).toUpperCase() === String(staffId).toUpperCase()) ||
-          (e.name && String(e.name).toLowerCase() === String(staffName).toLowerCase()) ||
-          (e._id && String(e._id) === String(staffId))
-        ) : null;
-        if (match) {
-          setFetchedStaffInfo(match);
+        let matchedStaff = null;
+        if (staffId) {
+          try {
+            const singleRes = await fetchJson(`/api/employees/${encodeURIComponent(staffId)}`);
+            if (singleRes && (singleRes.loginId || singleRes.name || singleRes._id)) {
+              matchedStaff = singleRes.data || singleRes;
+            }
+          } catch (_) {}
+        }
+        if (!matchedStaff) {
+          const res = await fetchJson(`/api/employees`);
+          const list = res?.data || res || [];
+          matchedStaff = Array.isArray(list) ? list.find(e => 
+            (e.loginId && String(e.loginId).toUpperCase() === String(staffId).toUpperCase()) ||
+            (e.name && String(e.name).toLowerCase() === String(staffName).toLowerCase()) ||
+            (e._id && String(e._id) === String(staffId))
+          ) : null;
+        }
+        if (matchedStaff) {
+          setFetchedStaffInfo(matchedStaff);
         }
       } catch (_) {}
       finally {
@@ -1283,8 +1296,8 @@ export default function Visit() {
           bankName: formBankName,
           bankBranchName: formBankBranchName,
           bankUpiId: formBankUpiId,
-          staffName: JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user") || "{}").name || "Staff Member",
-          staffId: JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user") || "{}").loginId || "STAFF",
+          staffName: JSON.parse(sessionStorage.getItem("staff_user") || sessionStorage.getItem("user") || localStorage.getItem("staff_user") || localStorage.getItem("user") || "{}").name || "Staff Member",
+          staffId: JSON.parse(sessionStorage.getItem("staff_user") || sessionStorage.getItem("user") || localStorage.getItem("staff_user") || localStorage.getItem("user") || "{}").loginId || "STAFF",
           _id: visitId,
           ...(editingVisit ? { _isEdit: true } : {}),
         }),
@@ -1517,22 +1530,52 @@ export default function Visit() {
   // This filter is only a display-side backstop, never a security control.
   const currentStaffIdentity = useMemo(() => {
     if (!isEmployeeView) return null;
-    const storedUser = JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user") || "{}");
+    const raw =
+      sessionStorage.getItem("staff_user") ||
+      sessionStorage.getItem("manager_user") ||
+      sessionStorage.getItem("user") ||
+      localStorage.getItem("staff_user") ||
+      localStorage.getItem("manager_user") ||
+      localStorage.getItem("user") ||
+      "{}";
+    let storedUser = {};
+    try {
+      storedUser = JSON.parse(raw) || {};
+    } catch (_) {
+      storedUser = {};
+    }
+    const role = String(storedUser.role || "").trim().toLowerCase();
     return {
-      id: String(storedUser.loginId || storedUser.employeeId || "").toLowerCase(),
-      name: String(storedUser.name || "").toLowerCase(),
+      id: String(storedUser.loginId || storedUser.employeeId || "").trim().toLowerCase(),
+      userId: String(storedUser._id || storedUser.id || "").trim().toLowerCase(),
+      name: String(storedUser.name || "").trim().toLowerCase(),
+      isSuperadmin: role === "superadmin" || role === "admin",
     };
-  }, [isEmployeeView]);
+  }, [isEmployeeView, visits]);
 
   const ownVisits = useMemo(() => {
     if (!currentStaffIdentity) return visits;
-    const { id, name } = currentStaffIdentity;
-    if (!id && !name) return [];
+    // GET /api/visits?view=table already scopes results strictly to the authenticated
+    // employee's JWT on the server. Returning `visits` directly for non-admin sessions
+    // prevents multi-tab localStorage collisions from hiding the employee's own reports.
+    if (!currentStaffIdentity.isSuperadmin) return visits;
+    const { id, userId, name } = currentStaffIdentity;
+    if (!id && !userId && !name) return visits;
     return visits.filter(v => {
-      const staffId = String(v.staffId || v.submittedById || v.staffLoginId || v.submittedByLoginId || "").toLowerCase();
-      const staffName = String(v.staffName || v.submittedBy || "").toLowerCase();
-      if (id && staffId) return staffId === id;
-      return Boolean(name) && staffName === name;
+      const candidateIds = [
+        v.staffId,
+        v.submittedByLoginId,
+        v.staffLoginId,
+        v.submittedBy,
+        v.submittedById,
+      ]
+        .map(val => String(val || "").trim().toLowerCase())
+        .filter(Boolean);
+      const staffName = String(v.staffName || v.submittedBy || "").trim().toLowerCase();
+      if (id && candidateIds.includes(id)) return true;
+      if (userId && candidateIds.includes(userId)) return true;
+      if (name && staffName && staffName === name) return true;
+      return false;
     });
   }, [visits, currentStaffIdentity]);
 
@@ -1724,26 +1767,26 @@ export default function Visit() {
   // ═══════════════════════════════════════════════════════════════════════════
 
   return (
-    <div className="space-y-6 pb-8 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
+    <div className="space-y-4 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
       {/* Header Area */}
-      <PageHeader 
-        title="Visit Reports"
-        subtitle="View and manage property visit reports"
-        actions={
-          <div className="flex items-center gap-3">
-            {currentView === "list" && !(window.location.pathname.toLowerCase().includes('/superadmin')) && (
-              <button onClick={() => setCurrentView("addOwner")} className="bg-[#0E7C86] hover:bg-[#0B656D] text-white px-4 py-2 rounded-[12px] text-xs font-semibold shadow-xs transition-all flex items-center gap-2 cursor-pointer">
-                 <Plus className="w-4 h-4" /> Add New Visit
-              </button>
-            )}
-            {currentView === "addOwner" && (
-              <button onClick={() => { resetForm(); setCurrentView("list"); }} className="bg-white text-[#4A5961] border border-[#E1E6EA] hover:bg-[#F4F6F8] px-4 py-2 rounded-[12px] text-xs font-semibold shadow-xs transition-all flex items-center gap-2 cursor-pointer">
-                 <RefreshCw className="w-3.5 h-3.5 text-[#0E7C86]" /> Back to Visits
-              </button>
-            )}
-          </div>
-        }
-      />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-[22px] font-bold text-[#10242A] tracking-tight leading-tight">Visit Reports</h1>
+          <p className="text-[13px] text-[#4A5961] mt-0.5">View and manage property visit reports</p>
+        </div>
+        <div className="flex items-center gap-2.5">
+          {currentView === "list" && !(window.location.pathname.toLowerCase().includes('/superadmin')) && (
+            <button onClick={() => setCurrentView("addOwner")} className="bg-[#095256] hover:bg-[#073E42] text-white px-3.5 py-1.5 rounded-[8px] text-[13px] font-semibold shadow-xs transition-all flex items-center gap-2 cursor-pointer">
+               <Plus className="w-4 h-4" /> Add New Visit
+            </button>
+          )}
+          {currentView === "addOwner" && (
+            <button onClick={() => { resetForm(); setCurrentView("list"); }} className="bg-white text-[#10242A] border border-[#CBD3D9] hover:bg-[#F4F6F8] px-3.5 py-1.5 rounded-[8px] text-[13px] font-semibold shadow-xs transition-all flex items-center gap-2 cursor-pointer">
+               <RefreshCw className="w-3.5 h-3.5 text-[#4A5961]" /> Back to Visits
+            </button>
+          )}
+        </div>
+      </div>
 
       {currentView === "addOwner" ? (
         /* ═══ ADD PROPERTY OWNER — COMPREHENSIVE FORM ═══ */
@@ -2462,52 +2505,48 @@ export default function Visit() {
         </div>
       ) : (
         /* ═══ VISITS LIST VIEW ═══ */
-        <div className="space-y-6">
-          {/* Stats Bar */}
+        <div className="space-y-4">
+          {/* Stats Bar (NO ICONS) */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white p-5 rounded-[16px] border border-[#E1E6EA] shadow-xs flex items-center justify-between">
-              <div>
-                <p className="text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider">Total Visit Reports</p>
-                <h3 className="text-2xl font-bold text-[#10242A] mt-0.5">{stats.total}</h3>
-              </div>
-              <div className="w-11 h-11 rounded-[12px] bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center shrink-0">
-                <Building2 size={22} />
+            <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
+              <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Total Visit Reports</p>
+              <div className="mt-2">
+                <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{stats.total}</h3>
               </div>
             </div>
-            <div className="bg-white p-5 rounded-[16px] border border-[#E1E6EA] shadow-xs flex items-center justify-between">
-              <div>
-                <p className="text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider">Approved / Onboarded</p>
-                <h3 className="text-2xl font-bold text-emerald-600 mt-0.5">{stats.approved}</h3>
-              </div>
-              <div className="w-11 h-11 rounded-[12px] bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                <CheckCircle2 size={22} />
+            <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
+              <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Approved / Onboarded</p>
+              <div className="mt-2">
+                <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{stats.approved}</h3>
               </div>
             </div>
-            <div className="bg-white p-5 rounded-[16px] border border-[#E1E6EA] shadow-xs flex items-center justify-between">
-              <div>
-                <p className="text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider">Pending Review</p>
-                <h3 className="text-2xl font-bold text-amber-600 mt-0.5">{stats.pending}</h3>
-              </div>
-              <div className="w-11 h-11 rounded-[12px] bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-                <Clock size={22} />
+            <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
+              <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Pending Review</p>
+              <div className="mt-2">
+                <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{stats.pending}</h3>
               </div>
             </div>
           </div>
 
-          {/* Search & Actions */}
-          <div className="bg-white p-4 rounded-[16px] border border-[#E1E6EA] shadow-xs flex items-center justify-between gap-4">
-            <div className="flex-1 relative">
-              <Search className="w-4 h-4 text-[#4A5961] absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by property name or staff member..."
-                className="w-full bg-[#F4F6F8] border border-[#E1E6EA] rounded-[8px] pl-10 pr-4 py-2 text-xs font-medium text-[#10242A] outline-none focus:border-[#0E7C86] transition-all placeholder:text-[#4A5961]" />
+          {/* Search & Actions (Outside & Above Table Card) */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="relative flex-1 min-w-[240px] max-w-md">
+              <Search className="w-4 h-4 text-[#8C9BA5] absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search by property name or staff member..."
+                className="w-full bg-white border border-[#CBD3D9] rounded-[8px] pl-9 pr-3.5 py-1.5 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs"
+              />
             </div>
-            <button onClick={loadVisits} className="p-2 bg-white hover:bg-[#F4F6F8] text-[#4A5961] rounded-[8px] border border-[#E1E6EA] transition-all cursor-pointer">
-              <RefreshCw className={cn("w-4 h-4 text-[#0E7C86]", loading && "animate-spin")} />
+            <button onClick={loadVisits} className="px-3.5 py-1.5 bg-white hover:bg-[#F4F6F8] text-[#10242A] rounded-[8px] border border-[#CBD3D9] text-[13px] font-semibold shadow-xs transition-all flex items-center gap-2 cursor-pointer">
+              <RefreshCw className={cn("w-3.5 h-3.5 text-[#4A5961]", loading && "animate-spin")} /> Refresh
             </button>
           </div>
 
           {loadError && (
-            <div className="bg-rose-50 border border-rose-200 text-rose-700 rounded-[16px] p-4 flex items-center justify-between gap-4">
+            <div className="bg-rose-50 border border-rose-200 text-rose-700 rounded-[12px] p-4 flex items-center justify-between gap-4">
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider">Could not load visit reports</p>
                 <p className="text-xs font-medium mt-0.5">{loadError}</p>
@@ -2524,30 +2563,28 @@ export default function Visit() {
             </div>
           )}
 
-          {/* ═══ BULK ACTIONS BAR (Light & Calm Roomhy Theme) ═══ */}
+          {/* ═══ BULK ACTIONS BAR ═══ */}
           {selectedIds.size > 0 && (
-            <div className="bg-white p-3.5 px-5 rounded-[16px] border border-[#0E7C86]/30 bg-gradient-to-r from-teal-50/70 via-white to-slate-50 shadow-xs flex flex-wrap items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
-              <div className="flex items-center gap-3">
-                <span className="w-8 h-8 rounded-[10px] bg-[#0E7C86] text-white font-bold text-xs flex items-center justify-center shadow-xs">
+            <div className="bg-white p-3 px-4 rounded-[12px] border border-[#E1E6EA] shadow-xs flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <span className="w-6 h-6 rounded-full bg-[#095256] text-white font-bold text-[11px] flex items-center justify-center">
                   {selectedIds.size}
                 </span>
                 <div>
-                  <p className="text-xs font-bold text-[#10242A] flex items-center gap-1.5">
+                  <p className="text-[12px] font-semibold text-[#10242A] flex items-center gap-1.5">
                     <span>{selectedIds.size} {selectedIds.size === 1 ? "report" : "reports"} selected</span>
-                    <span className="text-[10px] font-normal text-[#0E7C86] bg-teal-50 border border-teal-200/60 rounded px-1.5 py-0.5">Bulk Mode</span>
                   </p>
-                  <p className="text-[11px] text-[#4A5961]">Choose an action to apply across all selected visits</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-2 flex-wrap">
                 {canApprove && (
-                  <div className="flex items-center bg-[#F4F6F8] border border-[#E1E6EA] rounded-[8px] px-2.5 py-1">
-                    <span className="text-[10px] text-[#4A5961] font-semibold mr-1.5 uppercase tracking-wider">Tier:</span>
+                  <div className="flex items-center bg-white border border-[#CBD3D9] rounded-[6px] px-2.5 py-1">
+                    <span className="text-[11px] text-[#4A5961] font-medium mr-1.5">Tier:</span>
                     <select
                       value={bulkTier}
                       onChange={e => setBulkTier(e.target.value)}
-                      className="bg-transparent text-xs font-bold text-[#10242A] outline-none cursor-pointer"
+                      className="bg-transparent text-[12px] font-semibold text-[#10242A] outline-none cursor-pointer"
                     >
                       {PROPERTY_TIERS.map(t => (
                         <option key={t.key} value={t.key}>{t.label}</option>
@@ -2561,7 +2598,7 @@ export default function Visit() {
                     type="button"
                     disabled={bulkProcessing}
                     onClick={handleBulkApprove}
-                    className="px-3.5 py-2 bg-[#0E7C86] hover:bg-[#0b646c] active:scale-95 text-white rounded-[8px] text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
+                    className="px-3 py-1.5 bg-[#095256] hover:bg-[#073E42] text-white rounded-[6px] text-[12px] font-semibold flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
                     title="Bulk Approve selected visits with completed KYC"
                   >
                     <CheckCircle2 size={13} /> Bulk Approve
@@ -2573,7 +2610,7 @@ export default function Visit() {
                     type="button"
                     disabled={bulkProcessing}
                     onClick={() => { setBulkHoldModal(true); setBulkHoldReason(""); }}
-                    className="px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-[8px] text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
+                    className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-[6px] text-[12px] font-semibold flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
                     title="Put selected visits on hold"
                   >
                     <PauseCircle size={13} /> Bulk Hold
@@ -2585,7 +2622,7 @@ export default function Visit() {
                     type="button"
                     disabled={bulkProcessing}
                     onClick={() => { setBulkRejectModal(true); setBulkRejectReason(""); }}
-                    className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-[8px] text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
+                    className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-[6px] text-[12px] font-semibold flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
                     title="Reject selected visits"
                   >
                     <XCircle size={13} /> Bulk Reject
@@ -2596,7 +2633,7 @@ export default function Visit() {
                   type="button"
                   disabled={bulkProcessing}
                   onClick={handleBulkSendKyc}
-                  className="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-[8px] text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
+                  className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-[6px] text-[12px] font-semibold flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
                   title="Send or resend digital KYC link to owners"
                 >
                   <Send size={13} /> Send KYC
@@ -2607,7 +2644,7 @@ export default function Visit() {
                     type="button"
                     disabled={bulkProcessing}
                     onClick={handleBulkDelete}
-                    className="px-3 py-2 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 rounded-[8px] text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
+                    className="px-3 py-1.5 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 rounded-[6px] text-[12px] font-semibold flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
                     title="Delete selected visits permanently"
                   >
                     <Trash2 size={13} /> Bulk Delete
@@ -2618,7 +2655,7 @@ export default function Visit() {
                   type="button"
                   disabled={bulkProcessing}
                   onClick={() => setSelectedIds(new Set())}
-                  className="px-2.5 py-2 text-xs font-semibold text-[#4A5961] hover:text-[#10242A] hover:bg-slate-100 rounded-[8px] transition-all cursor-pointer"
+                  className="px-2.5 py-1.5 text-[12px] font-semibold text-[#4A5961] hover:text-[#10242A] rounded-[6px] transition-all cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -2628,217 +2665,222 @@ export default function Visit() {
           )}
 
           {/* Table */}
-          <div className="bg-white rounded-[16px] border border-[#E1E6EA] shadow-xs overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[1300px]">
-              <thead>
-                <tr className="bg-[#F4F6F8] border-b border-[#E1E6EA] text-[11px] font-bold text-[#4A5961] uppercase tracking-wider whitespace-nowrap">
-                  <th className="p-4 pl-4 w-12 text-center">
-                    <input
-                      type="checkbox"
-                      checked={allFilteredSelected}
-                      onChange={toggleSelectAll}
-                      className="w-4 h-4 rounded border-slate-300 text-[#0E7C86] focus:ring-[#0E7C86] cursor-pointer accent-[#0E7C86]"
-                      title="Select all filtered visit reports"
-                    />
-                  </th>
-                  <th className="p-4 min-w-[200px]">Property / Owner</th>
-                  <th className="p-4 min-w-[160px]">Location</th>
-                  <th className="p-4 min-w-[140px]">Type / Rent</th>
-                  <th className="p-4 min-w-[160px]">Submitted By</th>
-                  <th className="p-4 min-w-[120px]">KYC</th>
-                  <th className="p-4 min-w-[140px]">Tier</th>
-                  <th className="p-4 min-w-[120px]">Status</th>
-                  <th className="p-4 pr-6 text-right min-w-[280px]">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50 text-xs font-bold text-slate-700">
-                {loading ? (
-                  <tr><td colSpan={8} className="p-8 text-center text-slate-400 font-bold uppercase tracking-widest">Loading visits...</td></tr>
-                ) : loadError ? (
-                  <tr><td colSpan={8} className="p-8 text-center text-rose-400 font-bold uppercase tracking-widest">Could not load visit reports</td></tr>
-
-                ) : filteredVisits.length === 0 ? (
-                  <tr><td colSpan={9} className="p-8 text-center text-slate-400 font-bold uppercase tracking-widest">No visit reports found</td></tr>
-                ) : (
-                  filteredVisits.map((v, i) => (
-                    <tr key={v._id || i} className={cn("hover:bg-slate-50/50 transition-colors", selectedIds.has(v.visitId || v._id) && "bg-teal-50/30")}>
-                      <td className="p-4 pl-4 text-center">
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.has(v.visitId || v._id)}
-                          onChange={() => toggleSelect(v.visitId || v._id)}
-                          className="w-4 h-4 rounded border-slate-300 text-[#0E7C86] focus:ring-[#0E7C86] cursor-pointer accent-[#0E7C86]"
-                        />
-                      </td>
-                      <td className="p-4">
-                        <p className="font-bold text-slate-800">{v.propertyName || v.propertyInfo?.name || "Unnamed Property"}</p>
-                        <p className="text-[10px] text-slate-400 font-normal mt-0.5">{v.ownerName || v.visitorName} • {v.ownerPhone || v.visitorPhone}</p>
-                      </td>
-                      <td className="p-4">
-                        <p className="font-bold text-slate-800">{getLocationLabel(v).area}</p>
-                        <p className="text-[10px] text-slate-500 font-medium mt-0.5">{getLocationLabel(v).sub}</p>
-                      </td>
-                      <td className="p-4">
-                        <p className="text-slate-700 uppercase">{v.propertyType || "Hostel"}</p>
-                        {formatRent(v)
-                          ? <p className="text-[10px] text-blue-600 font-bold">{formatRent(v)}</p>
-                          : <p className="text-[10px] text-amber-600 font-bold">Rent not set</p>}
-                      </td>
-                      <td className="p-4">
-                        <button
-                          type="button"
-                          onClick={() => openStaffModal(v)}
-                          className="group flex flex-col items-start text-left hover:opacity-90 transition-all cursor-pointer"
-                          title="Click to view staff member login ID & profile details"
-                        >
-                          <p className="font-bold text-slate-800 group-hover:text-blue-600 flex items-center gap-1.5 transition-colors">
-                            <UserCheck size={13} className="text-blue-500 shrink-0" />
-                            <span className="underline decoration-blue-200 underline-offset-2 group-hover:decoration-blue-500">{v.staffName || v.submittedBy || "Staff"}</span>
-                          </p>
-                          <p className="text-[10px] text-slate-400 font-normal mt-0.5">
-                            {new Date(v.submittedAt || Date.now()).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
-                          </p>
-                        </button>
-                      </td>
-                      <td className="p-4">
-                        <span className={cn("px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider border", kycState(v).cls)}>
-                          {kycState(v).label}
-                        </span>
-                      </td>
-                      <td className="p-4">
-                        {canApprove && v.status !== "approved" ? (
-                          <select
-                            value={tierFor(v)}
-                            onChange={(e) => setTierForVisit(v, e.target.value)}
-                            className="bg-slate-50 border border-slate-100 rounded-lg px-2 py-1.5 text-[10px] font-bold text-slate-600 outline-none hover:bg-slate-100 transition-all cursor-pointer"
-                          >
-                            <option value="">Select tier…</option>
-                            {PROPERTY_TIERS.map(t => (
-                              <option key={t.key} value={t.key}>{t.label}</option>
-                            ))}
-                          </select>
-                        ) : (
-                          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                            {tierMeta(tierFor(v))?.label || "—"}
-                          </span>
-                        )}
-                      </td>
-                      <td className="p-4">
-                        <span className={cn(
-                          "px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider",
-                          v.status === "approved" ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                            : v.status === "rejected" ? "bg-rose-50 text-rose-600 border border-rose-100"
-                            : "bg-amber-50 text-amber-600 border border-amber-100"
-                        )}>
-                          {v.status || "pending"}
-                        </span>
-                        {/* The reason belongs next to the status, not buried in
-                            the detail modal — this row is what the employee scans. */}
-                        {v.status === "rejected" && v.rejectReason && (
-                          <p className="mt-1 max-w-[180px] text-[10px] font-normal leading-snug text-rose-500" title={v.rejectReason}>
-                            “{v.rejectReason}”
-                          </p>
-                        )}
-                      </td>
-                      <td className="p-4 pr-6 whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-2">
-                          <button onClick={() => handleViewVisit(v)}
-                            disabled={detailLoadingId === (v.visitId || v._id)}
-                            className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold uppercase transition-all">
-                            {detailLoadingId === (v.visitId || v._id) ? "..." : "View"}
-                          </button>
+          <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[1200px]">
+                <thead>
+                  <tr className="border-b border-[#E1E6EA] whitespace-nowrap">
+                    <th className="pb-2 pr-3 w-8 text-center text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">
+                      <input
+                        type="checkbox"
+                        checked={allFilteredSelected}
+                        onChange={toggleSelectAll}
+                        className="rounded border-[#CBD3D9] text-[#0E7C86] focus:ring-[#0E7C86] cursor-pointer accent-[#0E7C86]"
+                        title="Select all filtered visit reports"
+                      />
+                    </th>
+                    <th className="pb-2 pr-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Property / Owner</th>
+                    <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Location</th>
+                    <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Type / Rent</th>
+                    <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Submitted By</th>
+                    <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">KYC</th>
+                    <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Tier</th>
+                    <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Status</th>
+                    <th className="pb-2 pl-4 text-right text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#F0F4F6] text-[13px]">
+                  {loading ? (
+                    <tr><td colSpan={9} className="py-12 text-center text-[13px] font-medium text-[#4A5961]">Loading visits...</td></tr>
+                  ) : loadError ? (
+                    <tr><td colSpan={9} className="py-12 text-center text-[13px] font-medium text-rose-500">Could not load visit reports</td></tr>
+                  ) : filteredVisits.length === 0 ? (
+                    <tr><td colSpan={9} className="py-12 text-center text-[13px] font-medium text-[#4A5961]">No visit reports found</td></tr>
+                  ) : (
+                    filteredVisits.map((v, i) => (
+                      <tr key={v._id || i} className={cn("hover:bg-[#F9FAFB] transition-colors", selectedIds.has(v.visitId || v._id) && "bg-[#E6F4F5]/30")}>
+                        <td className="py-2.5 pr-3 text-center">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(v.visitId || v._id)}
+                            onChange={() => toggleSelect(v.visitId || v._id)}
+                            className="rounded border-[#CBD3D9] text-[#0E7C86] focus:ring-[#0E7C86] cursor-pointer accent-[#0E7C86]"
+                          />
+                        </td>
+                        <td className="py-2.5 pr-4">
+                          <p className="font-semibold text-[#10242A] text-[13px]">{v.propertyName || v.propertyInfo?.name || "Unnamed Property"}</p>
+                          <p className="text-[11px] text-[#4A5961] mt-0.5">{v.ownerName || v.visitorName} • {v.ownerPhone || v.visitorPhone}</p>
+                        </td>
+                        <td className="py-2.5 px-4">
+                          <p className="font-medium text-[#10242A] text-[13px]">{getLocationLabel(v).area}</p>
+                          <p className="text-[11px] text-[#4A5961] mt-0.5">{getLocationLabel(v).sub}</p>
+                        </td>
+                        <td className="py-2.5 px-4">
+                          <p className="font-medium text-[#10242A] text-[13px] uppercase">{v.propertyType || "Hostel"}</p>
+                          {formatRent(v)
+                            ? <p className="text-[11px] text-[#0E7C86] font-semibold mt-0.5">{formatRent(v)}</p>
+                            : <p className="text-[11px] text-amber-600 font-medium mt-0.5">Rent not set</p>}
+                        </td>
+                        <td className="py-2.5 px-4">
                           <button
                             type="button"
-                            onClick={() => handleStartEdit(v)}
-                            disabled={!!detailLoadingId}
-                            title="Edit visit report details"
-                            className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-lg text-[10px] font-bold uppercase transition-all flex items-center gap-1 cursor-pointer shadow-xs disabled:opacity-50 disabled:cursor-wait"
+                            onClick={() => openStaffModal(v)}
+                            className="group flex items-center gap-2 text-left hover:opacity-90 transition-all cursor-pointer"
+                            title="Click to view staff member login ID & profile details"
                           >
-                            <Pencil size={11} /> Edit
+                            <div className="w-7 h-7 rounded-full bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center text-[11px] font-bold shrink-0 overflow-hidden border border-[#0E7C86]/20">
+                              {(v.staffPhoto || v.profilePhoto || v.avatar) ? (
+                                <img src={v.staffPhoto || v.profilePhoto || v.avatar} alt="" className="w-full h-full object-cover" />
+                              ) : (
+                                (v.staffName || v.submittedBy || "S").charAt(0).toUpperCase()
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-semibold text-[#10242A] group-hover:text-[#0E7C86] flex items-center gap-1 transition-colors text-[13px]">
+                                <span className="underline decoration-[#CBD3D9] underline-offset-2 group-hover:decoration-[#0E7C86]">{v.staffName || v.submittedBy || "Staff"}</span>
+                              </p>
+                              <p className="text-[11px] text-[#4A5961] mt-0.5">
+                                {new Date(v.submittedAt || Date.now()).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                              </p>
+                            </div>
                           </button>
-                          {v.status !== "approved" && v.status !== "rejected" && (
-                            <>
-                              <button
-                                onClick={() => resendKyc(v)}
-                                disabled={actingId === (v.visitId || v._id) || isKycDone(v)}
-                                title={isKycDone(v) ? "Owner has already completed KYC" : "Resend the digital KYC link to the owner"}
-                                className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-[10px] font-bold uppercase transition-all border border-blue-100 disabled:bg-slate-50 disabled:text-slate-300 disabled:border-slate-100 disabled:cursor-not-allowed"
-                              >
-                                Resend KYC
-                              </button>
-                              {canApprove && (
-                                <button
-                                  onClick={() => approveVisit(v)}
-                                  disabled={!isKycDone(v) || !isTierSelected(v) || actingId === (v.visitId || v._id)}
-                                  title={!isKycDone(v) ? "Owner must complete digital KYC before approval" : !isTierSelected(v) ? "Select a property tier before approval" : "Approve and publish this property"}
-                                  className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all border bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed"
-                                >
-                                  {actingId === (v.visitId || v._id) ? "..." : "Approve"}
-                                </button>
-                              )}
-                              {canApprove && (
-                                <button
-                                  type="button"
-                                  onClick={() => { setHoldModal(v); setHoldReason(""); }}
-                                  disabled={actingId === (v.visitId || v._id)}
-                                  title="Put this report on hold"
-                                  className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all border bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed cursor-pointer"
-                                >
-                                  Hold
-                                </button>
-                              )}
-                              {canApprove && (
-                                <button
-                                  type="button"
-                                  onClick={() => { setRejectModal(v); setRejectReason(""); }}
-                                  disabled={actingId === (v.visitId || v._id)}
-                                  title="Reject this report and send the employee a reason"
-                                  className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all border bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100 disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed"
-                                >
-                                  Reject
-                                </button>
-                              )}
-                            </>
+                        </td>
+                        <td className="py-2.5 px-4">
+                          <span className={cn("px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider border", kycState(v).cls)}>
+                            {kycState(v).label}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-4">
+                          {canApprove && v.status !== "approved" ? (
+                            <select
+                              value={tierFor(v)}
+                              onChange={(e) => setTierForVisit(v, e.target.value)}
+                              className="bg-white border border-[#CBD3D9] rounded-[6px] px-2.5 py-1 text-[12px] font-medium text-[#10242A] outline-none focus:border-[#0E7C86] transition-all cursor-pointer"
+                            >
+                              <option value="">Select tier…</option>
+                              {PROPERTY_TIERS.map(t => (
+                                <option key={t.key} value={t.key}>{t.label}</option>
+                              ))}
+                            </select>
+                          ) : (
+                            <span className="text-[12px] text-[#4A5961] font-semibold">
+                              {tierMeta(tierFor(v))?.label || "—"}
+                            </span>
                           )}
-                          {canApprove && (
+                        </td>
+                        <td className="py-2.5 px-4">
+                          <span className={cn(
+                            "px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider",
+                            v.status === "approved" ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                              : v.status === "rejected" ? "bg-rose-50 text-rose-600 border border-rose-100"
+                              : "bg-amber-50 text-amber-600 border border-amber-100"
+                          )}>
+                            {v.status || "pending"}
+                          </span>
+                          {v.status === "rejected" && v.rejectReason && (
+                            <p className="mt-1 max-w-[180px] text-[10px] font-normal leading-snug text-rose-500" title={v.rejectReason}>
+                              “{v.rejectReason}”
+                            </p>
+                          )}
+                        </td>
+                        <td className="py-2.5 pl-4 whitespace-nowrap text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button onClick={() => handleViewVisit(v)}
+                              disabled={detailLoadingId === (v.visitId || v._id)}
+                              className="px-2.5 py-1 bg-white hover:bg-[#F4F6F8] text-[#10242A] border border-[#CBD3D9] rounded-[6px] text-[11px] font-semibold transition-all cursor-pointer">
+                              {detailLoadingId === (v.visitId || v._id) ? "..." : "View"}
+                            </button>
                             <button
                               type="button"
-                              onClick={() => deleteVisit(v)}
-                              disabled={actingId === (v.visitId || v._id)}
-                              title="Delete this visit report permanently"
-                              className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-lg text-[10px] font-bold uppercase transition-all flex items-center gap-1 cursor-pointer disabled:opacity-40 shadow-xs"
+                              onClick={() => handleStartEdit(v)}
+                              disabled={!!detailLoadingId}
+                              title="Edit visit report details"
+                              className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-[6px] text-[11px] font-semibold transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50 disabled:cursor-wait"
                             >
-                              <Trash size={11} /> Delete
+                              <Pencil size={11} /> Edit
                             </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                            {v.status !== "approved" && v.status !== "rejected" && (
+                              <>
+                                <button
+                                  onClick={() => resendKyc(v)}
+                                  disabled={actingId === (v.visitId || v._id) || isKycDone(v)}
+                                  title={isKycDone(v) ? "Owner has already completed KYC" : "Resend the digital KYC link to the owner"}
+                                  className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-[6px] text-[11px] font-semibold transition-all border border-blue-100 disabled:bg-slate-50 disabled:text-slate-300 disabled:border-slate-100 disabled:cursor-not-allowed cursor-pointer"
+                                >
+                                  Resend KYC
+                                </button>
+                                {canApprove && (
+                                  <button
+                                    onClick={() => approveVisit(v)}
+                                    disabled={!isKycDone(v) || !isTierSelected(v) || actingId === (v.visitId || v._id)}
+                                    title={!isKycDone(v) ? "Owner must complete digital KYC before approval" : !isTierSelected(v) ? "Select a property tier before approval" : "Approve and publish this property"}
+                                    className="px-2.5 py-1 rounded-[6px] text-[11px] font-semibold transition-all border bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed cursor-pointer"
+                                  >
+                                    {actingId === (v.visitId || v._id) ? "..." : "Approve"}
+                                  </button>
+                                )}
+                                {canApprove && (
+                                  <button
+                                    type="button"
+                                    onClick={() => { setHoldModal(v); setHoldReason(""); }}
+                                    disabled={actingId === (v.visitId || v._id)}
+                                    title="Put this report on hold"
+                                    className="px-2.5 py-1 rounded-[6px] text-[11px] font-semibold transition-all border bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed cursor-pointer"
+                                  >
+                                    Hold
+                                  </button>
+                                )}
+                                {canApprove && (
+                                  <button
+                                    type="button"
+                                    onClick={() => { setRejectModal(v); setRejectReason(""); }}
+                                    disabled={actingId === (v.visitId || v._id)}
+                                    title="Reject this report and send the employee a reason"
+                                    className="px-2.5 py-1 rounded-[6px] text-[11px] font-semibold transition-all border bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100 disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed cursor-pointer"
+                                  >
+                                    Reject
+                                  </button>
+                                )}
+                              </>
+                            )}
+                            {canApprove && (
+                              <button
+                                type="button"
+                                onClick={() => deleteVisit(v)}
+                                disabled={actingId === (v.visitId || v._id)}
+                                title="Delete this visit report permanently"
+                                className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-[6px] text-[11px] font-semibold transition-all flex items-center gap-1 cursor-pointer disabled:opacity-40"
+                              >
+                                <Trash size={11} /> Delete
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
             {totalRows > PAGE_SIZE && (
-              <div className="flex items-center justify-between gap-4 p-4 border-t border-[#E1E6EA] text-[11px] font-bold text-[#4A5961] uppercase tracking-wider">
+              <div className="flex items-center justify-between gap-4 pt-3 mt-2 border-t border-[#E1E6EA] text-[12px] text-[#4A5961]">
                 <span>
-                  Showing {(page - 1) * PAGE_SIZE + 1}-{Math.min(page * PAGE_SIZE, totalRows)} of {totalRows}
+                  Showing <span className="font-semibold text-[#10242A]">{(page - 1) * PAGE_SIZE + 1}-{Math.min(page * PAGE_SIZE, totalRows)}</span> of <span className="font-semibold text-[#10242A]">{totalRows}</span>
                 </span>
                 <div className="flex items-center gap-2">
                   <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1 || loading}
-                    className="px-3 py-1.5 bg-white hover:bg-[#F4F6F8] border border-[#E1E6EA] rounded-[8px] transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
+                    className="px-2.5 py-1 bg-white hover:bg-[#F4F6F8] border border-[#CBD3D9] rounded-[6px] font-medium transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
                     Previous
                   </button>
-                  <span>Page {page} of {Math.ceil(totalRows / PAGE_SIZE)}</span>
+                  <span className="font-medium text-[#10242A]">Page {page} of {Math.ceil(totalRows / PAGE_SIZE)}</span>
                   <button onClick={() => setPage(p => p + 1)} disabled={page >= Math.ceil(totalRows / PAGE_SIZE) || loading}
-                    className="px-3 py-1.5 bg-white hover:bg-[#F4F6F8] border border-[#E1E6EA] rounded-[8px] transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
+                    className="px-2.5 py-1 bg-white hover:bg-[#F4F6F8] border border-[#CBD3D9] rounded-[6px] font-medium transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
                     Next
                   </button>
                 </div>
               </div>
             )}
           </div>
-
-
         </div>
       )}
 
@@ -3639,14 +3681,30 @@ export default function Visit() {
       )}
 
       {/* ═══ STAFF MEMBER PROFILE MODAL ═══ */}
-      {selectedStaffModal && (
+      {selectedStaffModal && (() => {
+        const staffPhoto = fetchedStaffInfo?.photoDataUrl || fetchedStaffInfo?.photoUrl || fetchedStaffInfo?.avatar || selectedStaffModal.photoDataUrl || "";
+        return (
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setSelectedStaffModal(null)}>
           <div className="bg-white rounded-3xl overflow-hidden max-w-md w-full shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 duration-150" onClick={e => e.stopPropagation()}>
             <div className="p-6 bg-gradient-to-br from-blue-900 via-slate-900 to-blue-950 text-white flex items-start justify-between gap-4">
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/30 text-xl font-black shrink-0 border border-blue-400/30">
-                  {(selectedStaffModal.staffName || 'S').charAt(0).toUpperCase()}
-                </div>
+                {staffPhoto ? (
+                  <button
+                    type="button"
+                    onClick={() => setStaffPhotoPreview({ url: staffPhoto, name: selectedStaffModal.staffName })}
+                    title="Click to preview full photo"
+                    className="relative group w-16 h-16 rounded-2xl overflow-hidden bg-blue-600 shadow-lg shadow-blue-500/30 shrink-0 border-2 border-blue-400/50 cursor-pointer"
+                  >
+                    <img src={staffPhoto} alt={selectedStaffModal.staffName} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                    <span className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-[9px] font-bold text-white uppercase tracking-wider">
+                      Preview
+                    </span>
+                  </button>
+                ) : (
+                  <div className="w-16 h-16 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/30 text-xl font-black shrink-0 border border-blue-400/30">
+                    {(selectedStaffModal.staffName || 'S').charAt(0).toUpperCase()}
+                  </div>
+                )}
                 <div>
                   <h3 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
                     {selectedStaffModal.staffName}
@@ -3655,6 +3713,15 @@ export default function Visit() {
                     <UserCheck size={12} className="text-blue-400" />
                     ID: {fetchedStaffInfo?.loginId || selectedStaffModal.staffId || "STAFF-EMP"}
                   </p>
+                  {staffPhoto && (
+                    <button
+                      type="button"
+                      onClick={() => setStaffPhotoPreview({ url: staffPhoto, name: selectedStaffModal.staffName })}
+                      className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-semibold text-blue-200 hover:text-white bg-white/10 hover:bg-white/20 px-2 py-0.5 rounded-md transition-colors cursor-pointer"
+                    >
+                      <Eye size={11} /> Preview Photo
+                    </button>
+                  )}
                 </div>
               </div>
               <button onClick={() => setSelectedStaffModal(null)} className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white transition-all">
@@ -3747,6 +3814,35 @@ export default function Visit() {
                   <Search size={14} /> Filter All Reports by {selectedStaffModal.staffName}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+        );
+      })()}
+
+      {/* ═══ STAFF PHOTO FULL-SCREEN PREVIEW MODAL ═══ */}
+      {staffPhotoPreview && (
+        <div
+          className="fixed inset-0 bg-black/85 backdrop-blur-md z-[70] flex items-center justify-center p-4"
+          onClick={() => setStaffPhotoPreview(null)}
+        >
+          <div className="relative max-w-xl w-full bg-slate-900 rounded-2xl overflow-hidden border border-slate-700 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800 text-white">
+              <span className="text-sm font-bold">{staffPhotoPreview.name} — Staff Photo</span>
+              <button
+                type="button"
+                onClick={() => setStaffPhotoPreview(null)}
+                className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-4 flex items-center justify-center bg-black max-h-[80vh]">
+              <img
+                src={staffPhotoPreview.url}
+                alt={staffPhotoPreview.name}
+                className="max-h-[72vh] w-auto object-contain rounded-lg"
+              />
             </div>
           </div>
         </div>

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Users, Calendar, ChevronRight, TrendingUp, ArrowUpRight, MapPin, IndianRupee, Clock, Percent } from "lucide-react";
-import { PageHeader } from "../../components/superadmin/PageHeader";
+import { Calendar } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, RadialBarChart, RadialBar } from "recharts";
 import { fetchBookingOverviewStats } from "../../utils/api";
 import useSEO from "../../hooks/useSEO";
@@ -64,187 +63,66 @@ export default function BookingOverview() {
   const statusData = distributions?.status || [];
 
   return (
-    <div className="space-y-6">
-      <PageHeader 
-        title="Booking & Leads Overview"
-        subtitle="Track your leads, bookings and conversion performance."
-        actions={
-          <div className="flex items-center gap-2 bg-white border border-slate-100 px-4 py-2 rounded-xl shadow-sm text-xs font-bold text-slate-600">
-            <Calendar size={14} className="text-slate-400" />
-            <span>Live Database Metrics</span>
-          </div>
-        }
-      />
+    <div className="space-y-4 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-[22px] font-bold text-[#10242A] tracking-tight leading-tight">Booking & Leads Overview</h1>
+          <p className="text-[13px] text-[#4A5961] mt-0.5">Track your leads, bookings and conversion performance.</p>
+        </div>
+        <div className="flex items-center gap-2 bg-white border border-[#CBD3D9] px-3.5 py-1.5 rounded-[8px] shadow-xs text-[13px] font-semibold text-[#10242A]">
+          <Calendar size={14} className="text-[#0E7C86]" />
+          <span>Live Database Metrics</span>
+        </div>
+      </div>
 
-      {/* 6 STAT CARDS */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mt-6 mb-8">
+      {/* 6 STAT CARDS (No Icons) */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {[
-          { icon: Users,    label: "Total Leads (Today)",      val: (summary.todayLeads || 0).toLocaleString(),      source: "Leads" },
-          { icon: Users,    label: "Total Leads (This Week)",  val: (summary.weekLeads || 0).toLocaleString(),      source: "Leads" },
-          { icon: Users,    label: "Total Leads (This Month)", val: (summary.monthLeads || 0).toLocaleString(),    source: "Leads" },
-          { icon: Calendar, label: "Bookings (Today)",         val: (summary.todayBookings || 0).toLocaleString(),  source: "Bookings" },
-          { icon: Calendar, label: "Bookings (This Week)",     val: (summary.weekBookings || 0).toLocaleString(),  source: "Bookings" },
-          { icon: Calendar, label: "Bookings (This Month)",    val: (summary.monthBookings || 0).toLocaleString(), source: "Bookings" },
+          { label: "Today Leads",      val: (summary.todayLeads || 0).toLocaleString() },
+          { label: "Weekly Leads",     val: (summary.weekLeads || 0).toLocaleString() },
+          { label: "Monthly Leads",    val: (summary.monthLeads || 0).toLocaleString() },
+          { label: "Today Bookings",   val: (summary.todayBookings || 0).toLocaleString() },
+          { label: "Weekly Bookings",  val: (summary.weekBookings || 0).toLocaleString() },
+          { label: "Monthly Bookings", val: (summary.monthBookings || 0).toLocaleString() },
         ].map((c, i) => (
-          <div key={i} className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:-translate-y-0.5 transition-all flex flex-col justify-between">
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                  <c.icon size={16} />
-                </div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-tight">{c.label}</p>
-              </div>
-              <h4 className="text-xl font-black text-slate-900 mb-1">{c.val}</h4>
+          <div key={i} className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
+            <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">{c.label}</p>
+            <div className="mt-2">
+              <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{c.val}</h3>
             </div>
-            {c.source && (
-              <div className="text-[9px] font-bold text-blue-500/80 uppercase tracking-widest mt-3">Source: {c.source}</div>
-            )}
           </div>
         ))}
       </div>
 
-      {/* MAIN ROW: Chart + Conversion + Funnel */}
-      <div className="grid grid-cols-12 gap-6 mb-8">
-        {/* Leads vs Bookings Trend */}
-        <div className="col-span-12 lg:col-span-5 bg-white rounded-3xl p-8 border border-slate-100 shadow-sm flex flex-col" style={{height: 400}}>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-base font-bold text-slate-900">Leads vs Bookings Trend</h3>
-              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-1">Source: Leads + Bookings</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-6 mb-4">
-            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-blue-600"/><span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Leads</span></div>
-            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-emerald-500"/><span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Bookings</span></div>
-          </div>
-          <div className="flex-1 min-h-0">
-            {trends.length === 0 ? (
-              <div className="w-full h-full flex items-center justify-center text-xs font-bold text-slate-400 bg-slate-50/50 rounded-2xl">
-                No Data Available
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={trends}>
-                  <defs>
-                    <linearGradient id="gLeads" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.15}/>
-                      <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9"/>
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill:'#94A3B8',fontSize:9,fontWeight:600}} dy={8}/>
-                  <YAxis axisLine={false} tickLine={false} tick={{fill:'#94A3B8',fontSize:9,fontWeight:600}} dx={-8}/>
-                  <Tooltip/>
-                  <Area type="monotone" dataKey="leads" stroke="#3B82F6" strokeWidth={2.5} fill="url(#gLeads)" dot={{fill:'#3B82F6',r:3}}/>
-                  <Area type="monotone" dataKey="bookings" stroke="#10B981" strokeWidth={2.5} fill="none" dot={{fill:'#10B981',r:3}}/>
-                </AreaChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </div>
-
-        {/* Conversion Rate */}
-        <div className="col-span-12 lg:col-span-3 bg-white rounded-3xl p-8 border border-slate-100 shadow-sm flex flex-col items-center" style={{height: 400}}>
-          <div className="self-start mb-6">
-            <h3 className="text-base font-bold text-slate-900">Conversion Rate %</h3>
-            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-1">Source: Leads + Bookings</p>
-          </div>
-          <div className="relative flex items-center justify-center" style={{width:180,height:160}}>
-            {totalLeads === 0 ? (
-              <div className="w-full h-full flex items-center justify-center text-xs font-bold text-slate-400 bg-slate-50/50 rounded-2xl">
-                No Data Available
-              </div>
-            ) : (
-              <>
-                <ResponsiveContainer width="100%" height="100%">
-                  <RadialBarChart innerRadius="70%" outerRadius="100%" data={[{name:'r',value:rawConvRate,fill:'#3B82F6'}]} startAngle={180} endAngle={0}>
-                    <RadialBar background dataKey="value" cornerRadius={8}/>
-                  </RadialBarChart>
-                </ResponsiveContainer>
-                <div className="absolute inset-0 flex flex-col items-center justify-center pt-8 pointer-events-none">
-                  <p className="text-xl font-black text-slate-900">{convRateStr}</p>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Conversion Rate</p>
-                </div>
-                <div className="absolute bottom-0 left-2 text-[9px] font-bold text-slate-300">0%</div>
-                <div className="absolute bottom-0 right-2 text-[9px] font-bold text-slate-300">100%</div>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Conversion Funnel */}
-        <div className="col-span-12 lg:col-span-4 bg-white rounded-3xl p-8 border border-slate-100 shadow-sm flex flex-col" style={{height: 400}}>
-          <div className="mb-6">
-            <h3 className="text-base font-bold text-slate-900">Conversion Funnel</h3>
-            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-1">Source: Leads + Bookings</p>
-          </div>
-          {/* Visual Funnel */}
-          <div className="flex-1 flex flex-col justify-center gap-1.5">
-            {funnel.length === 0 ? (
-              <div className="w-full h-full flex items-center justify-center text-xs font-bold text-slate-400 bg-slate-50/50 rounded-2xl">
-                No Data Available
-              </div>
-            ) : (
-              funnel.map((f, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <div className="flex justify-center" style={{width: '100%'}}>
-                    <div
-                      className="flex items-center justify-between px-4 rounded-lg transition-all"
-                      style={{
-                        backgroundColor: f.color,
-                        width: `${Math.max(45, Math.min(100, f.w || 0))}%`,
-                        height: 36,
-                        opacity: 0.85 + i * 0.03,
-                      }}
-                    >
-                      <span className="text-white text-[11px] font-bold whitespace-nowrap mr-2">{f.label}</span>
-                      <span className="text-white text-[11px] font-black whitespace-nowrap">{f.val.toLocaleString()}{f.pct ? ` (${f.pct})` : ''}</span>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-          {funnel.length > 0 && (
-            <div className="flex justify-between items-center mt-4 pt-4 border-t border-slate-50">
-              <span className="text-[11px] font-bold text-slate-400">Overall Conversion Rate</span>
-              <span className="text-base font-black text-blue-600">{convRateStr}</span>
-            </div>
-          )}
-        </div>
-      </div>
-
       {/* TABLES ROW */}
-      <div className="grid grid-cols-12 gap-6 mb-8">
+      <div className="grid grid-cols-12 gap-4">
         {/* Recent Leads Card */}
-        <div className="col-span-12 lg:col-span-7 bg-white rounded-[12px] p-5 border border-[#E1E6EA] shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-sm font-semibold text-[#10242A]">Recent Leads</h3>
-              <p className="text-xs text-[#4A5961]">Source: Leads</p>
-            </div>
+        <div className="col-span-12 lg:col-span-7 bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs overflow-hidden">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[15px] font-bold text-[#10242A]">Recent Leads</h3>
           </div>
           {recentLeads.length === 0 ? (
-            <div className="w-full py-12 flex items-center justify-center text-xs font-semibold text-[#4A5961]">
+            <div className="w-full py-10 flex items-center justify-center text-[13px] text-[#4A5961]">
               No Data Available
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+              <table className="w-full text-left border-collapse min-w-[600px]">
                 <thead>
                   <tr className="border-b border-[#E1E6EA]">
-                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Lead Name</th>
-                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Location</th>
-                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Source</th>
-                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Budget</th>
-                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Status</th>
-                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4 text-right">Created On</th>
+                    <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider pl-2">Lead Name</th>
+                    <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Location</th>
+                    <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Source</th>
+                    <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Budget</th>
+                    <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Status</th>
+                    <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-right pr-2">Created On</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E1E6EA] text-sm">
+                <tbody className="divide-y divide-[#F0F4F6] text-[13px]">
                   {recentLeads.map((l, i) => (
-                    <tr key={i} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="py-3.5 px-4 font-medium text-[#10242A]">
+                    <tr key={i} className="hover:bg-[#F9FAFB] transition-colors">
+                      <td className="py-2.5 pl-2 font-medium text-[#10242A]">
                         <div className="flex items-center gap-2">
                           <div className="w-7 h-7 rounded-full bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center font-bold text-[10px] shrink-0">
                             {l.name ? l.name.split(' ').map(n=>n[0]).join('') : 'UN'}
@@ -252,13 +130,13 @@ export default function BookingOverview() {
                           <span className="font-semibold text-[#10242A]">{l.name}</span>
                         </div>
                       </td>
-                      <td className="py-3.5 px-4 text-[#4A5961]">{l.loc}</td>
-                      <td className="py-3.5 px-4 font-semibold text-[#10242A]">{l.src}</td>
-                      <td className="py-3.5 px-4 font-semibold text-[#10242A]">{l.budget}</td>
-                      <td className="py-3.5 px-4">
-                        <span className="bg-[#E6F4F5] text-[#0E7C86] text-xs font-semibold px-2.5 py-1 rounded-full inline-flex items-center">{l.status}</span>
+                      <td className="py-2.5 text-[#4A5961]">{l.loc}</td>
+                      <td className="py-2.5 font-semibold text-[#10242A]">{l.src}</td>
+                      <td className="py-2.5 font-semibold text-[#10242A]">{l.budget}</td>
+                      <td className="py-2.5">
+                        <span className="bg-[#E6F4F5] text-[#0E7C86] text-[11px] font-semibold px-2.5 py-0.5 rounded-full inline-flex items-center">{l.status}</span>
                       </td>
-                      <td className="py-3.5 px-4 text-right text-[#4A5961] text-xs">{l.time}</td>
+                      <td className="py-2.5 pr-2 text-right text-[#4A5961] text-[12px]">{l.time}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -268,59 +146,160 @@ export default function BookingOverview() {
         </div>
 
         {/* Top Performing Locations */}
-        <div className="col-span-12 lg:col-span-5 bg-white rounded-3xl p-8 border border-slate-100 shadow-sm flex flex-col">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-base font-bold text-slate-900">Top Performing Locations</h3>
-              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-1">Source: Leads + Bookings</p>
-            </div>
+        <div className="col-span-12 lg:col-span-5 bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs overflow-hidden flex flex-col">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[15px] font-bold text-[#10242A]">Top Performing Locations</h3>
           </div>
           {topLocations.length === 0 ? (
-            <div className="w-full flex-1 flex items-center justify-center text-xs font-bold text-slate-400 bg-slate-50/50 rounded-2xl py-12">
+            <div className="w-full flex-1 flex items-center justify-center text-[13px] text-[#4A5961] py-10">
               No Data Available
             </div>
           ) : (
-            <>
-              <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest grid grid-cols-12 gap-2 px-1 mb-3">
-                <span className="col-span-1">#</span>
-                <span className="col-span-4">Location</span>
-                <span className="col-span-2 text-center">Leads</span>
-                <span className="col-span-2 text-center">Bookings</span>
-                <span className="col-span-3 text-right">Conv. Rate</span>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-[#E1E6EA]">
+                    <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider pl-2">#</th>
+                    <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Location</th>
+                    <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-center">Leads</th>
+                    <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-center">Bookings</th>
+                    <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-right pr-2">Conv. Rate</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#F0F4F6] text-[13px]">
+                  {topLocations.map((t, i) => (
+                    <tr key={i} className="hover:bg-[#F9FAFB] transition-colors">
+                      <td className="py-2.5 pl-2 text-[#708088] font-semibold">{i+1}</td>
+                      <td className="py-2.5 font-semibold text-[#10242A] truncate max-w-[140px]">{t.loc}</td>
+                      <td className="py-2.5 text-center text-[#4A5961]">{t.leads}</td>
+                      <td className="py-2.5 text-center text-[#4A5961]">{t.bookings}</td>
+                      <td className="py-2.5 pr-2 text-right font-semibold text-[#0E7C86]">{t.rate}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* MAIN ROW: Chart + Conversion + Funnel */}
+      <div className="grid grid-cols-12 gap-4">
+        {/* Leads vs Bookings Trend */}
+        <div className="col-span-12 lg:col-span-5 bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col h-[360px]">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[15px] font-bold text-[#10242A]">Leads vs Bookings Trend</h3>
+          </div>
+          <div className="flex items-center gap-6 mb-3">
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-[#0E7C86]"/><span className="text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider">Leads</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-emerald-500"/><span className="text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider">Bookings</span></div>
+          </div>
+          <div className="flex-1 min-h-0">
+            {trends.length === 0 ? (
+              <div className="w-full h-full flex items-center justify-center text-xs font-semibold text-[#4A5961] bg-[#F4F6F8] rounded-[8px]">
+                No Data Available
               </div>
-              <div className="space-y-4 flex-1">
-                {topLocations.map((t, i) => (
-                  <div key={i}>
-                    <div className="grid grid-cols-12 gap-2 items-center px-1 mb-1">
-                      <span className="col-span-1 text-[11px] font-bold text-slate-300">{i+1}</span>
-                      <span className="col-span-4 text-[11px] font-bold text-slate-900 truncate">{t.loc}</span>
-                      <span className="col-span-2 text-center text-[11px] font-bold text-slate-600">{t.leads}</span>
-                      <span className="col-span-2 text-center text-[11px] font-bold text-slate-600">{t.bookings}</span>
-                      <span className="col-span-3 text-right text-[11px] font-black text-blue-600">{t.rate}</span>
-                    </div>
-                    <div className="h-1 bg-slate-50 rounded-full overflow-hidden mx-1">
-                      <div className="h-full bg-blue-500 rounded-full" style={{width: t.w}}/>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={trends}>
+                  <defs>
+                    <linearGradient id="gLeads" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#0E7C86" stopOpacity={0.15}/>
+                      <stop offset="95%" stopColor="#0E7C86" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E1E6EA"/>
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill:'#4A5961',fontSize:10,fontWeight:600}} dy={8}/>
+                  <YAxis axisLine={false} tickLine={false} tick={{fill:'#4A5961',fontSize:10,fontWeight:600}} dx={-8}/>
+                  <Tooltip/>
+                  <Area type="monotone" dataKey="leads" stroke="#0E7C86" strokeWidth={2.5} fill="url(#gLeads)" dot={{fill:'#0E7C86',r:3}}/>
+                  <Area type="monotone" dataKey="bookings" stroke="#10B981" strokeWidth={2.5} fill="none" dot={{fill:'#10B981',r:3}}/>
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+
+        {/* Conversion Rate */}
+        <div className="col-span-12 lg:col-span-3 bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col items-center h-[360px]">
+          <div className="self-start mb-4">
+            <h3 className="text-[15px] font-bold text-[#10242A]">Conversion Rate %</h3>
+          </div>
+          <div className="relative flex items-center justify-center my-auto" style={{width:180,height:160}}>
+            {totalLeads === 0 ? (
+              <div className="w-full h-full flex items-center justify-center text-xs font-semibold text-[#4A5961] bg-[#F4F6F8] rounded-[8px]">
+                No Data Available
+              </div>
+            ) : (
+              <>
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadialBarChart innerRadius="70%" outerRadius="100%" data={[{name:'r',value:rawConvRate,fill:'#0E7C86'}]} startAngle={180} endAngle={0}>
+                    <RadialBar background dataKey="value" cornerRadius={8}/>
+                  </RadialBarChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pt-8 pointer-events-none">
+                  <p className="text-xl font-bold text-[#10242A]">{convRateStr}</p>
+                  <p className="text-[10px] font-semibold text-[#4A5961] uppercase tracking-wider">Conversion Rate</p>
+                </div>
+                <div className="absolute bottom-0 left-2 text-[9px] font-bold text-[#708088]">0%</div>
+                <div className="absolute bottom-0 right-2 text-[9px] font-bold text-[#708088]">100%</div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Conversion Funnel */}
+        <div className="col-span-12 lg:col-span-4 bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col h-[360px]">
+          <div className="mb-3">
+            <h3 className="text-[15px] font-bold text-[#10242A]">Conversion Funnel</h3>
+          </div>
+          {/* Visual Funnel */}
+          <div className="flex-1 flex flex-col justify-center gap-1.5">
+            {funnel.length === 0 ? (
+              <div className="w-full h-full flex items-center justify-center text-xs font-semibold text-[#4A5961] bg-[#F4F6F8] rounded-[8px]">
+                No Data Available
+              </div>
+            ) : (
+              funnel.map((f, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <div className="flex justify-center" style={{width: '100%'}}>
+                    <div
+                      className="flex items-center justify-between px-4 rounded-[8px] transition-all"
+                      style={{
+                        backgroundColor: f.color,
+                        width: `${Math.max(45, Math.min(100, f.w || 0))}%`,
+                        height: 34,
+                        opacity: 0.85 + i * 0.03,
+                      }}
+                    >
+                      <span className="text-white text-[11px] font-bold whitespace-nowrap mr-2">{f.label}</span>
+                      <span className="text-white text-[11px] font-bold whitespace-nowrap">{f.val.toLocaleString()}{f.pct ? ` (${f.pct})` : ''}</span>
                     </div>
                   </div>
-                ))}
-              </div>
-            </>
+                </div>
+              ))
+            )}
+          </div>
+          {funnel.length > 0 && (
+            <div className="flex justify-between items-center mt-3 pt-3 border-t border-[#E1E6EA]">
+              <span className="text-[12px] font-semibold text-[#4A5961]">Overall Conversion Rate</span>
+              <span className="text-[15px] font-bold text-[#0E7C86]">{convRateStr}</span>
+            </div>
           )}
         </div>
       </div>
 
       {/* FOOTER ROW: 4 Columns */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-
         {/* Lead Status */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex flex-col justify-between">
+        <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="text-[11px] font-bold text-slate-900">Lead Status</h4>
-              <span className="text-[9px] text-slate-400 font-bold">All Time</span>
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Lead Status</h4>
+              <span className="text-[11px] text-[#708088] font-medium">All Time</span>
             </div>
             {statusData.length === 0 ? (
-              <div className="h-24 flex items-center justify-center text-[10px] font-bold text-slate-400 bg-slate-50/50 rounded-xl">
+              <div className="h-20 flex items-center justify-center text-[11px] font-semibold text-[#4A5961] bg-[#F4F6F8] rounded-[8px]">
                 No Data Available
               </div>
             ) : (
@@ -336,52 +315,43 @@ export default function BookingOverview() {
                 </div>
                 <div className="flex-1 space-y-1.5">
                   {statusData.map(s=>(
-                    <div key={s.name} className="flex justify-between text-[9px] font-bold">
-                      <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full" style={{backgroundColor:s.color}}/><span className="text-slate-400 truncate max-w-[45px]">{s.name}</span></div>
-                      <span className="text-slate-900">{s.pct}</span>
+                    <div key={s.name} className="flex justify-between text-[11px] font-semibold">
+                      <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full" style={{backgroundColor:s.color}}/><span className="text-[#4A5961] truncate max-w-[60px]">{s.name}</span></div>
+                      <span className="text-[#10242A]">{s.pct}</span>
                     </div>
                   ))}
                 </div>
               </div>
             )}
           </div>
-          <div className="text-[9px] font-bold text-blue-500/80 uppercase tracking-widest mt-3">Source: Leads</div>
         </div>
 
         {/* Avg Response Time */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex flex-col justify-between">
-          <div>
-            <h4 className="text-[11px] font-bold text-slate-900 mb-3">Avg. Response Time</h4>
-            <p className="text-xl font-black text-slate-900 mb-1">No Data Available</p>
+        <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
+          <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Avg. Response Time</p>
+          <div className="mt-2">
+            <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">No Data Available</h3>
           </div>
-          <div className="text-[9px] font-bold text-blue-500/80 uppercase tracking-widest mt-3">Source: Support</div>
         </div>
 
         {/* Bookings Value */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex flex-col justify-between">
-          <div>
-            <h4 className="text-[11px] font-bold text-slate-900 mb-3">Bookings Value</h4>
-            <p className="text-xl font-black text-slate-900 mb-1">
-              {bookingsValue > 0 ? `₹${bookingsValue.toLocaleString('en-IN')}` : "No Revenue Data Available"}
-            </p>
+        <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
+          <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Bookings Value</p>
+          <div className="mt-2">
+            <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">
+              {bookingsValue > 0 ? `₹${bookingsValue.toLocaleString('en-IN')}` : "0"}
+            </h3>
           </div>
-          <div className="text-[9px] font-bold text-blue-500/80 uppercase tracking-widest mt-3">Source: Payments</div>
         </div>
 
         {/* Top Converting Agents */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="text-[11px] font-bold text-slate-900">Top Converting Agents</h4>
-            </div>
-            <div className="text-xs font-bold text-slate-400 bg-slate-50/50 rounded-xl p-4 text-center">
-              No Data Available
-            </div>
+        <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
+          <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Top Converting Agents</p>
+          <div className="mt-2">
+            <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">No Data Available</h3>
           </div>
-          <div className="text-[9px] font-bold text-blue-500/80 uppercase tracking-widest mt-3">Source: Support</div>
         </div>
       </div>
     </div>
   );
 }
-

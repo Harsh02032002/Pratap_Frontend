@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { 
   MapPin, Plus, Edit, Trash2, TrendingUp, X, Loader2,
-  Globe, Search, Building2, RefreshCw, Activity, Navigation
+  Search, Navigation
 } from "lucide-react";
 import { fetchJson, getAuthHeader } from "../../utils/api";
-import { PageHeader } from "../../components/superadmin/PageHeader";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
@@ -22,6 +21,7 @@ export default function Locations() {
   const [formData, setFormData] = useState({ name: "", state: "", country: "India", propertyCount: 0, description: "" });
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
+  const [stateFilter, setStateFilter] = useState("all");
 
   useEffect(() => { fetchLocations(); }, []);
 
@@ -107,7 +107,13 @@ export default function Locations() {
 
   const closeModal = () => { setShowModal(false); setEditingId(null); };
 
-  const filteredLocations = locations.filter(l => (l.name || "").toLowerCase().includes(search.toLowerCase()) || (l.state || "").toLowerCase().includes(search.toLowerCase()));
+  const statesList = Array.from(new Set(locations.map(l => l.state).filter(Boolean))).sort();
+
+  const filteredLocations = locations.filter(l => {
+    const matchSearch = (l.name || "").toLowerCase().includes(search.toLowerCase()) || (l.state || "").toLowerCase().includes(search.toLowerCase());
+    const matchState = stateFilter === "all" || l.state === stateFilter;
+    return matchSearch && matchState;
+  });
 
   if (loading) {
     return (
@@ -123,118 +129,119 @@ export default function Locations() {
   const avgProps = locations.length > 0 ? Math.round(totalProps / locations.length) : 0;
 
   return (
-    <div className="space-y-6 pb-8 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
+    <div className="space-y-4 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
       {/* Header Area */}
-      <PageHeader 
-        title="Location Wise Data"
-        subtitle="Active cities, states, and property distribution matrix across operational zones."
-        actions={
-          <div className="flex items-center gap-3">
-            <div className="relative group w-64">
-               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#4A5961]" />
-               <input 
-                 value={search} onChange={e => setSearch(e.target.value)}
-                 placeholder="Search cities, states..." 
-                 className="w-full bg-white border border-[#E1E6EA] rounded-[12px] py-2 pl-10 pr-4 text-xs font-medium text-[#10242A] shadow-xs outline-none focus:border-[#0E7C86] transition-all placeholder:text-[#4A5961]" 
-               />
-            </div>
-            <button 
-              onClick={() => openModal()} 
-              className="bg-[#0E7C86] hover:bg-[#0B656D] text-white px-4 py-2 rounded-[12px] text-xs font-semibold shadow-xs transition-all flex items-center gap-2 cursor-pointer"
-            >
-               <Plus className="w-4 h-4" />
-               <span>Add City / Location</span>
-            </button>
-          </div>
-        }
-      />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-[22px] font-bold text-[#10242A] tracking-tight leading-tight">Location Wise Data</h1>
+          <p className="text-[13px] text-[#4A5961] mt-0.5">Active cities, states, and property distribution matrix across operational zones.</p>
+        </div>
+        <button 
+          onClick={() => openModal()} 
+          className="bg-[#0E7C86] hover:bg-[#0B656D] text-white px-4 py-1.5 rounded-[8px] text-[13px] font-semibold shadow-xs transition-all flex items-center gap-2 cursor-pointer"
+        >
+           <Plus className="w-4 h-4" />
+           <span>Add City / Location</span>
+        </button>
+      </div>
 
-      {/* Metrics Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-[16px] border border-[#E1E6EA] shadow-xs flex items-center gap-4">
-          <div className="w-11 h-11 rounded-[12px] bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center shrink-0">
-            <MapPin size={22} />
-          </div>
-          <div>
-            <p className="text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider">Active Cities</p>
-            <h4 className="text-2xl font-bold text-[#10242A] mt-0.5">{locations.length}</h4>
+      {/* Metrics Row (No Icons) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
+          <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Active Cities</p>
+          <div className="mt-2">
+            <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{locations.length}</h3>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-[16px] border border-[#E1E6EA] shadow-xs flex items-center gap-4">
-          <div className="w-11 h-11 rounded-[12px] bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-            <Globe size={22} />
-          </div>
-          <div>
-            <p className="text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider">States Covered</p>
-            <h4 className="text-2xl font-bold text-[#10242A] mt-0.5">{uniqueStates}</h4>
+        <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
+          <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">States Covered</p>
+          <div className="mt-2">
+            <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{uniqueStates}</h3>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-[16px] border border-[#E1E6EA] shadow-xs flex items-center gap-4">
-          <div className="w-11 h-11 rounded-[12px] bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-            <Building2 size={22} />
-          </div>
-          <div>
-            <p className="text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider">Avg Props / City</p>
-            <h4 className="text-2xl font-bold text-[#10242A] mt-0.5">{avgProps}</h4>
+        <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
+          <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Avg Props / City</p>
+          <div className="mt-2">
+            <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{avgProps}</h3>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-[16px] border border-[#E1E6EA] shadow-xs flex items-center gap-4">
-          <div className="w-11 h-11 rounded-[12px] bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-            <Activity size={22} />
-          </div>
-          <div>
-            <p className="text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider">Total Live Properties</p>
-            <h4 className="text-2xl font-bold text-[#10242A] mt-0.5">{totalProps}</h4>
+        <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
+          <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Total Live Properties</p>
+          <div className="mt-2">
+            <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{totalProps}</h3>
           </div>
         </div>
       </div>
 
-      {/* Territory Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-        {filteredLocations.map((l, idx) => (
-          <div key={l._id} className="bg-white rounded-[16px] p-5 border border-[#E1E6EA] shadow-xs flex flex-col group relative hover:border-[#0E7C86] transition-all">
-            <div className="flex items-start justify-between mb-4">
-               <div className="w-10 h-10 rounded-[10px] bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center shrink-0">
-                  <MapPin className="w-5 h-5" />
-               </div>
-               <div className="flex gap-1">
-                  <button onClick={() => openModal(l)} className="p-1.5 rounded-[8px] bg-[#F4F6F8] text-[#4A5961] hover:text-[#0E7C86] hover:bg-[#E6F4F5] transition-all border border-[#E1E6EA] cursor-pointer"><Edit className="w-3.5 h-3.5" /></button>
-                  <button onClick={() => handleDelete(l._id)} className="p-1.5 rounded-[8px] bg-[#F4F6F8] text-[#4A5961] hover:text-rose-600 hover:bg-rose-50 transition-all border border-[#E1E6EA] cursor-pointer"><Trash2 className="w-3.5 h-3.5" /></button>
-               </div>
-            </div>
-            
-            <div className="space-y-0.5">
-               <h3 className="text-sm font-bold text-[#10242A] tracking-tight leading-tight truncate">{l.name}</h3>
-               <p className="text-[11px] font-semibold text-[#4A5961] mt-0.5 truncate">{l.state}, {l.country}</p>
-            </div>
-
-            <div className="mt-5 pt-3 border-t border-[#E1E6EA] flex items-end justify-between">
-               <div>
-                  <p className="text-lg font-bold text-[#10242A] leading-none">{l.propertyCount || 0}</p>
-                  <p className="text-[10px] font-semibold text-[#4A5961] uppercase mt-1">Properties</p>
-               </div>
-               <div className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-[6px] border border-emerald-100 text-[10px] font-bold">
-                  <TrendingUp className="w-3 h-3" />
-                  Active
-               </div>
-            </div>
-          </div>
-        ))}
-        <button 
-          onClick={() => openModal()} 
-          className="bg-[#F4F6F8] border-2 border-dashed border-[#E1E6EA] rounded-[16px] p-5 flex flex-col items-center justify-center gap-2 hover:border-[#0E7C86] hover:bg-white transition-all group min-h-[150px] cursor-pointer"
+      {/* Outside Search & Filter Row */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative w-full sm:w-[320px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#708088]" />
+          <input 
+            value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Search cities, states..." 
+            className="w-full bg-white border border-[#CBD3D9] rounded-[8px] pl-9 pr-3.5 py-1.5 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs" 
+          />
+        </div>
+        <select
+          value={stateFilter}
+          onChange={e => setStateFilter(e.target.value)}
+          className="bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-1.5 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs"
         >
-           <div className="w-9 h-9 rounded-[10px] bg-white border border-[#E1E6EA] flex items-center justify-center text-[#4A5961] group-hover:bg-[#0E7C86] group-hover:text-white group-hover:border-[#0E7C86] transition-all">
-              <Plus className="w-5 h-5" />
-           </div>
-           <div className="text-center">
-              <p className="text-xs font-bold text-[#10242A]">Add New City</p>
-              <p className="text-[11px] font-semibold text-[#4A5961] mt-0.5">Expand territory</p>
-           </div>
-        </button>
+          <option value="all">All States</option>
+          {statesList.map(st => <option key={st} value={st}>{st}</option>)}
+        </select>
+      </div>
+
+      {/* Locations Table Card */}
+      <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse min-w-[700px]">
+            <thead>
+              <tr className="border-b border-[#E1E6EA]">
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider pl-2">City</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">State</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Country</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-center">Properties</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-center">Status</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-right pr-2">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#F0F4F6] text-[13px]">
+              {filteredLocations.length === 0 ? (
+                <tr>
+                  <td colSpan="6" className="py-8 text-center text-[13px] text-[#4A5961]">No locations found.</td>
+                </tr>
+              ) : filteredLocations.map((l) => (
+                <tr key={l._id} className="hover:bg-[#F9FAFB] transition-colors">
+                  <td className="py-2.5 pl-2 font-semibold text-[#10242A]">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-[#0E7C86] shrink-0" />
+                      <span>{l.name}</span>
+                    </div>
+                  </td>
+                  <td className="py-2.5 text-[#4A5961]">{l.state}</td>
+                  <td className="py-2.5 text-[#4A5961]">{l.country}</td>
+                  <td className="py-2.5 text-center font-semibold text-[#10242A]">{l.propertyCount || 0}</td>
+                  <td className="py-2.5 text-center">
+                    <span className="inline-flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-100 text-[11px] font-semibold">
+                      <TrendingUp className="w-3 h-3" /> Active
+                    </span>
+                  </td>
+                  <td className="py-2.5 pr-2 text-right">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button onClick={() => openModal(l)} className="p-1.5 rounded-[8px] bg-[#F4F6F8] text-[#4A5961] hover:text-[#0E7C86] hover:bg-[#E6F4F5] transition-all border border-[#E1E6EA] cursor-pointer"><Edit className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => handleDelete(l._id)} className="p-1.5 rounded-[8px] bg-[#F4F6F8] text-[#4A5961] hover:text-rose-600 hover:bg-rose-50 transition-all border border-[#E1E6EA] cursor-pointer"><Trash2 className="w-3.5 h-3.5" /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Add / Edit Location Modal */}

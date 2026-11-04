@@ -76,7 +76,7 @@ export default function AddOwner() {
                 required
                 value={fullName}
                 onChange={e => setFullName(e.target.value)}
-                placeholder="[Full name]"
+                placeholder="Full name"
                 className="w-full bg-white border border-[#CBD3D9] rounded-[8px] px-3.5 py-1.5 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs"
               />
             </div>
@@ -86,7 +86,7 @@ export default function AddOwner() {
                 required
                 value={phone}
                 onChange={e => setPhone(e.target.value)}
-                placeholder="[Phone]"
+                placeholder="Phone"
                 className="w-full bg-white border border-[#CBD3D9] rounded-[8px] px-3.5 py-1.5 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs"
               />
             </div>
@@ -97,7 +97,7 @@ export default function AddOwner() {
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                placeholder="[Email]"
+                placeholder="Email"
                 className="w-full bg-white border border-[#CBD3D9] rounded-[8px] px-3.5 py-1.5 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs"
               />
             </div>
@@ -113,7 +113,7 @@ export default function AddOwner() {
               <input
                 value={addressLine}
                 onChange={e => setAddressLine(e.target.value)}
-                placeholder="[Address line]"
+                placeholder="Address line"
                 className="w-full bg-white border border-[#CBD3D9] rounded-[8px] px-3.5 py-1.5 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs"
               />
             </div>
@@ -122,7 +122,7 @@ export default function AddOwner() {
               <input
                 value={city}
                 onChange={e => setCity(e.target.value)}
-                placeholder="[City]"
+                placeholder="City"
                 className="w-full bg-white border border-[#CBD3D9] rounded-[8px] px-3.5 py-1.5 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs"
               />
             </div>
@@ -131,7 +131,7 @@ export default function AddOwner() {
               <input
                 value={pincode}
                 onChange={e => setPincode(e.target.value)}
-                placeholder="[Pincode]"
+                placeholder="Pincode"
                 className="w-full bg-white border border-[#CBD3D9] rounded-[8px] px-3.5 py-1.5 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs"
               />
             </div>
@@ -147,7 +147,7 @@ export default function AddOwner() {
               <input
                 value={propertyName}
                 onChange={e => setPropertyName(e.target.value)}
-                placeholder="[Property name]"
+                placeholder="Property name"
                 className="w-full bg-white border border-[#CBD3D9] rounded-[8px] px-3.5 py-1.5 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs"
               />
             </div>
@@ -156,7 +156,7 @@ export default function AddOwner() {
               <input
                 value={propertyType}
                 onChange={e => setPropertyType(e.target.value)}
-                placeholder="[Property type]"
+                placeholder="Property type"
                 className="w-full bg-white border border-[#CBD3D9] rounded-[8px] px-3.5 py-1.5 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs"
               />
             </div>
@@ -165,7 +165,7 @@ export default function AddOwner() {
               <input
                 value={subscriptionPlan}
                 onChange={e => setSubscriptionPlan(e.target.value)}
-                placeholder="[Subscription plan]"
+                placeholder="Subscription plan"
                 className="w-full bg-white border border-[#CBD3D9] rounded-[8px] px-3.5 py-1.5 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs"
               />
             </div>

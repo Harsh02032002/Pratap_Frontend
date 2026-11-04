@@ -30,11 +30,15 @@ export function useWebsiteLogin() {
       const response = await fetch(`${apiUrl}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier: trimmedEmail, password: trimmedPassword })
+        body: JSON.stringify({ identifier: trimmedEmail, password: trimmedPassword, loginContext: "website" })
       });
       const data = await response.json().catch(() => ({}));
       if (response.ok && data.token && data.user) {
-        setWebsiteSession(data.user, data.token);
+        const saved = setWebsiteSession(data.user, data.token);
+        if (!saved) {
+          setError("Staff, employee, or owner accounts cannot sign in on the public website. Please use your panel login.");
+          return;
+        }
         window.location.href = getListingReturnPath(window.location.search);
         return;
       }

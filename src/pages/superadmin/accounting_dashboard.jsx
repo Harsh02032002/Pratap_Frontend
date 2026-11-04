@@ -86,36 +86,38 @@ export default function SuperadminAccountingDashboard() {
   }
 
   return (
-    <div className="space-y-6 pb-8 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
+    <div className="space-y-4 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
       {/* Header */}
-      <PageHeader 
-        title="Accounting Overview"
-        subtitle={`Track collections, payouts, and earnings across all ${stats.totalTransactions || 0} transactions.`}
-        actions={
-          <button onClick={loadDashboard} className="flex items-center gap-2 bg-white px-3.5 py-2 rounded-[12px] border border-[#E1E6EA] shadow-xs text-xs font-semibold text-[#4A5961] hover:bg-[#F4F6F8] transition-all cursor-pointer">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-[22px] font-bold text-[#10242A] tracking-tight leading-tight">Accounting Overview</h1>
+          <p className="text-[13px] text-[#4A5961] mt-0.5">{`Track collections, payouts, and earnings across all ${stats.totalTransactions || 0} transactions.`}</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button onClick={loadDashboard} className="flex items-center gap-2 bg-white border border-[#CBD3D9] hover:bg-gray-50 text-[#10242A] text-[13px] font-semibold px-4 py-1.5 rounded-[8px] transition-all shadow-xs cursor-pointer">
             <RefreshCw className="w-3.5 h-3.5 text-[#0E7C86]" />
             <span>Refresh Data</span>
           </button>
-        }
-      />
+        </div>
+      </div>
 
       {/* Metrics Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <StatCardHorizontal label="Collections" value={`₹${(stats.totalRevenue || 0).toLocaleString('en-IN')}`} trend="Total" up icon={IndianRupee} color="blue" />
-        <StatCardHorizontal label="Payouts" value={`₹${(stats.paidPayouts || 0).toLocaleString('en-IN')}`} trend="Settled" up icon={Wallet} color="rose" />
-        <StatCardHorizontal label="Revenue" value={`₹${(stats.commissionEarned || 0).toLocaleString('en-IN')}`} trend="Commission" up icon={BarChart3} color="emerald" />
-        <StatCardHorizontal label="Liquidity" value={`₹${(stats.walletBalance || 0).toLocaleString('en-IN')}`} trend="Net Wallet" up={true} icon={Database} color="indigo" />
-        <StatCardHorizontal label="Liability" value={`₹${(stats.pendingPayouts || 0).toLocaleString('en-IN')}`} trend="Pending" up={false} icon={RotateCcw} color="amber" />
+        <StatCardHorizontal label="Collections" value={`₹${(stats.totalRevenue || 0).toLocaleString('en-IN')}`} trend="Total" up />
+        <StatCardHorizontal label="Payouts" value={`₹${(stats.paidPayouts || 0).toLocaleString('en-IN')}`} trend="Settled" up />
+        <StatCardHorizontal label="Revenue" value={`₹${(stats.commissionEarned || 0).toLocaleString('en-IN')}`} trend="Commission" up />
+        <StatCardHorizontal label="Liquidity" value={`₹${(stats.walletBalance || 0).toLocaleString('en-IN')}`} trend="Net Wallet" up={true} />
+        <StatCardHorizontal label="Liability" value={`₹${(stats.pendingPayouts || 0).toLocaleString('en-IN')}`} trend="Pending" up={false} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Trend Area */}
-        <div className="lg:col-span-8 bg-white rounded-[16px] p-6 border border-[#E1E6EA] shadow-xs">
-           <div className="flex items-center justify-between mb-6">
-              <h3 className="text-sm font-bold text-[#10242A] uppercase tracking-wider">Revenue & Payouts Trend</h3>
+        <div className="lg:col-span-8 bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs">
+           <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Revenue & Payouts Trend</h3>
               <div className="flex items-center gap-3">
-                 <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-[#0E7C86]" /><span className="text-[10px] font-semibold text-[#4A5961] uppercase">Collections</span></div>
-                 <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-[#E11D48]" /><span className="text-[10px] font-semibold text-[#4A5961] uppercase">Payouts</span></div>
+                 <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-[#0E7C86]" /><span className="text-[11px] font-semibold text-[#4A5961] uppercase">Collections</span></div>
+                 <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-[#E11D48]" /><span className="text-[11px] font-semibold text-[#4A5961] uppercase">Payouts</span></div>
               </div>
            </div>
            <div className="h-64">
@@ -123,43 +125,36 @@ export default function SuperadminAccountingDashboard() {
                  <AreaChart data={trend}>
                     <defs>
                        <linearGradient id="colorColl" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#2563eb" stopOpacity={0.1}/>
-                          <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
+                          <stop offset="5%" stopColor="#0E7C86" stopOpacity={0.12}/>
+                          <stop offset="95%" stopColor="#0E7C86" stopOpacity={0}/>
                        </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 9, fontWeight: 700}} />
-                    <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 9, fontWeight: 700}} tickFormatter={(v) => `₹${v.toLocaleString('en-IN')}`} />
-                    <Tooltip contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '10px', fontWeight: 700}} />
-                    <Area type="monotone" dataKey="collection" stroke="#2563eb" fillOpacity={1} fill="url(#colorColl)" strokeWidth={3} />
-                    <Area type="monotone" dataKey="payout" stroke="#ef4444" fill="none" strokeWidth={3} />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#4A5961', fontSize: 11, fontWeight: 600}} />
+                    <YAxis axisLine={false} tickLine={false} tick={{fill: '#4A5961', fontSize: 11, fontWeight: 600}} tickFormatter={(v) => `₹${v.toLocaleString('en-IN')}`} />
+                    <Tooltip contentStyle={{borderRadius: '12px', border: '1px solid #E1E6EA', boxShadow: '0 4px 12px rgb(0 0 0 / 0.08)', fontSize: '12px', fontWeight: 600}} />
+                    <Area type="monotone" dataKey="collection" stroke="#0E7C86" fillOpacity={1} fill="url(#colorColl)" strokeWidth={2.5} />
+                    <Area type="monotone" dataKey="payout" stroke="#E11D48" fill="none" strokeWidth={2.5} />
                  </AreaChart>
               </ResponsiveContainer>
            </div>
         </div>
 
         {/* Recent Ledger */}
-        <div className="lg:col-span-4 bg-white rounded-2xl p-6 border border-slate-100 shadow-lg shadow-slate-200/50 flex flex-col">
-           <div className="flex items-center justify-between mb-8">
-              <h3 className="text-[10px] font-bold text-slate-800 uppercase tracking-widest">Recent Transactions</h3>
-              <button onClick={() => window.location.href = '/superadmin/accounting/transactions'} className="text-[9px] font-bold text-blue-600 hover:underline uppercase tracking-widest">View All</button>
+        <div className="lg:col-span-4 bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col">
+           <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Recent Transactions</h3>
+              <button onClick={() => window.location.href = '/superadmin/accounting/transactions'} className="text-[12px] font-semibold text-[#0E7C86] hover:underline">View All</button>
            </div>
-           <div className="flex-1 space-y-4">
+           <div className="flex-1 divide-y divide-[#F0F4F6]">
               {txs.map((tx, i) => (
-                <div key={i} className="flex items-center gap-3 group cursor-pointer hover:bg-slate-50 transition-all p-2 rounded-xl border border-transparent hover:border-slate-100">
-                   <div className={cn(
-                     "w-8 h-8 rounded-lg flex items-center justify-center shadow-sm shrink-0 transition-transform group-hover:scale-105",
-                     tx.status === "Success" ? "bg-emerald-50 text-emerald-600 border-emerald-100" : tx.status === "Pending" ? "bg-amber-50 text-amber-600 border-amber-100" : "bg-rose-50 text-rose-600 border-rose-100"
-                   )}>
-                      <Receipt className="w-4 h-4" />
-                   </div>
+                <div key={i} className="flex items-center justify-between py-2.5 hover:bg-[#F9FAFB] transition-colors px-2">
                    <div className="flex-1 min-w-0">
-                      <p className="text-[10px] font-bold text-slate-800 truncate leading-tight">{tx.tenant}</p>
-                      <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{tx.id} • {tx.property}</p>
+                      <p className="text-[13px] font-medium text-[#10242A] truncate leading-tight">{tx.tenant}</p>
+                      <p className="text-[11px] text-[#708088] mt-0.5">{tx.id} • {tx.property}</p>
                    </div>
-                   <div className="text-right shrink-0">
-                      <p className="text-[10px] font-bold text-slate-800 leading-none">{tx.amount}</p>
-                      <p className="text-[8px] font-bold text-slate-300 uppercase mt-1">{tx.date}</p>
+                   <div className="text-right shrink-0 ml-3">
+                      <p className="text-[13px] font-semibold text-[#10242A] leading-none">{tx.amount}</p>
                    </div>
                 </div>
               ))}
@@ -169,26 +164,25 @@ export default function SuperadminAccountingDashboard() {
 
       {/* Mini Insights Bar */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-         <MiniStatCard label="Payouts" value={stats.payoutsCount !== undefined ? stats.payoutsCount.toLocaleString('en-IN') : "0"} icon={Briefcase} color="emerald" />
-         <MiniStatCard label="Fees" value={stats.commissionEarned !== undefined ? `₹${(stats.commissionEarned/1000).toFixed(1)}K` : "₹0.0K"} icon={Database} color="indigo" />
-         <MiniStatCard label="Refunds" value={stats.refundsCount !== undefined ? stats.refundsCount.toLocaleString('en-IN') : "0"} icon={RotateCcw} color="rose" />
-         <MiniStatCard label="GST" value={stats.gstCollected !== undefined ? `₹${(stats.gstCollected/1000).toFixed(1)}K` : "₹0.0K"} icon={FileText} color="amber" />
+         <MiniStatCard label="Payouts" value={stats.payoutsCount !== undefined ? stats.payoutsCount.toLocaleString('en-IN') : "0"} />
+         <MiniStatCard label="Fees" value={stats.commissionEarned !== undefined ? `₹${(stats.commissionEarned/1000).toFixed(1)}K` : "₹0.0K"} />
+         <MiniStatCard label="Refunds" value={stats.refundsCount !== undefined ? stats.refundsCount.toLocaleString('en-IN') : "0"} />
+         <MiniStatCard label="GST" value={stats.gstCollected !== undefined ? `₹${(stats.gstCollected/1000).toFixed(1)}K` : "₹0.0K"} />
       </div>
 
       {/* Bottom Distribution Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <DonutCard title="Rent Due Status" data={dueRentData} total={`₹${(stats.pendingPayouts || 0).toLocaleString('en-IN')}`} />
-        <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-lg shadow-slate-200/50">
-           <div className="flex items-center justify-between mb-8">
-              <h3 className="text-[10px] font-bold text-slate-800 uppercase tracking-widest">Revenue Sources</h3>
-              <div className="p-1 rounded-lg bg-slate-50 border border-slate-100"><BarChart3 className="w-3 h-3 text-slate-400" /></div>
+        <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs">
+           <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Revenue Sources</h3>
            </div>
            <div className="h-44">
               <ResponsiveContainer width="100%" height="100%">
                  <BarChart data={revenueDistData} layout="vertical">
                     <XAxis type="number" hide />
-                    <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fontSize: 8, fontWeight: 700, fill: '#94a3b8'}} width={80} />
-                    <Tooltip cursor={{fill: 'transparent'}} contentStyle={{borderRadius: '8px', border: 'none', fontSize: '10px', fontWeight: 700}} />
+                    <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fontSize: 11, fontWeight: 600, fill: '#4A5961'}} width={100} />
+                    <Tooltip cursor={{fill: 'transparent'}} contentStyle={{borderRadius: '8px', border: '1px solid #E1E6EA', fontSize: '12px', fontWeight: 600}} />
                     <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={10}>
                        {revenueDistData.map((e, i) => <Cell key={i} fill={e.color} />)}
                     </Bar>
@@ -196,77 +190,47 @@ export default function SuperadminAccountingDashboard() {
               </ResponsiveContainer>
            </div>
         </div>
-        <div className="bg-slate-900 rounded-2xl p-6 text-white flex flex-col justify-between shadow-lg shadow-slate-900/20">
+        <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
            <div>
               <div className="flex items-center justify-between mb-2">
-                 <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Export Data</h3>
-                 <Download className="w-4 h-4 text-slate-500" />
+                 <h3 className="text-[12px] font-semibold uppercase tracking-wider text-[#4A5961]">Export Data</h3>
               </div>
-              <h4 className="text-xl font-bold tracking-tight mb-2">Financial Reports</h4>
-              <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest leading-relaxed">Download financial ledger reports and summaries.</p>
+              <h4 className="text-[18px] font-bold text-[#10242A] tracking-tight mb-1">Financial Reports</h4>
+              <p className="text-[12px] text-[#4A5961] leading-relaxed">Download financial ledger reports and summaries.</p>
            </div>
-           <button onClick={() => window.location.href = '/superadmin/accounting/reports'} className="w-full py-3 bg-blue-600 text-white rounded-xl text-[9px] font-bold uppercase tracking-widest shadow-lg shadow-blue-600/20 hover:bg-blue-700 transition-all">Download Report</button>
+           <button onClick={() => window.location.href = '/superadmin/accounting/reports'} className="w-full py-2 bg-[#0E7C86] text-white rounded-[8px] text-[13px] font-semibold shadow-xs hover:bg-[#095256] transition-all cursor-pointer">Download Report</button>
         </div>
       </div>
     </div>
   );
 }
 
-function StatCardHorizontal({ label, value, trend, up, icon: Icon, color }) {
-  const bgColors = { 
-    blue: "bg-blue-50 text-blue-600 border-blue-100", 
-    rose: "bg-rose-50 text-rose-600 border-rose-100", 
-    emerald: "bg-emerald-50 text-emerald-600 border-emerald-100", 
-    amber: "bg-amber-50 text-amber-600 border-amber-100",
-    indigo: "bg-indigo-50 text-indigo-600 border-indigo-100" 
-  };
-  
+function StatCardHorizontal({ label, value, trend }) {
   return (
-    <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-md flex items-start gap-3 group hover:translate-y-[-2px] transition-all">
-      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border shadow-sm transition-transform group-hover:scale-105", bgColors[color])}>
-         <Icon className="w-5 h-5" />
-      </div>
-      <div className="min-w-0">
-         <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1 leading-none truncate">{label}</p>
-         <p className="text-xl font-bold text-slate-800 tracking-tight leading-none mb-2">{value}</p>
-         <div className={cn(
-           "flex items-center gap-1 text-[7px] font-bold uppercase",
-           up ? "text-emerald-600" : "text-rose-600"
-         )}>
-            {up ? <ArrowUpRight className="w-2.5 h-2.5" /> : <ArrowDownRight className="w-2.5 h-2.5" />}
-            {trend}
-         </div>
+    <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
+      <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">{label}</p>
+      <div className="mt-2">
+        <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{value}</h3>
       </div>
     </div>
   );
 }
 
-function MiniStatCard({ label, value, icon: Icon, color }) {
-  const colors = {
-    blue: "bg-blue-50 text-blue-600 border-blue-100",
-    emerald: "bg-emerald-50 text-emerald-600 border-emerald-100",
-    indigo: "bg-indigo-50 text-indigo-600 border-indigo-100",
-    rose: "bg-rose-50 text-rose-600 border-rose-100",
-    amber: "bg-amber-50 text-amber-600 border-amber-100"
-  };
-
+function MiniStatCard({ label, value }) {
   return (
-    <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex items-center gap-3 group cursor-pointer hover:bg-slate-50 transition-all">
-       <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border shadow-sm transition-transform group-hover:scale-110", colors[color])}>
-          <Icon className="w-3.5 h-3.5" />
-       </div>
-       <div className="min-w-0">
-          <p className="text-[10px] font-bold text-slate-800 leading-none truncate">{value}</p>
-          <p className="text-[7px] font-bold text-slate-400 uppercase tracking-tighter mt-0.5">{label}</p>
-       </div>
+    <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
+      <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">{label}</p>
+      <div className="mt-2">
+        <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{value}</h3>
+      </div>
     </div>
   );
 }
 
 function DonutCard({ title, data, total }) {
   return (
-    <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-lg shadow-slate-200/50 flex flex-col">
-      <h3 className="text-[10px] font-bold text-slate-800 uppercase tracking-widest mb-8">{title}</h3>
+    <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col">
+      <h3 className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider mb-4">{title}</h3>
       <div className="flex items-center gap-4">
         <div className="relative w-32 h-32 shrink-0">
           <ResponsiveContainer width="100%" height="100%">
@@ -277,8 +241,8 @@ function DonutCard({ title, data, total }) {
             </PieChart>
           </ResponsiveContainer>
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-            <p className="text-sm font-bold text-slate-800 leading-none">{total}</p>
-            <p className="text-[7px] text-slate-400 font-bold uppercase mt-1">Due</p>
+            <p className="text-[13px] font-bold text-[#10242A] leading-none">{total}</p>
+            <p className="text-[10px] text-[#708088] font-semibold uppercase mt-1">Due</p>
           </div>
         </div>
         <div className="flex-1 space-y-3">
@@ -286,12 +250,12 @@ function DonutCard({ title, data, total }) {
             <div key={i} className="group">
                <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2">
-                     <div className="w-1.5 h-1.5 rounded-full" style={{backgroundColor: item.color}} />
-                     <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{item.name}</span>
+                     <div className="w-2 h-2 rounded-full" style={{backgroundColor: item.color}} />
+                     <span className="text-[12px] font-medium text-[#4A5961]">{item.name}</span>
                   </div>
-                  <p className="text-[9px] font-bold text-slate-800">{item.value}%</p>
+                  <p className="text-[12px] font-semibold text-[#10242A]">{item.value}%</p>
                </div>
-               <div className="w-full h-1 bg-slate-50 rounded-full overflow-hidden">
+               <div className="w-full h-1.5 bg-[#F0F4F6] rounded-full overflow-hidden">
                   <div className="h-full transition-all duration-1000" style={{ width: `${item.value}%`, backgroundColor: item.color }} />
                </div>
             </div>

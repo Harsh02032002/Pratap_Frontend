@@ -1,13 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
-  Search, RefreshCw, Send, Zap, Wallet, CreditCard,
-  AlertCircle, CheckCircle2, XCircle, Loader2,
-  IndianRupee, Building2, User, PlusCircle,
-  CheckSquare, Square, Banknote, ArrowRightCircle, LayoutList
+  Search, RefreshCw, AlertCircle, CheckCircle2, XCircle, Loader2,
+  IndianRupee, PlusCircle, CheckSquare, Square, Banknote, ArrowRightCircle, LayoutList
 } from "lucide-react";
 import { fetchJson } from "../../utils/api";
 import useSEO from "../../hooks/useSEO";
-import { PageHeader } from "../../components/superadmin/PageHeader";
 
 const cn = (...c) => c.filter(Boolean).join(" ");
 const fmt = (n) => Number(n || 0).toLocaleString("en-IN");
@@ -33,24 +30,13 @@ function Toast({ message, type, onClose }) {
   );
 }
 
-// ─── Stat Card ────────────────────────────────────────────────────────────────
-function StatCard({ label, value, sub, icon: Icon, color }) {
-  const palette = {
-    purple: "bg-purple-50 text-purple-600 border-purple-100",
-    blue: "bg-blue-50 text-blue-600 border-blue-100",
-    emerald: "bg-emerald-50 text-emerald-600 border-emerald-100",
-    rose: "bg-rose-50 text-rose-600 border-rose-100",
-    amber: "bg-amber-50 text-amber-600 border-amber-100",
-  };
+// ─── Stat Card (No Icon) ──────────────────────────────────────────────────────
+function StatCard({ label, value, sub }) {
   return (
-    <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-md flex items-start gap-3 hover:-translate-y-0.5 transition-all">
-      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border shadow-sm", palette[color])}>
-        <Icon className="w-5 h-5" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1 leading-none truncate">{label}</p>
-        <p className="text-xl font-black text-slate-800 tracking-tight leading-none mb-1">₹{value}</p>
-        {sub && <p className="text-[7.5px] font-bold text-slate-400 uppercase tracking-wider">{sub}</p>}
+    <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
+      <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">{label}</p>
+      <div className="mt-2">
+        <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">₹{value}</h3>
       </div>
     </div>
   );
@@ -383,16 +369,6 @@ function BulkTransferModal({ selectedIds, total, count, onClose, onSuccess }) {
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function Payouts() {
-  const adminLoginId = useMemo(() => {
-    try {
-      const u = JSON.parse(sessionStorage.getItem("user") || localStorage.getItem("user") || "{}");
-      return u.loginId || u.email || "SUPERADMIN";
-    } catch {
-      return "SUPERADMIN";
-    }
-  }, []);
-
-
   useSEO({
     title: "Settlement Hub - Roomhy Super Admin",
     description: "Manage owner payouts, process manual transfers and audit settlements.",
@@ -481,7 +457,7 @@ export default function Payouts() {
   const w = wallet || {};
 
   return (
-    <div className="space-y-6 pb-8 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
+    <div className="space-y-4 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
       {/* Toast */}
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
@@ -510,54 +486,50 @@ export default function Payouts() {
       )}
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
-      <PageHeader
-        title="Settlement Hub"
-        subtitle="Manual rent collection, owner disbursement, and audit trail."
-        actions={
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowRecordModal(true)}
-              className="flex items-center gap-2 bg-[#095256] text-white px-4 py-2 rounded-xl text-xs font-semibold hover:bg-[#073d40] transition-all shadow-2xs cursor-pointer"
-            >
-              <PlusCircle size={14} /> Record Payment
-            </button>
-            <button
-              onClick={loadData}
-              className="bg-white text-[#4A5961] border border-[#E1E6EA] px-3.5 py-2 rounded-xl text-xs font-semibold hover:bg-slate-50 transition-all flex items-center gap-2 shadow-2xs cursor-pointer"
-            >
-              <RefreshCw size={13} className="text-[#095256]" /> Refresh
-            </button>
-          </div>
-        }
-      />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-[22px] font-bold text-[#10242A] tracking-tight leading-tight">Settlement Hub</h1>
+          <p className="text-[13px] text-[#4A5961] mt-0.5">Manual rent collection, owner disbursement, and audit trail.</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowRecordModal(true)}
+            className="flex items-center gap-2 bg-[#0E7C86] text-white px-4 py-1.5 rounded-[8px] text-[13px] font-semibold hover:bg-[#095256] transition-all shadow-xs cursor-pointer"
+          >
+            <PlusCircle size={14} /> Record Payment
+          </button>
+          <button
+            onClick={loadData}
+            className="bg-white border border-[#CBD3D9] hover:bg-gray-50 text-[#10242A] text-[13px] font-semibold px-4 py-1.5 rounded-[8px] transition-all flex items-center gap-2 shadow-xs cursor-pointer"
+          >
+            <RefreshCw size={13} className="text-[#0E7C86]" /> Refresh
+          </button>
+        </div>
+      </div>
 
       {/* ── Wallet Stats ─────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <StatCard label="Admin Wallet Balance" value={fmt(w.adminBalance)} sub="Commission collected" icon={Wallet} color="emerald" />
-        <StatCard label="Total Collected" value={fmt(w.totalCollected)} sub={`${w.totalTx || 0} transactions`} icon={IndianRupee} color="purple" />
-        <StatCard label="Pending Owner Payouts" value={fmt(w.pendingPayouts)} sub={`${w.pendingCount || 0} pending`} icon={Send} color="rose" />
-        <StatCard label="Paid to Owners" value={fmt(w.paidPayouts)} sub={`${w.paidCount || 0} transferred`} icon={Zap} color="blue" />
-        <StatCard label="Remaining Liability" value={fmt(w.pendingPayouts)} sub="To be transferred" icon={CreditCard} color="amber" />
+        <StatCard label="Admin Wallet Balance" value={fmt(w.adminBalance)} sub="Commission collected" />
+        <StatCard label="Total Collected" value={fmt(w.totalCollected)} sub={`${w.totalTx || 0} transactions`} />
+        <StatCard label="Pending Owner Payouts" value={fmt(w.pendingPayouts)} sub={`${w.pendingCount || 0} pending`} />
+        <StatCard label="Paid to Owners" value={fmt(w.paidPayouts)} sub={`${w.paidCount || 0} transferred`} />
+        <StatCard label="Remaining Liability" value={fmt(w.pendingPayouts)} sub="To be transferred" />
       </div>
 
       {/* ── Outside Controls Bar ────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          {/* Status filter */}
-          <div className="flex bg-white border border-slate-200/80 p-1 rounded-xl shadow-2xs">
-            {["Pending", "Paid", "All"].map(s => (
-              <button key={s} onClick={() => { setFilterStatus(s); setSelectedIds(new Set()); }}
-                className={cn("px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
-                  filterStatus === s ? "bg-[#095256] text-white shadow-2xs" : "text-slate-600 hover:text-slate-900")}>
-                {s}
-              </button>
-            ))}
-          </div>
-          {/* Bulk transfer button */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {["Pending", "Paid", "All"].map(s => (
+            <button key={s} onClick={() => { setFilterStatus(s); setSelectedIds(new Set()); }}
+              className={cn("px-3 py-1.5 rounded-[8px] text-[13px] font-medium transition-all cursor-pointer",
+                filterStatus === s ? "bg-[#0E7C86] text-white shadow-xs font-semibold" : "bg-white border border-[#CBD3D9] text-[#10242A] hover:bg-gray-50 shadow-xs")}>
+              {s}
+            </button>
+          ))}
           {selectedIds.size > 0 && (
             <button
               onClick={() => setShowBulkModal(true)}
-              className="flex items-center gap-2 bg-[#095256] text-white px-4 py-2 rounded-xl text-xs font-semibold hover:bg-[#073d40] transition-all shadow-2xs animate-in slide-in-from-right-2 cursor-pointer"
+              className="flex items-center gap-2 bg-[#0E7C86] text-white px-4 py-1.5 rounded-[8px] text-[13px] font-semibold hover:bg-[#095256] transition-all shadow-xs cursor-pointer"
             >
               <ArrowRightCircle size={14} />
               Transfer {selectedIds.size} Selected · ₹{fmt(bulkTotal)}
@@ -566,56 +538,53 @@ export default function Payouts() {
         </div>
 
         {/* Search */}
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        <div className="relative w-full sm:w-[280px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8C9BA5]" />
           <input
             placeholder="Search owner..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="w-full bg-white border border-slate-200/80 rounded-xl py-2 pl-9 pr-4 text-xs font-medium text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-[#095256]/20 focus:border-[#095256] transition-all shadow-2xs"
+            className="w-full bg-white border border-[#CBD3D9] rounded-[8px] pl-9 pr-3.5 py-1.5 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs"
           />
         </div>
       </div>
 
       {/* ── Standalone Table Card ─────────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
-
-        {/* Table */}
+      <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           {loading ? (
-            <div className="py-16 text-center flex flex-col items-center gap-3 text-slate-400">
-              <Loader2 className="animate-spin size-6" />
-              <p className="text-[10px] font-bold uppercase tracking-widest">Loading…</p>
+            <div className="py-8 text-center flex flex-col items-center gap-2 text-[#4A5961]">
+              <Loader2 className="animate-spin size-6 text-[#0E7C86]" />
+              <p className="text-[13px]">Loading…</p>
             </div>
           ) : filteredPayouts.length === 0 ? (
-            <div className="py-12 text-center text-xs font-bold text-slate-400 bg-slate-50/50 rounded-xl">
+            <div className="py-8 text-center text-[13px] text-[#4A5961]">
               No records found
             </div>
           ) : (
-            <table className="w-full text-left text-[11px] font-semibold text-slate-700">
+            <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="text-slate-400 text-[8px] font-black uppercase border-b border-slate-50 tracking-widest">
-                  {/* Select-all checkbox */}
-                  <th className="pb-4 pr-3 w-8">
-                    <button onClick={toggleSelectAll} className="text-slate-400 hover:text-slate-700 transition-colors" title="Select All Pending">
+                <tr className="border-b border-[#E1E6EA]">
+                  <th className="pb-2 pr-3 w-8">
+                    <button onClick={toggleSelectAll} className="text-[#4A5961] hover:text-[#10242A] transition-colors" title="Select All Pending">
                       {allSelected
-                        ? <CheckSquare size={15} className="text-blue-600" />
+                        ? <CheckSquare size={15} className="text-[#0E7C86]" />
                         : <Square size={15} />}
                     </button>
                   </th>
-                  <th className="pb-4">Ref #</th>
-                  <th className="pb-4">Owner</th>
-                  <th className="pb-4">Tenant / Property</th>
-                  <th className="pb-4 text-center">Rent Collected (₹)</th>
-                  <th className="pb-4 text-center">Commission Fee (₹)</th>
-                  <th className="pb-4 text-center text-emerald-700">Pay Owner (₹)</th>
-                  <th className="pb-4 text-center">Settlement Account</th>
-                  <th className="pb-4 text-center">Date</th>
-                  <th className="pb-4 text-center">Status</th>
-                  <th className="pb-4 text-right">Action</th>
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Ref #</th>
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Owner</th>
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Tenant / Property</th>
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-center">Rent Collected (₹)</th>
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-center">Commission Fee (₹)</th>
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-center">Pay Owner (₹)</th>
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-center">Settlement Account</th>
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-center">Date</th>
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-center">Status</th>
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50">
+              <tbody className="divide-y divide-[#F0F4F6] text-[13px]">
                 {filteredPayouts.map((p, i) => {
                   const id = p._id || p.id;
                   const isPaid = p.payout_status === "Paid";
@@ -630,103 +599,92 @@ export default function Payouts() {
 
                   return (
                     <tr key={id || i}
-                      className={cn("group hover:bg-slate-50 transition-colors",
-                        isSelected && "bg-blue-50/40")}
+                      className={cn("hover:bg-[#F9FAFB] transition-colors",
+                        isSelected && "bg-[#E8F3F4]/40")}
                     >
-                      {/* Checkbox */}
-                      <td className="py-3 pr-3">
+                      <td className="py-2.5 pr-3">
                         {!isPaid ? (
-                          <button onClick={() => toggleOne(id)} className="text-slate-300 hover:text-blue-600 transition-colors">
+                          <button onClick={() => toggleOne(id)} className="text-[#8C9BA5] hover:text-[#0E7C86] transition-colors">
                             {isSelected
-                              ? <CheckSquare size={15} className="text-blue-600" />
+                              ? <CheckSquare size={15} className="text-[#0E7C86]" />
                               : <Square size={15} />}
                           </button>
                         ) : (
-                          <CheckCircle2 size={14} className="text-emerald-400" />
+                          <CheckCircle2 size={14} className="text-[#14532D]" />
                         )}
                       </td>
 
-                      {/* Ref */}
-                      <td className="py-3">
-                        <span className="text-[9px] font-mono font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded-lg border border-purple-100">
+                      <td className="py-2.5">
+                        <span className="text-[12px] font-mono font-semibold text-[#0E7C86] bg-[#E8F3F4] px-2 py-0.5 rounded-[6px]">
                           {(p.payout_reference || p.razorpay_payment_id || id || "").slice(-8).toUpperCase()}
                         </span>
                       </td>
 
-                      {/* Owner */}
-                      <td className="py-3">
-                        <p className="text-[11px] font-bold text-slate-800">{p.owner_name || p.owner_id}</p>
-                        <p className="text-[8px] text-slate-400 uppercase tracking-widest mt-0.5">ID: {p.owner_id}</p>
+                      <td className="py-2.5">
+                        <p className="text-[13px] font-medium text-[#10242A]">{p.owner_name || p.owner_id}</p>
+                        <p className="text-[11px] text-[#708088]">ID: {p.owner_id}</p>
                       </td>
 
-                      {/* Tenant / Property */}
-                      <td className="py-3">
-                        <p className="text-[10.5px] font-semibold text-slate-700">{p.tenant_name || "—"}</p>
-                        {p.property_name && <p className="text-[8px] text-slate-400 mt-0.5">{p.property_name}</p>}
+                      <td className="py-2.5">
+                        <p className="text-[13px] font-medium text-[#10242A]">{p.tenant_name || "—"}</p>
+                        {p.property_name && <p className="text-[11px] text-[#708088]">{p.property_name}</p>}
                         {p.payment_method === "manual" && (
-                          <span className="text-[7px] font-black uppercase tracking-wider text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">
+                          <span className="inline-block text-[11px] font-semibold text-[#92400E] bg-[#FEF3C7] px-2 py-0.5 rounded-full">
                             Manual
                           </span>
                         )}
                       </td>
 
-                      {/* Total Rent Collected */}
-                      <td className="py-3 text-center font-bold text-slate-700 text-[12px]">
+                      <td className="py-2.5 text-center font-semibold text-[#10242A]">
                         ₹{fmt(totalRent)}
                       </td>
 
-                      {/* Commission Fee */}
-                      <td className="py-3 text-center text-rose-600 font-bold text-[11px]">
+                      <td className="py-2.5 text-center text-[#991B1B] font-semibold">
                         −₹{fmt(commFee)}
                       </td>
 
-                      {/* Owner Payable Amount */}
-                      <td className="py-3 text-center font-black text-emerald-600 text-[13px] bg-emerald-50/30 rounded-lg">
+                      <td className="py-2.5 text-center font-bold text-[#14532D]">
                         ₹{fmt(ownerNet)}
                       </td>
 
-                      {/* Bank */}
-                      <td className="py-3 text-center">
+                      <td className="py-2.5 text-center">
                         {acctNum ? (
                           <>
-                            <p className="text-[10px] font-bold text-slate-700">{bankNm || "Bank"}</p>
-                            <p className="text-[8px] text-slate-400 mt-0.5">
+                            <p className="text-[13px] font-medium text-[#10242A]">{bankNm || "Bank"}</p>
+                            <p className="text-[11px] text-[#708088]">
                               A/C: ····{acctNum.slice(-4)}{ifsc ? ` · ${ifsc}` : ""}
                             </p>
                           </>
                         ) : (
-                          <span className="text-[9px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">Auto-fill on transfer</span>
+                          <span className="inline-block text-[11px] text-[#92400E] bg-[#FEF3C7] px-2 py-0.5 rounded-full">Auto-fill on transfer</span>
                         )}
                       </td>
 
-                      {/* Date */}
-                      <td className="py-3 text-center text-[9px] text-slate-500">
+                      <td className="py-2.5 text-center text-[#4A5961]">
                         {p.payment_date
                           ? new Date(p.payment_date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
                           : "—"}
                       </td>
 
-                      {/* Status */}
-                      <td className="py-3 text-center">
-                        <span className={cn("text-[7px] font-black px-2 py-0.5 rounded-lg border uppercase tracking-wider",
+                      <td className="py-2.5 text-center">
+                        <span className={cn("inline-block text-[12px] font-semibold px-2.5 py-0.5 rounded-full",
                           isPaid
-                            ? "bg-emerald-50 text-emerald-600 border-emerald-100"
-                            : "bg-amber-50 text-amber-600 border-amber-100")}>
+                            ? "bg-[#DDF3E4] text-[#14532D]"
+                            : "bg-[#FEF3C7] text-[#92400E]")}>
                           {isPaid ? "Paid" : "Pending"}
                         </span>
                       </td>
 
-                      {/* Action */}
-                      <td className="py-3 text-right">
+                      <td className="py-2.5 text-right">
                         {!isPaid ? (
                           <button
                             onClick={() => setTransferPayout(p)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-[9px] font-black uppercase tracking-wider ml-auto"
+                            className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#0E7C86] text-white rounded-[6px] hover:bg-[#095256] transition-colors text-[12px] font-semibold cursor-pointer"
                           >
-                            <Banknote size={11} /> Transfer
+                            <Banknote size={12} /> Transfer
                           </button>
                         ) : (
-                          <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Done</span>
+                          <span className="text-[12px] text-[#708088] font-medium">Done</span>
                         )}
                       </td>
                     </tr>
@@ -739,13 +697,13 @@ export default function Payouts() {
 
         {/* Bottom selection summary */}
         {selectedIds.size > 0 && (
-          <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
-            <p className="text-[10px] font-bold text-slate-600">
-              {selectedIds.size} selected · Total owner payout: <span className="text-blue-700">₹{fmt(bulkTotal)}</span>
+          <div className="mt-3 pt-3 border-t border-[#F0F4F6] flex items-center justify-between">
+            <p className="text-[12px] font-medium text-[#4A5961]">
+              {selectedIds.size} selected · Total owner payout: <span className="text-[#0E7C86] font-bold">₹{fmt(bulkTotal)}</span>
             </p>
             <button
               onClick={() => setSelectedIds(new Set())}
-              className="text-[9px] text-slate-400 font-bold underline hover:text-slate-600 transition-colors"
+              className="text-[12px] text-[#4A5961] font-semibold underline hover:text-[#10242A] transition-colors"
             >
               Clear selection
             </button>

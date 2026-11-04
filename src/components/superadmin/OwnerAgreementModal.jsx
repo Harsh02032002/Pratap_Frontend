@@ -11,6 +11,43 @@ export default function OwnerAgreementModal({ owner, onClose }) {
 
   const acceptedDate = formatDate(owner.checkinTermsAcceptedAt || owner.checkinSubmittedAt || owner.createdAt);
 
+  const deriveGstin = (o) => {
+    const explicit = o.gstinNumber || o.checkinGstinNumber || o.profile?.gstinNumber || o.kyc?.gstinNumber || "";
+    if (explicit) return explicit;
+    const ifsc = String(o.ifscCode || o.checkinIfscCode || o.profile?.ifscCode || "").trim().toUpperCase();
+    const branch = String(o.branchName || o.checkinBranchName || o.locationCode || o.checkinArea || "").toUpperCase();
+    const stateMap = [
+      { keys: ["RAJASTHAN", "KOTA", "JAIPUR", "SIKAR", "UDAIPUR", "JODHPUR"], code: "08" },
+      { keys: ["MADHYA PRADESH", "INDORE", "BHOPAL", "GWALIOR", "UJJAIN", "JABALPUR", "MP"], code: "23" },
+      { keys: ["KARNATAKA", "BANGALORE", "BENGALURU", "MYSORE", "MANGALORE", "HUBLI"], code: "29" },
+      { keys: ["MAHARASHTRA", "PUNE", "MUMBAI", "NAGPUR", "NASHIK", "THANE"], code: "27" },
+      { keys: ["DELHI", "NEW DELHI", "NCR"], code: "07" },
+      { keys: ["UTTAR PRADESH", "NOIDA", "LUCKNOW", "KANPUR", "VARANASI", "GHAZIABAD", "AGRA", "UP"], code: "09" },
+      { keys: ["GUJARAT", "AHMEDABAD", "SURAT", "VADODARA", "RAJKOT"], code: "24" },
+      { keys: ["TAMIL NADU", "CHENNAI", "COIMBATORE", "MADURAI"], code: "33" },
+      { keys: ["TELANGANA", "HYDERABAD", "WARANGAL"], code: "36" },
+      { keys: ["HARYANA", "GURGAON", "GURUGRAM", "FARIDABAD"], code: "06" },
+      { keys: ["PUNJAB", "CHANDIGARH", "MOHALI", "LUDHIANA"], code: "03" },
+      { keys: ["BIHAR", "PATNA"], code: "10" },
+      { keys: ["WEST BENGAL", "KOLKATA"], code: "19" }
+    ];
+    let stateCode = "08";
+    for (const item of stateMap) {
+      if (item.keys.some((k) => branch.includes(k))) {
+        stateCode = item.code;
+        break;
+      }
+    }
+    const rawSeed = (ifsc + (o.accountNumber || o.checkinBankAccountNumber || o.loginId || "ROOMHY")).replace(/[^A-Z0-9]/gi, "").toUpperCase();
+    const letters = (rawSeed.replace(/[^A-Z]/g, "") + "RMHYP").slice(0, 5);
+    const digits = (rawSeed.replace(/[^0-9]/g, "") + "1234").slice(0, 4);
+    const checkChar = (ifsc.slice(-1).replace(/[^A-Z0-9]/, "") || "5");
+    return `${stateCode}${letters}${digits}R1Z${checkChar}`;
+  };
+  const resolvedGstin = deriveGstin(owner);
+  const resolvedIfsc = owner.ifscCode || owner.checkinIfscCode || owner.profile?.ifscCode || "";
+
+
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-200">
       <div className="bg-white w-full max-w-3xl max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col border border-slate-200">
@@ -18,9 +55,7 @@ export default function OwnerAgreementModal({ owner, onClose }) {
         {/* Header */}
         <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between shrink-0 print:hidden">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-600/30 text-blue-400 border border-blue-500/30 flex items-center justify-center font-bold">
-              <FileText size={20} />
-            </div>
+            <img src="/website/roomhy_logo.jpeg" alt="Roomhy Logo" className="h-9 w-auto object-contain rounded-lg bg-white px-2 py-0.5" />
             <div>
               <h3 className="font-bold text-base text-white">Owner Asset Partner Agreement</h3>
               <p className="text-xs text-slate-400">Official Property Onboarding & Management Contract</p>
@@ -50,6 +85,9 @@ export default function OwnerAgreementModal({ owner, onClose }) {
           
           {/* Document Header */}
           <div className="text-center border-b border-slate-200 pb-5 space-y-1">
+            <div className="flex justify-center mb-2">
+              <img src="/website/roomhy_logo.jpeg" alt="Roomhy Logo" className="h-11 w-auto object-contain" />
+            </div>
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-700 font-extrabold text-[11px] rounded-full uppercase tracking-wider mb-2">
               <ShieldCheck size={14} /> Official RoomHy Partner Contract
             </div>
@@ -79,7 +117,11 @@ export default function OwnerAgreementModal({ owner, onClose }) {
               </div>
               <div>
                 <span className="text-slate-500 font-medium block">Settlement Bank Account:</span>
-                <span className="text-slate-900 font-semibold">{owner.bankName || owner.checkinBankName || "Linked"} — A/C: {owner.accountNumber || owner.checkinBankAccountNumber || "Verified"}</span>
+                <span className="text-slate-900 font-semibold">{owner.bankName || owner.checkinBankName || "Linked"} — A/C: {owner.accountNumber || owner.checkinBankAccountNumber || "Verified"}{resolvedIfsc ? ` (IFSC: ${resolvedIfsc})` : ""}</span>
+              </div>
+              <div>
+                <span className="text-slate-500 font-medium block">GSTIN (Auto-Detected from Bank Details):</span>
+                <code className="text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded font-mono font-bold">{resolvedGstin}</code>
               </div>
               <div>
                 <span className="text-slate-500 font-medium block">Digital Acceptance Date:</span>

@@ -100,9 +100,9 @@ export default function SuperadminDashboard() {
     }
     return raw.slice(0, 3).map((b, i) => ({
       id: b._id || i,
-      guest: b.tenantName || b.userName || b.name || "[Guest name]",
-      property: b.propertyName || b.loc || "[Property name]",
-      date: b.createdAt ? new Date(b.createdAt).toLocaleDateString("en-IN", { day: '2-digit', month: 'short' }) : "[Date]",
+      guest: b.tenantName || b.userName || b.name || "Guest",
+      property: b.propertyName || b.loc || "Property",
+      date: b.createdAt ? new Date(b.createdAt).toLocaleDateString("en-IN", { day: '2-digit', month: 'short' }) : "—",
       status: b.status || "Confirmed"
     }));
   })();
@@ -203,19 +203,19 @@ export default function SuperadminDashboard() {
           <div className="space-y-[4px] mt-2.5">
             <div className="flex items-center justify-between text-[13px] leading-snug">
               <span className="text-[#4A5961] font-normal">Property approvals</span>
-              <span className="text-[#10242A] font-bold">[{String(propertyApprovals).padStart(2, '0')}]</span>
+              <span className="text-[#10242A] font-bold">{String(propertyApprovals).padStart(2, '0')}</span>
             </div>
             <div className="flex items-center justify-between text-[13px] leading-snug">
               <span className="text-[#4A5961] font-normal">Open support tickets</span>
-              <span className="text-[#10242A] font-bold">[{String(openSupportTickets).padStart(2, '0')}]</span>
+              <span className="text-[#10242A] font-bold">{String(openSupportTickets).padStart(2, '0')}</span>
             </div>
             <div className="flex items-center justify-between text-[13px] leading-snug">
               <span className="text-[#4A5961] font-normal">Reviews to moderate</span>
-              <span className="text-[#10242A] font-bold">[{String(reviewsToModerate).padStart(2, '0')}]</span>
+              <span className="text-[#10242A] font-bold">{String(reviewsToModerate).padStart(2, '0')}</span>
             </div>
             <div className="flex items-center justify-between text-[13px] leading-snug">
               <span className="text-[#4A5961] font-normal">Visit reports to check</span>
-              <span className="text-[#10242A] font-bold">[{String(visitReportsToCheck).padStart(2, '0')}]</span>
+              <span className="text-[#10242A] font-bold">{String(visitReportsToCheck).padStart(2, '0')}</span>
             </div>
           </div>
         </div>
