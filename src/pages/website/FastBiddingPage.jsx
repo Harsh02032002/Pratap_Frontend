@@ -366,7 +366,7 @@ export default function FastBiddingPage() {
         ],
         badges: ['💬 Direct Owner Chat', '🔔 Real-time Alerts', '⚡ Fast Matching'],
         ctaLabel: '💬 Open Chat Panel',
-        ctaPath: '/tenant/tenantchat'
+        ctaPath: '/website/chat'
       };
     } else if (frontendCategory === 'slight_gap') {
       catInfo = {
@@ -386,7 +386,7 @@ export default function FastBiddingPage() {
         ],
         badges: ['💬 Rent Negotiation Chat', '🔔 Instant Notifications', '⚡ Rent Negotiation'],
         ctaLabel: '💬 Open Chat Panel',
-        ctaPath: '/tenant/tenantchat'
+        ctaPath: '/website/chat'
       };
     }
 

@@ -550,7 +550,7 @@ export default function OurPropertyPage() {
           ],
           badges: ['💬 Direct Owner Chat', '🔔 Real-time Alerts', '⌛ 24-Hour Bid Validity'],
           ctaLabel: '💬 Open Chat Panel',
-          ctaPath: '/tenant/tenantchat'
+          ctaPath: '/website/chat'
         });
       } else if (category === 'slight_gap') {
         setBidResultModal({
@@ -570,7 +570,7 @@ export default function OurPropertyPage() {
           ],
           badges: ['💬 Rent Negotiation Chat', '🔔 Instant Notifications', '⌛ 24-Hour Bid Validity'],
           ctaLabel: '💬 Open Chat Panel',
-          ctaPath: '/tenant/tenantchat'
+          ctaPath: '/website/chat'
         });
       } else {
         setBidResultModal({
@@ -673,7 +673,7 @@ export default function OurPropertyPage() {
       ],
       badges: ['💬 Direct Owner Chat', '🔔 Push + WhatsApp Alerts', '⌛ 24-Hour Bid Validity'],
       ctaLabel: '💬 Open Chat Panel',
-      ctaPath: '/tenant/tenantchat'
+      ctaPath: '/website/chat'
     });
   };
 

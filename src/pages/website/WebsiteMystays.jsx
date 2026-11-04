@@ -564,7 +564,7 @@ export default function WebsiteMystays() {
                             <div className="flex gap-2 pt-1">
                               {(matchCat === 'exact_match' || matchCat === 'slight_gap') && (
                                 <a
-                                  href="/tenant/tenantchat"
+                                  href="/website/chat"
                                   className="flex-1 text-center py-2 bg-teal-600 text-white text-xs font-bold rounded-xl hover:bg-teal-700 transition-colors"
                                 >
                                   💬 Open Chat

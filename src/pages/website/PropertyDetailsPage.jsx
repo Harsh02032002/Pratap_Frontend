@@ -505,7 +505,7 @@ export default function PropertyDetailsPage() {
       ],
       badges: ['💬 Direct Owner Chat', '🔔 Push + WhatsApp Alerts', '⌛ 24-Hour Bid Validity'],
       ctaLabel: '💬 Open Chat Panel',
-      ctaPath: '/tenant/tenantchat'
+      ctaPath: '/website/chat'
     });
   };
   
