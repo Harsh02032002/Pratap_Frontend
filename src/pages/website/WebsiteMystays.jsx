@@ -180,29 +180,12 @@ export default function WebsiteMystays() {
     }
   };
 
-  // Smart date resolver — uses actual field if set, else falls back to createdAt
-  const getCheckInDate = (booking) => {
-    return (
-      booking.check_in_date ||
-      booking.checkInDate ||
-      booking.start_date ||
-      booking.created_at ||
-      booking.createdAt ||
-      booking.submittedAt
-    );
+  // Dates come only from the tenant's real agreement (set by the backend as
+  // booking.agreementPeriod). No agreement yet -> null, and the row is hidden.
+  const getAgreementDates = (booking) => {
+    const period = booking.agreementPeriod;
+    return period && period.startDate && period.endDate ? period : null;
   };
-
-  const getCheckOutDate = (booking) => {
-    const explicit = booking.check_out_date || booking.checkOutDate || booking.end_date;
-    if (explicit) return explicit;
-    // Fallback: check-in + 30 days
-    const checkIn = getCheckInDate(booking);
-    if (!checkIn) return null;
-    const d = new Date(checkIn);
-    d.setDate(d.getDate() + 30);
-    return d.toISOString();
-  };
-
 
   const openRefundModal = (booking, type = "refund") => {
     setSelectedBooking(booking);
@@ -636,6 +619,7 @@ export default function WebsiteMystays() {
                       `https://images.unsplash.com/photo-1567016432779-1fee749a1532?q=80&w=1974&auto=format&fit=crop&property=${booking.propertyId || booking.property_id || "default"}`;
 
                     const thumbs = photos.slice(0, 4);
+                    const agreement = getAgreementDates(booking);
                     const propertyId = booking.propertyId || booking.property_id || booking._id || "N/A";
                     const displayPropertyId =
                       String(propertyId).length > 20 ? `${String(propertyId).slice(0, 12)}...` : String(propertyId);
@@ -667,20 +651,22 @@ export default function WebsiteMystays() {
                             </span>
                           </div>
 
+                          {agreement && (
                           <div className="grid grid-cols-2 gap-3 py-3 border-t border-b border-gray-200 mb-4">
                             <div>
                               <p className="text-xs text-gray-600 font-semibold uppercase">Check-in</p>
                               <p className="font-bold text-gray-900 text-sm">
-                                {formatDate(getCheckInDate(booking))}
+                                {formatDate(agreement.startDate)}
                               </p>
                             </div>
                             <div>
                               <p className="text-xs text-gray-600 font-semibold uppercase">Check-out</p>
                               <p className="font-bold text-gray-900 text-sm">
-                                {formatDate(getCheckOutDate(booking))}
+                                {formatDate(agreement.endDate)}
                               </p>
                             </div>
                           </div>
+                          )}
 
                           <div className="flex justify-between items-center mb-3">
                             <span className="text-gray-700 font-medium">Total Amount:</span>
