@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { setWebsiteSession } from "../utils/websiteSession";
+import { getListingReturnPath } from "../utils/propertySubmissions";
 
 const getApiUrl = () =>
   import.meta.env?.VITE_API_URL ||
@@ -34,7 +35,7 @@ export function useWebsiteLogin() {
       const data = await response.json().catch(() => ({}));
       if (response.ok && data.token && data.user) {
         setWebsiteSession(data.user, data.token);
-        window.location.href = "/";
+        window.location.href = getListingReturnPath(window.location.search);
         return;
       }
 

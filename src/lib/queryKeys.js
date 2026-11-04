@@ -6,6 +6,10 @@
 // invalidation stays predictable.
 
 export const queryKeys = {
+  propertySubmissions: {
+    all: ["propertySubmissions"],
+    mine: (userId, page) => ["propertySubmissions", "mine", userId, page],
+  },
   currentUser: {
     all: ["currentUser"],
   },

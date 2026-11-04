@@ -55,6 +55,7 @@ export default function MobileHamburgerMenu() {
     { icon: Building2, label: 'Our Properties', path: '/properties' },
     { icon: Gavel, label: 'Fast Bidding', path: '/bidding' },
     { icon: PlusCircle, label: 'List Property', path: '/list-property' },
+    { icon: Building2, label: 'Track My Property', path: '/my-property-submissions' },
     { icon: Heart, label: 'My Stays', path: '/website/mystays' },
     { icon: MessageCircle, label: 'Chat Support', path: '/website/chat' },
     { icon: User, label: hasUserData ? 'My Account' : 'Login / Signup', path: hasUserData ? '/website/mystays' : '/login' },

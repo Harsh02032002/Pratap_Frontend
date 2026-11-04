@@ -1,4 +1,10 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '../../contexts/AuthContext';
+import { getSubmissionToken, submitPropertyEnquiry } from '../../api/propertySubmissions';
+import { queryKeys } from '../../lib/queryKeys';
+import { PROPERTY_SUBMISSIONS_PATH } from '../../utils/propertySubmissions';
 import { 
   ListPlus, Send, CheckCircle, Loader, Building2, User, Mail, Phone, MapPin, 
   Home, Sparkles, ShieldCheck, CheckCircle2, PhoneCall,
@@ -7,29 +13,9 @@ import {
 import WebsiteNavbar from "../../components/website/WebsiteNavbar";
 import WebsiteFooter from "../../components/website/WebsiteFooter";
 import MobileBottomNav from "../../components/website/MobileBottomNav";
-import { submitEnquiry, fetchJson } from '../../utils/api';
-import { getOwnerRuntimeSession } from '../../utils/propertyowner';
-import { getWebsiteUser } from '../../utils/websiteSession';
-import { getScopedStoredUser } from '../../utils/authScope';
+import { fetchJson } from '../../utils/api';
 import useSEO from '../../hooks/useSEO';
 import { toast } from 'react-hot-toast';
-
-const getLoggedInUserSession = () => {
-  const websiteUser = getWebsiteUser();
-  const scopedUser = getScopedStoredUser('/list-property');
-  const owner = getOwnerRuntimeSession();
-  let rawUser = null;
-  try {
-    const w = localStorage.getItem('website_user') || sessionStorage.getItem('website_user');
-    if (w) rawUser = JSON.parse(w);
-  } catch (_) {}
-  try {
-    const u = localStorage.getItem('user') || sessionStorage.getItem('user');
-    if (!rawUser && u) rawUser = JSON.parse(u);
-  } catch (_) {}
-
-  return websiteUser || scopedUser || owner || rawUser || null;
-};
 
 export default function ListYourPropertyPage() {
   useSEO({ 
@@ -37,8 +23,9 @@ export default function ListYourPropertyPage() {
     fallbackTitle: 'List Your Property for Free | Hostels & PGs | Roomhy.com',
     fallbackDescription: 'List your PG, hostel, co-living space, or apartment on Roomhy.com for free. Connect directly with verified student tenants and maximize your occupancy.'
   });
-  const sessionUser = getLoggedInUserSession();
-  const owner = getOwnerRuntimeSession();
+  const { user: sessionUser, isAuthenticated, loading: authLoading } = useAuth();
+  const queryClient = useQueryClient();
+  const websiteSignedIn = !authLoading && isAuthenticated && Boolean(getSubmissionToken());
 
   useEffect(() => {
     if (window.location.pathname !== '/list-property') {
@@ -60,13 +47,14 @@ export default function ListYourPropertyPage() {
   });
   const [loadingForm, setLoadingForm] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [submissionReference, setSubmissionReference] = useState("");
   const [errors, setErrors] = useState({});
   const [layoutSections, setLayoutSections] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Auto-fill logged in user details if available
   useEffect(() => {
-    const user = getLoggedInUserSession();
+    const user = sessionUser;
     if (user) {
       setFormData(prev => ({
         ...prev,
@@ -75,7 +63,7 @@ export default function ListYourPropertyPage() {
         phone: prev.phone || user.phone || user.mobile || user.phoneNumber || ''
       }));
     }
-  }, []);
+  }, [sessionUser]);
 
   // Fetch page layout settings from DB
   useEffect(() => {
@@ -109,27 +97,6 @@ export default function ListYourPropertyPage() {
     return sec && sec.content ? { ...fallback, ...sec.content } : fallback;
   };
 
-  useEffect(() => {
-    const fetchOwnerDetails = async () => {
-      if (owner?.loginId) {
-        try {
-          const response = await fetchJson(`/api/owners/${encodeURIComponent(owner.loginId)}`);
-          if (response) {
-            setFormData(prev => ({
-              ...prev,
-              ownerName: prev.ownerName || response.name || response.profile?.name || '',
-              email: prev.email || response.email || response.profile?.email || '',
-              phone: prev.phone || response.phone || response.profile?.phone || ''
-            }));
-          }
-        } catch (error) {
-          console.error('Error fetching owner details:', error);
-        }
-      }
-    };
-    fetchOwnerDetails();
-  }, [owner?.loginId]);
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -162,6 +129,10 @@ export default function ListYourPropertyPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!websiteSignedIn) {
+      toast.error('Please sign in to submit and track your property.');
+      return;
+    }
     if (!validateForm()) return;
 
     setLoadingForm(true);
@@ -188,7 +159,9 @@ export default function ListYourPropertyPage() {
         photos: []
       };
 
-      await submitEnquiry(enquiryData);
+      const response = await submitPropertyEnquiry(enquiryData);
+      setSubmissionReference(response.enquiry_id || '');
+      queryClient.invalidateQueries({ queryKey: queryKeys.propertySubmissions.all });
       setShowSuccess(true);
       setFormData({
         ownerName: '',
@@ -204,7 +177,7 @@ export default function ListYourPropertyPage() {
       });
     } catch (error) {
       console.error('Error submitting enquiry:', error);
-      toast.error('Failed to submit. Please try again.');
+      toast.error(error.message || 'Failed to submit. Please try again.');
     } finally {
       setLoadingForm(false);
     }
@@ -382,7 +355,13 @@ export default function ListYourPropertyPage() {
         </div>
         <p className="text-sm text-slate-500 mb-6">Fill out this quick form and our partner desk will reach out to help you complete your onboarding and property setup.</p>
 
-        <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
+        {!websiteSignedIn && (
+          <div className="mb-5 rounded-xl border border-teal-200 bg-teal-50 p-4 text-sm text-slate-700">
+            {authLoading ? 'Checking your sign-in…' : <><p className="mb-2">Sign in to submit your property and keep track of its progress.</p><Link to="/login?redirect=%2Flist-property" className="font-semibold text-teal-700 underline underline-offset-2">Sign in to continue</Link></>}
+          </div>
+        )}
+        <form onSubmit={handleSubmit}>
+          <fieldset disabled={!websiteSignedIn || loadingForm} className="space-y-4 md:space-y-6 disabled:opacity-60">
           <div className="border-b border-gray-200 pb-4 md:pb-6">
             <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-3 md:mb-4">Owner Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
@@ -575,6 +554,7 @@ export default function ListYourPropertyPage() {
               )}
             </button>
           </div>
+          </fieldset>
         </form>
       </section>
     );
@@ -605,6 +585,10 @@ export default function ListYourPropertyPage() {
           {isSectionVisible('list-hero') && renderHero()}
 
           <main className="flex-grow max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-12 w-full">
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-teal-100 bg-white p-4 text-sm">
+              <span className="text-slate-600">Already submitted a property?</span>
+              <Link to={PROPERTY_SUBMISSIONS_PATH} className="font-semibold text-teal-700 hover:underline">Track my submissions →</Link>
+            </div>
             {activeOrder.map(sectionId => {
               if (sectionId === 'list-hero' || !isSectionVisible(sectionId)) return null;
               switch (sectionId) {
@@ -638,14 +622,16 @@ export default function ListYourPropertyPage() {
 
       {showSuccess && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-8 text-center shadow-2xl">
+          <div role="dialog" aria-modal="true" aria-labelledby="submission-success-title" className="bg-white rounded-3xl max-w-md w-full p-8 text-center shadow-2xl">
             <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <CheckCircle className="w-8 h-8 text-emerald-600" />
             </div>
-            <h2 className="text-2xl font-black text-slate-900 mb-2">Inquiry Submitted!</h2>
+            <h2 id="submission-success-title" className="text-2xl font-black text-slate-900 mb-2">Property submitted!</h2>
             <p className="text-slate-600 mb-6 text-sm">
               Thank you for showing interest in listing your property. Our partner onboarding team will review your submission and contact you shortly to complete KYC.
             </p>
+            {submissionReference && <p className="mb-5 break-all text-xs text-slate-500">Your reference: <span className="font-semibold">{submissionReference}</span></p>}
+            <Link to={PROPERTY_SUBMISSIONS_PATH} className="mb-3 block w-full rounded-xl bg-teal-600 py-3.5 font-bold text-white transition hover:bg-teal-700">Track my property</Link>
             <button
               onClick={() => setShowSuccess(false)}
               className="w-full bg-[#0FA596] text-white font-bold py-3.5 rounded-xl hover:bg-teal-700 transition-colors shadow-lg shadow-[#0FA596]/30"
