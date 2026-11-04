@@ -84,21 +84,8 @@ export const getScopedAuthToken = (pathname = currentPath()) => {
   if (isPanelRoute(pathname)) {
     token = readPanelToken();
   } else {
-    // Website route
-    token = read("website_token") || read("accessToken");
-    // Fallback: If no website token exists, but an employee/staff/panel user is signed in,
-    // allow using the panel token so administrative actions don't get 401 unauthenticated errors.
-    if (!token) {
-      const stored = read("staff_user") || read("user");
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored);
-          if (parsed && (parsed.loginId || parsed.role)) {
-            token = readPanelToken();
-          }
-        } catch (_) {}
-      }
-    }
+    // Website route: ONLY read website_token, NEVER fallback to panel tokens (token / staff_token / accessToken)
+    token = read("website_token");
   }
 
   if (!token || isFabricatedToken(token)) return null;
@@ -109,7 +96,7 @@ export const getScopedAuthToken = (pathname = currentPath()) => {
 // can clear it and show a signed-out state instead of a broken signed-in one.
 export const hasFabricatedSession = (pathname = currentPath()) => {
   const raw = isWebsiteRoute(pathname)
-    ? read("website_token") || read("accessToken")
+    ? read("website_token")
     : readPanelToken();
   return isFabricatedToken(raw);
 };
@@ -124,7 +111,13 @@ export const getScopedStoredUser = (pathname = currentPath()) => {
 
   if (!raw) return null;
   try {
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    if (isWebsiteRoute(pathname) && parsed) {
+      if (isAdminRole(parsed.role) || parsed.team || /^RY[A-Z0-9]+/i.test(String(parsed.loginId || ""))) {
+        return null;
+      }
+    }
+    return parsed;
   } catch {
     return null;
   }
@@ -136,12 +129,22 @@ const ADMIN_ROLES = new Set([
   "superadmin",
   "admin",
   "areamanager",
+  "area_manager",
   "employee",
+  "staff",
   "manager",
-  "owner"
+  "owner",
+  "propertyowner",
+  "field_executive",
+  "field executive",
+  "field_agent",
+  "field agent",
+  "accountant",
+  "support_agent",
+  "support agent"
 ]);
 
-export const isAdminRole = (role) => ADMIN_ROLES.has(String(role || "").toLowerCase());
+export const isAdminRole = (role) => ADMIN_ROLES.has(String(role || "").trim().toLowerCase());
 
 export const clearScopedSession = (pathname = currentPath()) => {
   // Panel logins also mirror the session into role-specific keys read

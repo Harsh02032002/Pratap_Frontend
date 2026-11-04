@@ -66,7 +66,10 @@ export default function DigitalCheckinTenantprofile() {
   return (
     <div className="html-page">
       <div className="wrap">
-        <h2>Tenant Profile</h2>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+          <img src="/website/roomhy_logo.jpeg" alt="Roomhy Logo" style={{ height: 38, objectFit: "contain", borderRadius: 6 }} />
+          <h2 style={{ margin: 0 }}>Tenant Profile</h2>
+        </div>
         <p style={{ fontSize: 13, color: "#6b7280", marginBottom: 20 }}>
           All details below are pre-filled by your property owner and are printed in your Rental Agreement.
           These fields are <strong>read-only</strong> — only your <strong>Backup Email</strong> can be added by you.

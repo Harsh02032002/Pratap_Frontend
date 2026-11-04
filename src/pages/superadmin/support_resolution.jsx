@@ -175,27 +175,45 @@ export default function IssuesResolutionTracking() {
   ];
 
   return (
-    <div className="space-y-6 pb-8">
-      <div className="flex items-center justify-between">
-        <PageHeader
-          title="Issues Resolution Tracking"
-          subtitle="Monitor the full complaint lifecycle from creation to closure."
-        />
-        <button onClick={handleExport} className="bg-[#0E7C86] text-white px-4 py-2 rounded-[10px] text-xs font-semibold flex items-center gap-1.5 hover:bg-[#09626A] transition-colors shadow-xs">
+    <div className="space-y-4 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-[22px] font-bold text-[#10242A] tracking-tight leading-tight">Issues Resolution Tracking</h1>
+          <p className="text-[13px] text-[#4A5961] mt-0.5">Monitor the full complaint lifecycle from creation to closure.</p>
+        </div>
+        <button onClick={handleExport} className="bg-white border border-[#CBD3D9] hover:bg-gray-50 text-[#10242A] px-4 py-1.5 rounded-[8px] text-[13px] font-semibold flex items-center gap-2 transition-colors shadow-xs cursor-pointer shrink-0">
           <Download size={14}/> Export CSV
         </button>
       </div>
 
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        {[
+          { label: "Total Issues",    val: counts.total     },
+          { label: "Resolved",        val: counts.resolved  },
+          { label: "Avg. Resolution", val: avgTime          },
+          { label: "Resolution Rate", val: `${resRate}%`    },
+          { label: "Escalated Cases", val: counts.escalated },
+        ].map(c => (
+          <div key={c.label} className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
+            <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">{c.label}</p>
+            <div className="mt-2">
+              <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{loading ? "..." : c.val}</h3>
+            </div>
+          </div>
+        ))}
+      </div>
+
       {/* Workflow Banner */}
-      <div className="bg-white rounded-[16px] border border-[#E1E6EA] shadow-xs p-4">
-        <div className="flex items-center justify-between overflow-x-auto py-1">
+      <div className="bg-white rounded-[12px] border border-[#E1E6EA] shadow-xs p-3">
+        <div className="flex items-center justify-between overflow-x-auto py-0.5">
           {["Complaint Raised","Ticket Created","Admin Assigned","Investigation","Resolution Proposed","Resolved","Closed"].map((step, i, arr) => (
             <React.Fragment key={step}>
-              <div className="flex flex-col items-center shrink-0 px-2">
-                <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold mb-1",
+              <div className="flex items-center gap-2 shrink-0 px-2">
+                <div className={cn("w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0",
                   i < 4 ? "bg-[#0E7C86] text-white" : i < 6 ? "bg-emerald-600 text-white" : "bg-slate-200 text-slate-600"
                 )}>{i+1}</div>
-                <p className="text-[10px] font-semibold text-[#4A5961] text-center whitespace-nowrap">{step}</p>
+                <p className="text-[12px] font-semibold text-[#4A5961] whitespace-nowrap">{step}</p>
               </div>
               {i < arr.length - 1 && <ChevronRight size={14} className="text-[#4A5961]/40 shrink-0"/>}
             </React.Fragment>
@@ -203,101 +221,79 @@ export default function IssuesResolutionTracking() {
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        {[
-          { label: "Total Issues",    val: counts.total,     icon: Layers       },
-          { label: "Resolved",        val: counts.resolved,  icon: CheckCircle  },
-          { label: "Avg. Resolution", val: avgTime,          icon: Clock        },
-          { label: "Resolution Rate", val: `${resRate}%`,    icon: TrendingUp   },
-          { label: "Escalated Cases", val: counts.escalated, icon: AlertTriangle},
-        ].map(c => (
-          <div key={c.label} className="bg-white p-5 rounded-[16px] border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
-            <div>
-              <div className="w-8 h-8 rounded-[10px] bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center mb-2.5">
-                <c.icon size={16}/>
-              </div>
-              <p className="text-2xl font-bold text-[#10242A] leading-none">{c.val}</p>
-              <p className="text-[10px] font-bold text-[#4A5961] uppercase tracking-wider mt-1.5">{c.label}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Control Bar & Tabs */}
-      <div className="bg-white rounded-[16px] border border-[#E1E6EA] shadow-xs p-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex bg-[#F4F6F8] p-1 rounded-[10px] border border-[#E1E6EA] overflow-x-auto max-w-full">
-          {filterTabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={cn(
-                "px-3 py-1.5 rounded-[6px] text-[11px] font-semibold transition-all whitespace-nowrap cursor-pointer",
-                activeTab === tab.id
-                  ? "bg-[#0E7C86] text-white shadow-xs"
-                  : "text-[#4A5961] hover:text-[#10242A]"
-              )}
-            >
-              {tab.label} ({tab.count})
-            </button>
-          ))}
-        </div>
-
-        <div className="relative min-w-[220px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#4A5961]" size={14} />
+      {/* Search & Filter Row (Outside & Above the Table Card in a Single Line) */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="relative w-full sm:w-[320px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#708088]" size={15} />
           <input
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             placeholder="Search issues..."
-            className="w-full bg-[#F4F6F8] border border-[#E1E6EA] rounded-[10px] pl-9 pr-4 py-1.5 text-xs outline-none focus:border-[#0E7C86] text-[#10242A]"
+            className="w-full bg-white border border-[#CBD3D9] rounded-[8px] pl-9 pr-3.5 py-1.5 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs"
           />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <select
+            value={activeTab}
+            onChange={e => setActiveTab(e.target.value)}
+            className="bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-1.5 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs"
+          >
+            {filterTabs.map(tab => (
+              <option key={tab.id} value={tab.id}>
+                {tab.label} ({tab.count})
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
       {/* Table Listing */}
-      <div className="bg-white rounded-[16px] border border-[#E1E6EA] shadow-xs overflow-hidden">
+      <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left">
-            <thead className="bg-[#F8FAFC] text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider border-b border-[#E1E6EA]">
-              <tr>
-                <th className="px-5 py-3">Issue ID / Ticket</th>
-                <th className="px-5 py-3">Type</th>
-                <th className="px-5 py-3">Property</th>
-                <th className="px-5 py-3">Tenant / Owner</th>
-                {!isEmployeeView && <th className="px-5 py-3">Assigned Admin</th>}
-                <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3 text-right">Actions</th>
+          <table className="w-full text-left border-collapse min-w-[700px]">
+            <thead>
+              <tr className="border-b border-[#E1E6EA]">
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider pl-2">Issue ID / Ticket</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Type</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Property</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Tenant / Owner</th>
+                {!isEmployeeView && <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Assigned Admin</th>}
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Status</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-right pr-2">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E1E6EA]">
-              {displayList.length === 0 ? (
-                <tr><td colSpan={isEmployeeView ? 6 : 7} className="px-6 py-12 text-center text-xs font-semibold text-[#4A5961]">No issues tracking records found</td></tr>
+            <tbody className="divide-y divide-[#F0F4F6] text-[13px]">
+              {loading ? (
+                <tr><td colSpan={isEmployeeView ? 6 : 7} className="py-6 text-center text-[13px] text-[#4A5961]">Loading resolution tracking data...</td></tr>
+              ) : displayList.length === 0 ? (
+                <tr><td colSpan={isEmployeeView ? 6 : 7} className="py-6 text-center text-[13px] text-[#4A5961]">No issues tracking records found</td></tr>
               ) : displayList.map(item => {
                 const statusCfg = RES_STATUS_CFG[item.res_status] || RES_STATUS_CFG["Pending Review"];
                 return (
-                  <tr key={item.id} className="hover:bg-[#F4F6F8]/60 transition-colors">
-                    <td className="px-5 py-3 font-bold text-[#0E7C86]">
+                  <tr key={item.id} className="hover:bg-[#F9FAFB] transition-colors">
+                    <td className="py-2.5 pl-2 font-bold text-[#0E7C86]">
                       {item.ticket_id || item.id}
                     </td>
-                    <td className="px-5 py-3">
-                      <span className="text-[10px] font-semibold text-[#4A5961] bg-[#F4F6F8] border border-[#E1E6EA] px-2 py-0.5 rounded-[4px]">{item.type}</span>
+                    <td className="py-2.5">
+                      <span className="text-[11px] font-semibold text-[#4A5961] bg-[#E8EDF1] px-2.5 py-0.5 rounded-full">{item.type}</span>
                     </td>
-                    <td className="px-5 py-3 font-semibold text-[#10242A]">{item.property || "—"}</td>
-                    <td className="px-5 py-3 text-[#4A5961]">{item.tenant || item.owner || "User"}</td>
-                    {!isEmployeeView && <td className="px-5 py-3 font-semibold text-[#10242A]">{item.admin || "Unassigned"}</td>}
-                    <td className="px-5 py-3">
+                    <td className="py-2.5 font-semibold text-[#10242A]">{item.property || "—"}</td>
+                    <td className="py-2.5 text-[#4A5961]">{item.tenant || item.owner || "User"}</td>
+                    {!isEmployeeView && <td className="py-2.5 font-semibold text-[#10242A]">{item.admin || "Unassigned"}</td>}
+                    <td className="py-2.5">
                       <select
                         value={item.res_status}
                         disabled={updatingId === item.id}
                         onChange={(e) => handleStatusChange(item.id, e.target.value)}
-                        className={cn("px-2 py-0.5 rounded-[6px] text-[10px] font-bold outline-none cursor-pointer border", statusCfg.cls)}
+                        className={cn("px-2.5 py-0.5 rounded-full text-[11px] font-semibold outline-none cursor-pointer border", statusCfg.cls)}
                       >
                         {STATUS_OPTIONS.map(opt => (
                           <option key={opt.label} value={opt.label}>{opt.label}</option>
                         ))}
                       </select>
                     </td>
-                    <td className="px-5 py-3 text-right">
+                    <td className="py-2.5 pr-2 text-right">
                       <button onClick={() => setViewTicket(item)} className="p-1.5 text-[#4A5961] hover:text-[#0E7C86] hover:bg-[#E6F4F5] rounded-[6px] transition-all cursor-pointer">
                         <Eye size={14} />
                       </button>

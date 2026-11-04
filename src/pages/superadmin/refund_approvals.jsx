@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { ShieldCheck, Check, X, Search, Loader2, ArrowLeft } from "lucide-react";
+import { Check, X, Search, Loader2, ArrowLeft } from "lucide-react";
 import { fetchJson } from "../../utils/api";
 import { Link } from "react-router-dom";
-import { PageHeader } from "../../components/superadmin/PageHeader";
 
 export default function RefundApprovalSystemPage() {
   const [requests, setRequests] = useState([]);
@@ -51,86 +50,88 @@ export default function RefundApprovalSystemPage() {
   );
 
   return (
-    <div className="space-y-6 pb-8 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
-      <PageHeader
-        title="Refund Approval System"
-        subtitle="Approve or reject refund requests submitted by tenants or staff."
-        actions={
-          <Link to="/superadmin/accounting" className="px-3.5 py-2 text-xs font-semibold text-[#4A5961] bg-white border border-[#E1E6EA] rounded-[12px] hover:bg-[#F4F6F8] transition-all flex items-center gap-2 shadow-xs">
+    <div className="space-y-4 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-[22px] font-bold text-[#10242A] tracking-tight leading-tight">Refund Approval System</h1>
+          <p className="text-[13px] text-[#4A5961] mt-0.5">Approve or reject refund requests submitted by tenants or staff.</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Link to="/superadmin/accounting" className="px-4 py-1.5 text-[13px] font-semibold text-[#10242A] bg-white border border-[#CBD3D9] rounded-[8px] hover:bg-gray-50 transition-all flex items-center gap-2 shadow-xs">
             <ArrowLeft size={14} className="text-[#0E7C86]" /> Back to Accounting
           </Link>
-        }
-      />
+        </div>
+      </div>
 
-        {/* Filter */}
-        <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-            <input
-              type="text"
-              placeholder="Search pending refund approval queue..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
-            />
+      {/* Outside Search Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="relative w-full sm:w-[320px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8C9BA5]" size={16} />
+          <input
+            type="text"
+            placeholder="Search pending refund approval queue..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full bg-white border border-[#CBD3D9] rounded-[8px] pl-9 pr-3.5 py-1.5 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs"
+          />
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs overflow-hidden">
+        {loading ? (
+          <div className="py-8 text-center text-[13px] text-[#4A5961]">
+            <Loader2 className="w-6 h-6 animate-spin text-[#0E7C86] mx-auto mb-2" />
+            Loading pending refund approval queue...
           </div>
-        </div>
-
-        {/* Table */}
-        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-          {loading ? (
-            <div className="p-12 text-center text-gray-500">
-              <Loader2 className="w-8 h-8 animate-spin text-amber-600 mx-auto mb-2" />
-              Loading pending refund approval queue...
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="p-12 text-center text-gray-400 font-medium">
-              No pending refund approval requests in queue.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-gray-50/50 border-b border-gray-100 text-[11px] font-bold uppercase tracking-wider text-gray-400">
-                    <th className="p-4 pl-6">Request ID</th>
-                    <th className="p-4">Tenant / Raised By</th>
-                    <th className="p-4">Reason / Notes</th>
-                    <th className="p-4">Amount</th>
-                    <th className="p-4 text-right pr-6">Decisions</th>
+        ) : filtered.length === 0 ? (
+          <div className="py-8 text-center text-[13px] text-[#4A5961]">
+            No pending refund approval requests in queue.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-[#E1E6EA]">
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Request ID</th>
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Tenant / Raised By</th>
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Reason / Notes</th>
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Amount</th>
+                  <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-right">Decisions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#F0F4F6] text-[13px]">
+                {filtered.map((r) => (
+                  <tr key={r._id} className="hover:bg-[#F9FAFB] transition-colors">
+                    <td className="py-2.5 font-mono font-semibold text-[#0E7C86]">{r._id}</td>
+                    <td className="py-2.5 font-medium text-[#10242A]">{r.user_name || r.name || r.raised_by_name || "Tenant"}</td>
+                    <td className="py-2.5 text-[#4A5961] max-w-xs truncate">{r.reason || r.description || "N/A"}</td>
+                    <td className="py-2.5 font-semibold text-[#10242A]">₹{r.amount || r.refund_amount || 0}</td>
+                    <td className="py-2.5 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleAction(r._id, "Approved")}
+                          disabled={actionId === r._id}
+                          className="px-3 py-1 bg-[#14532D] hover:bg-[#166534] text-white font-semibold rounded-[6px] text-[12px] shadow-xs transition-all flex items-center gap-1 cursor-pointer"
+                        >
+                          <Check size={12} /> Approve
+                        </button>
+                        <button
+                          onClick={() => handleAction(r._id, "Rejected")}
+                          disabled={actionId === r._id}
+                          className="px-3 py-1 bg-[#991B1B] hover:bg-[#7F1D1D] text-white font-semibold rounded-[6px] text-[12px] shadow-xs transition-all flex items-center gap-1 cursor-pointer"
+                        >
+                          <X size={12} /> Reject
+                        </button>
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 text-sm">
-                  {filtered.map((r) => (
-                    <tr key={r._id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="p-4 pl-6 font-mono font-bold text-gray-900">{r._id}</td>
-                      <td className="p-4 font-semibold text-gray-800">{r.user_name || r.name || r.raised_by_name || "Tenant"}</td>
-                      <td className="p-4 text-gray-600 max-w-xs truncate">{r.reason || r.description || "N/A"}</td>
-                      <td className="p-4 font-black text-amber-600">₹{r.amount || r.refund_amount || 0}</td>
-                      <td className="p-4 text-right pr-6">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => handleAction(r._id, "Approved")}
-                            disabled={actionId === r._id}
-                            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-sm transition-all flex items-center gap-1"
-                          >
-                            <Check size={14} /> Approve
-                          </button>
-                          <button
-                            onClick={() => handleAction(r._id, "Rejected")}
-                            disabled={actionId === r._id}
-                            className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs shadow-sm transition-all flex items-center gap-1"
-                          >
-                            <X size={14} /> Reject
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

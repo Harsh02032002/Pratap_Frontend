@@ -15,7 +15,7 @@ import { PageHeader } from "../../components/superadmin/PageHeader";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip
 } from "recharts";
-import { fetchJson, getAuthHeader } from "../../utils/api";
+import { fetchJson, getAuthHeader, clearApiCache } from "../../utils/api";
 import { toast } from "react-hot-toast";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
@@ -94,26 +94,31 @@ export default function SuperadminEnquiry() {
   const fetchEnquiries = async () => {
     try {
       setLoading(true);
+      clearApiCache("/api/properties");
       const [enqRes, propsRes, empRes] = await Promise.all([
         fetch(`${getApiUrl()}/api/website-enquiries?t=${Date.now()}`, { headers: getAuthHeader() })
           .then(r => r.json())
           .catch(() => ({})),
-        fetchJson("/api/properties?pendingApproval=true&withoutVisitReport=true&limit=1000").catch(() => ({})),
+        fetchJson(`/api/properties?pendingApproval=true&withoutVisitReport=true&limit=1000&t=${Date.now()}`).catch(() => ({})),
         fetchJson("/api/employees").catch(() => ({}))
       ]);
 
       if (enqRes?.enquiries) {
         setEnquiries(enqRes.enquiries.map(enq => ({
           id: enq._id || `ENQ-${Math.floor(Math.random()*10000)}`,
+          enquiryId: enq.enquiry_id || enq._id,
           name: enq.name || enq.owner_name || "Unknown",
           property: enq.property_name || enq.property || "Unknown Property",
           city: enq.city || enq.locality || "N/A",
           phone: enq.owner_phone || enq.phone || "",
           email: enq.owner_email || enq.email || "",
           rent: enq.rent || 0,
-          status: enq.status === "approved" ? "Approved" : 
+          assignedTo: enq.assigned_to || enq.assigned_to_loginId || "",
+          assignedToLoginId: enq.assigned_to_loginId || "",
+          status: enq.status === "approved" || enq.status === "accepted" || enq.status === "completed" ? "Approved" : 
                   enq.status === "rejected" ? "Rejected" : 
-                  enq.status === "on_hold" ? "On Hold" : "Pending",
+                  enq.status === "on_hold" ? "On Hold" :
+                  enq.status === "assigned" ? "Assigned" : "Pending",
           date: new Date(enq.created_at || enq.createdAt || Date.now()).toLocaleDateString("en-IN", { day: 'numeric', month: 'short' }),
           initial: (enq.name || enq.owner_name || "U")[0].toUpperCase(),
           color: ["blue", "indigo", "amber", "rose", "emerald"][Math.floor(Math.random() * 5)],
@@ -189,21 +194,35 @@ export default function SuperadminEnquiry() {
 
   const handleAssignVerification = async (itemId, employeeId, employeeName) => {
     try {
-      const endpoint = `${getApiUrl()}/api/properties/${itemId}/assign-verification`;
+      const isEnquiryAssign = assignModal?.type === "enquiry";
+      const endpoint = isEnquiryAssign
+        ? `${getApiUrl()}/api/website-enquiries/assign/${itemId}`
+        : `${getApiUrl()}/api/properties/${itemId}/assign-verification`;
       const res = await fetch(endpoint, {
-        method: "PUT",
+        method: isEnquiryAssign ? "POST" : "PUT",
         headers: { "Content-Type": "application/json", ...getAuthHeader() },
-        body: JSON.stringify({ employeeId, employeeName })
+        body: JSON.stringify(
+          isEnquiryAssign
+            ? { assigned_to_loginId: employeeId, assigned_to: employeeName, employeeId, employeeName }
+            : { employeeId, employeeName }
+        )
       });
       const data = await res.json();
 
       if (data.success || res.ok) {
         toast.success(data.message || `Successfully assigned to ${employeeName || "Staff"}`);
-        const assignedId = data.property?.assignedTo || employeeId;
-        const assignedName = data.property?.assignedToName || employeeName;
-        setListingRequests(prev =>
-          prev.map(p => (p._id === itemId ? { ...p, assignedTo: assignedId, assignedToName: assignedName } : p))
-        );
+        const assignedId = data.property?.assignedTo || data.employee?.loginId || employeeId;
+        const assignedName = data.property?.assignedToName || data.employee?.name || employeeName;
+        if (!isEnquiryAssign) {
+          setListingRequests(prev =>
+            prev.map(p => (p._id === itemId ? { ...p, assignedTo: assignedId, assignedToName: assignedName } : p))
+          );
+        } else {
+          setEnquiries(prev =>
+            prev.map(e => ((e.id === itemId || e.enquiryId === itemId) ? { ...e, assignedTo: assignedName || assignedId, status: "Assigned" } : e))
+          );
+        }
+        clearApiCache("/api/properties");
         setAssignModal(null);
         fetchEnquiries();
       } else {
@@ -246,147 +265,141 @@ export default function SuperadminEnquiry() {
   }, [enquiries]);
 
   return (
-    <div className="space-y-6">
-      <PageHeader 
-        title="Online Leads & Property Listing Requests"
-        subtitle="Review and approve property listing requests and track customer leads received from the website."
-        breadcrumbs={[
-          { label: "Dashboard" },
-          { label: "Online Leads & Listing Requests", active: true }
-        ]}
-        actions={
-          <button onClick={fetchEnquiries} className="bg-white border border-slate-200 text-slate-700 px-3.5 py-2 rounded-xl text-xs font-semibold hover:bg-slate-50 transition-all flex items-center gap-2 shadow-2xs cursor-pointer">
-             <RefreshCw className={cn("w-3.5 h-3.5 text-[#095256]", loading && "animate-spin")} /> Refresh
-          </button>
-        }
-      />
-
-      {/* Metrics Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-        <StatCardHorizontal label="Property Listing Requests" value={listingRequests.length} trend="Pending Approval" up icon={Building2} color="indigo" />
-        <StatCardHorizontal label="Total Enquiries" value={enquiries.length} trend="+15.2%" up icon={Inbox} color="blue" />
-        <StatCardHorizontal label="Pending Leads" value={enquiries.filter(e => e.status === "Pending").length} trend="+5.3%" up icon={Hourglass} color="amber" />
-        <StatCardHorizontal label="Approved Leads" value={enquiries.filter(e => e.status === "Approved").length} trend="+12.4%" up icon={CheckCircle2} color="emerald" />
-        <StatCardHorizontal label="Rejected Leads" value={enquiries.filter(e => e.status === "Rejected").length} trend="-2.1%" up={false} icon={XCircle} color="rose" />
+    <div className="space-y-4 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-[22px] font-bold text-[#10242A] tracking-tight leading-tight">Online Leads & Property Listing Requests</h1>
+          <p className="text-[13px] text-[#4A5961] mt-0.5">Review and approve property listing requests and track customer leads received from the website.</p>
+        </div>
+        <button onClick={fetchEnquiries} className="bg-white border border-[#CBD3D9] text-[#10242A] px-3.5 py-1.5 rounded-[8px] text-[13px] font-semibold hover:bg-[#F4F6F8] transition-all flex items-center gap-2 shadow-xs cursor-pointer">
+           <RefreshCw className={cn("w-3.5 h-3.5 text-[#4A5961]", loading && "animate-spin")} /> Refresh
+        </button>
       </div>
 
-      {/* ── PROPERTY LISTING REQUESTS TABLE (Directly below Stats Cards) ── */}
-      <div className="bg-white rounded-[16px] border border-[#E1E6EA] shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-[#E1E6EA] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h3 className="text-base font-bold text-[#10242A] flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-[#0E7C86]" /> Property Listing Requests ({filteredListingRequests.length})
-            </h3>
-            <p className="text-xs text-[#4A5961] mt-0.5">
-              All pending property listing requests submitted by owners or via the website form.
-            </p>
-          </div>
-          <div className="relative w-full sm:w-72">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
-            <input
-              value={listingSearch}
-              onChange={e => setListingSearch(e.target.value)}
-              placeholder="Search property, owner, city..."
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2 text-xs font-medium text-slate-800 placeholder-slate-400 outline-none focus:bg-white focus:border-[#095256] transition-all"
-            />
-          </div>
-        </div>
+      {/* Metrics Row (NO ICONS) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <StatCardHorizontal label="Property Listing Requests" value={listingRequests.length} />
+        <StatCardHorizontal label="Total Enquiries" value={enquiries.length} />
+        <StatCardHorizontal label="Pending Leads" value={enquiries.filter(e => e.status === "Pending").length} />
+        <StatCardHorizontal label="Approved Leads" value={enquiries.filter(e => e.status === "Approved").length} />
+        <StatCardHorizontal label="Rejected Leads" value={enquiries.filter(e => e.status === "Rejected").length} />
+      </div>
 
+      {/* Search & Filter Row for Property Listing Requests (Outside & Above Table Card) */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 className="text-[15px] font-bold text-[#10242A]">
+            Property Listing Requests ({filteredListingRequests.length})
+          </h3>
+          <p className="text-[12px] text-[#4A5961]">
+            All pending property listing requests submitted by owners or via the website form.
+          </p>
+        </div>
+        <div className="relative w-full sm:w-72">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8C9BA5]" size={15} />
+          <input
+            value={listingSearch}
+            onChange={e => setListingSearch(e.target.value)}
+            placeholder="Search property, owner, city..."
+            className="w-full bg-white border border-[#CBD3D9] rounded-[8px] pl-9 pr-3.5 py-1.5 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs"
+          />
+        </div>
+      </div>
+
+      {/* ── PROPERTY LISTING REQUESTS TABLE ── */}
+      <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left">
-            <thead className="bg-[#F8FAFC] text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider border-b border-[#E1E6EA]">
-              <tr>
-                <th className="px-5 py-3">Property Details</th>
-                <th className="px-5 py-3">Owner Details</th>
-                <th className="px-5 py-3">Location</th>
-                {!isEmployeeView && <th className="px-5 py-3">Assigned Employee</th>}
-                <th className="px-5 py-3">Date Requested</th>
-                <th className="px-5 py-3 text-right">Actions</th>
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-[#E1E6EA]">
+                <th className="pb-2 pr-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Property Details</th>
+                <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Owner Details</th>
+                <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Location</th>
+                <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Assigned Employee</th>
+                <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Date Requested</th>
+                <th className="pb-2 pl-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E1E6EA]">
+            <tbody className="divide-y divide-[#F0F4F6] text-[13px]">
               {loading ? (
                 <tr>
-                  <td colSpan={isEmployeeView ? 5 : 6} className="px-6 py-12 text-center text-xs font-semibold text-[#4A5961]">
+                  <td colSpan={6} className="py-12 text-center text-[13px] font-medium text-[#4A5961]">
                     Loading property listing requests...
                   </td>
                 </tr>
               ) : filteredListingRequests.length === 0 ? (
                 <tr>
-                  <td colSpan={isEmployeeView ? 5 : 6} className="px-6 py-12 text-center text-xs font-semibold text-[#4A5961]">
+                  <td colSpan={6} className="py-12 text-center text-[13px] font-medium text-[#4A5961]">
                     No property listing requests pending
                   </td>
                 </tr>
               ) : (
                 filteredListingRequests.map(p => (
-                  <tr key={p._id} className="hover:bg-[#F4F6F8]/60 transition-colors">
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-[8px] bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center shrink-0">
-                          <Building2 size={15} />
-                        </div>
-                        <div>
-                          <p className="font-bold text-[#10242A] text-xs">{p.title || "No Title"}</p>
-                          <p className="text-[10px] text-[#4A5961] mt-0.5 uppercase">{p.propertyType || "Property"} • ₹{p.monthlyRent || p.rent || 0}/mo</p>
-                        </div>
+                  <tr key={p._id} className="hover:bg-[#F9FAFB] transition-colors">
+                    <td className="py-2.5 pr-4">
+                      <div>
+                        <p className="font-semibold text-[#10242A] text-[13px]">{p.title || "No Title"}</p>
+                        <p className="text-[11px] text-[#4A5961] mt-0.5 uppercase">{p.propertyType || "Property"} • ₹{p.monthlyRent || p.rent || 0}/mo</p>
                       </div>
                     </td>
-                    <td className="px-5 py-3">
-                      <p className="text-xs font-bold text-[#10242A]">{p.ownerName || p.contact?.name || "Unknown Owner"}</p>
-                      <p className="text-[10px] text-[#4A5961] font-mono mt-0.5">
+                    <td className="py-2.5 px-4">
+                      <p className="text-[13px] font-semibold text-[#10242A]">{p.ownerName || p.contact?.name || "Unknown Owner"}</p>
+                      <p className="text-[11px] text-[#4A5961] font-mono mt-0.5">
                         {p.ownerLoginId || p.ownerPhone || p.contact?.number || "N/A"}
                       </p>
                     </td>
-                    <td className="px-5 py-3">
-                      <p className="text-xs font-semibold text-[#4A5961] flex items-center gap-1">
-                        <MapPin size={11} className="text-[#0E7C86]" /> {[p.locality, p.city].filter(Boolean).join(", ") || "N/A"}
+                    <td className="py-2.5 px-4">
+                      <p className="text-[13px] font-medium text-[#4A5961] flex items-center gap-1">
+                        <MapPin size={12} className="text-[#0E7C86]" /> {[p.locality, p.city].filter(Boolean).join(", ") || "N/A"}
                       </p>
                     </td>
-                    {!isEmployeeView && (
-                      <td className="px-5 py-3">
-                        {p.assignedToName || p.assignedTo ? (
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] font-semibold text-[#10242A] bg-[#F4F6F8] border border-[#E1E6EA] px-2 py-0.5 rounded-[4px] inline-flex items-center gap-1">
-                              <User size={11} className="text-[#0E7C86]" /> {p.assignedToName || p.assignedTo}
-                            </span>
+                    <td className="py-2.5 px-4">
+                      {p.assignedToName || p.assignedTo ? (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11px] font-semibold text-[#10242A] bg-[#F4F6F8] border border-[#E1E6EA] px-2 py-0.5 rounded-[4px] inline-flex items-center gap-1">
+                            <User size={11} className="text-[#0E7C86]" /> {p.assignedToName || p.assignedTo}
+                          </span>
+                          {!isEmployeeView && (
                             <button
-                              onClick={() => setAssignModal({ id: p._id, city: p.city, title: p.title })}
-                              className="text-[10px] text-[#4A5961] hover:text-[#0E7C86] underline cursor-pointer"
+                              onClick={() => setAssignModal({ id: p._id, type: "property", city: p.city, title: p.title })}
+                              className="text-[11px] text-[#4A5961] hover:text-[#0E7C86] underline cursor-pointer"
                               title="Reassign"
                             >
                               Edit
                             </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => setAssignModal({ id: p._id, city: p.city, title: p.title })}
-                            className="text-[11px] font-semibold text-[#0E7C86] hover:underline flex items-center gap-1 cursor-pointer"
-                          >
-                            <UserPlus size={11} /> Assign
-                          </button>
-                        )}
-                      </td>
-                    )}
-                    <td className="px-5 py-3 text-xs text-[#4A5961]">
+                          )}
+                        </div>
+                      ) : !isEmployeeView ? (
+                        <button
+                          onClick={() => setAssignModal({ id: p._id, type: "property", city: p.city, title: p.title })}
+                          className="text-[12px] font-semibold text-[#0E7C86] hover:underline flex items-center gap-1 cursor-pointer"
+                        >
+                          <UserPlus size={12} /> Assign
+                        </button>
+                      ) : (
+                        <span className="text-[11px] text-[#4A5961]">Unassigned</span>
+                      )}
+                    </td>
+                    <td className="py-2.5 px-4 text-[12px] text-[#4A5961]">
                       {p.createdAt ? new Date(p.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—"}
                     </td>
-                    <td className="px-5 py-3 text-right">
+                    <td className="py-2.5 pl-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => setSelectedProperty(p)}
-                          className="px-2.5 py-1 bg-[#F4F6F8] hover:bg-[#E6F4F5] text-[#10242A] border border-[#E1E6EA] rounded-[6px] text-[10px] font-semibold transition-all flex items-center gap-1 cursor-pointer"
+                          className="px-2.5 py-1 bg-white hover:bg-[#F4F6F8] text-[#10242A] border border-[#CBD3D9] rounded-[6px] text-[12px] font-semibold transition-all flex items-center gap-1 cursor-pointer"
                         >
                           <Eye size={12} /> View
                         </button>
                         <button
                           onClick={() => handleApproveListingRequest(p._id)}
-                          className="px-2.5 py-1 bg-[#0E7C86] hover:bg-[#09626A] text-white rounded-[6px] text-[10px] font-semibold transition-all cursor-pointer"
+                          className="px-2.5 py-1 bg-[#095256] hover:bg-[#073E42] text-white rounded-[6px] text-[12px] font-semibold transition-all cursor-pointer"
                         >
                           Approve
                         </button>
                         <button
                           onClick={() => handleRejectListingRequest(p._id)}
-                          className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-[6px] text-[10px] font-semibold transition-all cursor-pointer"
+                          className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-[6px] text-[12px] font-semibold transition-all cursor-pointer"
                         >
                           Reject
                         </button>
@@ -400,17 +413,32 @@ export default function SuperadminEnquiry() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      {/* Search & Filter Row for Website Enquiries (Outside & Above Card) */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+        <div>
+          <h3 className="text-[15px] font-bold text-[#10242A]">Website Enquiries Ledger ({filteredEnquiries.length})</h3>
+          <p className="text-[12px] text-[#4A5961]">Customer leads and pipeline breakdown.</p>
+        </div>
+        <div className="flex items-center gap-2.5">
+          <div className="relative w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8C9BA5]" />
+            <input 
+              value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Search leads..." 
+              className="w-full bg-white border border-[#CBD3D9] rounded-[8px] pl-9 pr-3.5 py-1.5 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs" 
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Yield Matrix Chart */}
-        <div className="lg:col-span-4 bg-white rounded-2xl p-6 border border-slate-100 shadow-lg shadow-slate-200/50">
-           <div className="flex items-center justify-between mb-8">
-              <h3 className="text-[10px] font-bold text-slate-800 uppercase tracking-widest leading-none">Lead Yield Matrix</h3>
-              <button onClick={fetchEnquiries} className="p-1.5 rounded-lg bg-slate-50 text-slate-400 hover:text-blue-600 transition-all border border-slate-100 shadow-sm">
-                 <RefreshCw className="w-3.5 h-3.5" />
-              </button>
+        <div className="lg:col-span-4 bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs">
+           <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider leading-none">Lead Yield Matrix</h3>
            </div>
            <div className="flex flex-col items-center">
-              <div className="relative w-40 h-40">
+              <div className="relative w-36 h-36">
                  <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                        <Pie data={enquiryStatus} dataKey="value" innerRadius={35} outerRadius={55} paddingAngle={10} stroke="none">
@@ -421,18 +449,18 @@ export default function SuperadminEnquiry() {
                     </PieChart>
                  </ResponsiveContainer>
                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                    <p className="text-xl font-bold text-slate-800 tracking-tight leading-none">{enquiries.length}</p>
-                    <p className="text-[7px] text-slate-400 font-bold uppercase mt-1 tracking-tighter">Total Pipeline</p>
+                    <p className="text-xl font-bold text-[#10242A] tracking-tight leading-none">{enquiries.length}</p>
+                    <p className="text-[9px] text-[#4A5961] font-semibold uppercase mt-1">Total</p>
                  </div>
               </div>
-              <div className="w-full mt-8 space-y-2">
+              <div className="w-full mt-4 space-y-1.5">
                  {enquiryStatus.map(s => (
-                    <div key={s.name} className="flex items-center justify-between group p-3 hover:bg-slate-50 rounded-xl transition-all cursor-pointer border border-transparent hover:border-slate-100">
-                       <div className="flex items-center gap-3">
-                          <div className="w-2 h-2 rounded-full shadow-sm" style={{backgroundColor: s.color}} />
-                          <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider leading-none">{s.name}</span>
+                    <div key={s.name} className="flex items-center justify-between p-2 hover:bg-[#F9FAFB] rounded-[8px] transition-all border border-transparent hover:border-[#E1E6EA]">
+                       <div className="flex items-center gap-2.5">
+                          <div className="w-2.5 h-2.5 rounded-full" style={{backgroundColor: s.color}} />
+                          <span className="text-[12px] font-medium text-[#4A5961]">{s.name}</span>
                        </div>
-                       <p className="text-[10px] font-bold text-slate-800 leading-none">{s.value} <span className="text-[8px] text-slate-400 ml-1 font-medium opacity-60">({s.percent})</span></p>
+                       <p className="text-[13px] font-semibold text-[#10242A]">{s.value} <span className="text-[11px] text-[#8C9BA5] ml-1 font-normal">({s.percent})</span></p>
                     </div>
                  ))}
               </div>
@@ -440,30 +468,13 @@ export default function SuperadminEnquiry() {
         </div>
 
         {/* Lead Pulse Ledger */}
-        <div className="lg:col-span-8 bg-white rounded-2xl p-6 border border-slate-100 shadow-lg shadow-slate-200/50">
-           <div className="flex items-center justify-between mb-8">
-              <h3 className="text-[10px] font-bold text-slate-800 uppercase tracking-widest leading-none">Website Enquiries Ledger</h3>
-              <div className="flex items-center gap-3">
-                 <div className="relative group w-48">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-300" />
-                    <input 
-                      value={search} onChange={e => setSearch(e.target.value)}
-                      placeholder="Search leads..." 
-                      className="w-full bg-slate-50 border border-slate-100 rounded-xl py-2 pl-9 pr-3 text-[10px] font-bold outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all shadow-sm" 
-                   />
-                 </div>
-                 <button onClick={fetchEnquiries} className="p-2 rounded-lg bg-slate-50 text-slate-400 hover:text-blue-600 transition-all border border-slate-100 shadow-sm">
-                    <RefreshCw className={cn("w-3.5 h-3.5", loading && "animate-spin")} />
-                 </button>
-              </div>
-           </div>
-
+        <div className="lg:col-span-8 bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs overflow-hidden">
            {filteredEnquiries.length > 0 && (
-              <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-slate-50 rounded-xl border border-slate-100">
+              <div className="flex items-center gap-2 mb-3 px-3 py-2 bg-[#F9FAFB] rounded-[8px] border border-[#E1E6EA]">
                  <input
                    type="checkbox"
                    disabled={isBulkProcessing}
-                   className="rounded border-slate-300 cursor-pointer"
+                   className="rounded border-[#CBD3D9] cursor-pointer"
                    checked={filteredEnquiries.every(enq => selectedIds.has(enq.id))}
                    onChange={() => {
                      const allSelected = filteredEnquiries.every(enq => selectedIds.has(enq.id));
@@ -476,22 +487,22 @@ export default function SuperadminEnquiry() {
                      setSelectedIds(next);
                    }}
                  />
-                 <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Select All ({filteredEnquiries.length})</span>
+                 <span className="text-[12px] font-semibold text-[#4A5961]">Select All ({filteredEnquiries.length})</span>
               </div>
            )}
 
-           <div className="space-y-3 h-[400px] overflow-y-auto custom-scrollbar pr-2">
+           <div className="divide-y divide-[#F0F4F6] max-h-[400px] overflow-y-auto custom-scrollbar pr-1">
               {loading ? (
-                <div className="flex flex-col items-center justify-center h-full text-slate-400">
-                  <Loader2 className="w-6 h-6 animate-spin mb-2" />
-                  <span className="text-[10px] font-bold">Scanning Pipeline...</span>
+                <div className="flex flex-col items-center justify-center py-16 text-[#4A5961]">
+                  <Loader2 className="w-6 h-6 animate-spin mb-2 text-[#0E7C86]" />
+                  <span className="text-[12px] font-semibold">Scanning Pipeline...</span>
                 </div>
               ) : filteredEnquiries.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-slate-400">
-                  <span className="text-[10px] font-bold">No Leads Found</span>
+                <div className="flex flex-col items-center justify-center py-16 text-[#4A5961]">
+                  <span className="text-[13px] font-semibold">No Leads Found</span>
                 </div>
               ) : filteredEnquiries.map(enq => (
-                <div key={enq.id} className="flex items-center gap-4 group cursor-pointer p-3 rounded-xl border border-transparent hover:border-slate-100 hover:bg-slate-50 transition-all duration-300"
+                <div key={enq.id} className="flex items-center gap-3.5 cursor-pointer py-2.5 px-2 hover:bg-[#F9FAFB] transition-colors"
                   onClick={() => {
                     const next = new Set(selectedIds);
                     if (next.has(enq.id)) next.delete(enq.id);
@@ -502,7 +513,7 @@ export default function SuperadminEnquiry() {
                    <input
                      type="checkbox"
                      disabled={isBulkProcessing}
-                     className="rounded border-slate-300 cursor-pointer shrink-0"
+                     className="rounded border-[#CBD3D9] cursor-pointer shrink-0"
                      checked={selectedIds.has(enq.id)}
                      onClick={(e) => e.stopPropagation()}
                      onChange={() => {
@@ -512,34 +523,44 @@ export default function SuperadminEnquiry() {
                        setSelectedIds(next);
                      }}
                    />
-                   <div className={cn(
-                      "w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white text-sm shadow-sm transition-transform group-hover:scale-105 shrink-0",
-                      enq.color === "blue" ? "bg-blue-600 shadow-blue-50" :
-                      enq.color === "amber" ? "bg-amber-600 shadow-amber-50" :
-                      enq.color === "indigo" ? "bg-indigo-600 shadow-indigo-50" :
-                      enq.color === "emerald" ? "bg-emerald-600 shadow-emerald-50" : "bg-rose-600 shadow-rose-50"
-                   )}>
+                   <div className="w-8 h-8 rounded-full bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center font-bold text-[12px] shrink-0">
                       {enq.initial}
                    </div>
                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-[11px] font-bold text-slate-800 truncate leading-none">{enq.name}</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-[13px] font-semibold text-[#10242A] truncate leading-none">{enq.name}</p>
                         <span className={cn(
-                           "text-[7px] font-bold px-1.5 py-0.5 rounded-lg border uppercase tracking-wider shadow-sm whitespace-nowrap",
+                           "text-[10px] font-semibold px-2 py-0.5 rounded-full border whitespace-nowrap",
                            enq.status === "Approved" ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                           enq.status === "Assigned" ? "bg-teal-50 text-teal-700 border-teal-200" :
                            enq.status === "Pending" ? "bg-amber-50 text-amber-600 border-amber-100" :
                            enq.status === "On Hold" ? "bg-indigo-50 text-indigo-600 border-indigo-100" : "bg-rose-50 text-rose-600 border-rose-100"
                         )}>
                           {enq.status}
                         </span>
+                        {enq.assignedTo && (
+                          <span className="text-[11px] font-semibold text-[#10242A] bg-[#F4F6F8] border border-[#E1E6EA] px-1.5 py-0.5 rounded-[4px] inline-flex items-center gap-1">
+                            <User size={10} className="text-[#0E7C86]" /> {enq.assignedTo}
+                          </span>
+                        )}
                       </div>
-                      <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest truncate mt-1.5 opacity-60 leading-none">{enq.property} • {enq.city}</p>
+                      <p className="text-[11px] text-[#4A5961] truncate mt-1 leading-none">{enq.property} • {enq.city} {enq.phone ? `• ${enq.phone}` : ""}</p>
                    </div>
+                   {!isEmployeeView && (
+                     <button
+                       onClick={(e) => {
+                         e.stopPropagation();
+                         setAssignModal({ id: enq.enquiryId || enq.id, type: "enquiry", city: enq.city, title: enq.property });
+                       }}
+                       className="px-2.5 py-1 bg-[#E6F4F5] hover:bg-[#D1ECEF] text-[#0E7C86] rounded-[6px] text-[11px] font-semibold transition-all flex items-center gap-1 shrink-0 cursor-pointer"
+                     >
+                       <UserPlus size={11} /> {enq.assignedTo ? "Reassign" : "Assign"}
+                     </button>
+                   )}
                    <div className="text-right shrink-0">
-                      <p className="text-[10px] font-bold text-slate-800 leading-none">{enq.date}</p>
-                      <p className="text-[8px] font-mono font-bold text-blue-600 mt-1.5 uppercase tracking-tighter opacity-70 leading-none truncate max-w-[80px]">{enq.id}</p>
+                      <p className="text-[12px] font-medium text-[#10242A] leading-none">{enq.date}</p>
+                      <p className="text-[10px] font-mono text-[#4A5961] mt-1 leading-none truncate max-w-[80px]">{enq.id}</p>
                    </div>
-                   <button className="p-1.5 rounded-lg text-slate-300 hover:text-slate-800 hover:bg-white hover:shadow-sm transition-all" onClick={(e) => e.stopPropagation()}><ChevronRight className="w-4 h-4" /></button>
                 </div>
               ))}
            </div>
@@ -778,30 +799,12 @@ export default function SuperadminEnquiry() {
   );
 }
 
-function StatCardHorizontal({ label, value, trend, up, icon: Icon, color }) {
-  const bgColors = { 
-    blue: "bg-blue-50 text-blue-600 border-blue-100", 
-    amber: "bg-amber-50 text-amber-600 border-amber-100", 
-    emerald: "bg-emerald-50 text-emerald-600 border-emerald-100", 
-    rose: "bg-rose-50 text-rose-600 border-rose-100",
-    indigo: "bg-indigo-50 text-indigo-600 border-indigo-100" 
-  };
-  
+function StatCardHorizontal({ label, value }) {
   return (
-    <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-md flex items-start gap-3 group hover:translate-y-[-2px] transition-all">
-      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border shadow-sm transition-transform group-hover:scale-105", bgColors[color])}>
-         <Icon className="w-5 h-5" />
-      </div>
-      <div className="min-w-0">
-         <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1 leading-none truncate">{label}</p>
-         <p className="text-xl font-bold text-slate-800 tracking-tight leading-none mb-2">{value}</p>
-         <div className={cn(
-           "flex items-center gap-1 text-[7px] font-bold uppercase",
-           up ? "text-emerald-600" : "text-rose-600"
-         )}>
-            {up ? <ArrowUpRight className="w-2.5 h-2.5" /> : <ArrowDownRight className="w-2.5 h-2.5" />}
-            {trend}
-         </div>
+    <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
+      <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">{label}</p>
+      <div className="mt-2">
+        <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{value}</h3>
       </div>
     </div>
   );

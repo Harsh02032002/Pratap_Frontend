@@ -89,85 +89,83 @@ export default function WebsiteQueries() {
   }, [tickets]);
 
   return (
-    <div className="space-y-6 pb-8">
-      <div className="flex items-center justify-between">
-        <PageHeader
-          title="Website Contact Queries"
-          subtitle="Manage inquiries, requests, and support messages sent via the Contact Us form."
-        />
-        <button onClick={loadQueries} className="bg-[#0E7C86] text-white px-3.5 py-1.5 rounded-[10px] text-xs font-semibold hover:bg-[#09626A] transition-colors shadow-xs flex items-center gap-1.5">
-          <RefreshCw className={cn("w-3.5 h-3.5", loading && "animate-spin")} /> Refresh Queries
+    <div className="space-y-4 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-[22px] font-bold text-[#10242A] tracking-tight leading-tight">Website Contact Queries</h1>
+          <p className="text-[13px] text-[#4A5961] mt-0.5">Manage inquiries, requests, and support messages sent via the Contact Us form.</p>
+        </div>
+        <button onClick={loadQueries} className="bg-white border border-[#CBD3D9] hover:bg-gray-50 text-[#10242A] px-4 py-1.5 rounded-[8px] text-[13px] font-semibold transition-colors shadow-xs flex items-center gap-2 cursor-pointer shrink-0">
+          <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} /> Refresh Queries
         </button>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "Total Queries", val: stats.total, icon: Mail },
-          { label: "Open Queries", val: stats.open, icon: AlertCircle },
-          { label: "In Progress", val: stats.inProgress, icon: Clock },
-          { label: "Resolved", val: stats.resolved, icon: CheckCircle2 }
+          { label: "Total Queries", val: stats.total },
+          { label: "Open Queries", val: stats.open },
+          { label: "In Progress", val: stats.inProgress },
+          { label: "Resolved", val: stats.resolved }
         ].map(c => (
-          <div key={c.label} className="bg-white p-5 rounded-[16px] border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-[#4A5961] uppercase tracking-wider">{c.label}</span>
-              <div className="w-8 h-8 rounded-[10px] bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center">
-                <c.icon size={15} />
-              </div>
+          <div key={c.label} className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
+            <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">{c.label}</p>
+            <div className="mt-2">
+              <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{loading ? "..." : c.val}</h3>
             </div>
-            <p className="text-2xl font-bold text-[#10242A] leading-none mt-2">{c.val}</p>
           </div>
         ))}
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="bg-white rounded-[16px] border border-[#E1E6EA] shadow-xs p-4 flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[250px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#4A5961] w-4 h-4" />
+      {/* Filter and Search Bar (Outside & Above the Table Card in a Single Line) */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="relative w-full sm:w-[320px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#708088] w-4 h-4" />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search by sender name, email, subject, or message..."
-            className="w-full bg-[#F4F6F8] border border-[#E1E6EA] rounded-[10px] pl-9 pr-4 py-2 text-xs outline-none focus:border-[#0E7C86] text-[#10242A]"
+            placeholder="Search by sender name, email, subject..."
+            className="w-full bg-white border border-[#CBD3D9] rounded-[8px] pl-9 pr-3.5 py-1.5 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs"
           />
         </div>
-        <select
-          value={statusFilter}
-          onChange={e => setStatusFilter(e.target.value)}
-          className="bg-[#F4F6F8] border border-[#E1E6EA] rounded-[10px] px-3 py-2 text-xs font-semibold text-[#4A5961] outline-none focus:border-[#0E7C86]"
-        >
-          <option value="All">All Statuses</option>
-          <option value="Open">Open</option>
-          <option value="In Progress">In Progress</option>
-          <option value="Resolved">Resolved</option>
-          <option value="Closed">Closed</option>
-        </select>
-        <span className="text-xs font-semibold text-[#4A5961] ml-auto">{filteredQueries.length} matching messages</span>
+        <div className="flex flex-wrap items-center gap-3">
+          <select
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+            className="bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-1.5 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs"
+          >
+            <option value="All">All Statuses</option>
+            <option value="Open">Open</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Resolved">Resolved</option>
+            <option value="Closed">Closed</option>
+          </select>
+        </div>
       </div>
 
       {/* Table Listing */}
-      <div className="bg-white rounded-[16px] border border-[#E1E6EA] shadow-xs overflow-hidden">
+      <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left">
-            <thead className="bg-[#F8FAFC] text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider border-b border-[#E1E6EA]">
-              <tr>
-                <th className="px-5 py-3">Sender</th>
-                <th className="px-5 py-3">Subject</th>
-                <th className="px-5 py-3 text-center">Status</th>
-                <th className="px-5 py-3 text-center">Date Submitted</th>
-                <th className="px-5 py-3 text-right">Actions</th>
+          <table className="w-full text-left border-collapse min-w-[700px]">
+            <thead>
+              <tr className="border-b border-[#E1E6EA]">
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider pl-2">Sender</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Subject</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-center">Status</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-center">Date Submitted</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-right pr-2">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E1E6EA]">
+            <tbody className="divide-y divide-[#F0F4F6] text-[13px]">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-xs font-semibold text-[#4A5961]">
+                  <td colSpan={5} className="py-6 text-center text-[13px] text-[#4A5961]">
                     Loading website queries...
                   </td>
                 </tr>
               ) : filteredQueries.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-xs font-semibold text-[#4A5961]">
+                  <td colSpan={5} className="py-6 text-center text-[13px] text-[#4A5961]">
                     No website queries found.
                   </td>
                 </tr>
@@ -175,32 +173,32 @@ export default function WebsiteQueries() {
                 filteredQueries.map(q => {
                   const statusCfg = STATUS_CFG[q.status] || STATUS_CFG.Open;
                   return (
-                    <tr key={q._id} className="hover:bg-[#F4F6F8]/60 transition-colors">
-                      <td className="px-5 py-3">
+                    <tr key={q._id} className="hover:bg-[#F9FAFB] transition-colors">
+                      <td className="py-2.5 pl-2">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-full bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center font-bold text-[10px] shrink-0">
+                          <div className="w-7 h-7 rounded-full bg-[#D9E1E7] text-[#4A5961] flex items-center justify-center font-bold text-[11px] shrink-0">
                             {q.raised_by_name?.charAt(0).toUpperCase() || "W"}
                           </div>
                           <div>
-                            <p className="font-bold text-[#10242A] text-xs">{q.raised_by_name}</p>
-                            <p className="text-[10px] text-[#4A5961]">{q.user_email}</p>
+                            <p className="font-semibold text-[#10242A] text-[13px]">{q.raised_by_name}</p>
+                            <p className="text-[11px] text-[#708088]">{q.user_email}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-5 py-3">
-                        <p className="text-xs font-bold text-[#10242A] truncate max-w-[250px]">{q.subject}</p>
-                        <p className="text-[10px] text-[#4A5961] truncate max-w-[350px]">{q.description}</p>
+                      <td className="py-2.5">
+                        <p className="text-[13px] font-semibold text-[#10242A] truncate max-w-[250px]">{q.subject}</p>
+                        <p className="text-[11px] text-[#708088] truncate max-w-[350px]">{q.description}</p>
                       </td>
-                      <td className="px-5 py-3 text-center">
-                        <span className={cn("inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[6px] text-[10px] font-bold", statusCfg.cls)}>
-                          <span className={cn("w-1 h-1 rounded-full", statusCfg.dot)} />
+                      <td className="py-2.5 text-center">
+                        <span className={cn("inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold", statusCfg.cls)}>
+                          <span className={cn("w-1.5 h-1.5 rounded-full", statusCfg.dot)} />
                           {q.status}
                         </span>
                       </td>
-                      <td className="px-5 py-3 text-center text-xs text-[#4A5961]">
+                      <td className="py-2.5 text-center text-[13px] text-[#4A5961]">
                         {new Date(q.created_at || q.createdAt || Date.now()).toLocaleDateString()}
                       </td>
-                      <td className="px-5 py-3 text-right">
+                      <td className="py-2.5 pr-2 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <button
                             onClick={() => setSelectedQuery(q)}

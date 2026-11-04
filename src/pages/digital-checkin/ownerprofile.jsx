@@ -64,7 +64,9 @@ function AadhaarUploadArea({ doc, ocrStatus, onFileChange, onRemove, onUpload, u
   );
 }
 
-function UploadBox({ label, icon, doc, inputId, capture, onFileChange, onRemove }) {
+function UploadBox({ label, icon, doc, ocrStatus, inputId, capture, onFileChange, onRemove }) {
+  const status = ocrStatus?.type || "";
+  const statusIcon = { verified: "✓", scanning: "◌", suspicious: "⚠", rejected: "✕", error: "✕" }[status] || "";
   const inputRef = useRef(null);
   const previewSrc = doc.preview || doc.url || "";
   const isImage = doc.type?.startsWith("image/") || (doc.url && !doc.url.endsWith(".pdf"));
@@ -112,6 +114,17 @@ function UploadBox({ label, icon, doc, inputId, capture, onFileChange, onRemove 
           onChange={(e) => onFileChange(e.target.files?.[0])}
         />
       </div>
+
+      {ocrStatus?.text && (
+        <div className={`aadhaar-ocr-badge aadhaar-ocr-badge--${status}`} style={{ marginTop: 8 }}>
+          {status === "scanning" ? (
+            <span className="aadhaar-ocr-spinner" />
+          ) : (
+            <span className="aadhaar-ocr-badge-icon">{statusIcon}</span>
+          )}
+          {ocrStatus.text}
+        </div>
+      )}
 
       {/* Status footer */}
       {doc.file && !doc.uploaded && (
@@ -163,6 +176,7 @@ export default function DigitalCheckinOwnerprofile() {
     handleSubmit,
     ownerPhoto,
     bankProof,
+    bankOcrStatus,
     aadhaarDoc,
     aadhaarOcrStatus,
     docUploading,
@@ -177,7 +191,7 @@ export default function DigitalCheckinOwnerprofile() {
     <div className="html-page">
       <header className="dc-header">
         <div className="dc-header-inner">
-          <img src="/website/images/whitelogo.jpeg" alt="Roomhy Logo" className="dc-logo" />
+          <img src="/website/roomhy_logo.jpeg" alt="Roomhy Logo" className="dc-logo" style={{ background: "#fff", padding: "4px 8px", borderRadius: 6 }} />
           <div>
             <p className="dc-eyebrow">Digital Check-In</p>
             <h1 className="dc-header-title">Owner Profile</h1>
@@ -343,6 +357,7 @@ export default function DigitalCheckinOwnerprofile() {
               label="Bank Statement / Proof"
               icon="🏦"
               doc={bankProof}
+              ocrStatus={bankOcrStatus}
               inputId="bankProofInput"
               onFileChange={(file) => handleFileSelect("bankProof", file)}
               onRemove={() => handleFileSelect("bankProof", null)}

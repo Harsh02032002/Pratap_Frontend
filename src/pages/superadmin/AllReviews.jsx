@@ -127,136 +127,136 @@ export default function AllReviews() {
   };
 
   return (
-    <div className="space-y-6 pb-8 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
-      <PageHeader
-        title="All Reviews"
-        subtitle="Manage verified tenant reviews across all properties."
-        actions={
-          <div className="flex items-center gap-2">
-            <button onClick={handleExport} className="bg-white border border-slate-200/80 text-slate-700 px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 hover:bg-slate-50 transition-all shadow-2xs cursor-pointer">
-              <Download size={14} /> Export CSV
-            </button>
-          </div>
-        }
-      />
+    <div className="space-y-4 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-[22px] font-bold text-[#10242A] tracking-tight leading-tight">All Reviews</h1>
+          <p className="text-[13px] text-[#4A5961] mt-0.5">Manage verified tenant reviews across all properties.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={handleExport} className="bg-white border border-[#CBD3D9] hover:bg-gray-50 text-[#10242A] px-4 py-1.5 rounded-[8px] text-[13px] font-semibold flex items-center gap-2 transition-all shadow-xs cursor-pointer">
+            <Download size={14} /> Export CSV
+          </button>
+        </div>
+      </div>
 
-      {loading ? (
-        <div className="py-20 text-center text-slate-400 font-semibold text-xs">Loading reviews...</div>
-      ) : (
-        <>
-          {/* KPI Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {[
-              { label: "Total Reviews", val: counts.total, icon: BookOpen },
-              { label: "Average Rating", val: `${counts.avg} ★`, icon: Star },
-              { label: "Verified Stay", val: counts.verified, icon: ShieldCheck },
-              { label: "Hidden Reviews", val: counts.hidden, icon: EyeOff },
-            ].map(c => (
-              <div key={c.label} className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col justify-between">
-                <div>
-                  <div className="w-8 h-8 rounded-xl bg-[#095256]/10 text-[#095256] flex items-center justify-center mb-2.5">
-                    <c.icon size={16} />
-                  </div>
-                  <p className="text-2xl font-bold text-slate-900">{c.val}</p>
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mt-1">{c.label}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Outside Search & Filters Bar */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="relative group w-full sm:w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name, property, review text..." className="w-full bg-white border border-slate-200/80 rounded-xl pl-9 pr-4 py-2 text-xs font-medium text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-[#095256]/20 focus:border-[#095256] transition-all shadow-2xs" />
-            </div>
-
-            <div className="flex items-center gap-3 w-full sm:w-auto">
-              <select value={ratingF} onChange={e => setRatingF(e.target.value)} className="bg-white border border-slate-200/80 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-700 outline-none shadow-2xs cursor-pointer">
-                <option value="all">All Ratings</option>
-                {[5, 4, 3, 2, 1].map(num => <option key={num} value={num}>{num} Stars</option>)}
-              </select>
-              <select value={modF} onChange={e => setModF(e.target.value)} className="bg-white border border-slate-200/80 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-700 outline-none shadow-2xs cursor-pointer">
-                <option value="all">All Moderation</option>
-                {Object.keys(MOD_CONFIG).map(k => <option key={k} value={k.toLowerCase()}>{MOD_CONFIG[k].label}</option>)}
-              </select>
-              <select value={verifiedF} onChange={e => setVerifiedF(e.target.value)} className="bg-white border border-slate-200/80 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-700 outline-none shadow-2xs cursor-pointer">
-                <option value="all">All Verified</option>
-                <option value="verified">Verified Stay</option>
-                <option value="unverified">Non-Verified</option>
-              </select>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: "Total Reviews", val: counts.total },
+          { label: "Average Rating", val: `${counts.avg} ★` },
+          { label: "Verified Stay", val: counts.verified },
+          { label: "Hidden Reviews", val: counts.hidden },
+        ].map(c => (
+          <div key={c.label} className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
+            <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">{c.label}</p>
+            <div className="mt-2">
+              <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{loading ? "..." : c.val}</h3>
             </div>
           </div>
+        ))}
+      </div>
 
-          {/* Standalone Table Card */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs text-left">
-                <thead className="bg-[#F8FAFC] text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider border-b border-[#E1E6EA]">
-                  <tr>
-                    <th className="px-5 py-3">Reviewer / Property</th>
-                    <th className="px-5 py-3">Rating</th>
-                    <th className="px-5 py-3">Content</th>
-                    <th className="px-5 py-3">Date</th>
-                    <th className="px-5 py-3">Status</th>
-                    <th className="px-5 py-3 text-right">Moderation Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#E1E6EA]">
-                  {filtered.length === 0 ? (
-                    <tr><td colSpan={6} className="px-6 py-12 text-center text-[#4A5961] font-semibold">No Data Available</td></tr>
-                  ) : filtered.map(r => {
-                    const statusKey = Object.keys(MOD_CONFIG).find(k => k.toLowerCase() === String(r.status).toLowerCase()) || "Approved";
-                    const statusInfo = MOD_CONFIG[statusKey];
-                    return (
-                      <tr key={r._id} className="hover:bg-[#F4F6F8]/60 transition-colors">
-                        <td className="px-5 py-3">
-                          <div className="font-bold text-[#10242A] flex items-center gap-1.5">
-                            {r.name || "Tenant User"}
-                            {r.isVerifiedStay && (
-                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-[4px] text-[9px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                <ShieldCheck size={9} /> Verified Stay
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-[10px] text-[#4A5961] mt-0.5 flex items-center gap-1">
-                            <Building2 size={10} /> {r.propertyName || "Property"}
-                          </div>
-                        </td>
-                        <td className="px-5 py-3">
-                          <Stars rating={r.rating} />
-                        </td>
-                        <td className="px-5 py-3">
-                          <p className="text-xs text-[#4A5961] max-w-sm truncate" title={r.review || r.reviewText}>
-                            {r.review || r.reviewText || "Great stay experience."}
-                          </p>
-                        </td>
-                        <td className="px-5 py-3 text-xs text-[#4A5961]">
-                          {new Date(r.createdAt || r.reviewDate || Date.now()).toLocaleDateString()}
-                        </td>
-                        <td className="px-5 py-3">
-                          <span className={cn("inline-flex items-center px-2 py-0.5 rounded-[6px] text-[10px] font-bold", statusInfo.cls)}>
-                            {statusInfo.label}
+      {/* Outside Search & Filters Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="relative w-full sm:w-[320px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#708088]" size={15} />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search name, property, review text..."
+            className="w-full bg-white border border-[#CBD3D9] rounded-[8px] pl-9 pr-3.5 py-1.5 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs"
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <select value={ratingF} onChange={e => setRatingF(e.target.value)} className="bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-1.5 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs">
+            <option value="all">All Ratings</option>
+            {[5, 4, 3, 2, 1].map(num => <option key={num} value={num}>{num} Stars</option>)}
+          </select>
+          <select value={modF} onChange={e => setModF(e.target.value)} className="bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-1.5 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs">
+            <option value="all">All Moderation</option>
+            {Object.keys(MOD_CONFIG).map(k => <option key={k} value={k.toLowerCase()}>{MOD_CONFIG[k].label}</option>)}
+          </select>
+          <select value={verifiedF} onChange={e => setVerifiedF(e.target.value)} className="bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-1.5 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs">
+            <option value="all">All Verified</option>
+            <option value="verified">Verified Stay</option>
+            <option value="unverified">Non-Verified</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Standalone Table Card */}
+      <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse min-w-[700px]">
+            <thead>
+              <tr className="border-b border-[#E1E6EA]">
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider pl-2">Reviewer / Property</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Rating</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Content</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Date</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Status</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-right pr-2">Moderation Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#F0F4F6] text-[13px]">
+              {loading ? (
+                <tr><td colSpan={6} className="py-6 text-center text-[#4A5961] text-[13px]">Loading reviews...</td></tr>
+              ) : filtered.length === 0 ? (
+                <tr><td colSpan={6} className="py-6 text-center text-[#4A5961] text-[13px]">No Data Available</td></tr>
+              ) : filtered.map(r => {
+                const statusKey = Object.keys(MOD_CONFIG).find(k => k.toLowerCase() === String(r.status).toLowerCase()) || "Approved";
+                const statusInfo = MOD_CONFIG[statusKey];
+                return (
+                  <tr key={r._id} className="hover:bg-[#F9FAFB] transition-colors">
+                    <td className="py-2.5 pl-2">
+                      <div className="font-semibold text-[#10242A] flex items-center gap-1.5">
+                        {r.name || "Tenant User"}
+                        {r.isVerifiedStay && (
+                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-[4px] text-[9px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <ShieldCheck size={9} /> Verified Stay
                           </span>
-                        </td>
-                        <td className="px-5 py-3">
-                          <div className="flex items-center gap-1 justify-end">
-                            <button onClick={() => setSelectedPropId(r.propertyId)} className="p-1.5 text-[#4A5961] hover:text-[#0E7C86] hover:bg-[#E6F4F5] rounded-[6px] transition-all" title="View Property"><Eye size={14} /></button>
-                            <button onClick={() => handleAction(r._id, "approve")} className="p-1.5 text-[#4A5961] hover:text-emerald-700 hover:bg-emerald-50 rounded-[6px] transition-all" title="Approve"><CheckCircle size={14} /></button>
-                            <button onClick={() => handleAction(r._id, "reject")} className="p-1.5 text-[#4A5961] hover:text-rose-700 hover:bg-rose-50 rounded-[6px] transition-all" title="Reject"><XCircle size={14} /></button>
-                            <button onClick={() => handleAction(r._id, "hide")} className="p-1.5 text-[#4A5961] hover:text-slate-700 hover:bg-slate-100 rounded-[6px] transition-all" title="Hide"><EyeOff size={14} /></button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-[#708088] mt-0.5 flex items-center gap-1">
+                        <Building2 size={10} /> {r.propertyName || "Property"}
+                      </div>
+                    </td>
+                    <td className="py-2.5">
+                      <Stars rating={r.rating} />
+                    </td>
+                    <td className="py-2.5">
+                      <p className="text-[13px] text-[#4A5961] max-w-sm truncate" title={r.review || r.reviewText}>
+                        {r.review || r.reviewText || "Great stay experience."}
+                      </p>
+                    </td>
+                    <td className="py-2.5 text-[13px] text-[#4A5961]">
+                      {new Date(r.createdAt || r.reviewDate || Date.now()).toLocaleDateString()}
+                    </td>
+                    <td className="py-2.5">
+                      <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold", statusInfo.cls)}>
+                        {statusInfo.label}
+                      </span>
+                    </td>
+                    <td className="py-2.5 pr-2">
+                      <div className="flex items-center gap-1 justify-end">
+                        <button onClick={() => setSelectedPropId(r.propertyId)} className="p-1.5 text-[#4A5961] hover:text-[#0E7C86] hover:bg-[#E6F4F5] rounded-[6px] transition-all cursor-pointer" title="View Property"><Eye size={14} /></button>
+                        <button onClick={() => handleAction(r._id, "approve")} className="p-1.5 text-[#4A5961] hover:text-emerald-700 hover:bg-emerald-50 rounded-[6px] transition-all cursor-pointer" title="Approve"><CheckCircle size={14} /></button>
+                        <button onClick={() => handleAction(r._id, "reject")} className="p-1.5 text-[#4A5961] hover:text-rose-700 hover:bg-rose-50 rounded-[6px] transition-all cursor-pointer" title="Reject"><XCircle size={14} /></button>
+                        <button onClick={() => handleAction(r._id, "hide")} className="p-1.5 text-[#4A5961] hover:text-slate-700 hover:bg-slate-100 rounded-[6px] transition-all cursor-pointer" title="Hide"><EyeOff size={14} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-          {/* Property Details Modal */}
-          {selectedPropId && (
+      {/* Property Details Modal */}
+      {selectedPropId && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
               <div className="bg-white w-full max-w-2xl rounded-[16px] overflow-hidden shadow-2xl flex flex-col max-h-[90vh] relative border border-[#E1E6EA]">
                 {/* Modal Header */}
@@ -359,8 +359,6 @@ export default function AllReviews() {
               </div>
             </div>
           )}
-        </>
-      )}
     </div>
   );
 }

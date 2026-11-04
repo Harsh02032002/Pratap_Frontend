@@ -71,74 +71,68 @@ export default function AccountingOverview() {
 
   // Top stat cards
   const statCards = [
-    { label: "Total Collected", val: fmt(totalRevenue), sub: "Rent from tenants", icon: Wallet, color: "#3B82F6", bg: "#EFF6FF", txt: "#1D4ED8" },
-    { label: "Total Paid Out", val: fmt(ownerExpense), sub: "Sent to owners", icon: CreditCard, color: "#10B981", bg: "#F0FDF4", txt: "#166534" },
-    { label: "Due Rent", val: fmt(totalDue), sub: "Pending from tenants", icon: AlertCircle, color: "#F59E0B", bg: "#FFFBEB", txt: "#B45309" },
-    { label: "Pending Payout", val: fmt(summary.pendingPayout || 0), sub: "Owner payout pending", icon: Clock, color: "#EF4444", bg: "#FEF2F2", txt: "#B91C1C" },
+    { label: "Total Collected", val: fmt(totalRevenue), sub: "Rent from tenants" },
+    { label: "Total Paid Out", val: fmt(ownerExpense), sub: "Sent to owners" },
+    { label: "Due Rent", val: fmt(totalDue), sub: "Pending from tenants" },
+    { label: "Pending Payout", val: fmt(summary.pendingPayout || 0), sub: "Owner payout pending" },
   ];
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Accounting Overview"
-        subtitle="Live financial summary of the platform."
-        actions={
-          <div className="flex items-center gap-3">
-            <select
-              value={period}
-              onChange={e => setPeriod(e.target.value)}
-              className="bg-white border border-slate-100 px-4 py-2 rounded-xl shadow-sm text-xs font-bold text-slate-600 outline-none cursor-pointer"
-            >
-              <option>This Month</option>
-              <option>Last Month</option>
-              <option>This Year</option>
-            </select>
-            <button onClick={loadStats} className="flex items-center gap-2 bg-white border border-slate-100 px-4 py-2 rounded-xl shadow-sm text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all">
-              <RefreshCw className={cn("w-3.5 h-3.5", loading && "animate-spin")} /> Refresh
-            </button>
-          </div>
-        }
-      />
+    <div className="space-y-4 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-[22px] font-bold text-[#10242A] tracking-tight leading-tight">Accounting Overview</h1>
+          <p className="text-[13px] text-[#4A5961] mt-0.5">Live financial summary of the platform.</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <select
+            value={period}
+            onChange={e => setPeriod(e.target.value)}
+            className="bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-1.5 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs"
+          >
+            <option>This Month</option>
+            <option>Last Month</option>
+            <option>This Year</option>
+          </select>
+          <button onClick={loadStats} className="flex items-center gap-2 bg-white border border-[#CBD3D9] hover:bg-gray-50 text-[#10242A] text-[13px] font-semibold px-4 py-1.5 rounded-[8px] transition-all shadow-xs cursor-pointer">
+            <RefreshCw className={cn("w-3.5 h-3.5 text-[#0E7C86]", loading && "animate-spin")} /> Refresh
+          </button>
+        </div>
+      </div>
 
       {/* Top Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {statCards.map((card) => (
-          <div key={card.label} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: card.bg }}>
-                <card.icon size={18} style={{ color: card.color }} />
-              </div>
-              <ArrowUpRight size={14} className="text-slate-300" />
-            </div>
-            <div>
-              <p className={cn("text-xl font-black tracking-tight", loading ? "text-slate-200" : "")} style={{ color: loading ? undefined : card.txt }}>
+          <div key={card.label} className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
+            <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">{card.label}</p>
+            <div className="mt-2">
+              <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">
                 {loading ? "—" : card.val}
-              </p>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">{card.label}</p>
-              <p className="text-[9px] text-slate-400 mt-0.5">{card.sub}</p>
+              </h3>
+              <p className="text-[11px] text-[#708088] mt-1">{card.sub}</p>
             </div>
           </div>
         ))}
       </div>
 
       {/* Main Grid */}
-      <div className="grid grid-cols-12 gap-6">
+      <div className="grid grid-cols-12 gap-4">
 
         {/* Collection vs Payout Trend Chart */}
-        <div className="col-span-12 lg:col-span-8 bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-          <div className="flex items-center justify-between mb-6">
+        <div className="col-span-12 lg:col-span-8 bg-white rounded-[12px] border border-[#E1E6EA] shadow-xs p-4">
+          <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-base font-bold text-slate-900">Collection vs Payout Trend</h3>
-              <p className="text-[9px] font-bold text-slate-400 uppercase mt-0.5">Monthly · This Year</p>
+              <h3 className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Collection vs Payout Trend</h3>
+              <p className="text-[11px] text-[#708088] mt-0.5">Monthly · This Year</p>
             </div>
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-blue-500" /><span className="text-[10px] font-bold text-slate-400">Collection</span></div>
-              <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-emerald-500" /><span className="text-[10px] font-bold text-slate-400">Payout</span></div>
+              <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-blue-500" /><span className="text-[11px] font-semibold text-[#4A5961]">Collection</span></div>
+              <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-emerald-500" /><span className="text-[11px] font-semibold text-[#4A5961]">Payout</span></div>
             </div>
           </div>
           <div className="h-64">
             {trends.length === 0 && !loading ? (
-              <div className="w-full h-full flex items-center justify-center text-xs font-bold text-slate-300 bg-slate-50 rounded-xl">
+              <div className="w-full h-full flex items-center justify-center text-[13px] text-[#4A5961] bg-[#F9FAFB] rounded-[8px]">
                 No transaction data yet
               </div>
             ) : (
@@ -155,11 +149,11 @@ export default function AccountingOverview() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "#94A3B8", fontSize: 11, fontWeight: 600 }} dy={10} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fill: "#94A3B8", fontSize: 11, fontWeight: 600 }} tickFormatter={v => v >= 1000 ? `${(v/1000).toFixed(0)}K` : v} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "#4A5961", fontSize: 11, fontWeight: 600 }} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: "#4A5961", fontSize: 11, fontWeight: 600 }} tickFormatter={v => v >= 1000 ? `${(v/1000).toFixed(0)}K` : v} />
                   <Tooltip
                     formatter={(v, name) => [`₹${Number(v).toLocaleString("en-IN")}`, name === "collection" ? "Collection" : "Payout"]}
-                    contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 10px 25px -5px rgba(0,0,0,0.1)", fontSize: 12 }}
+                    contentStyle={{ borderRadius: 12, border: "1px solid #E1E6EA", boxShadow: "0 4px 12px rgba(0,0,0,0.08)", fontSize: 12 }}
                   />
                   <Area type="monotone" dataKey="collection" stroke="#3B82F6" strokeWidth={2.5} fill="url(#coll)" dot={{ fill: "#3B82F6", r: 3 }} />
                   <Area type="monotone" dataKey="payout" stroke="#10B981" strokeWidth={2.5} fill="url(#pay)" dot={{ fill: "#10B981", r: 3 }} />
@@ -170,37 +164,37 @@ export default function AccountingOverview() {
         </div>
 
         {/* Recent Transactions */}
-        <div className="col-span-12 lg:col-span-4 bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="text-base font-bold text-slate-900">Recent Transactions</h3>
-            <button className="text-xs font-bold text-blue-600 hover:underline">View All</button>
+        <div className="col-span-12 lg:col-span-4 bg-white rounded-[12px] border border-[#E1E6EA] shadow-xs p-4 flex flex-col">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Recent Transactions</h3>
+            <button className="text-[12px] font-semibold text-[#0E7C86] hover:underline">View All</button>
           </div>
-          <div className="space-y-4 flex-1 overflow-y-auto max-h-[280px] custom-scrollbar">
+          <div className="divide-y divide-[#F0F4F6] flex-1 overflow-y-auto max-h-[280px] custom-scrollbar">
             {loading ? (
-              <div className="py-8 text-center text-xs font-bold text-slate-300">Loading...</div>
+              <div className="py-6 text-center text-[13px] text-[#4A5961]">Loading...</div>
             ) : ledger.length === 0 ? (
-              <div className="py-8 text-center text-xs font-bold text-slate-300">No transactions yet</div>
+              <div className="py-6 text-center text-[13px] text-[#4A5961]">No transactions yet</div>
             ) : ledger.slice(0, 8).map((t, i) => (
-              <div key={i} className="flex items-center gap-3 group">
+              <div key={i} className="flex items-center gap-3 py-2.5 hover:bg-[#F9FAFB] transition-colors px-1">
                 <div className={cn(
-                  "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-[9px] font-black",
-                  t.color === "green" ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-blue-600"
+                  "w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-[11px] font-bold",
+                  t.color === "green" ? "bg-[#DDF3E4] text-[#14532D]" : "bg-[#E1ECF4] text-[#1E3A5F]"
                 )}>
                   {t.type ? t.type.split(" ").map(x => x[0]).join("") : "TX"}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <p className="text-[12px] font-bold text-slate-800 truncate leading-none">{t.desc}</p>
+                    <p className="text-[13px] font-medium text-[#10242A] truncate leading-none">{t.desc}</p>
                     <p className={cn(
-                      "text-[11px] font-black shrink-0 ml-2",
-                      String(t.amount).startsWith("+") ? "text-emerald-600" : "text-rose-600"
+                      "text-[13px] font-semibold shrink-0 ml-2",
+                      String(t.amount).startsWith("+") ? "text-[#14532D]" : "text-[#991B1B]"
                     )}>{t.amount}</p>
                   </div>
-                  <div className="flex items-center justify-between mt-0.5">
-                    <p className="text-[9px] text-slate-400 font-bold">{t.date}</p>
+                  <div className="flex items-center justify-between mt-1">
+                    <p className="text-[11px] text-[#708088]">{t.date}</p>
                     <span className={cn(
-                      "text-[8px] font-bold px-1.5 py-0.5 rounded",
-                      t.status === "Success" ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-blue-600"
+                      "text-[11px] font-semibold px-2 py-0.5 rounded-full",
+                      t.status === "Success" ? "bg-[#DDF3E4] text-[#14532D]" : "bg-[#E1ECF4] text-[#1E3A5F]"
                     )}>{t.status}</span>
                   </div>
                 </div>
@@ -211,20 +205,19 @@ export default function AccountingOverview() {
       </div>
 
       {/* Second Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
         {/* Due Rent Aging Donut */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-          <h3 className="text-base font-bold text-slate-900 mb-1">Due Rent Overview</h3>
-          <p className="text-[9px] font-bold text-slate-400 uppercase mb-4">Age-wise breakdown</p>
+        <div className="bg-white rounded-[12px] border border-[#E1E6EA] shadow-xs p-4">
+          <h3 className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider mb-0.5">Due Rent Overview</h3>
+          <p className="text-[11px] text-[#708088] mb-3">Age-wise breakdown</p>
           {agingData.length === 0 ? (
-            <div className="h-40 flex flex-col items-center justify-center text-slate-300">
-              <CheckCircle2 size={28} className="mb-2 text-emerald-400" />
-              <p className="text-xs font-bold text-emerald-600">No Due Rents!</p>
+            <div className="h-40 flex flex-col items-center justify-center text-[#4A5961]">
+              <p className="text-[13px] font-semibold text-[#14532D]">No Due Rents!</p>
             </div>
           ) : (
             <>
-              <div className="relative h-44 flex items-center justify-center mb-4">
+              <div className="relative h-44 flex items-center justify-center mb-3">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie data={agingData} innerRadius={55} outerRadius={78} paddingAngle={4} dataKey="value" stroke="none">
@@ -233,8 +226,8 @@ export default function AccountingOverview() {
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <p className="text-lg font-black text-slate-900">{fmt(totalDue)}</p>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase mt-0.5">Total Due</p>
+                  <p className="text-[16px] font-bold text-[#10242A]">{fmt(totalDue)}</p>
+                  <p className="text-[11px] font-semibold text-[#708088] uppercase mt-0.5">Total Due</p>
                 </div>
               </div>
               <div className="space-y-2">
@@ -242,9 +235,9 @@ export default function AccountingOverview() {
                   <div key={item.name} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
-                      <span className="text-[10px] font-semibold text-slate-500">{item.name}</span>
+                      <span className="text-[12px] font-medium text-[#4A5961]">{item.name}</span>
                     </div>
-                    <span className="text-[10px] font-black text-slate-700">{fmt(item.value)}</span>
+                    <span className="text-[12px] font-semibold text-[#10242A]">{fmt(item.value)}</span>
                   </div>
                 ))}
               </div>
@@ -253,62 +246,61 @@ export default function AccountingOverview() {
         </div>
 
         {/* Collections Trend Card */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-bold text-slate-900">Collections Trend</h3>
-            <span className="text-[9px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">{period}</span>
+        <div className="bg-white rounded-[12px] border border-[#E1E6EA] shadow-xs p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Collections Trend</h3>
+            <span className="text-[11px] font-semibold text-[#0E7C86] bg-[#E8F3F4] px-2.5 py-0.5 rounded-full">{period}</span>
           </div>
-          <div className="space-y-3 mb-4">
+          <div className="space-y-2.5 mb-3">
             {[
-              { label: "Owner Expense", val: ownerExpense, color: "text-blue-600" },
-              { label: "Total Collections", val: totalRevenue, color: "text-slate-900" },
+              { label: "Owner Expense", val: ownerExpense, color: "text-[#0E7C86]" },
+              { label: "Total Collections", val: totalRevenue, color: "text-[#10242A]" },
             ].map(row => (
               <div key={row.label} className="flex items-center justify-between">
-                <span className="text-[11px] font-semibold text-slate-500">{row.label}</span>
-                <span className={cn("text-[12px] font-black", row.color)}>{fmt(row.val)}</span>
+                <span className="text-[13px] text-[#4A5961]">{row.label}</span>
+                <span className={cn("text-[13px] font-semibold", row.color)}>{fmt(row.val)}</span>
               </div>
             ))}
           </div>
           <div className="h-24">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={sparkline}>
-                <Line type="monotone" dataKey="collection" stroke="#3B82F6" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="collection" stroke="#0E7C86" strokeWidth={2} dot={false} />
                 <Tooltip
                   formatter={v => [`₹${Number(v).toLocaleString("en-IN")}`, "Collection"]}
-                  contentStyle={{ borderRadius: 10, border: "none", fontSize: 11, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
+                  contentStyle={{ borderRadius: 10, border: "1px solid #E1E6EA", fontSize: 11, boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
                 />
               </LineChart>
             </ResponsiveContainer>
           </div>
-          <div className="border-t border-slate-50 mt-3 pt-3 flex items-center justify-between">
-            <span className="text-[10px] font-semibold text-slate-400">Available Cash Balance</span>
-            <span className="text-sm font-black text-emerald-600">{fmt(closingBalance)}</span>
+          <div className="border-t border-[#F0F4F6] mt-3 pt-3 flex items-center justify-between">
+            <span className="text-[12px] text-[#4A5961]">Available Cash Balance</span>
+            <span className="text-[14px] font-bold text-[#14532D]">{fmt(closingBalance)}</span>
           </div>
         </div>
 
         {/* Cashflow Summary */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-bold text-slate-900">Cashflow Summary</h3>
-            <span className="text-[9px] font-bold text-slate-400 uppercase">{period}</span>
-          </div>
-          <div className="space-y-3">
-            {[
-              { label: "Opening Balance", val: 0, icon: "💰", color: "text-slate-700" },
-              { label: "Total Collections", val: totalRevenue, icon: "📥", color: "text-blue-600" },
-              { label: "Total Payouts", val: ownerExpense, icon: "📤", color: "text-rose-500" },
-              { label: "Closing Balance", val: closingBalance, icon: "🏦", color: closingBalance >= 0 ? "text-emerald-600" : "text-rose-600" },
-            ].map(row => (
-              <div key={row.label} className="flex items-center justify-between py-2 border-b border-slate-50 last:border-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-base">{row.icon}</span>
-                  <span className="text-[11px] font-semibold text-slate-500">{row.label}</span>
+        <div className="bg-white rounded-[12px] border border-[#E1E6EA] shadow-xs p-4 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Cashflow Summary</h3>
+              <span className="text-[11px] font-semibold text-[#708088] uppercase">{period}</span>
+            </div>
+            <div className="divide-y divide-[#F0F4F6]">
+              {[
+                { label: "Opening Balance", val: 0, color: "text-[#10242A]" },
+                { label: "Total Collections", val: totalRevenue, color: "text-[#0E7C86]" },
+                { label: "Total Payouts", val: ownerExpense, color: "text-[#991B1B]" },
+                { label: "Closing Balance", val: closingBalance, color: closingBalance >= 0 ? "text-[#14532D]" : "text-[#991B1B]" },
+              ].map(row => (
+                <div key={row.label} className="flex items-center justify-between py-2.5">
+                  <span className="text-[13px] text-[#4A5961]">{row.label}</span>
+                  <span className={cn("text-[13px] font-semibold", row.color)}>{fmt(row.val)}</span>
                 </div>
-                <span className={cn("text-[12px] font-black", row.color)}>{fmt(row.val)}</span>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-          <button className="w-full mt-4 py-2.5 text-xs font-bold text-blue-600 border border-blue-100 rounded-xl hover:bg-blue-50 transition-all">
+          <button className="w-full mt-3 py-2 text-[13px] font-semibold text-[#0E7C86] border border-[#CBD3D9] rounded-[8px] hover:bg-gray-50 transition-all cursor-pointer">
             View Full Report →
           </button>
         </div>

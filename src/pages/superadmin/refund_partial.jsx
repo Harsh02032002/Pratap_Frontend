@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { PieChart, ArrowLeft, Loader2, CheckCircle2, ShieldAlert } from "lucide-react";
 import { fetchJson } from "../../utils/api";
 import { Link } from "react-router-dom";
-import { PageHeader } from "../../components/superadmin/PageHeader";
 
 export default function PartialRefundPage() {
   const [transactionId, setTransactionId] = useState("");
@@ -45,84 +44,84 @@ export default function PartialRefundPage() {
   };
 
   return (
-    <div className="space-y-6 pb-8 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
-      <PageHeader
-        title="Partial Refund System"
-        subtitle="Issue custom partial refunds directly to tenant bank accounts."
-        actions={
-          <Link to="/superadmin/accounting" className="px-3.5 py-2 text-xs font-semibold text-[#4A5961] bg-white border border-[#E1E6EA] rounded-[12px] hover:bg-[#F4F6F8] transition-all flex items-center gap-2 shadow-xs">
+    <div className="space-y-4 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-[22px] font-bold text-[#10242A] tracking-tight leading-tight">Partial Refund System</h1>
+          <p className="text-[13px] text-[#4A5961] mt-0.5">Issue custom partial refunds directly to tenant bank accounts.</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Link to="/superadmin/accounting" className="px-4 py-1.5 text-[13px] font-semibold text-[#10242A] bg-white border border-[#CBD3D9] rounded-[8px] hover:bg-gray-50 transition-all flex items-center gap-2 shadow-xs">
             <ArrowLeft size={14} className="text-[#0E7C86]" /> Back to Accounting
           </Link>
-        }
-      />
-
-        {/* Card Form */}
-        <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
-          <form onSubmit={handlePartialRefund} className="space-y-6">
-            
-            {error && (
-              <div className="p-4 bg-rose-50 text-rose-700 rounded-2xl border border-rose-200 text-sm font-medium flex items-center gap-2">
-                <ShieldAlert size={18} /> {error}
-              </div>
-            )}
-
-            {result && (
-              <div className="p-6 bg-emerald-50 text-emerald-800 rounded-2xl border border-emerald-200 space-y-2">
-                <div className="flex items-center gap-2 text-emerald-700 font-bold text-lg">
-                  <CheckCircle2 size={24} /> Partial Refund Processed Successfully!
-                </div>
-                <p className="text-sm">Refund ID: <span className="font-mono font-bold">{result.refund_id}</span></p>
-                <p className="text-sm">Amount Refunded: <span className="font-bold">₹{result.refund_amount}</span></p>
-                <p className="text-sm">Status: <span className="font-bold uppercase">{result.refund_status}</span></p>
-              </div>
-            )}
-
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Transaction ID / Booking ID</label>
-              <input
-                type="text"
-                placeholder="Enter Payment Transaction Mongo ID or Order ID"
-                value={transactionId}
-                onChange={(e) => setTransactionId(e.target.value)}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Partial Refund Amount (₹)</label>
-              <input
-                type="number"
-                placeholder="e.g. 500"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Reason for Partial Refund</label>
-              <textarea
-                placeholder="e.g. Partial rent adjustment / Discount compensation"
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                rows={3}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-xl shadow-blue-600/20 transition-all flex items-center justify-center gap-2"
-            >
-              {loading ? <Loader2 className="animate-spin" size={20} /> : <PieChart size={20} />}
-              Process Partial Refund
-            </button>
-
-          </form>
         </div>
+      </div>
+
+      {/* Card Form */}
+      <div className="bg-white p-4 rounded-[12px] shadow-xs border border-[#E1E6EA] overflow-hidden">
+        <form onSubmit={handlePartialRefund} className="space-y-4 max-w-2xl">
+          {error && (
+            <div className="p-3 bg-[#FDE8E8] text-[#991B1B] rounded-[8px] border border-[#F8B4B4] text-[13px] font-semibold flex items-center gap-2">
+              <ShieldAlert size={16} /> {error}
+            </div>
+          )}
+
+          {result && (
+            <div className="p-4 bg-[#DDF3E4] text-[#14532D] rounded-[8px] border border-[#B7E4C7] space-y-1.5">
+              <div className="flex items-center gap-2 font-bold text-[14px]">
+                <CheckCircle2 size={18} /> Partial Refund Processed Successfully!
+              </div>
+              <p className="text-[13px]">Refund ID: <span className="font-mono font-bold">{result.refund_id}</span></p>
+              <p className="text-[13px]">Amount Refunded: <span className="font-bold">₹{result.refund_amount}</span></p>
+              <p className="text-[13px]">Status: <span className="font-bold uppercase">{result.refund_status}</span></p>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-[12px] font-semibold uppercase tracking-wider text-[#4A5961] mb-1.5">Transaction ID / Booking ID</label>
+            <input
+              type="text"
+              placeholder="Enter Payment Transaction Mongo ID or Order ID"
+              value={transactionId}
+              onChange={(e) => setTransactionId(e.target.value)}
+              className="w-full px-3.5 py-2 bg-white border border-[#CBD3D9] rounded-[8px] text-[13px] font-mono text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-[12px] font-semibold uppercase tracking-wider text-[#4A5961] mb-1.5">Partial Refund Amount (₹)</label>
+            <input
+              type="number"
+              placeholder="e.g. 500"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className="w-full px-3.5 py-2 bg-white border border-[#CBD3D9] rounded-[8px] text-[13px] font-semibold text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-[12px] font-semibold uppercase tracking-wider text-[#4A5961] mb-1.5">Reason for Partial Refund</label>
+            <textarea
+              placeholder="e.g. Partial rent adjustment / Discount compensation"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              rows={3}
+              className="w-full px-3.5 py-2 bg-white border border-[#CBD3D9] rounded-[8px] text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="px-5 py-2 bg-[#0E7C86] hover:bg-[#095256] text-white text-[13px] font-semibold rounded-[8px] shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+          >
+            {loading ? <Loader2 className="animate-spin" size={16} /> : <PieChart size={16} />}
+            Process Partial Refund
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

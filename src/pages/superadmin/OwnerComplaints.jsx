@@ -353,61 +353,58 @@ export default function OwnerComplaints() {
   };
 
   return (
-    <div className="space-y-6 pb-8 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
-      <PageHeader
-        title="Owners Complaints"
-        subtitle="Manage all support tickets, complaints, and escalations raised by property owners."
-        actions={
-          <div className="flex items-center gap-3">
-            <button onClick={handleExport} className="bg-white border border-slate-200/80 text-slate-700 px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 hover:bg-slate-50 transition-all shadow-2xs cursor-pointer">
-              <Download size={14}/> Export CSV
-            </button>
-            <button onClick={() => setRegisterModal(true)} className="bg-[#095256] text-white px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 hover:bg-[#073d40] transition-colors shadow-2xs cursor-pointer">
-              <Plus size={14}/> Register Complaint
-            </button>
-          </div>
-        }
-      />
+    <div className="space-y-4 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-[22px] font-bold text-[#10242A] tracking-tight leading-tight">Owners Complaints</h1>
+          <p className="text-[13px] text-[#4A5961] mt-0.5">Manage all support tickets, complaints, and escalations raised by property owners.</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button onClick={handleExport} className="bg-white border border-[#CBD3D9] hover:bg-gray-50 text-[#10242A] px-4 py-1.5 rounded-[8px] text-[13px] font-semibold flex items-center gap-2 transition-all shadow-xs cursor-pointer">
+            <Download size={14}/> Export CSV
+          </button>
+          <button onClick={() => setRegisterModal(true)} className="bg-[#0E7C86] hover:bg-[#0B666E] text-white px-4 py-1.5 rounded-[8px] text-[13px] font-semibold flex items-center gap-2 transition-colors shadow-xs cursor-pointer">
+            <Plus size={14}/> Register Complaint
+          </button>
+        </div>
+      </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
         {[
-          { label: "Total Tickets",  val: counts.total,     icon: Ticket        },
-          { label: "Open",           val: counts.open,      icon: AlertCircle   },
-          { label: "In Progress",    val: counts.inProgress,icon: Clock         },
-          { label: "Resolved",       val: counts.resolved,  icon: CheckCircle   },
-          { label: "Critical",       val: counts.critical,  icon: AlertTriangle },
-          { label: "SLA Breached",   val: counts.breached,  icon: XCircle       },
+          { label: "Total Tickets",  val: counts.total      },
+          { label: "Open",           val: counts.open       },
+          { label: "In Progress",    val: counts.inProgress },
+          { label: "Resolved",       val: counts.resolved   },
+          { label: "Critical",       val: counts.critical   },
+          { label: "SLA Breached",   val: counts.breached   },
         ].map(c => (
-          <div key={c.label} className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col justify-between">
-            <div>
-              <div className="w-8 h-8 rounded-xl bg-[#095256]/10 text-[#095256] flex items-center justify-center mb-2">
-                <c.icon size={15}/>
-              </div>
-              <p className="text-xl font-bold text-slate-900 leading-tight">{c.val}</p>
-              <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mt-1">{c.label}</p>
+          <div key={c.label} className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
+            <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">{c.label}</p>
+            <div className="mt-2">
+              <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{loading ? "..." : c.val}</h3>
             </div>
           </div>
         ))}
       </div>
 
       {/* Outside Search & Filters Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="relative group w-full sm:w-72">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15}/>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search ticket ID, name, property..." className="w-full bg-white border border-slate-200/80 rounded-xl pl-9 pr-4 py-2 text-xs font-medium text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-[#095256]/20 focus:border-[#095256] transition-all shadow-2xs"/>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="relative w-full sm:w-[320px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#708088]" size={15}/>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search ticket ID, name, property..." className="w-full bg-white border border-[#CBD3D9] rounded-[8px] pl-9 pr-3.5 py-1.5 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs"/>
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <select value={priorityF} onChange={e => setPriorityF(e.target.value)} className="bg-white border border-slate-200/80 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-700 outline-none shadow-2xs cursor-pointer">
+        <div className="flex flex-wrap items-center gap-3">
+          <select value={priorityF} onChange={e => setPriorityF(e.target.value)} className="bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-1.5 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs">
             <option value="All">All Priority</option>
             {["Low","Medium","High","Critical"].map(p => <option key={p}>{p}</option>)}
           </select>
-          <select value={statusF} onChange={e => setStatusF(e.target.value)} className="bg-white border border-slate-200/80 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-700 outline-none shadow-2xs cursor-pointer">
+          <select value={statusF} onChange={e => setStatusF(e.target.value)} className="bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-1.5 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs">
             <option value="All">All Status</option>
             {Object.keys(STATUS_CFG).map(s => <option key={s}>{s}</option>)}
           </select>
-          <select value={typeF} onChange={e => setTypeF(e.target.value)} className="bg-white border border-slate-200/80 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-700 outline-none shadow-2xs cursor-pointer">
+          <select value={typeF} onChange={e => setTypeF(e.target.value)} className="bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-1.5 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs">
             <option value="All">All Types</option>
             {["Owner Complaint","Booking Dispute","Payment Issue","Property Issue","Other"].map(t => <option key={t}>{t}</option>)}
           </select>
@@ -415,61 +412,63 @@ export default function OwnerComplaints() {
       </div>
 
       {/* Standalone Table Card */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
+      <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left">
-            <thead className="bg-[#F8FAFC] text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider border-b border-[#E1E6EA]">
-              <tr>
-                <th className="px-5 py-3">Ticket</th>
-                <th className="px-5 py-3">Type</th>
-                <th className="px-5 py-3">Raised By</th>
-                <th className="px-5 py-3">Property</th>
-                <th className="px-5 py-3">Priority</th>
-                <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3">Assigned</th>
-                <th className="px-5 py-3 text-right">Actions</th>
+          <table className="w-full text-left border-collapse min-w-[700px]">
+            <thead>
+              <tr className="border-b border-[#E1E6EA]">
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider pl-2">Ticket</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Type</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Raised By</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Property</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Priority</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Status</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Assigned</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-right pr-2">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E1E6EA]">
-              {filtered.length === 0 ? (
-                <tr><td colSpan={8} className="px-6 py-12 text-center text-xs font-semibold text-[#4A5961]">No Owner Complaints Found</td></tr>
+            <tbody className="divide-y divide-[#F0F4F6] text-[13px]">
+              {loading ? (
+                <tr><td colSpan={8} className="py-6 text-center text-[13px] text-[#4A5961]">Loading owner complaints...</td></tr>
+              ) : filtered.length === 0 ? (
+                <tr><td colSpan={8} className="py-6 text-center text-[13px] text-[#4A5961]">No Owner Complaints Found</td></tr>
               ) : filtered.map(t => (
-                <tr key={t._id} className={cn("hover:bg-[#F4F6F8]/60 transition-colors", t.sla_breached && "bg-rose-50/20")}>
-                  <td className="px-5 py-3">
+                <tr key={t._id} className={cn("hover:bg-[#F9FAFB] transition-colors", t.sla_breached && "bg-rose-50/20")}>
+                  <td className="py-2.5 pl-2">
                     <div className="flex items-center gap-2">
                       {t.sla_breached && <AlertTriangle size={12} className="text-rose-600 shrink-0"/>}
                       <div>
-                        <p className="font-mono font-bold text-[#0E7C86] text-xs">{t.ticket_id}</p>
-                        <p className="text-[10px] text-[#4A5961] truncate max-w-[140px]">{t.subject}</p>
+                        <p className="font-mono font-bold text-[#0E7C86] text-[13px]">{t.ticket_id}</p>
+                        <p className="text-[11px] text-[#708088] truncate max-w-[140px]">{t.subject}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-5 py-3">
-                    <span className="text-[10px] font-semibold text-[#4A5961] bg-[#F4F6F8] border border-[#E1E6EA] px-2 py-0.5 rounded-[4px]">{t.ticket_type}</span>
+                  <td className="py-2.5">
+                    <span className="text-[11px] font-semibold text-[#4A5961] bg-[#E8EDF1] px-2.5 py-0.5 rounded-full">{t.ticket_type}</span>
                   </td>
-                  <td className="px-5 py-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center text-[9px] font-bold shrink-0">
-                        {t.raised_by_name?.split(" ").map(n=>n[0]).join("")}
+                  <td className="py-2.5">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-full bg-[#D9E1E7] text-[#4A5961] flex items-center justify-center text-[11px] font-bold shrink-0">
+                        {t.raised_by_name?.split(" ").map(n=>n[0]).join("").slice(0,2).toUpperCase()}
                       </div>
-                      <span className="text-xs font-bold text-[#10242A]">{t.raised_by_name}</span>
+                      <span className="text-[13px] font-semibold text-[#10242A]">{t.raised_by_name}</span>
                     </div>
                   </td>
-                  <td className="px-5 py-3">
+                  <td className="py-2.5">
                     {t.property_name
-                      ? <span className="text-xs text-[#4A5961] flex items-center gap-1"><Building2 size={11} className="text-[#0E7C86]"/>{t.property_name}</span>
-                      : <span className="text-xs text-[#4A5961]">—</span>
+                      ? <span className="text-[13px] text-[#4A5961] flex items-center gap-1"><Building2 size={12} className="text-[#0E7C86]"/>{t.property_name}</span>
+                      : <span className="text-[13px] text-[#4A5961]">—</span>
                     }
                   </td>
-                  <td className="px-5 py-3"><PriorityDot priority={t.priority}/></td>
-                  <td className="px-5 py-3"><Badge label={t.status} cfg={STATUS_CFG[t.status]}/></td>
-                  <td className="px-5 py-3">
+                  <td className="py-2.5"><PriorityDot priority={t.priority}/></td>
+                  <td className="py-2.5"><Badge label={t.status} cfg={STATUS_CFG[t.status]}/></td>
+                  <td className="py-2.5">
                     {t.assigned_admin_name
-                      ? <span className="text-xs font-semibold text-[#10242A] flex items-center gap-1"><UserCheck size={11} className="text-emerald-600"/>{t.assigned_admin_name}</span>
-                      : <button onClick={() => setAssignModal(t._id)} className="text-[11px] font-semibold text-[#0E7C86] hover:underline flex items-center gap-1 cursor-pointer"><Plus size={11}/>Assign</button>
+                      ? <span className="text-[13px] font-semibold text-[#10242A] flex items-center gap-1"><UserCheck size={12} className="text-emerald-600"/>{t.assigned_admin_name}</span>
+                      : <button onClick={() => setAssignModal(t._id)} className="text-[12px] font-semibold text-[#0E7C86] hover:underline flex items-center gap-1 cursor-pointer"><Plus size={12}/>Assign</button>
                     }
                   </td>
-                  <td className="px-5 py-3">
+                  <td className="py-2.5 pr-2">
                     <div className="flex items-center gap-1 justify-end">
                       <button onClick={() => setSelected(t)} className="p-1.5 text-[#4A5961] hover:text-[#0E7C86] hover:bg-[#E6F4F5] rounded-[6px] transition-all cursor-pointer" title="View"><Eye size={14}/></button>
                       {!t.assigned_admin_name && (

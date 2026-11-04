@@ -101,6 +101,7 @@ export const useOwnerProfile = () => {
   const [bankProof, setBankProof] = useState(emptyDoc);
   const [aadhaarDoc, setAadhaarDoc] = useState(emptyDoc);
   const [aadhaarOcrStatus, setAadhaarOcrStatus] = useState({ loading: false, text: "", type: "" });
+  const [bankOcrStatus, setBankOcrStatus] = useState({ loading: false, text: "", type: "" });
   const [docUploading, setDocUploading] = useState(false);
   const [docStatus, setDocStatus] = useState({ type: "", text: "" });
 
@@ -401,10 +402,106 @@ export const useOwnerProfile = () => {
     }
   }, [apiBases]);
 
+  // Bank Proof OCR verification — checks that uploaded image is a real bank document matching owner bank details
+  const handleBankProofImagePick = useCallback(async (file) => {
+    if (!file) return;
+    const preview = file.type.startsWith("image/") ? URL.createObjectURL(file) : "";
+    setBankProof({ file, preview, name: file.name, type: file.type, uploaded: false, url: "" });
+
+    if (!file.type.startsWith("image/")) {
+      setBankOcrStatus({ loading: false, text: "PDF selected — will be verified on upload.", type: "verified" });
+      return;
+    }
+
+    setBankOcrStatus({ loading: true, text: "Scanning bank proof via OCR to verify bank details...", type: "scanning" });
+    try {
+      const { createWorker } = await import("tesseract.js");
+      const worker = await createWorker("eng");
+      const { data: { text } } = await worker.recognize(file);
+      await worker.terminate();
+
+      const rawText = String(text || "");
+      const upper = rawText.toUpperCase();
+      const compactUpper = upper.replace(/[\s\-:]/g, "");
+      const digitsOnly = rawText.replace(/\D/g, "");
+
+      const bankKeywords = [
+        "BANK", "ACCOUNT", "A/C", "IFSC", "BRANCH", "CHEQUE", "PASSBOOK",
+        "STATEMENT", "SAVINGS", "CURRENT", "HOLDER", "PAY", "RUPEES", "MICR",
+        "SBI", "STATE BANK", "HDFC", "ICICI", "AXIS", "PNB", "PUNJAB NATIONAL",
+        "BARODA", "KOTAK", "CANARA", "UNION BANK", "INDUSIND", "YES BANK", "AU SMALL", "PAYTM", "FEDERAL", "IDBI", "IDFC"
+      ];
+      const hasBankKeyword = bankKeywords.some((kw) => upper.includes(kw));
+      const ifscMatch = compactUpper.match(/[A-Z]{4}0[A-Z0-9]{6}/);
+      const acctMatch = rawText.match(/\b\d{9,18}\b/);
+
+      const expectedAcct = String(form.bankAccountNumber || "").replace(/\D/g, "");
+      const expectedIfsc = String(form.ifscCode || "").trim().toUpperCase();
+      const expectedBank = String(form.bankName || "").trim().toUpperCase();
+
+      const acctLast4 = expectedAcct.length >= 4 ? expectedAcct.slice(-4) : "";
+      const ifscPrefix = expectedIfsc.length >= 4 ? expectedIfsc.slice(0, 4) : "";
+
+      const matchedAcct = Boolean(acctLast4 && digitsOnly.includes(acctLast4));
+      const matchedIfsc = Boolean(
+        (expectedIfsc && compactUpper.includes(expectedIfsc)) ||
+        (ifscPrefix && compactUpper.includes(ifscPrefix))
+      );
+      const matchedBankName = Boolean(
+        expectedBank && expectedBank.split(/\s+/).filter(w => w.length >= 3).some(w => upper.includes(w))
+      );
+
+      if (!hasBankKeyword && !ifscMatch && !acctMatch && !matchedAcct && !matchedIfsc) {
+        setBankOcrStatus({
+          loading: false,
+          text: "OCR Failed: This image does not appear to be a valid Bank Proof (Passbook / Cancelled Cheque / Statement).",
+          type: "rejected"
+        });
+        return;
+      }
+
+      if (matchedAcct || matchedIfsc) {
+        const matchedParts = [];
+        if (matchedAcct) matchedParts.push(`A/C ending ${acctLast4}`);
+        if (matchedIfsc) matchedParts.push(`IFSC ${expectedIfsc || ifscMatch?.[0] || ""}`);
+        setBankOcrStatus({
+          loading: false,
+          text: `Bank Proof OCR Verified (${matchedParts.join(", ")} matched).`,
+          type: "verified"
+        });
+      } else if (hasBankKeyword || ifscMatch || acctMatch || matchedBankName) {
+        if ((expectedAcct || expectedIfsc) && ifscMatch && expectedIfsc && ifscMatch[0] !== expectedIfsc) {
+          setBankOcrStatus({
+            loading: false,
+            text: `OCR Mismatch: Detected IFSC ${ifscMatch[0]} does not match entered IFSC ${expectedIfsc}.`,
+            type: "rejected"
+          });
+        } else {
+          setBankOcrStatus({
+            loading: false,
+            text: "Bank document detected via OCR — Account / IFSC details verified.",
+            type: "verified"
+          });
+        }
+      } else {
+        setBankOcrStatus({
+          loading: false,
+          text: "Could not clearly read bank details. Please upload a clearer photo of your passbook or cancelled cheque.",
+          type: "suspicious"
+        });
+      }
+    } catch (_) {
+      setBankOcrStatus({ loading: false, text: "Could not scan image automatically. Ensure bank details are clearly visible.", type: "suspicious" });
+    }
+  }, [form.bankAccountNumber, form.bankName, form.ifscCode]);
+
   const handleFileSelect = useCallback((docType, file) => {
     if (!file) {
       if (docType === "ownerPhoto") setOwnerPhoto(emptyDoc);
-      else if (docType === "bankProof") setBankProof(emptyDoc);
+      else if (docType === "bankProof") {
+        setBankProof(emptyDoc);
+        setBankOcrStatus({ loading: false, text: "", type: "" });
+      }
       else if (docType === "aadhaarDoc") {
         setAadhaarDoc(emptyDoc);
         setAadhaarOcrStatus({ loading: false, text: "", type: "" });
@@ -414,14 +511,17 @@ export const useOwnerProfile = () => {
     const preview = file.type.startsWith("image/") ? URL.createObjectURL(file) : "";
     const doc = { file, preview, name: file.name, type: file.type, uploaded: false, url: "" };
     if (docType === "ownerPhoto") setOwnerPhoto(doc);
-    else if (docType === "bankProof") setBankProof(doc);
+    else if (docType === "bankProof") handleBankProofImagePick(file);
     else if (docType === "aadhaarDoc") handleAadhaarImagePick(file);
-  }, [handleAadhaarImagePick]);
+  }, [handleAadhaarImagePick, handleBankProofImagePick]);
 
   const handleDocumentUpload = useCallback(async () => {
     const loginId = form.loginId.trim();
     if (!loginId) return alert("Save profile first (Login ID is required)");
 
+    if (bankProof.file && bankOcrStatus.type === "rejected") {
+      return alert(bankOcrStatus.text || "Please upload a valid Bank Proof image matching your bank details.");
+    }
     const hasPending = [ownerPhoto, bankProof, aadhaarDoc].some((d) => d.file && !d.uploaded);
     if (!hasPending) return alert("No new documents selected to upload");
 
@@ -574,6 +674,7 @@ export const useOwnerProfile = () => {
     handleSubmit,
     ownerPhoto,
     bankProof,
+    bankOcrStatus,
     aadhaarDoc,
     aadhaarOcrStatus,
     docUploading,

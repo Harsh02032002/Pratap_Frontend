@@ -12,6 +12,7 @@ export const useOwnerAgreement = () => {
   const [ownerData, setOwnerData] = useState(null);
 
   const [eSignName, setESignName] = useState("");
+  const [gstinNumber, setGstinNumber] = useState("");
   const [accepted, setAccepted] = useState(false);
 
   // Load owner agreement details
@@ -35,6 +36,9 @@ export const useOwnerAgreement = () => {
         if (resp.ownerName && !eSignName) {
           setESignName(resp.ownerName);
         }
+        if (resp.gstinNumber && !gstinNumber) {
+          setGstinNumber(resp.gstinNumber);
+        }
       } else {
         setError(resp?.message || "Failed to load agreement data.");
       }
@@ -43,7 +47,7 @@ export const useOwnerAgreement = () => {
     } finally {
       setLoadingData(false);
     }
-  }, [apiBases, loginId, eSignName]);
+  }, [apiBases, loginId, eSignName, gstinNumber]);
 
   useEffect(() => {
     loadAgreementData();
@@ -78,7 +82,7 @@ export const useOwnerAgreement = () => {
           tradeName: ownerData?.tradeName || "",
           propertyAddress: ownerData?.propertyAddress || "",
           panNumber: ownerData?.panNumber || "",
-          gstinNumber: ownerData?.gstinNumber || "",
+          gstinNumber: (gstinNumber || ownerData?.gstinNumber || "").trim(),
           representativeName: ownerData?.ownerName || eSignName.trim()
         };
 
@@ -103,7 +107,7 @@ export const useOwnerAgreement = () => {
         setSubmitting(false);
       }
     },
-    [accepted, apiBases, eSignName, loginId, ownerData]
+    [accepted, apiBases, eSignName, gstinNumber, loginId, ownerData]
   );
 
   return {
@@ -111,6 +115,8 @@ export const useOwnerAgreement = () => {
     setLoginId,
     eSignName,
     setESignName,
+    gstinNumber,
+    setGstinNumber,
     accepted,
     setAccepted,
     submitting,

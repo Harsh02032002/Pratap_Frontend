@@ -34,7 +34,7 @@ export default function DigitalCheckinOwnerSuccess() {
       <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#e9f2ff_0%,_#f4f7fb_45%,_#eef1f5_100%)]">
         <header className="border-b border-slate-200 bg-slate-950">
           <div className="mx-auto flex max-w-5xl items-center gap-4 px-5 py-4 sm:px-6">
-            <img src="/website/images/whitelogo.jpeg" alt="Roomhy Logo" className="h-12 w-auto sm:h-14" />
+            <img src="/website/roomhy_logo.jpeg" alt="Roomhy Logo" className="h-12 w-auto rounded-lg bg-white px-2.5 py-1 object-contain sm:h-14" />
             <div className="text-white">
               <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">Digital Check-In</p>
               <h1 className="text-xl font-bold">Owner Success</h1>

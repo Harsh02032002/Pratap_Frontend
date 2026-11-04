@@ -181,6 +181,9 @@ export default function DigitalCheckinTenantagreement() {
   return (
     <div className="html-page">
       <div className="wrap">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
+          <img src="/website/roomhy_logo.jpeg" alt="Roomhy Logo" style={{ height: 42, objectFit: "contain", borderRadius: 6 }} />
+        </div>
         {isExt && extension && (
           <h1 style={{ fontSize: 20, fontWeight: 800, color: "#1a237e", letterSpacing: 0.5, margin: "0 0 10px" }}>
             AGREEMENT EXTENSION #{extension.number}

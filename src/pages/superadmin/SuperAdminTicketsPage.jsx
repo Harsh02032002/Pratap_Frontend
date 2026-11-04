@@ -170,24 +170,21 @@ export default function SuperAdminTicketsPage() {
       case 'Completed':
       case 'Resolved':
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#DDF3E4] text-[#14532D]">
             {status}
           </span>
         );
       case 'In Progress':
       case 'Assigned':
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
-            <Clock className="w-3.5 h-3.5 text-amber-600" />
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#FDEBD0] text-[#7A3E00]">
             {status}
           </span>
         );
       case 'Open':
       default:
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
-            <AlertCircle className="w-3.5 h-3.5 text-blue-600" />
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#E0F2FE] text-[#0369A1]">
             Open
           </span>
         );
@@ -195,204 +192,195 @@ export default function SuperAdminTicketsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="space-y-4 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-[22px] font-bold text-[#10242A] tracking-tight leading-tight">
+            Ticket System (Owner &amp; Tenant Raised Tickets)
+          </h1>
+          <p className="text-[13px] text-[#4A5961] mt-0.5">
+            View and manage all tickets raised by Property Owners and Tenants. Search by Ref ID and mark tickets as Resolved / Completed.
+          </p>
+        </div>
 
-        {/* ── Page Title Banner ── */}
-        <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 md:p-8 text-white shadow-xl flex flex-wrap items-center justify-between gap-6">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-bold border border-indigo-500/30 mb-3">
-              <LifeBuoy className="w-4 h-4" /> Owner &amp; Tenant Raised Ticket Desk
+        <button
+          onClick={loadAllTickets}
+          className="bg-white border border-[#CBD3D9] hover:bg-gray-50 text-[#10242A] font-semibold text-[13px] px-4 py-1.5 rounded-[8px] transition-all shadow-xs flex items-center gap-2 cursor-pointer shrink-0"
+        >
+          <RefreshCw className="w-4 h-4" /> Refresh Tickets
+        </button>
+      </div>
+
+      {/* Summary Stats (NO ICONS) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { label: "Total Tickets", val: tickets.length },
+          { label: "Open", val: tickets.filter(t => t.status === 'Open').length },
+          { label: "In Progress", val: tickets.filter(t => ['In Progress', 'Assigned'].includes(t.status)).length },
+          { label: "Completed / Resolved", val: tickets.filter(t => ['Completed', 'Resolved'].includes(t.status)).length },
+        ].map(c => (
+          <div key={c.label} className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
+            <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">{c.label}</p>
+            <div className="mt-2">
+              <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{loading ? "..." : c.val}</h3>
             </div>
-            <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">
-              Ticket System (Owner &amp; Tenant Raised Tickets)
-            </h1>
-            <p className="text-slate-300 text-sm mt-1.5 max-w-2xl">
-              View and manage all tickets raised by <strong>Property Owners</strong> and <strong>Tenants</strong>. Search by <strong>Ref ID (e.g. TKT-849201)</strong> and mark tickets as <strong>Resolved / Completed</strong>.
-            </p>
           </div>
+        ))}
+      </div>
 
-          <button
-            onClick={loadAllTickets}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-5 py-3 rounded-2xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
+      {/* Ref ID Search Bar & Filters (Outside & Above the Table Card in a Single Line) */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="relative w-full sm:w-[320px]">
+          <Search className="w-4 h-4 text-[#708088] absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Search by Ref ID, Name, Login ID, Phone..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-white border border-[#CBD3D9] rounded-[8px] pl-9 pr-3.5 py-1.5 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs"
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          {selectedTicketIds.length > 0 && (
+            <>
+              <button
+                onClick={handleBulkResolveTickets}
+                className="bg-[#0E7C86] text-white px-3.5 py-1.5 rounded-[8px] text-[13px] font-semibold hover:bg-[#0B666E] transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+              >
+                <CheckCircle2 className="w-4 h-4" /> Bulk Resolve ({selectedTicketIds.length})
+              </button>
+              <button
+                onClick={handleBulkDeleteTickets}
+                className="bg-rose-600 text-white px-3.5 py-1.5 rounded-[8px] text-[13px] font-semibold hover:bg-rose-700 transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+              >
+                Bulk Delete ({selectedTicketIds.length})
+              </button>
+            </>
+          )}
+
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className="bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-1.5 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs"
           >
-            <RefreshCw className="w-4 h-4" /> Refresh Tickets
-          </button>
+            <option value="all">All Raisers (Owner &amp; Tenant)</option>
+            <option value="owner">Owner Raised Tickets</option>
+            <option value="tenant">Tenant Raised Tickets</option>
+          </select>
+
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-1.5 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs"
+          >
+            <option value="all">All Statuses</option>
+            <option value="Open">Open</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Completed">Completed</option>
+            <option value="Resolved">Resolved</option>
+          </select>
+
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            className="bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-1.5 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs"
+          >
+            <option value="all">All Categories</option>
+            <option value="Property Edit Request">Property Edit Request</option>
+            <option value="Room Photo Edit Request">Room Photo Edit Request</option>
+            <option value="Payment / PayU Issue">Payment / PayU Issue</option>
+            <option value="Owner Complaint">Owner Complaint</option>
+            <option value="Tenant Complaint">Tenant Complaint</option>
+          </select>
         </div>
+      </div>
 
-        {/* ── Ref ID Search Bar & Filters ── */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex flex-wrap items-center justify-between gap-4">
-          <div className="relative flex-1 min-w-[280px]">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search by Ref ID (e.g. TKT-849201), Name, Login ID, Phone or Subject..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-500"
-            />
-          </div>
-
-          <div className="flex items-center gap-3">
-            {selectedTicketIds.length > 0 && (
-              <>
-                <button
-                  onClick={handleBulkResolveTickets}
-                  className="bg-emerald-600 text-white px-3.5 py-2.5 rounded-xl text-xs font-bold hover:bg-emerald-700 transition-all flex items-center gap-1.5 shadow-sm"
-                >
-                  <CheckCircle2 className="w-4 h-4" /> Bulk Resolve ({selectedTicketIds.length})
-                </button>
-                <button
-                  onClick={handleBulkDeleteTickets}
-                  className="bg-rose-600 text-white px-3.5 py-2.5 rounded-xl text-xs font-bold hover:bg-rose-700 transition-all flex items-center gap-1.5 shadow-sm"
-                >
-                  Bulk Delete ({selectedTicketIds.length})
-                </button>
-              </>
-            )}
-
-            <select
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-              className="bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-700 focus:outline-none"
-            >
-              <option value="all">All Raisers (Owner &amp; Tenant)</option>
-              <option value="owner">Owner Raised Tickets</option>
-              <option value="tenant">Tenant Raised Tickets</option>
-            </select>
-
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-700 focus:outline-none"
-            >
-              <option value="all">All Statuses</option>
-              <option value="Open">Open</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Completed">Completed</option>
-              <option value="Resolved">Resolved</option>
-            </select>
-
-
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-700 focus:outline-none"
-            >
-              <option value="all">All Categories</option>
-              <option value="Property Edit Request">Property Edit Request</option>
-              <option value="Room Photo Edit Request">Room Photo Edit Request</option>
-              <option value="Payment / PayU Issue">Payment / PayU Issue</option>
-              <option value="Owner Complaint">Owner Complaint</option>
-              <option value="Tenant Complaint">Tenant Complaint</option>
-            </select>
-          </div>
-        </div>
-
-        {/* ── Summary Stats ── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Tickets</p>
-            <p className="text-2xl font-black text-slate-800 mt-1">{tickets.length}</p>
-          </div>
-          <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-            <p className="text-xs font-bold text-blue-500 uppercase tracking-wider">Open</p>
-            <p className="text-2xl font-black text-blue-600 mt-1">
-              {tickets.filter(t => t.status === 'Open').length}
-            </p>
-          </div>
-          <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-            <p className="text-xs font-bold text-amber-500 uppercase tracking-wider">In Progress</p>
-            <p className="text-2xl font-black text-amber-600 mt-1">
-              {tickets.filter(t => ['In Progress', 'Assigned'].includes(t.status)).length}
-            </p>
-          </div>
-          <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-            <p className="text-xs font-bold text-emerald-500 uppercase tracking-wider">Completed / Resolved</p>
-            <p className="text-2xl font-black text-emerald-600 mt-1">
-              {tickets.filter(t => ['Completed', 'Resolved'].includes(t.status)).length}
-            </p>
-          </div>
-        </div>
-
-        {/* ── Tickets Table ── */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-          {loading ? (
-            <div className="p-12 text-center text-slate-400 font-bold text-xs">Loading tickets database...</div>
-          ) : filteredTickets.length === 0 ? (
-            <div className="p-12 text-center">
-              <LifeBuoy className="w-12 h-12 text-slate-300 mx-auto mb-2" />
-              <h3 className="text-sm font-bold text-slate-700">No Tickets Found</h3>
-              <p className="text-xs text-slate-400 mt-1">No support tickets match the search query or filter criteria.</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-slate-100">
-              {filteredTickets.map((t) => {
-                const isChecked = selectedTicketIds.includes(t._id);
-                return (
-                  <div
-                    key={t._id}
-                    onClick={() => setSelectedTicket(t)}
-                    className="p-5 hover:bg-slate-50 transition-all cursor-pointer flex flex-wrap items-center justify-between gap-4 group"
-                  >
-                    <div className="flex items-start gap-4 min-w-0 flex-1">
-                      <div className="pt-1.5" onClick={e => e.stopPropagation()}>
+      {/* Tickets Table */}
+      <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse min-w-[750px]">
+            <thead>
+              <tr className="border-b border-[#E1E6EA]">
+                <th className="pb-2 pl-2 w-8">
+                  <input
+                    type="checkbox"
+                    checked={filteredTickets.length > 0 && selectedTicketIds.length === filteredTickets.length}
+                    onChange={(e) => handleSelectAllTickets(e, filteredTickets)}
+                    className="rounded border-[#CBD3D9] cursor-pointer w-4 h-4"
+                  />
+                </th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Ref ID</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Category</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Raiser</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Subject &amp; Description</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Status</th>
+                <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-right pr-2">Date</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#F0F4F6] text-[13px]">
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="py-6 text-center text-[#4A5961] text-[13px]">Loading tickets database...</td>
+                </tr>
+              ) : filteredTickets.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-6 text-center text-[#4A5961] text-[13px]">No support tickets match the search query or filter criteria.</td>
+                </tr>
+              ) : (
+                filteredTickets.map((t) => {
+                  const isChecked = selectedTicketIds.includes(t._id);
+                  return (
+                    <tr
+                      key={t._id}
+                      onClick={() => setSelectedTicket(t)}
+                      className="hover:bg-[#F9FAFB] transition-colors cursor-pointer"
+                    >
+                      <td className="py-2.5 pl-2" onClick={e => e.stopPropagation()}>
                         <input
                           type="checkbox"
                           checked={isChecked}
                           onChange={() => handleSelectOneTicket(t._id)}
-                          className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                          className="rounded border-[#CBD3D9] cursor-pointer w-4 h-4"
                         />
-                      </div>
-                      {/* Ref ID Badge */}
-                      <div className="shrink-0">
+                      </td>
+                      <td className="py-2.5">
                         <button
                           onClick={(e) => { e.stopPropagation(); handleCopyRef(t.ticket_id); }}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-mono text-xs font-bold transition-colors"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] bg-[#E6F4F5] hover:bg-[#D5ECEE] text-[#0E7C86] font-mono text-[12px] font-bold transition-colors cursor-pointer"
                           title="Click to copy Ref ID"
                         >
                           {t.ticket_id}
-                          {copiedId === t.ticket_id ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-indigo-400" />}
+                          {copiedId === t.ticket_id ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-[#0E7C86]" />}
                         </button>
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider bg-slate-100 px-2 py-0.5 rounded-md">
-                            {t.ticket_type}
-                          </span>
-                          <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">
-                            Raiser: {t.raised_by_name} ({t.raised_by_role})
-                          </span>
-                        </div>
-
-                        <h4 className="text-sm font-bold text-slate-800 mt-1 group-hover:text-indigo-600 transition-colors truncate">
-                          {t.subject}
-                        </h4>
-                        
-                        <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">
-                          {t.description}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-4 shrink-0">
-                      <div className="text-right">
+                      </td>
+                      <td className="py-2.5">
+                        <span className="text-[11px] font-semibold text-[#4A5961] bg-[#E8EDF1] px-2.5 py-0.5 rounded-full whitespace-nowrap">
+                          {t.ticket_type}
+                        </span>
+                      </td>
+                      <td className="py-2.5">
+                        <span className="font-semibold text-[#10242A] text-[13px] block">{t.raised_by_name}</span>
+                        <span className="text-[11px] text-[#708088]">{t.raised_by_role}</span>
+                      </td>
+                      <td className="py-2.5 max-w-xs">
+                        <p className="font-semibold text-[#10242A] text-[13px] truncate">{t.subject}</p>
+                        <p className="text-[11px] text-[#708088] truncate">{t.description}</p>
+                      </td>
+                      <td className="py-2.5">
                         {getStatusBadge(t.status)}
-                        <p className="text-[11px] text-slate-400 mt-1">
-                          {new Date(t.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                        </p>
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition-all" />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
+                      </td>
+                      <td className="py-2.5 pr-2 text-right text-[#4A5961] text-[12px] whitespace-nowrap">
+                        {new Date(t.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
-
       </div>
 
       {/* ── Drawer: Ticket Details & Action Panel ── */}

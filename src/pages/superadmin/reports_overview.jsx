@@ -1,19 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { fetchJson } from "../../utils/api";
 import { 
-  TrendingUp, IndianRupee, Users, Building2, 
-  ArrowUpRight, ArrowDownRight, Calendar, Download,
-  ChevronRight, PieChart as PieIcon, BarChart3, 
-  MapPin, Clock, Wallet, FileText, LayoutDashboard,
-  Filter, Search, MoreVertical, Activity, UserPlus, 
-  Target, Percent, Building, TrendingDown
+  TrendingUp, Users, Calendar, MapPin, Building
 } from "lucide-react";
 import {
-  LineChart, Line, AreaChart, Area, XAxis, YAxis, 
+  AreaChart, Area, XAxis, YAxis, 
   CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, BarChart, Bar, Legend
+  PieChart, Pie, Cell
 } from "recharts";
-import { PageHeader } from "../../components/superadmin/PageHeader";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
@@ -64,38 +58,38 @@ export default function ReportsOverview() {
   }));
 
   return (
-    <div className="space-y-6 pb-8">
+    <div className="space-y-4 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
       {/* Header Area */}
-      <PageHeader 
-        title="Report & Analytics Overview"
-        subtitle="Consolidated performance dashboard across properties, bookings, and revenue streams."
-        actions={
-          <div className="flex items-center gap-2 bg-white border border-[#E1E6EA] px-3.5 py-1.5 rounded-[12px] shadow-xs text-xs font-semibold text-[#4A5961]">
-            <Calendar className="w-4 h-4 text-[#0E7C86]" />
-            <span>Last 30 Days</span>
-          </div>
-        }
-      />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-[22px] font-bold text-[#10242A] tracking-tight leading-tight">Report & Analytics Overview</h1>
+          <p className="text-[13px] text-[#4A5961] mt-0.5">Consolidated performance dashboard across properties, bookings, and revenue streams.</p>
+        </div>
+        <div className="flex items-center gap-2 bg-white border border-[#CBD3D9] px-3.5 py-1.5 rounded-[8px] shadow-xs text-[13px] font-semibold text-[#10242A]">
+          <Calendar className="w-4 h-4 text-[#0E7C86]" />
+          <span>Last 30 Days</span>
+        </div>
+      </div>
 
       {/* TOP ROW: 6 STATISTICAL CARDS */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-         <ReportStatCard icon={Building} label="Total Properties" val={summary.totalProperties} trend="+12.6%" />
-         <ReportStatCard icon={Users} label="Total Tenants" val={summary.totalTenants} trend="+9.8%" />
-         <ReportStatCard icon={Percent} label="Occupancy Rate" val={`${summary.occupancyRate}%`} trend="+4.3%" />
-         <ReportStatCard icon={IndianRupee} label="Monthly Revenue" val={`₹${Number(summary.monthlyRevenue || 0).toLocaleString('en-IN')}`} trend="+14.7%" />
-         <ReportStatCard icon={Wallet} label="Net Profit" val={`₹${Number(summary.netProfit || 0).toLocaleString('en-IN')}`} trend="+18.2%" />
-         <ReportStatCard icon={TrendingUp} label="Growth Rate" val={`${summary.growthRate}%`} trend="+3.6%" />
+         <ReportStatCard label="Total Properties" val={summary.totalProperties} trend="+12.6%" />
+         <ReportStatCard label="Total Tenants" val={summary.totalTenants} trend="+9.8%" />
+         <ReportStatCard label="Occupancy Rate" val={`${summary.occupancyRate}%`} trend="+4.3%" />
+         <ReportStatCard label="Monthly Revenue" val={`₹${Number(summary.monthlyRevenue || 0).toLocaleString('en-IN')}`} trend="+14.7%" />
+         <ReportStatCard label="Net Profit" val={`₹${Number(summary.netProfit || 0).toLocaleString('en-IN')}`} trend="+18.2%" />
+         <ReportStatCard label="Growth Rate" val={`${summary.growthRate}%`} trend="+3.6%" />
       </div>
 
       {/* MIDDLE ROW: REVENUE, OCCUPANCY, PERFORMANCE */}
-      <div className="grid grid-cols-12 gap-6">
+      <div className="grid grid-cols-12 gap-4">
          {/* Revenue Overview */}
-         <div className="col-span-12 lg:col-span-5 bg-white rounded-[16px] p-6 border border-[#E1E6EA] shadow-xs flex flex-col h-[400px]">
-            <div className="flex items-center justify-between mb-4">
-               <h3 className="text-base font-bold text-[#10242A]">Revenue Overview</h3>
-               <span className="bg-[#F4F6F8] border border-[#E1E6EA] rounded-[8px] px-3 py-1 text-[11px] font-semibold text-[#4A5961]">Last 6 Months</span>
+         <div className="col-span-12 lg:col-span-5 bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col h-[360px]">
+            <div className="flex items-center justify-between mb-3">
+               <h3 className="text-[15px] font-bold text-[#10242A]">Revenue Overview</h3>
+               <span className="bg-[#F4F6F8] border border-[#E1E6EA] rounded-[8px] px-2.5 py-1 text-[11px] font-semibold text-[#4A5961]">Last 6 Months</span>
             </div>
-            <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-2 mb-3">
                <div className="w-2.5 h-2.5 rounded-full bg-[#0E7C86]" />
                <span className="text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider">Revenue (₹ Lakhs)</span>
             </div>
@@ -119,12 +113,12 @@ export default function ReportsOverview() {
          </div>
 
          {/* Occupancy Rate Trend */}
-         <div className="col-span-12 lg:col-span-3 bg-white rounded-[16px] p-6 border border-[#E1E6EA] shadow-xs flex flex-col items-center h-[400px]">
-            <div className="flex items-center justify-between w-full mb-4">
-               <h3 className="text-base font-bold text-[#10242A]">Occupancy Rate</h3>
+         <div className="col-span-12 lg:col-span-3 bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col items-center h-[360px]">
+            <div className="flex items-center justify-between w-full mb-3">
+               <h3 className="text-[15px] font-bold text-[#10242A]">Occupancy Rate</h3>
                <span className="bg-[#F4F6F8] border border-[#E1E6EA] rounded-[8px] px-2.5 py-1 text-[11px] font-semibold text-[#4A5961]">Real-Time</span>
             </div>
-            <div className="relative h-44 w-44 flex items-center justify-center mb-4">
+            <div className="relative h-40 w-40 flex items-center justify-center mb-3">
                <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                      <Pie data={activeOccupancyData} innerRadius={50} outerRadius={70} paddingAngle={4} dataKey="value" stroke="none">
@@ -153,62 +147,66 @@ export default function ReportsOverview() {
          </div>
 
          {/* Property Performance */}
-         <div className="col-span-12 lg:col-span-4 bg-white rounded-[16px] p-6 border border-[#E1E6EA] shadow-xs flex flex-col h-[400px]">
-            <div className="flex items-center justify-between mb-4">
-               <h3 className="text-base font-bold text-[#10242A]">Property Performance <span className="text-[#4A5961] text-xs font-normal ml-1">(Top 5)</span></h3>
+         <div className="col-span-12 lg:col-span-4 bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col h-[360px] overflow-hidden">
+            <div className="flex items-center justify-between mb-3">
+               <h3 className="text-[15px] font-bold text-[#10242A]">Property Performance <span className="text-[#4A5961] text-xs font-normal ml-1">(Top 5)</span></h3>
             </div>
-            <div className="space-y-3 flex-1 overflow-y-auto pr-1 flex flex-col">
-               <div className="flex items-center text-[10px] font-bold text-[#4A5961] uppercase tracking-wider px-1 bg-[#F8FAFC] p-2 rounded-[6px] border border-[#E1E6EA]">
-                  <span className="flex-1">Property Name</span>
-                  <span className="w-16 text-center">City</span>
-                  <span className="w-16 text-center">Occupancy</span>
-                  <span className="w-20 text-right">Revenue</span>
-               </div>
-               {activePropertyPerformance.map((p, i) => (
-                  <div key={i} className="flex items-center p-1.5 hover:bg-[#F4F6F8] rounded-[6px] transition-colors">
-                     <div className="flex-1 min-w-0 pr-2">
-                        <span className="text-[11.5px] font-bold text-[#10242A] truncate block">{p.name}</span>
-                     </div>
-                     <span className="w-16 text-center text-[11px] font-medium text-[#4A5961]">{p.loc}</span>
-                     <span className="w-16 text-center text-[11px] font-bold text-emerald-600">{p.occupancy}</span>
-                     <span className="w-20 text-right text-[11.5px] font-bold text-[#0E7C86]">{p.revenue}</span>
-                  </div>
-               ))}
+            <div className="overflow-x-auto flex-1">
+               <table className="w-full text-left border-collapse">
+                  <thead>
+                     <tr className="border-b border-[#E1E6EA]">
+                        <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider pl-2">Property Name</th>
+                        <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-center">City</th>
+                        <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-center">Occupancy</th>
+                        <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-right pr-2">Revenue</th>
+                     </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#F0F4F6] text-[13px]">
+                     {activePropertyPerformance.map((p, i) => (
+                        <tr key={i} className="hover:bg-[#F9FAFB] transition-colors">
+                           <td className="py-2.5 pl-2 font-semibold text-[#10242A] truncate max-w-[140px]">{p.name}</td>
+                           <td className="py-2.5 text-center text-[#4A5961]">{p.loc}</td>
+                           <td className="py-2.5 text-center font-semibold text-emerald-600">{p.occupancy}</td>
+                           <td className="py-2.5 pr-2 text-right font-semibold text-[#0E7C86]">{p.revenue}</td>
+                        </tr>
+                     ))}
+                  </tbody>
+               </table>
             </div>
          </div>
       </div>
 
       {/* FOOTER SECTION: STAFF & INSIGHTS */}
-      <div className="grid grid-cols-12 gap-6">
+      <div className="grid grid-cols-12 gap-4">
          {/* Staff Performance Reports */}
-         <div className="col-span-12 lg:col-span-7 bg-white rounded-[16px] p-6 border border-[#E1E6EA] shadow-xs flex flex-col">
-            <div className="flex items-center justify-between mb-4">
-               <h3 className="text-base font-bold text-[#10242A]">Staff Performance Overview</h3>
+         <div className="col-span-12 lg:col-span-7 bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between mb-3">
+               <h3 className="text-[15px] font-bold text-[#10242A]">Staff Performance Overview</h3>
             </div>
             <div className="overflow-x-auto flex-1">
-               <table className="w-full text-xs text-left">
+               <table className="w-full text-left border-collapse">
                   <thead>
-                     <tr className="bg-[#F8FAFC] text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider border-b border-[#E1E6EA]">
-                        <th className="py-2.5 px-3">Staff Name</th>
-                        <th className="py-2.5 px-3">Role</th>
-                        <th className="py-2.5 px-3 text-center">Managed</th>
-                        <th className="py-2.5 px-3 text-center">Leads</th>
-                        <th className="py-2.5 px-3 text-right">Performance</th>
+                     <tr className="border-b border-[#E1E6EA]">
+                        <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider pl-2">Staff Name</th>
+                        <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Role</th>
+                        <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-center">Managed</th>
+                        <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-center">Leads</th>
+                        <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-right pr-2">Performance</th>
                      </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#E1E6EA]">
+                  <tbody className="divide-y divide-[#F0F4F6] text-[13px]">
                      {activeStaffPerformance.map((s, i) => (
-                        <tr key={i} className="hover:bg-[#F4F6F8]/60 transition-colors">
-                           <td className="py-2.5 px-3">
+                        <tr key={i} className="hover:bg-[#F9FAFB] transition-colors">
+                           <td className="py-2.5 pl-2">
                               <div className="flex items-center gap-2">
                                  <div className="w-7 h-7 rounded-full bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center font-bold text-[10px]">{(s.name || "E").split(' ').map(n=>n[0]).join('')}</div>
-                                 <span className="font-bold text-[#10242A]">{s.name}</span>
+                                 <span className="font-semibold text-[#10242A]">{s.name}</span>
                               </div>
                            </td>
-                           <td className="py-2.5 px-3 text-[#4A5961]">{s.role}</td>
-                           <td className="py-2.5 px-3 text-center font-bold text-[#10242A]">{s.managed}</td>
-                           <td className="py-2.5 px-3 text-center font-bold text-[#10242A]">{s.leads}</td>
-                           <td className="py-2.5 px-3 text-right font-bold text-emerald-600">{s.perf}</td>
+                           <td className="py-2.5 text-[#4A5961]">{s.role}</td>
+                           <td className="py-2.5 text-center font-semibold text-[#10242A]">{s.managed}</td>
+                           <td className="py-2.5 text-center font-semibold text-[#10242A]">{s.leads}</td>
+                           <td className="py-2.5 pr-2 text-right font-semibold text-emerald-600">{s.perf}</td>
                         </tr>
                      ))}
                   </tbody>
@@ -217,29 +215,29 @@ export default function ReportsOverview() {
          </div>
 
          {/* Key Insights */}
-         <div className="col-span-12 lg:col-span-5 bg-white rounded-[16px] p-6 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
+         <div className="col-span-12 lg:col-span-5 bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
             <div>
-              <h3 className="text-base font-bold text-[#10242A] mb-4">Platform Intelligence</h3>
+              <h3 className="text-[15px] font-bold text-[#10242A] mb-3">Platform Intelligence</h3>
               <div className="grid grid-cols-2 gap-3">
-                 <div className="bg-[#F4F6F8] rounded-[12px] p-4 border border-[#E1E6EA] flex flex-col items-center text-center">
+                 <div className="bg-[#F4F6F8] rounded-[12px] p-3.5 border border-[#E1E6EA] flex flex-col items-center text-center">
                     <div className="w-8 h-8 rounded-[8px] bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center mb-2"><Users size={16} /></div>
                     <p className="text-[11px] font-semibold text-[#4A5961] leading-tight">
                        Occupancy rate verified at {summary.occupancyRate}% globally.
                     </p>
                  </div>
-                 <div className="bg-[#F4F6F8] rounded-[12px] p-4 border border-[#E1E6EA] flex flex-col items-center text-center">
+                 <div className="bg-[#F4F6F8] rounded-[12px] p-3.5 border border-[#E1E6EA] flex flex-col items-center text-center">
                     <div className="w-8 h-8 rounded-[8px] bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center mb-2"><MapPin size={16} /></div>
                     <p className="text-[11px] font-semibold text-[#4A5961] leading-tight">
                        {activeLocationWiseData[0]?.name ? `${activeLocationWiseData[0].name} is top performing location.` : "No top location data yet."}
                     </p>
                  </div>
-                 <div className="bg-[#F4F6F8] rounded-[12px] p-4 border border-[#E1E6EA] flex flex-col items-center text-center">
+                 <div className="bg-[#F4F6F8] rounded-[12px] p-3.5 border border-[#E1E6EA] flex flex-col items-center text-center">
                     <div className="w-8 h-8 rounded-[8px] bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center mb-2"><Building size={16} /></div>
                     <p className="text-[11px] font-semibold text-[#4A5961] leading-tight">
                        {summary.totalProperties} properties active in core database.
                     </p>
                  </div>
-                 <div className="bg-[#F4F6F8] rounded-[12px] p-4 border border-[#E1E6EA] flex flex-col items-center text-center">
+                 <div className="bg-[#F4F6F8] rounded-[12px] p-3.5 border border-[#E1E6EA] flex flex-col items-center text-center">
                     <div className="w-8 h-8 rounded-[8px] bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center mb-2"><TrendingUp size={16} /></div>
                     <p className="text-[11px] font-semibold text-[#4A5961] leading-tight">
                        Revenue flow tracking active across cities.
@@ -253,19 +251,15 @@ export default function ReportsOverview() {
   );
 }
 
-function ReportStatCard({ icon: Icon, label, val, trend }) {
+function ReportStatCard({ label, val, trend }) {
   return (
-    <div className="bg-white rounded-[16px] p-5 border border-[#E1E6EA] shadow-xs flex flex-col justify-between hover:border-[#0E7C86]/30 transition-all">
-       <div className="flex items-center gap-2 mb-2.5">
-         <div className="w-8 h-8 rounded-[10px] bg-[#E6F4F5] text-[#0E7C86] flex items-center justify-center shrink-0">
-            <Icon size={16} />
-         </div>
-         <p className="text-[10px] font-bold text-[#4A5961] uppercase tracking-wider leading-tight">{label}</p>
-       </div>
-       <h4 className="text-xl font-bold text-[#10242A] mb-1">{val}</h4>
-       <div className="flex items-center gap-1">
-          <TrendingUp size={10} className="text-emerald-600" />
-          <span className="text-[10px] font-bold text-emerald-600">{trend}</span>
+    <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
+       <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">{label}</p>
+       <div className="mt-2">
+         <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{val}</h3>
+         {trend && (
+           <p className="text-[11px] text-[#708088] mt-1">{trend}</p>
+         )}
        </div>
     </div>
   );

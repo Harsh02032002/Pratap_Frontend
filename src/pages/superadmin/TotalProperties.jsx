@@ -39,14 +39,12 @@ function Avatar({ name="" }) {
   return <div className={`w-8 h-8 rounded-full ${bg} text-white flex items-center justify-center text-[10px] font-bold shrink-0`}>{i}</div>;
 }
 
-function Stat({ icon:Icon, label, value, color }) {
-  const cfg = { blue:"bg-blue-50 text-blue-600 border border-blue-100", green:"bg-emerald-50 text-emerald-600 border border-emerald-100", amber:"bg-amber-50 text-amber-600 border border-amber-100", slate:"bg-slate-100 text-slate-500 border border-slate-200", rose:"bg-rose-50 text-rose-600 border border-rose-100" };
+function Stat({ label, value }) {
   return (
-    <div className="bg-white rounded-[16px] p-5 border border-[#E1E6EA] shadow-xs flex items-center gap-3.5">
-      <div className={`w-11 h-11 rounded-xl ${cfg[color]} flex items-center justify-center shrink-0`}><Icon className="w-5 h-5"/></div>
-      <div className="min-w-0 flex-1 flex flex-col justify-center">
-        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1.5 truncate">{label}</p>
-        <p className="text-2xl font-bold text-[#10242A] tracking-tight leading-none truncate">{value}</p>
+    <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
+      <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">{label}</p>
+      <div className="mt-2">
+        <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none truncate">{value}</h3>
       </div>
     </div>
   );
@@ -55,7 +53,7 @@ function Stat({ icon:Icon, label, value, color }) {
 function Sel({ value, onChange, children, placeholder }) {
   return (
     <select value={value} onChange={e=>onChange(e.target.value)}
-      className="px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 outline-none focus:border-blue-400 cursor-pointer hover:border-slate-300 transition-all">
+      className="bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-1.5 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs">
       <option value="all">{placeholder}</option>
       {children}
     </select>
@@ -316,49 +314,49 @@ export default function TotalProperties() {
   const pct = (n) => stats.total ? `${((n/stats.total)*100).toFixed(1)}%` : null;
 
   return (
-    <div className="space-y-6 text-[#10242A]">
+    <div className="space-y-4 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Total Properties</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Manage all property listings, statuses and actions</p>
+          <h1 className="text-[22px] font-bold text-[#10242A] tracking-tight leading-tight">Total Properties</h1>
+          <p className="text-[13px] text-[#4A5961] mt-0.5">Manage all property listings, statuses and actions</p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
-          <button onClick={fetchProps} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl text-xs sm:text-sm font-medium hover:bg-slate-50 shadow-2xs transition-all cursor-pointer">
-            <RefreshCw className="w-3.5 h-3.5 text-slate-500"/> Refresh
+          <button onClick={fetchProps} className="flex items-center gap-2 px-3.5 py-1.5 bg-white border border-[#CBD3D9] text-[#10242A] rounded-[8px] text-[13px] font-semibold hover:bg-[#F4F6F8] shadow-xs transition-all cursor-pointer">
+            <RefreshCw className="w-3.5 h-3.5 text-[#4A5961]"/> Refresh
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl text-xs sm:text-sm font-medium hover:bg-slate-50 shadow-2xs transition-all cursor-pointer">
-            <Download className="w-3.5 h-3.5 text-slate-500"/> Export
+          <button className="flex items-center gap-2 px-3.5 py-1.5 bg-white border border-[#CBD3D9] text-[#10242A] rounded-[8px] text-[13px] font-semibold hover:bg-[#F4F6F8] shadow-xs transition-all cursor-pointer">
+            <Download className="w-3.5 h-3.5 text-[#4A5961]"/> Export
           </button>
-          <button onClick={()=>setShowMore(v=>!v)} className={cn("flex items-center gap-2 px-4 py-2 border rounded-xl text-xs sm:text-sm font-medium shadow-2xs transition-all cursor-pointer", showMore?"bg-[#095256] text-white border-[#095256]":"bg-white border-slate-200 text-slate-700 hover:bg-slate-50")}>
+          <button onClick={()=>setShowMore(v=>!v)} className={cn("flex items-center gap-2 px-3.5 py-1.5 border rounded-[8px] text-[13px] font-semibold shadow-xs transition-all cursor-pointer", showMore?"bg-[#095256] text-white border-[#095256]":"bg-white border-[#CBD3D9] text-[#10242A] hover:bg-[#F4F6F8]")}>
             <SlidersHorizontal className="w-3.5 h-3.5"/> More Filters
           </button>
-          <button onClick={() => { setSelectedProp(null); setEditModalOpen(true); }} className="flex items-center gap-2 px-4 py-2 bg-[#095256] text-white rounded-xl text-xs sm:text-sm font-medium hover:bg-[#074043] shadow-2xs transition-all cursor-pointer">
-            <Plus className="w-4 h-4"/> + Add Property
+          <button onClick={() => { setSelectedProp(null); setEditModalOpen(true); }} className="flex items-center gap-2 px-3.5 py-1.5 bg-[#095256] text-white rounded-[8px] text-[13px] font-semibold hover:bg-[#073E42] shadow-xs transition-all cursor-pointer">
+            <Plus className="w-4 h-4"/> Add Property
           </button>
         </div>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
-        <Stat icon={Building2}    label="Total Properties"  value={stats.total.toLocaleString()}     color="blue"  />
-        <Stat icon={CheckCircle2} label="Published"         value={stats.published.toLocaleString()} color="green" />
-        <Stat icon={Clock}        label="Pending Approval"  value={stats.pending.toLocaleString()}   color="amber" />
-        <Stat icon={XCircle}      label="Inactive"          value={stats.inactive.toLocaleString()}  color="slate" />
-        <Stat icon={AlertCircle}  label="Rejected"          value={stats.rejected.toLocaleString()}  color="rose"  />
+        <Stat label="Total Properties"  value={stats.total.toLocaleString()}     />
+        <Stat label="Published"         value={stats.published.toLocaleString()} />
+        <Stat label="Pending Approval"  value={stats.pending.toLocaleString()}   />
+        <Stat label="Inactive"          value={stats.inactive.toLocaleString()}  />
+        <Stat label="Rejected"          value={stats.rejected.toLocaleString()}  />
       </div>
 
       {/* Search & Filter Row (OUTSIDE Table Card) */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="relative flex-1 min-w-[240px] max-w-md">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"/>
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8C9BA5]"/>
           <input 
             value={search} 
             onChange={e => setSearch(e.target.value)} 
             placeholder="Search..."
-            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-[#095256]/20 focus:border-[#095256] shadow-2xs transition-all"
+            className="w-full bg-white border border-[#CBD3D9] rounded-[8px] pl-9 pr-3.5 py-1.5 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs"
           />
-          {search && <button onClick={()=>setSearch("")} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><X className="w-4 h-4"/></button>}
+          {search && <button onClick={()=>setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8C9BA5] hover:text-[#10242A]"><X className="w-3.5 h-3.5"/></button>}
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
@@ -386,7 +384,7 @@ export default function TotalProperties() {
           </Sel>
 
           {(search||fStatus!=="all"||fType!=="all"||fCity!=="all"||fLocation!=="all"||fOwner!=="all"||fGender!=="all"||fPriceMin||fPriceMax) && (
-            <button onClick={resetAll} className="flex items-center gap-1.5 px-3 py-2.5 text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl hover:bg-rose-100 transition-all cursor-pointer">
+            <button onClick={resetAll} className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-rose-600 bg-rose-50 border border-rose-200 rounded-[8px] hover:bg-rose-100 transition-all cursor-pointer">
               <X className="w-3.5 h-3.5"/> Reset
             </button>
           )}
@@ -395,9 +393,9 @@ export default function TotalProperties() {
 
       {/* More Filters Panel */}
       {showMore && (
-        <div className="flex flex-wrap items-end gap-4 p-4 bg-white border border-slate-200 rounded-xl shadow-2xs">
+        <div className="flex flex-wrap items-end gap-4 p-4 bg-white border border-[#E1E6EA] rounded-[12px] shadow-xs">
           <div>
-            <p className="text-xs font-semibold text-slate-500 mb-1.5">Gender</p>
+            <p className="text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider mb-1">Gender</p>
             <Sel value={fGender} onChange={setFGender} placeholder="All Gender">
               <option value="male">Boys</option>
               <option value="female">Girls</option>
@@ -405,65 +403,64 @@ export default function TotalProperties() {
             </Sel>
           </div>
           <div>
-            <p className="text-xs font-semibold text-slate-500 mb-1.5">Min Price (₹)</p>
+            <p className="text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider mb-1">Min Price (₹)</p>
             <input type="number" value={fPriceMin} onChange={e=>setFPriceMin(e.target.value)} placeholder="0"
-              className="w-32 px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:border-[#095256] transition-all"/>
+              className="w-32 bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-1.5 text-[13px] font-medium text-[#10242A] outline-none focus:border-[#0E7C86] shadow-xs"/>
           </div>
           <div>
-            <p className="text-xs font-semibold text-slate-500 mb-1.5">Max Price (₹)</p>
+            <p className="text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider mb-1">Max Price (₹)</p>
             <input type="number" value={fPriceMax} onChange={e=>setFPriceMax(e.target.value)} placeholder="Any"
-              className="w-32 px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:border-[#095256] transition-all"/>
+              className="w-32 bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-1.5 text-[13px] font-medium text-[#10242A] outline-none focus:border-[#0E7C86] shadow-xs"/>
           </div>
-          <p className="text-xs text-slate-500 font-medium self-center">
-            Showing <span className="font-bold text-slate-800">{filtered.length}</span> matching properties
+          <p className="text-[12px] text-[#4A5961] font-medium self-center">
+            Showing <span className="font-bold text-[#10242A]">{filtered.length}</span> matching properties
           </p>
         </div>
       )}
 
       {/* Separate Table Card Below */}
-      <div className="bg-white border border-slate-200/80 rounded-2xl shadow-2xs overflow-hidden">
+      <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs overflow-hidden">
         {/* Table */}
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-24 gap-3">
-            <RefreshCw className="w-8 h-8 animate-spin text-blue-500"/>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Loading Properties...</p>
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
+            <RefreshCw className="w-6 h-6 animate-spin text-[#0E7C86]"/>
+            <p className="text-[12px] font-semibold text-[#4A5961]">Loading Properties...</p>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-3">
-            <Building2 className="w-12 h-12 text-slate-200"/>
-            <p className="text-sm font-bold text-slate-400">No properties found</p>
-            <button onClick={resetAll} className="text-xs text-blue-500 font-bold hover:underline">Clear filters</button>
+          <div className="flex flex-col items-center justify-center py-16 gap-2">
+            <p className="text-[13px] font-semibold text-[#4A5961]">No properties found</p>
+            <button onClick={resetAll} className="text-[12px] text-[#0E7C86] font-semibold hover:underline">Clear filters</button>
           </div>
         ) : (
           <div>
             {/* Bulk Actions Banner */}
             {selectedIds.size > 0 && (
-              <div className="flex items-center justify-between px-6 py-3 bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border-b border-blue-100/50 backdrop-blur-sm animate-in slide-in-from-top-2 duration-300 flex-wrap gap-3">
+              <div className="flex items-center justify-between px-4 py-2.5 mb-3 bg-[#F4F6F8] border border-[#E1E6EA] rounded-[8px] flex-wrap gap-3">
                 <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-black shadow-sm">
+                  <div className="w-5 h-5 rounded-full bg-[#095256] text-white flex items-center justify-center text-[10px] font-bold">
                     {selectedIds.size}
                   </div>
-                  <span className="text-xs font-bold text-blue-900 tracking-wide">properties selected for bulk operations</span>
+                  <span className="text-[12px] font-semibold text-[#10242A]">properties selected for bulk operations</span>
                 </div>
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-2">
                   <button 
                     disabled={bulkProcessing}
                     onClick={handleBulkApprove} 
-                    className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl text-[11px] font-bold shadow-md shadow-emerald-100 hover:shadow-lg hover:from-emerald-600 hover:to-teal-700 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-3 py-1.5 bg-[#095256] text-white rounded-[6px] text-[12px] font-semibold hover:bg-[#073E42] transition-all disabled:opacity-50"
                   >
                     {bulkProcessing ? "Publishing..." : "Bulk Approve"}
                   </button>
                   <button 
                     disabled={bulkProcessing}
                     onClick={handleBulkDelete} 
-                    className="px-4 py-2 bg-gradient-to-r from-rose-500 to-red-600 text-white rounded-xl text-[11px] font-bold shadow-md shadow-rose-100 hover:shadow-lg hover:from-rose-600 hover:to-red-700 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-3 py-1.5 bg-rose-600 text-white rounded-[6px] text-[12px] font-semibold hover:bg-rose-700 transition-all disabled:opacity-50"
                   >
                     {bulkProcessing ? "Deleting..." : "Bulk Delete"}
                   </button>
                   <button 
                     disabled={bulkProcessing}
                     onClick={() => setSelectedIds(new Set())} 
-                    className="px-3.5 py-2 text-[11px] font-bold text-slate-500 hover:text-slate-800 transition-colors uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-2.5 py-1.5 text-[12px] font-semibold text-[#4A5961] hover:text-[#10242A] transition-colors disabled:opacity-50"
                   >
                     Cancel
                   </button>
@@ -474,7 +471,7 @@ export default function TotalProperties() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-[#E1E6EA]">
-                    <th className="px-4 py-3 text-xs font-semibold text-[#4A5961] w-10">
+                    <th className="pb-2 pr-3 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider w-8">
                       <input
                         type="checkbox"
                         disabled={bulkProcessing}
@@ -492,25 +489,25 @@ export default function TotalProperties() {
                         }}
                       />
                     </th>
-                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Property Details</th>
-                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Owner</th>
-                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Type</th>
-                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Location</th>
-                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Price</th>
-                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Status</th>
-                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4 text-center">Website Live</th>
-                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4">Listed On</th>
-                    <th className="text-xs font-semibold text-[#4A5961] py-3 px-4 text-right">Actions</th>
+                    <th className="pb-2 pr-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Property Details</th>
+                    <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Owner</th>
+                    <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Type</th>
+                    <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Location</th>
+                    <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Price</th>
+                    <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Status</th>
+                    <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-center">Website Live</th>
+                    <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Listed On</th>
+                    <th className="pb-2 pl-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E1E6EA] text-sm">
+                <tbody className="divide-y divide-[#F0F4F6] text-[13px]">
                   {paginatedProps.map(p => (
-                    <tr key={p.id} className="group hover:bg-slate-50/80 transition-colors">
-                      <td className="px-5 py-4">
+                    <tr key={p.id} className="group hover:bg-[#F9FAFB] transition-colors">
+                      <td className="py-2.5 pr-3">
                         <input
                           type="checkbox"
                           disabled={bulkProcessing}
-                          className="rounded border-slate-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="rounded border-[#CBD3D9] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                           checked={selectedIds.has(p.id)}
                           onChange={() => {
                             const next = new Set(selectedIds);
@@ -522,81 +519,73 @@ export default function TotalProperties() {
                       </td>
 
                     {/* Property */}
-                    <td className="px-4 py-4">
+                    <td className="py-2.5 pr-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-14 h-11 rounded-lg overflow-hidden border border-slate-100 bg-slate-100 shrink-0">
-                          {p.image ? <img src={p.image} className="w-full h-full object-cover" alt=""/> : <div className="w-full h-full flex items-center justify-center text-slate-300"><ImageIcon className="w-4 h-4"/></div>}
+                        <div className="w-12 h-9 rounded-[6px] overflow-hidden border border-[#E1E6EA] bg-[#F4F6F8] shrink-0">
+                          {p.image ? <img src={p.image} className="w-full h-full object-cover" alt=""/> : <div className="w-full h-full flex items-center justify-center text-[#8C9BA5]"><ImageIcon className="w-4 h-4"/></div>}
                         </div>
                         <div className="min-w-0">
-                          <p className="text-[13px] font-bold text-slate-800 truncate max-w-[180px]">{p.title}</p>
-                          <p className="text-[10px] text-slate-400 font-semibold mt-0.5">ID: {p.propId}</p>
-                          <div className="flex gap-1 mt-1.5 flex-wrap">
-                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-blue-50 text-blue-600">{TYPE_MAP[p.type]||p.type}</span>
-                            <span className={cn("text-[9px] font-bold px-2 py-0.5 rounded-md", GENDER_COLOR[p.gender]||"")}>{GENDER_MAP[p.gender]||p.gender}</span>
+                          <p className="text-[13px] font-semibold text-[#10242A] truncate max-w-[180px]">{p.title}</p>
+                          <p className="text-[11px] text-[#4A5961] mt-0.5">ID: {p.propId}</p>
+                          <div className="flex gap-1 mt-1 flex-wrap">
+                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-[4px] bg-[#E6F4F5] text-[#0E7C86]">{TYPE_MAP[p.type]||p.type}</span>
+                            <span className={cn("text-[10px] font-semibold px-1.5 py-0.5 rounded-[4px]", GENDER_COLOR[p.gender]||"")}>{GENDER_MAP[p.gender]||p.gender}</span>
                           </div>
                         </div>
                       </div>
                     </td>
 
                     {/* Owner */}
-                    <td className="px-4 py-4">
+                    <td className="py-2.5 px-4">
                       <div className="flex items-center gap-2.5">
                         <Avatar name={p.ownerName}/>
                         <div className="min-w-0">
-                          <p className="text-[12px] font-bold text-slate-800 truncate max-w-[110px]">{p.ownerName}</p>
-                          {p.ownerPhone&&p.ownerPhone!=="-" && <p className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5"><Phone className="w-2.5 h-2.5"/>{p.ownerPhone}</p>}
+                          <p className="text-[13px] font-semibold text-[#10242A] truncate max-w-[110px]">{p.ownerName}</p>
+                          {p.ownerPhone&&p.ownerPhone!=="-" && <p className="text-[11px] text-[#4A5961] flex items-center gap-1 mt-0.5"><Phone className="w-2.5 h-2.5"/>{p.ownerPhone}</p>}
                         </div>
                       </div>
                     </td>
 
                     {/* Type */}
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center">
-                          <Building2 className="w-3.5 h-3.5 text-blue-500"/>
-                        </div>
-                        <span className="text-[12px] font-bold text-slate-700">{TYPE_MAP[p.type]||p.type}</span>
-                      </div>
+                    <td className="py-2.5 px-4">
+                      <span className="text-[13px] font-medium text-[#10242A]">{TYPE_MAP[p.type]||p.type}</span>
                     </td>
 
                     {/* Location */}
-                    <td className="px-4 py-4">
-                      <div className="flex items-start gap-1.5">
-                        <MapPin className="w-3 h-3 text-slate-400 mt-0.5 shrink-0"/>
-                        <div>
-                          {p.locality!=="-" && <p className="text-[12px] font-bold text-slate-700 leading-tight">{p.locality}</p>}
-                          <p className="text-[11px] text-slate-500 font-medium">{p.city}</p>
-                        </div>
+                    <td className="py-2.5 px-4">
+                      <div>
+                        {p.locality!=="-" && <p className="text-[13px] font-medium text-[#10242A] leading-tight">{p.locality}</p>}
+                        <p className="text-[11px] text-[#4A5961]">{p.city}</p>
                       </div>
                     </td>
 
                     {/* Price */}
-                    <td className="px-4 py-4">
-                      <p className="text-[13px] font-black text-slate-800">{p.price ? `₹${Number(p.price).toLocaleString("en-IN")} / bed` : "—"}</p>
+                    <td className="py-2.5 px-4">
+                      <p className="text-[13px] font-semibold text-[#10242A]">{p.price ? `₹${Number(p.price).toLocaleString("en-IN")} / bed` : "—"}</p>
                     </td>
 
                     {/* Status */}
-                    <td className="px-4 py-4">
-                      <span className={cn("text-[10px] font-bold px-2.5 py-1 rounded-lg", STATUS_COLORS[p.status]||"bg-slate-100 text-slate-500")}>{p.status}</span>
+                    <td className="py-2.5 px-4">
+                      <span className={cn("text-[11px] font-semibold px-2.5 py-0.5 rounded-full", STATUS_COLORS[p.status]||"bg-slate-100 text-slate-500")}>{p.status}</span>
                     </td>
 
                     {/* Website Live Toggle */}
-                    <td className="px-4 py-4">
+                    <td className="py-2.5 px-4">
                       <div className="flex flex-col items-center gap-1">
                         <button
                           onClick={() => handleToggleWebsite(p)}
                           disabled={toggleLoading.has(p.id)}
                           title={p.isLiveOnWebsite ? "Click to take offline" : "Click to make live on website"}
                           className={cn(
-                            "relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-300 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed shadow-inner border",
+                            "relative inline-flex h-5 w-10 items-center rounded-full transition-all duration-300 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed border",
                             p.isLiveOnWebsite
                               ? "bg-emerald-500 border-emerald-600"
                               : "bg-slate-200 border-slate-300"
                           )}
                         >
                           <span className={cn(
-                            "inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform duration-300 ring-1 ring-black/10",
-                            p.isLiveOnWebsite ? "translate-x-6" : "translate-x-1"
+                            "inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-xs transition-transform duration-300",
+                            p.isLiveOnWebsite ? "translate-x-5" : "translate-x-0.5"
                           )} />
                           {toggleLoading.has(p.id) && (
                             <span className="absolute inset-0 flex items-center justify-center">
@@ -605,21 +594,21 @@ export default function TotalProperties() {
                           )}
                         </button>
                         <span className={cn(
-                          "text-[9px] font-bold uppercase tracking-wider",
-                          p.isLiveOnWebsite ? "text-emerald-600" : "text-slate-400"
+                          "text-[10px] font-semibold uppercase tracking-wider",
+                          p.isLiveOnWebsite ? "text-emerald-600" : "text-[#8C9BA5]"
                         )}>
                           {p.isLiveOnWebsite ? "Live" : "Offline"}
                         </span>
                       </div>
                     </td>
                     {/* Listed On */}
-                    <td className="px-4 py-4">
-                      <p className="text-[11px] font-bold text-slate-700 whitespace-nowrap">{p.listedOn}</p>
-                      {p.listedTime && <p className="text-[9px] text-slate-400 mt-0.5">{p.listedTime}</p>}
+                    <td className="py-2.5 px-4">
+                      <p className="text-[12px] font-medium text-[#10242A] whitespace-nowrap">{p.listedOn}</p>
+                      {p.listedTime && <p className="text-[11px] text-[#4A5961] mt-0.5">{p.listedTime}</p>}
                     </td>
 
                     {/* Actions */}
-                    <td className="px-4 py-4 text-right whitespace-nowrap">
+                    <td className="py-2.5 pl-4 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={async () => {
@@ -632,33 +621,32 @@ export default function TotalProperties() {
                             } catch { toast.error("Error loading preview"); }
                             finally { setPreviewLoading(false); }
                           }}
-                          className="w-8 h-8 rounded-xl bg-teal-50 text-teal-600 hover:bg-teal-100 border border-teal-100/50 shadow-sm flex items-center justify-center transition-all hover:scale-110"
+                          className="p-1.5 rounded-[6px] bg-[#E6F4F5] text-[#0E7C86] hover:bg-[#D1ECEF] border border-[#0E7C86]/20 flex items-center justify-center transition-all cursor-pointer"
                           title="Preview on Website"
                         >
-                          <Globe className="w-4 h-4" />
+                          <Globe className="w-3.5 h-3.5" />
                         </button>
                         <button 
                           onClick={()=>openViewModal(p)} 
-                          className="w-8 h-8 rounded-xl bg-slate-50 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-100/60 shadow-sm flex items-center justify-center transition-all hover:scale-110" 
+                          className="p-1.5 rounded-[6px] bg-white text-[#4A5961] hover:bg-[#F4F6F8] hover:text-[#10242A] border border-[#CBD3D9] flex items-center justify-center transition-all cursor-pointer" 
                           title="View Details"
                         >
-                          <Eye className="w-4 h-4"/>
+                          <Eye className="w-3.5 h-3.5"/>
                         </button>
                         <button 
                           onClick={() => { setSelectedProp(p); setEditModalOpen(true); }} 
-                          className="w-8 h-8 rounded-xl bg-slate-50 text-slate-500 hover:bg-blue-50 hover:text-blue-600 border border-slate-100/60 shadow-sm flex items-center justify-center transition-all hover:scale-110" 
+                          className="p-1.5 rounded-[6px] bg-white text-[#4A5961] hover:bg-[#F4F6F8] hover:text-[#10242A] border border-[#CBD3D9] flex items-center justify-center transition-all cursor-pointer" 
                           title="Edit"
                         >
-                          <Pencil className="w-4 h-4"/>
+                          <Pencil className="w-3.5 h-3.5"/>
                         </button>
                         <button 
                           onClick={()=>handleDeleteOne(p.id)} 
-                          className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-100/50 shadow-sm flex items-center justify-center transition-all hover:scale-110" 
+                          className="p-1.5 rounded-[6px] bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 flex items-center justify-center transition-all cursor-pointer" 
                           title="Delete"
                         >
-                          <Trash2 className="w-4 h-4"/>
+                          <Trash2 className="w-3.5 h-3.5"/>
                         </button>
-                        <button className="w-8 h-8 rounded-xl bg-slate-50 text-slate-500 hover:bg-slate-200 border border-slate-100/60 shadow-sm flex items-center justify-center transition-all"><MoreVertical className="w-4 h-4"/></button>
                       </div>
                     </td>
                   </tr>
@@ -670,14 +658,14 @@ export default function TotalProperties() {
       )}
 
         {/* Pagination */}
-        <div className="flex items-center justify-between px-5 py-4 border-t border-slate-100 bg-white">
-          <p className="text-[11px] font-bold text-slate-400">
-            Showing {filtered.length>0?((currentPage-1)*LIMIT)+1:0} to {Math.min(currentPage*LIMIT,totalRecords)} of{" "}
-            <span className="text-slate-700">{totalRecords.toLocaleString()}</span> properties
+        <div className="flex items-center justify-between pt-3 mt-2 border-t border-[#E1E6EA]">
+          <p className="text-[12px] text-[#4A5961]">
+            Showing <span className="font-semibold text-[#10242A]">{filtered.length>0?((currentPage-1)*LIMIT)+1:0}</span> to <span className="font-semibold text-[#10242A]">{Math.min(currentPage*LIMIT,totalRecords)}</span> of{" "}
+            <span className="font-semibold text-[#10242A]">{totalRecords.toLocaleString()}</span> properties
           </p>
           <div className="flex items-center gap-1.5">
             <button disabled={currentPage===1} onClick={()=>setCurrentPage(currentPage-1)}
-              className="flex items-center gap-1 px-3 py-2 rounded-xl border border-slate-200 text-[11px] font-bold text-slate-500 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+              className="flex items-center gap-1 px-2.5 py-1 rounded-[6px] border border-[#CBD3D9] text-[12px] font-medium text-[#4A5961] hover:bg-[#F4F6F8] disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer">
               <ChevronLeft className="w-3.5 h-3.5"/> Prev
             </button>
             {Array.from({length:Math.min(totalPages,7)},(_,i)=>{
@@ -688,14 +676,14 @@ export default function TotalProperties() {
               else n=currentPage-3+i;
               return (
                 <button key={n} onClick={()=>setCurrentPage(n)}
-                  className={cn("w-9 h-9 rounded-xl text-[11px] font-bold transition-all",
-                    currentPage===n?"bg-blue-600 text-white shadow-lg shadow-blue-200":"text-slate-500 hover:bg-slate-100 border border-slate-200")}>
+                  className={cn("w-7 h-7 rounded-[6px] text-[12px] font-semibold transition-all cursor-pointer",
+                    currentPage===n?"bg-[#095256] text-white":"text-[#4A5961] hover:bg-[#F4F6F8] border border-[#CBD3D9]")}>
                   {n}
                 </button>
               );
             })}
             <button disabled={currentPage===totalPages} onClick={()=>setCurrentPage(currentPage+1)}
-              className="flex items-center gap-1 px-3 py-2 rounded-xl border border-slate-200 text-[11px] font-bold text-slate-500 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+              className="flex items-center gap-1 px-2.5 py-1 rounded-[6px] border border-[#CBD3D9] text-[12px] font-medium text-[#4A5961] hover:bg-[#F4F6F8] disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer">
               Next <ChevronRight className="w-3.5 h-3.5"/>
             </button>
           </div>

@@ -245,11 +245,13 @@ export const useSuperadminLogin = () => {
           if (data.token && data.user) {
             const user = { ...sanitizeUser(data.user), role: "employee" };
             sessionStorage.setItem("manager_user", JSON.stringify(user));
+            sessionStorage.setItem("staff_user", JSON.stringify(user));
             sessionStorage.setItem("user", JSON.stringify(user));
             localStorage.setItem("user", JSON.stringify(user));
             localStorage.setItem("staff_user", JSON.stringify(user));
             localStorage.setItem("token", data.token);
             sessionStorage.setItem("token", data.token);
+            sessionStorage.setItem("staff_token", data.token);
             persistWindowSession(user);
             sessionStorage.removeItem("owner_session");
             localStorage.removeItem("owner_user");

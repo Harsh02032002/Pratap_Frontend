@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import toast from "react-hot-toast";
 import {
-   Users, Home, Building, Building2, Search, Edit3, Trash2, Plus, X,
-   Download, FolderTree, CheckCircle2, XCircle, BarChart3, Image as ImageIcon, Loader2, Crown
+   Search, Edit3, Trash2, Plus, X,
+   Download, Image as ImageIcon, Loader2
 } from "lucide-react";
 import { fetchJson, clearApiCache } from "../../utils/api";
 import { compressImage } from "../../utils/imageCompression";
@@ -13,13 +13,6 @@ const cn = (...classes) => classes.filter(Boolean).join(" ");
 // "Co-living" / "coliving" / "Co Living" all compare equal.
 const norm = (v) => String(v || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 
-const TYPE_ICON = { pg: Users, hostel: Building2, coliving: Users, apartment: Building, house: Home };
-const TIER_STYLE = {
-   basic: "bg-slate-100 text-slate-700 border-slate-200",
-   prime: "bg-blue-50 text-blue-700 border-blue-100",
-   luxury: "bg-amber-50 text-amber-700 border-amber-100",
-};
-
 const emptyForm = () => ({ title: "", category: "", description: "", image: "", status: "Active" });
 
 export default function Categories() {
@@ -28,6 +21,7 @@ export default function Categories() {
    const [loading, setLoading] = useState(true);
    const [error, setError] = useState("");
    const [search, setSearch] = useState("");
+   const [statusFilter, setStatusFilter] = useState("all");
 
    const [modalOpen, setModalOpen] = useState(false);
    const [editingId, setEditingId] = useState(null);
@@ -75,8 +69,13 @@ export default function Categories() {
 
    const filtered = useMemo(() => {
       const q = search.trim().toLowerCase();
-      return types.filter((c) => !q || c.title.toLowerCase().includes(q) || c.category.toLowerCase().includes(q));
-   }, [types, search]);
+      return types.filter((c) => {
+         const matchSearch = !q || c.title.toLowerCase().includes(q) || c.category.toLowerCase().includes(q);
+         const st = c.status || "Active";
+         const matchStatus = statusFilter === "all" || st.toLowerCase() === statusFilter.toLowerCase();
+         return matchSearch && matchStatus;
+      });
+   }, [types, search, statusFilter]);
 
    const activeCount = types.filter((c) => c.status !== "Inactive").length;
 
@@ -155,133 +154,162 @@ export default function Categories() {
       URL.revokeObjectURL(url);
    };
 
-   if (loading) {
-      return (
-         <div className="flex flex-col items-center justify-center h-[600px] gap-4">
-            <div className="w-12 h-12 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Loading categories...</p>
-         </div>
-      );
-   }
-
-   const inputCls = "w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-[#095256]/20";
-   const labelCls = "block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1";
+   const inputCls = "w-full bg-white border border-[#CBD3D9] rounded-[8px] py-2 px-3 text-[13px] text-[#10242A] outline-none focus:border-[#0E7C86] shadow-xs";
+   const labelCls = "block text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider mb-1";
 
    return (
-      <div className="p-6 space-y-6 bg-[#F8FAFC] min-h-full">
+      <div className="space-y-4 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
          {/* Header */}
          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-               <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Property Categories</h1>
-               <p className="text-sm text-slate-500 mt-0.5">Manage platform property categories and classification schemas</p>
+               <h1 className="text-[22px] font-bold text-[#10242A] tracking-tight leading-tight">Property Categories</h1>
+               <p className="text-[13px] text-[#4A5961] mt-0.5">Manage platform property categories and classification schemas</p>
             </div>
             <div className="flex items-center gap-3">
-               <button onClick={handleExport} className="bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition shadow-2xs flex items-center gap-2">
-                  <Download className="w-4 h-4 text-slate-500" /> Export
+               <button onClick={handleExport} className="bg-white border border-[#CBD3D9] hover:bg-gray-50 text-[#10242A] px-4 py-1.5 rounded-[8px] text-[13px] font-semibold transition shadow-xs flex items-center gap-2 cursor-pointer">
+                  <Download className="w-4 h-4 text-[#4A5961]" /> Export
                </button>
-               <button onClick={openAdd} className="bg-[#095256] hover:bg-[#074043] text-white px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition shadow-2xs flex items-center gap-2">
+               <button onClick={openAdd} className="bg-[#0E7C86] hover:bg-[#0B666E] text-white px-4 py-1.5 rounded-[8px] text-[13px] font-semibold transition shadow-xs flex items-center gap-2 cursor-pointer">
                   <Plus className="w-4 h-4" /> Add Category
                </button>
             </div>
          </div>
 
          {error && (
-            <div className="bg-rose-50 border border-rose-100 text-rose-700 text-sm rounded-xl px-4 py-3 flex items-center justify-between">
+            <div className="bg-rose-50 border border-rose-100 text-rose-700 text-[13px] rounded-[12px] px-4 py-3 flex items-center justify-between">
                <span>{error}</span>
-               <button onClick={load} className="font-semibold underline">Retry</button>
+               <button onClick={load} className="font-semibold underline cursor-pointer">Retry</button>
             </div>
          )}
 
-         {/* Real counts */}
-         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Stat label="Property types" value={types.length} icon={FolderTree} color="blue" />
-            <Stat label="Active" value={activeCount} icon={CheckCircle2} color="emerald" />
-            <Stat label="Inactive" value={types.length - activeCount} icon={XCircle} color="amber" />
-            <Stat label="Properties listed" value={properties.length} icon={BarChart3} color="indigo" />
+         {/* Stat Cards (NO ICONS) */}
+         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Stat label="Property types" value={loading ? "..." : types.length} />
+            <Stat label="Active" value={loading ? "..." : activeCount} />
+            <Stat label="Inactive" value={loading ? "..." : (types.length - activeCount)} />
+            <Stat label="Properties listed" value={loading ? "..." : properties.length} />
          </div>
 
-         {/* Section 1 — property types */}
-         <section className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-               <h2 className="text-sm font-bold text-slate-800 uppercase tracking-widest">Property types</h2>
-               <div className="relative w-full sm:w-80">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search..."
-                     className="w-full pl-10 pr-9 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#095256]/20 shadow-2xs" />
-                  {search && <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>}
+         {/* Search & Filter Row (Outside & Above the Table Card) */}
+         <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="relative w-full sm:w-[320px]">
+               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#708088]" />
+               <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search category or code..."
+                  className="w-full bg-white border border-[#CBD3D9] rounded-[8px] pl-9 pr-3.5 py-1.5 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs"
+               />
+               {search && (
+                  <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#4A5961] hover:text-[#10242A]">
+                     <X className="w-3.5 h-3.5" />
+                  </button>
+               )}
+            </div>
+            <div className="flex items-center gap-3">
+               <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-1.5 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs"
+               >
+                  <option value="all">Status ▾</option>
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+               </select>
+            </div>
+         </div>
+
+         {/* Table Card — Property Types */}
+         <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs overflow-hidden">
+            <div className="overflow-x-auto">
+               <table className="w-full text-left border-collapse min-w-[700px]">
+                  <thead>
+                     <tr className="border-b border-[#E1E6EA]">
+                        <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider pl-2">Category</th>
+                        <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Code</th>
+                        <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Description</th>
+                        <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Properties</th>
+                        <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Status</th>
+                        <th className="pb-2 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider text-right pr-2">Action</th>
+                     </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#F0F4F6] text-[13px]">
+                     {loading ? (
+                        <tr><td colSpan="6" className="py-6 text-center text-[13px] text-[#4A5961]">Loading categories...</td></tr>
+                     ) : filtered.length === 0 ? (
+                        <tr><td colSpan="6" className="py-6 text-center text-[13px] text-[#4A5961]">No categories found.</td></tr>
+                     ) : filtered.map((c) => {
+                        const count = typeCounts[norm(c.category)] || 0;
+                        return (
+                           <tr key={c._id} className="hover:bg-[#F9FAFB] transition-colors">
+                              <td className="py-2.5 pl-2 pr-4">
+                                 <div className="flex items-center gap-3">
+                                    <div className="w-10 h-7 rounded-[6px] overflow-hidden bg-[#F4F6F8] border border-[#E1E6EA] flex items-center justify-center shrink-0">
+                                       {c.images?.[0] ? <img src={c.images[0]} alt="" className="w-full h-full object-cover" /> : <ImageIcon className="w-3.5 h-3.5 text-[#708088]" />}
+                                    </div>
+                                    <span className="font-semibold text-[#10242A] text-[13px]">{c.title}</span>
+                                 </div>
+                              </td>
+                              <td className="py-2.5 pr-4 text-[13px] text-[#4A5961] font-mono uppercase">{c.category}</td>
+                              <td className="py-2.5 pr-4 text-[13px] text-[#4A5961] max-w-[280px] truncate">{c.description || "—"}</td>
+                              <td className="py-2.5 pr-4 text-[13px] text-[#10242A] font-semibold">{count} {count === 1 ? "property" : "properties"}</td>
+                              <td className="py-2.5 pr-4">
+                                 <span className={cn(
+                                    "inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold",
+                                    c.status === "Inactive" ? "bg-[#FDE8E8] text-[#991B1B]" : "bg-[#DDF3E4] text-[#14532D]"
+                                 )}>
+                                    {c.status || "Active"}
+                                 </span>
+                              </td>
+                              <td className="py-2.5 pl-4 pr-2 text-right">
+                                 <div className="flex items-center justify-end gap-2">
+                                    <button onClick={() => openEdit(c)} className="px-3 py-1 bg-white border border-[#CBD3D9] hover:bg-gray-50 text-[#10242A] rounded-[6px] text-[11px] font-semibold transition shadow-xs cursor-pointer">
+                                       Edit
+                                    </button>
+                                    <button onClick={() => handleDelete(c)} className="px-3 py-1 bg-white border border-rose-200 hover:bg-rose-50 text-rose-600 rounded-[6px] text-[11px] font-semibold transition shadow-xs cursor-pointer">
+                                       Delete
+                                    </button>
+                                 </div>
+                              </td>
+                           </tr>
+                        );
+                     })}
+                  </tbody>
+               </table>
+            </div>
+         </div>
+
+         {/* Section 2 — Quality Tiers */}
+         <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs space-y-3">
+            <div className="flex items-center justify-between">
+               <div>
+                  <h2 className="text-[14px] font-bold text-[#10242A]">Quality Tiers</h2>
+                  <p className="text-[12px] text-[#4A5961]">Assigned to each property when a visit report is approved</p>
                </div>
             </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-               {filtered.map((c) => {
-                  const Icon = TYPE_ICON[norm(c.category)] || Building2;
-                  const count = typeCounts[norm(c.category)] || 0;
-                  return (
-                     <div key={c._id} className="bg-white rounded-2xl p-5 border border-slate-100 shadow-md flex flex-col">
-                        <div className="flex items-start justify-between mb-3">
-                           <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white bg-[#095256]"><Icon className="w-5 h-5" /></div>
-                           <div className="flex gap-1">
-                              <button onClick={() => openEdit(c)} title="Edit" className="p-1.5 rounded-lg bg-slate-50 text-slate-400 hover:text-blue-600 border border-slate-100"><Edit3 className="w-3.5 h-3.5" /></button>
-                              <button onClick={() => handleDelete(c)} title="Delete" className="p-1.5 rounded-lg bg-slate-50 text-slate-400 hover:text-rose-600 border border-slate-100"><Trash2 className="w-3.5 h-3.5" /></button>
-                           </div>
-                        </div>
-                        <h3 className="text-sm font-bold text-slate-800 truncate">{c.title}</h3>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Code: {c.category}</p>
-                        <p className="text-xs text-slate-500 mt-2 line-clamp-2 min-h-[2rem]">{c.description}</p>
-                        <div className="aspect-[3/1] rounded-lg overflow-hidden bg-slate-50 border border-slate-100 my-3 flex items-center justify-center">
-                           {c.images?.[0] ? <img src={c.images[0]} alt="" className="w-full h-full object-cover" /> : <ImageIcon className="w-5 h-5 text-slate-300" />}
-                        </div>
-                        <div className="flex items-center justify-between pt-3 border-t border-slate-50 mt-auto">
-                           <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-lg border uppercase tracking-wider",
-                              c.status === "Inactive" ? "bg-slate-50 text-slate-400 border-slate-100" : "bg-emerald-50 text-emerald-600 border-emerald-100")}>
-                              {c.status || "Active"}
-                           </span>
-                           <span className="text-[11px] font-semibold text-slate-500">{count} {count === 1 ? "property" : "properties"}</span>
-                        </div>
-                     </div>
-                  );
-               })}
-
-               <button onClick={openAdd} className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 hover:border-slate-800 hover:bg-white hover:shadow-lg transition-all group min-h-[200px]">
-                  <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-slate-400 group-hover:bg-slate-800 group-hover:text-white transition-all shadow-sm">
-                     <Plus className="w-5 h-5" />
-                  </div>
-                  <span className="text-[11px] font-bold text-slate-800 uppercase tracking-widest">Add property type</span>
-               </button>
-            </div>
-            {filtered.length === 0 && search && <p className="text-sm text-slate-400">No category matches "{search}".</p>}
-         </section>
-
-         {/* Section 2 — quality tiers (fixed in code: the approval flow depends on exactly these three) */}
-         <section className="space-y-4 pb-10">
-            <div>
-               <h2 className="text-sm font-bold text-slate-800 uppercase tracking-widest">Quality tiers</h2>
-               <p className="text-xs text-slate-500 mt-0.5">Assigned to each property when a visit report is approved.</p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                {PROPERTY_TIERS.map((t) => (
-                  <div key={t.key} className="bg-white rounded-2xl p-5 border border-slate-100 shadow-md flex items-center gap-4">
-                     <div className={cn("w-11 h-11 rounded-xl border flex items-center justify-center shrink-0", TIER_STYLE[t.key])}><Crown className="w-5 h-5" /></div>
-                     <div className="min-w-0 flex-1">
-                        <p className="text-sm font-bold text-slate-800">{t.label}</p>
-                        <p className="text-[11px] text-slate-500 truncate">{t.publicName}</p>
+                  <div key={t.key} className="bg-[#F9FAFB] rounded-[10px] p-3.5 border border-[#E1E6EA] flex items-center justify-between">
+                     <div className="min-w-0">
+                        <p className="text-[13px] font-bold text-[#10242A]">{t.label}</p>
+                        <p className="text-[12px] text-[#4A5961] truncate">{t.publicName}</p>
                      </div>
                      <div className="text-right">
-                        <p className="text-2xl font-bold text-slate-800 leading-none">{tierCounts[t.key] || 0}</p>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">properties</p>
+                        <p className="text-[20px] font-bold text-[#10242A] leading-none">{tierCounts[t.key] || 0}</p>
+                        <p className="text-[10px] font-semibold text-[#4A5961] uppercase tracking-wider mt-1">properties</p>
                      </div>
                   </div>
                ))}
             </div>
-         </section>
+         </div>
 
          {/* Add / Edit modal */}
          {modalOpen && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setModalOpen(false)}>
-               <form onSubmit={handleSave} onClick={(e) => e.stopPropagation()} className="bg-white rounded-2xl border border-slate-100 shadow-xl w-full max-w-lg p-6 space-y-4">
+               <form onSubmit={handleSave} onClick={(e) => e.stopPropagation()} className="bg-white rounded-[12px] border border-[#E1E6EA] shadow-xl w-full max-w-lg p-5 space-y-4">
                   <div>
-                     <h3 className="text-lg font-bold text-slate-800">{editingId ? "Edit category" : "Add category"}</h3>
-                     <p className="text-xs text-slate-400">A property type shown on the platform, like PG or Apartment.</p>
+                     <h3 className="text-[16px] font-bold text-[#10242A]">{editingId ? "Edit Category" : "Add Category"}</h3>
+                     <p className="text-[12px] text-[#4A5961]">A property type shown on the platform, like PG or Apartment.</p>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                      <div>
@@ -301,7 +329,7 @@ export default function Categories() {
                      <label className={labelCls}>Cover image</label>
                      <div className="flex gap-2">
                         <input value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} className={cn(inputCls, "flex-1")} placeholder="Paste an image link or upload" />
-                        <label className="shrink-0 bg-slate-100 text-slate-600 border border-slate-200 rounded-xl px-3 flex items-center text-xs font-bold cursor-pointer hover:bg-slate-200">
+                        <label className="shrink-0 bg-white text-[#10242A] border border-[#CBD3D9] rounded-[8px] px-3 flex items-center text-[12px] font-semibold cursor-pointer hover:bg-gray-50">
                            {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Upload"}
                            <input type="file" accept="image/*" className="hidden" onChange={handleUpload} />
                         </label>
@@ -315,9 +343,9 @@ export default function Categories() {
                      </select>
                   </div>
                   <div className="flex justify-end gap-3 pt-2">
-                     <button type="button" onClick={() => setModalOpen(false)} className="px-4 py-2 rounded-xl text-sm font-medium bg-white border border-slate-200 text-slate-600 hover:bg-slate-50">Cancel</button>
-                     <button type="submit" disabled={saving || uploading} className="px-4 py-2 rounded-xl text-sm font-medium bg-[#095256] text-white hover:bg-[#074043] disabled:opacity-40">
-                        {saving ? "Saving..." : editingId ? "Save changes" : "Add category"}
+                     <button type="button" onClick={() => setModalOpen(false)} className="px-4 py-1.5 rounded-[8px] text-[13px] font-semibold bg-white border border-[#CBD3D9] text-[#10242A] hover:bg-gray-50 cursor-pointer">Cancel</button>
+                     <button type="submit" disabled={saving || uploading} className="px-4 py-1.5 rounded-[8px] text-[13px] font-semibold bg-[#0E7C86] text-white hover:bg-[#0B666E] disabled:opacity-40 cursor-pointer">
+                        {saving ? "Saving..." : editingId ? "Save Changes" : "Add Category"}
                      </button>
                   </div>
                </form>
@@ -327,19 +355,12 @@ export default function Categories() {
    );
 }
 
-function Stat({ label, value, icon: Icon, color }) {
-   const bg = {
-      blue: "bg-blue-50 text-blue-600 border-blue-100",
-      amber: "bg-amber-50 text-amber-600 border-amber-100",
-      emerald: "bg-emerald-50 text-emerald-600 border-emerald-100",
-      indigo: "bg-indigo-50 text-indigo-600 border-indigo-100",
-   };
+function Stat({ label, value }) {
    return (
-      <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-md flex items-center gap-3">
-         <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border", bg[color])}><Icon className="w-5 h-5" /></div>
-         <div className="min-w-0">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">{label}</p>
-            <p className="text-xl font-bold text-slate-800 tracking-tight leading-tight">{value}</p>
+      <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
+         <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">{label}</p>
+         <div className="mt-2">
+            <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{value}</h3>
          </div>
       </div>
    );

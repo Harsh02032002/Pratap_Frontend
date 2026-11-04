@@ -247,46 +247,46 @@ export default function RoomsManagement() {
   const floorOptions = ["Basement", "Ground Floor", "1st Floor", "2nd Floor", "3rd Floor", "4th Floor", "5th Floor"];
 
   return (
-    <div className="space-y-6">
-      <PageHeader 
-        title="Rooms Management"
-        subtitle="Manage rooms, floor layouts, and bed occupancy across properties."
-        actions={
-          <button 
-            onClick={() => loadRooms(1)}
-            className="bg-white text-slate-700 border border-slate-200 px-4 py-2.5 rounded-xl text-xs font-bold shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2"
-          >
-             <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} /> Refresh Rooms
-          </button>
-        }
-      />
-
-      {/* Stats Cards Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <StatCardHorizontal label="Total Rooms" value={stats.totalRooms} icon={Home} color="blue" />
-        <StatCardHorizontal label="Total Properties" value={stats.totalProperties} icon={Building2} color="indigo" />
-        <StatCardHorizontal label="Vacant Rooms" value={stats.vacantRooms} icon={CheckCircle} color="emerald" />
-        <StatCardHorizontal label="Occupied Rooms" value={stats.occupiedRooms} icon={BedDouble} color="blue" />
-        <StatCardHorizontal label="Maintenance Rooms" value={stats.maintenanceRooms} icon={ShieldAlert} color="amber" />
+    <div className="space-y-4 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-[22px] font-bold text-[#10242A] tracking-tight leading-tight">Rooms Management</h1>
+          <p className="text-[13px] text-[#4A5961] mt-0.5">Manage rooms, floor layouts, and bed occupancy across properties.</p>
+        </div>
+        <button 
+          onClick={() => loadRooms(1)}
+          className="bg-white text-[#10242A] border border-[#CBD3D9] px-3.5 py-1.5 rounded-[8px] text-[13px] font-semibold shadow-xs hover:bg-[#F4F6F8] transition-all flex items-center gap-2 cursor-pointer"
+        >
+           <RefreshCw className={cn("w-3.5 h-3.5 text-[#4A5961]", loading && "animate-spin")} /> Refresh Rooms
+        </button>
       </div>
 
-      {/* Search & Filter Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
-        <form onSubmit={handleSearchSubmit} className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-          <div className="relative group w-full md:w-64">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+      {/* Stats Cards Row (NO ICONS) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <StatCardHorizontal label="Total Rooms" value={stats.totalRooms} />
+        <StatCardHorizontal label="Total Properties" value={stats.totalProperties} />
+        <StatCardHorizontal label="Vacant Rooms" value={stats.vacantRooms} />
+        <StatCardHorizontal label="Occupied Rooms" value={stats.occupiedRooms} />
+        <StatCardHorizontal label="Maintenance Rooms" value={stats.maintenanceRooms} />
+      </div>
+
+      {/* Search & Filter Bar (Outside & Above Table/Cards) */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <form onSubmit={handleSearchSubmit} className="flex flex-wrap items-center gap-2.5 flex-1">
+          <div className="relative flex-1 min-w-[220px] max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8C9BA5]" />
             <input 
               value={search} 
               onChange={handleSearchChange}
               placeholder="Search rooms, owners, properties..." 
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pl-9 pr-3 text-xs font-bold text-slate-700 outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all shadow-sm" 
+              className="w-full bg-white border border-[#CBD3D9] rounded-[8px] pl-9 pr-3.5 py-1.5 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86] shadow-xs" 
             />
           </div>
 
           <select
             value={propertyFilter}
             onChange={e => setPropertyFilter(e.target.value)}
-            className="bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-bold text-slate-600 outline-none cursor-pointer"
+            className="bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-1.5 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs"
           >
             <option value="all">All Properties</option>
             {properties.map(p => (
@@ -297,7 +297,7 @@ export default function RoomsManagement() {
           <select
             value={sharingFilter}
             onChange={e => setSharingFilter(e.target.value)}
-            className="bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-bold text-slate-600 outline-none cursor-pointer"
+            className="bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-1.5 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs"
           >
             <option value="all">All Sharing Types</option>
             <option value="Single Sharing">Single Sharing</option>
@@ -309,7 +309,7 @@ export default function RoomsManagement() {
 
           <button 
             type="submit" 
-            className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-sm transition-all"
+            className="px-3.5 py-1.5 bg-[#095256] hover:bg-[#073E42] text-white font-semibold text-[13px] rounded-[8px] shadow-xs transition-all cursor-pointer"
           >
             Search
           </button>
@@ -318,7 +318,7 @@ export default function RoomsManagement() {
             <button 
               type="button"
               onClick={handleClearFilters}
-              className="text-xs font-bold text-rose-600 hover:underline px-2"
+              className="text-[13px] font-medium text-rose-600 hover:underline px-2 cursor-pointer"
             >
               Reset
             </button>
@@ -326,26 +326,25 @@ export default function RoomsManagement() {
         </form>
 
         {/* Legend */}
-        <div className="flex items-center gap-4 text-xs font-bold">
-          <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /><span className="text-slate-500">Vacant</span></div>
-          <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-amber-500" /><span className="text-slate-500">Partial</span></div>
-          <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-rose-500" /><span className="text-slate-500">Occupied</span></div>
+        <div className="flex items-center gap-4 text-[12px] font-medium text-[#4A5961]">
+          <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500" /><span>Vacant</span></div>
+          <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-500" /><span>Partial</span></div>
+          <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-rose-500" /><span>Occupied</span></div>
         </div>
       </div>
 
       {/* OWNER PANEL STYLE - PROPERTY ROOM CARD GRIDS */}
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-24 bg-white rounded-2xl border border-slate-200">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-3" />
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Loading Room Cards...</p>
+        <div className="flex flex-col items-center justify-center py-20 bg-white rounded-[12px] border border-[#E1E6EA] shadow-xs">
+          <Loader2 className="w-6 h-6 animate-spin text-[#0E7C86] mb-2" />
+          <p className="text-[12px] font-semibold text-[#4A5961]">Loading Room Cards...</p>
         </div>
       ) : Object.keys(groupedRooms).length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-slate-200">
-          <Home className="w-12 h-12 text-slate-300 mb-3" />
-          <p className="text-sm font-bold text-slate-600">No rooms found</p>
+        <div className="flex flex-col items-center justify-center py-16 bg-white rounded-[12px] border border-[#E1E6EA] shadow-xs">
+          <p className="text-[13px] font-semibold text-[#4A5961]">No rooms found</p>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {Object.entries(groupedRooms).map(([propTitle, group]) => {
             const propRooms = group.rooms;
             const totalBeds = propRooms.reduce((acc, r) => acc + (Array.isArray(r.beds) ? r.beds.length : Number(r.beds || 1)), 0);
@@ -356,18 +355,18 @@ export default function RoomsManagement() {
             const pct = totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 100) : 0;
 
             return (
-              <div key={propTitle} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+              <div key={propTitle} className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs space-y-3 overflow-hidden">
                 {/* Property Header */}
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E1E6EA] pb-3">
                   <div>
-                    <h3 className="text-base font-extrabold text-slate-800">{propTitle}</h3>
-                    <p className="text-xs font-semibold text-slate-400 mt-0.5">
+                    <h3 className="text-[15px] font-bold text-[#10242A]">{propTitle}</h3>
+                    <p className="text-[12px] text-[#4A5961] mt-0.5">
                       {group.property?.address || group.property?.city || "Property Location"} • {propRooms.length} Rooms • {occupiedBeds}/{totalBeds} Beds Occupied
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className={cn(
-                      "px-3 py-1 rounded-full text-xs font-bold border",
+                      "px-2.5 py-0.5 rounded-full text-[11px] font-semibold border",
                       pct > 80 ? "bg-rose-50 text-rose-600 border-rose-100" : pct > 0 ? "bg-amber-50 text-amber-600 border-amber-100" : "bg-emerald-50 text-emerald-600 border-emerald-100"
                     )}>
                       {pct}% Full
@@ -377,11 +376,11 @@ export default function RoomsManagement() {
 
                 {/* Owner Panel Card Grid */}
                 {propRooms.length === 0 ? (
-                  <div className="py-8 text-center text-xs font-bold text-slate-400 bg-slate-50/50 rounded-xl">
+                  <div className="py-6 text-center text-[12px] font-medium text-[#4A5961] bg-[#F9FAFB] rounded-[8px]">
                     No rooms listed under this property yet.
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                     {propRooms.map(room => {
                       const totalRoomBeds = Array.isArray(room.beds) ? room.beds.length : Number(room.beds || 1);
                       const assignedBeds = Array.isArray(room.bedAssignments) ? room.bedAssignments.filter(b => b && b.tenantId) : [];
@@ -393,45 +392,45 @@ export default function RoomsManagement() {
                       const roomDisplayName = rawNo.toLowerCase().startsWith("room") ? rawNo : `Room ${rawNo}`;
 
                       return (
-                        <div key={room._id || room.id} className="bg-slate-50/70 border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-3">
+                        <div key={room._id || room.id} className="bg-[#F9FAFB] border border-[#E1E6EA] rounded-[10px] p-3.5 hover:border-[#CBD3D9] transition-all flex flex-col justify-between space-y-2.5">
                           
                           {/* Card Header */}
                           <div>
-                            <div className="flex items-center justify-between mb-2 gap-2">
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <span className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-black text-[11px] shadow-sm shrink-0 uppercase tracking-tighter">
+                            <div className="flex items-center justify-between mb-1.5 gap-2">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="w-7 h-7 rounded-[6px] bg-[#095256] text-white flex items-center justify-center font-bold text-[11px] shrink-0 uppercase">
                                   {cleanRoomNo}
                                 </span>
                                 <div className="min-w-0">
-                                  <h4 className="text-xs font-extrabold text-slate-900 leading-none truncate">{roomDisplayName}</h4>
-                                  <p className="text-[10px] text-slate-400 font-semibold mt-1 leading-none">{room.floor || "Ground Floor"}</p>
+                                  <h4 className="text-[13px] font-bold text-[#10242A] leading-none truncate">{roomDisplayName}</h4>
+                                  <p className="text-[11px] text-[#4A5961] mt-1 leading-none">{room.floor || "Ground Floor"}</p>
                                 </div>
                               </div>
-                              <span className="text-xs font-black text-slate-900 shrink-0">
-                                ₹{(room.price || room.rent || 0).toLocaleString('en-IN')}<span className="text-[9px] font-medium text-slate-400">/bed</span>
+                              <span className="text-[13px] font-bold text-[#10242A] shrink-0">
+                                ₹{(room.price || room.rent || 0).toLocaleString('en-IN')}<span className="text-[10px] font-normal text-[#4A5961]">/bed</span>
                               </span>
                             </div>
 
                             {/* Badges */}
                             <div className="flex flex-wrap gap-1.5 my-2">
-                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-blue-50 text-blue-600 border border-blue-100">{room.sharingType || "Double Sharing"}</span>
-                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-slate-200 text-slate-700">{room.type || "AC"}</span>
+                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-[4px] bg-[#E6F4F5] text-[#0E7C86]">{room.sharingType || "Double Sharing"}</span>
+                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-[4px] bg-white border border-[#E1E6EA] text-[#4A5961]">{room.type || "AC"}</span>
                               {room.gender && (
-                                <span className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-purple-50 text-purple-600">{room.gender}</span>
+                                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-[4px] bg-purple-50 text-purple-600">{room.gender}</span>
                               )}
                             </div>
 
                             {/* Occupancy Progress Bar */}
-                            <div className="mt-3 space-y-1">
-                              <div className="flex items-center justify-between text-[10px] font-bold">
-                                <span className="text-slate-500">Occupancy</span>
+                            <div className="mt-2.5 space-y-1">
+                              <div className="flex items-center justify-between text-[11px] font-semibold">
+                                <span className="text-[#4A5961]">Occupancy</span>
                                 <span className={cn(
                                   roomPct === 100 ? "text-rose-600" : roomPct > 0 ? "text-amber-600" : "text-emerald-600"
                                 )}>
                                   {occCount}/{totalRoomBeds} Beds ({roomPct}%)
                                 </span>
                               </div>
-                              <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                              <div className="w-full h-1.5 bg-[#E1E6EA] rounded-full overflow-hidden">
                                 <div 
                                   className={cn("h-full transition-all", roomPct === 100 ? "bg-rose-500" : roomPct > 0 ? "bg-amber-500" : "bg-emerald-500")}
                                   style={{ width: `${roomPct}%` }}
@@ -441,7 +440,7 @@ export default function RoomsManagement() {
                           </div>
 
                           {/* Bed Badges & Actions */}
-                          <div className="border-t border-slate-200 pt-3 flex items-center justify-between gap-2 mt-2">
+                          <div className="border-t border-[#E1E6EA] pt-2.5 flex items-center justify-between gap-2 mt-1.5">
                             <div className="flex flex-wrap items-center gap-1 max-w-[75%]">
                               {Array.from({ length: totalRoomBeds }, (_, bIdx) => {
                                 const isOcc = bIdx < occCount;
@@ -451,8 +450,8 @@ export default function RoomsManagement() {
                                     key={bIdx} 
                                     title={isOcc ? `Occupied by: ${bedTenant?.tenantName || 'Tenant'}` : 'Vacant Bed'}
                                     className={cn(
-                                      "w-5 h-5 rounded-md text-[8px] font-bold flex items-center justify-center border",
-                                      isOcc ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-400 border-slate-200"
+                                      "w-5 h-5 rounded-[4px] text-[9px] font-bold flex items-center justify-center border",
+                                      isOcc ? "bg-[#095256] text-white border-[#095256]" : "bg-white text-[#4A5961] border-[#CBD3D9]"
                                     )}
                                   >
                                     B{bIdx + 1}
@@ -465,14 +464,14 @@ export default function RoomsManagement() {
                             <div className="flex items-center gap-1">
                               <button 
                                 onClick={() => handleEditClick(room)}
-                                className="w-7 h-7 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-blue-600 hover:border-blue-200 flex items-center justify-center shadow-sm transition-all"
+                                className="w-7 h-7 rounded-[6px] bg-white border border-[#CBD3D9] text-[#4A5961] hover:text-[#10242A] hover:bg-[#F4F6F8] flex items-center justify-center transition-all cursor-pointer"
                                 title="Edit Room"
                               >
                                 <Edit2 className="w-3.5 h-3.5" />
                               </button>
                               <button 
                                 onClick={() => handleDeleteRoom(room)}
-                                className="w-7 h-7 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-rose-600 hover:border-rose-200 flex items-center justify-center shadow-sm transition-all"
+                                className="w-7 h-7 rounded-[6px] bg-white border border-[#CBD3D9] text-[#4A5961] hover:text-rose-600 hover:border-rose-200 flex items-center justify-center transition-all cursor-pointer"
                                 title="Delete Room"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -629,22 +628,12 @@ export default function RoomsManagement() {
   );
 }
 
-function StatCardHorizontal({ label, value, icon: Icon, color }) {
-  const bgColors = { 
-    blue: "bg-blue-50 text-blue-600 border-blue-100", 
-    emerald: "bg-emerald-50 text-emerald-600 border-emerald-100", 
-    amber: "bg-amber-50 text-amber-600 border-amber-100", 
-    indigo: "bg-indigo-50 text-indigo-600 border-indigo-100" 
-  };
-  
+function StatCardHorizontal({ label, value }) {
   return (
-    <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm flex items-start gap-3 group hover:translate-y-[-2px] transition-all">
-      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border shadow-sm transition-transform group-hover:scale-105", bgColors[color])}>
-         <Icon className="w-5 h-5" />
-      </div>
-      <div className="min-w-0">
-         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 leading-none truncate">{label}</p>
-         <p className="text-xl font-black text-slate-900 tracking-tight leading-none">{value}</p>
+    <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
+      <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">{label}</p>
+      <div className="mt-2">
+        <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{value}</h3>
       </div>
     </div>
   );

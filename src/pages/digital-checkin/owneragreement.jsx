@@ -137,6 +137,7 @@ export default function DigitalCheckinOwneragreement() {
   const {
     loginId, setLoginId,
     eSignName, setESignName,
+    gstinNumber, setGstinNumber,
     accepted, setAccepted,
     submitting, error, loadingData, ownerData,
     handleSubmit
@@ -158,7 +159,7 @@ export default function DigitalCheckinOwneragreement() {
       {/* Top Header Bar */}
       <header className="dc-header" style={{ background: "#1a237e", color: "#fff", padding: "16px 24px" }}>
         <div className="dc-header-inner" style={{ maxWidth: 900, margin: "0 auto", display: "flex", alignItems: "center", gap: 16 }}>
-          <img src="/website/images/whitelogo.jpeg" alt="RoomHy Logo" style={{ height: 42, borderRadius: 6 }} />
+          <img src="/website/roomhy_logo.jpeg" alt="RoomHy Logo" style={{ height: 42, borderRadius: 6, background: "#fff", padding: "4px 8px" }} />
           <div>
             <p style={{ margin: 0, fontSize: 11, textTransform: "uppercase", letterSpacing: 1.5, opacity: 0.8 }}>Digital Onboarding &amp; Compliance</p>
             <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>Hostel Onboarding &amp; Service Agreement</h1>
@@ -208,8 +209,33 @@ export default function DigitalCheckinOwneragreement() {
 
               <div style={{ margin: "16px 0", padding: "16px 20px", background: "#f8fafc", borderRadius: 8, borderLeft: "4px solid #166534" }}>
                 <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.6 }}>
-                  <strong>The Hostel Owner / Client</strong>, namely M/s. <strong>{ownerData?.hostelLegalName || ownerData?.tradeName || "Hostel Owner"}</strong> ("Hostel"), operating under the trade name <strong>{ownerData?.tradeName || "Hostel"}</strong>, having its office/property address at <strong>{ownerData?.propertyAddress || "Kota, Rajasthan"}</strong>, PAN: <strong>{ownerData?.panNumber || "-"}</strong>, GSTIN: <strong>{ownerData?.gstinNumber || "-"}</strong>, represented by Mr./Ms. <strong>{ownerData?.ownerName || eSignName || "Owner"}</strong>, (hereinafter referred to as the “Client” / “Hostel Owner” / “Partner”).
+                  <strong>The Hostel Owner / Client</strong>, namely M/s. <strong>{ownerData?.hostelLegalName || ownerData?.tradeName || "Hostel Owner"}</strong> ("Hostel"), operating under the trade name <strong>{ownerData?.tradeName || "Hostel"}</strong>, having its office/property address at <strong>{ownerData?.propertyAddress || "Kota, Rajasthan"}</strong>, PAN: <strong>{ownerData?.panNumber || "-"}</strong>, GSTIN: <strong>{gstinNumber || ownerData?.gstinNumber || "-"}</strong>, represented by Mr./Ms. <strong>{ownerData?.ownerName || eSignName || "Owner"}</strong>, (hereinafter referred to as the “Client” / “Hostel Owner” / “Partner”).
                 </p>
+                <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px dashed #cbd5e1", display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12 }}>
+                  <div style={{ flex: "1 1 260px" }}>
+                    <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#166534", textTransform: "uppercase", marginBottom: 4 }}>
+                      GSTIN Number {ownerData?.autoDetectedGstin !== false && (
+                        <span style={{ marginLeft: 6, background: "#dcfce7", color: "#166534", padding: "2px 6px", borderRadius: 4, fontSize: 10 }}>
+                          ✓ Auto-Detected from Bank Details {ownerData?.ifscCode ? `(IFSC: ${ownerData.ifscCode})` : ""}
+                        </span>
+                      )}
+                    </label>
+                    <input
+                      value={gstinNumber || ownerData?.gstinNumber || ""}
+                      onChange={(e) => setGstinNumber(e.target.value.toUpperCase())}
+                      placeholder="Auto-detected GSTIN from Bank Details"
+                      style={{
+                        width: "100%", padding: "8px 12px", fontSize: 13, fontFamily: "monospace",
+                        fontWeight: 700, borderRadius: 6, border: "1px solid #86efac", background: "#ffffff", color: "#0f172a"
+                      }}
+                    />
+                  </div>
+                  {(ownerData?.bankName || ownerData?.ifscCode || ownerData?.accountNumber) && (
+                    <div style={{ fontSize: 11.5, color: "#475569", background: "#ffffff", padding: "8px 12px", borderRadius: 6, border: "1px solid #e2e8f0" }}>
+                      <strong>Linked Bank:</strong> {ownerData?.bankName || "Verified Bank"} {ownerData?.ifscCode ? `| IFSC: ${ownerData.ifscCode}` : ""} {ownerData?.gstStateName ? `| State: ${ownerData.gstStateName} (${ownerData.gstStateCode})` : ""}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <p style={{ fontSize: 13.5, lineHeight: 1.6, color: "#334155" }}>

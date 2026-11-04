@@ -346,6 +346,9 @@ export default function DigitalCheckinTenantkyc() {
   return (
     <div className="html-page">
       <div className="wrap">
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+          <img src="/website/roomhy_logo.jpeg" alt="Roomhy Logo" style={{ height: 38, objectFit: "contain", borderRadius: 6 }} />
+        </div>
         {extToken && (
           <div style={{ background: "#e8eaf6", border: "1.5px solid #9fa8da", borderRadius: "10px", padding: "12px 16px", color: "#1a237e", fontSize: "13px", fontWeight: 600, lineHeight: "1.5", marginBottom: "16px" }}>
             Agreement extension — please re-verify your Aadhaar to continue to your extension agreement.
