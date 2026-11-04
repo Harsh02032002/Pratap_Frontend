@@ -6,6 +6,7 @@ import MobileBottomNav from "../../components/website/MobileBottomNav";
 import { fetchCities, fetchAreas, fetchProperties, resolvePropertyOwnerLoginId } from '../../utils/api';
 import { getWebsiteUser, getWebsiteUserId, getWebsiteUserName, getWebsiteUserEmail, isWebsiteLoggedIn } from '../../utils/websiteSession';
 import { toast } from 'react-hot-toast';
+import { matchesPropertyGender } from '../../utils/propertyGender';
 
 const defaultCities = [
   { _id: 'kota', name: 'Kota, Rajasthan' },
@@ -178,7 +179,6 @@ export default function FastBiddingPage() {
 
     const selectedArea = areas.find(a => (a._id || a.id) === form.area);
     const areaName = selectedArea?.name?.toLowerCase()?.trim() || '';
-    const gender = form.gender.toLowerCase();
     
     let parsedMin = null;
     let parsedMax = null;
@@ -211,11 +211,7 @@ export default function FastBiddingPage() {
         if (!propArea || !areaMatch) return false;
       }
 
-      if (gender) {
-        const propGender = (prop.gender || propInfo.gender || prop.genderSuitability || '').toString().toLowerCase();
-        const genderMatch = propGender.includes('co-ed') || propGender.includes(gender) || gender.includes(propGender);
-        if (propGender && !genderMatch) return false;
-      }
+      if (!matchesPropertyGender(prop, form.gender, { includeCoed: true })) return false;
 
       if (parsedMin || parsedMax) {
         const rent = parseInt(prop.monthlyRent || prop.rent || propInfo.rent || propInfo.monthlyRent, 10);

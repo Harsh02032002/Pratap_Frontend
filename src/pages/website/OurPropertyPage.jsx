@@ -10,6 +10,7 @@ import { fetchProperties, searchPropertiesByLocation, getNearbyAreas, getInstitu
 import { cacheInvalidate } from "../../utils/cache";
 import FastBiddingModal from "../../components/website/FastBiddingModal";
 import QuickBookingModal from "../../components/website/QuickBookingModal";
+import { matchesPropertyGender } from "../../utils/propertyGender";
 import { useAuth } from "../../contexts/AuthContext";
 import { useHtmlPage } from "../../utils/htmlPage";
 import axios from "axios";
@@ -885,7 +886,7 @@ export default function OurPropertyPage() {
     }
     
     if (selectedGender) {
-      filtered = filtered.filter(p => p.gender?.toLowerCase() === selectedGender.toLowerCase());
+      filtered = filtered.filter(p => matchesPropertyGender(p, selectedGender));
     }
     
     if (minPrice) {

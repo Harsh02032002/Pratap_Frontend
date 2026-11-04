@@ -4,6 +4,7 @@ import { fetchCities, fetchProperties, fetchJson, getPropertyDetailsUrl, getApiB
 import { cacheInvalidate } from '../../utils/cache';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
+import { matchesPropertyGender, normalizePropertyGender } from '../../utils/propertyGender';
 
 // Cities & Localities map dynamically built from MongoDB database properties
 const cityAreasMap = {};
@@ -25,6 +26,10 @@ export default function FastBiddingModal({ isOpen, onClose, initialData = {} }) 
   const [selectedGender, setSelectedGender] = useState(initialData.gender || '');
   const [maxPrice, setMaxPrice] = useState(initialData.maxPrice || '12000');
   const [areaSearch, setAreaSearch] = useState('');
+
+  useEffect(() => {
+    if (isOpen) setSelectedGender(initialData.gender || '');
+  }, [isOpen, initialData.gender]);
 
   // Fetch properties once
   useEffect(() => {
@@ -67,7 +72,7 @@ export default function FastBiddingModal({ isOpen, onClose, initialData = {} }) 
         if ((st === 'apartment' || st === 'apartments') && !pt.includes('apartment') && !pt.includes('flat')) return false;
       }
       // Gender
-      if (selectedGender && p.gender?.toLowerCase() !== selectedGender.toLowerCase() && p.genderSuitability?.toLowerCase() !== selectedGender.toLowerCase()) {
+      if (!matchesPropertyGender(p, selectedGender)) {
         return false;
       }
       // Max Price (Allow +2500 buffer for bidding negotiation)
@@ -430,7 +435,7 @@ export default function FastBiddingModal({ isOpen, onClose, initialData = {} }) 
             </label>
             <div className="grid grid-cols-3 gap-2">
               {['Boys', 'Girls', 'Co-ed'].map(gender => {
-                const isSelected = (selectedGender || '').toLowerCase() === gender.toLowerCase();
+                const isSelected = normalizePropertyGender(selectedGender) === normalizePropertyGender(gender);
                 return (
                   <button
                     key={gender}
