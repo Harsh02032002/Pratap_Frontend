@@ -148,10 +148,13 @@ export default function WebsiteMystays() {
 
   // Fetch active bids for this user
   const fetchActiveBids = useCallback(async () => {
-    const userId = getWebsiteUserId();
-    if (!userId) return;
+    // Same identity as My Bookings: bids are saved under the user id, or the email when there is no id.
+    const userEmail = getWebsiteUserEmail();
+    const identity = getWebsiteUserId() || userEmail;
+    if (!identity) return;
     try {
-      const res = await fetch(`${apiUrl}/api/booking/user/${encodeURIComponent(userId)}`);
+      const emailQuery = userEmail ? `&email=${encodeURIComponent(userEmail)}` : "";
+      const res = await fetch(`${apiUrl}/api/booking/user/${encodeURIComponent(identity)}?type=bids${emailQuery}`);
       if (!res.ok) return;
       const data = await res.json();
       const all = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
