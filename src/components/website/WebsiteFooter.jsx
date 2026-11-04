@@ -257,6 +257,7 @@ export default function WebsiteFooter() {
                 </h3>
                 <ul className="space-y-2 text-xs font-semibold text-[#102A43]">
                   <li><Link to="/list-property" className="hover:text-[#0FA89C] transition-colors">List Your Property</Link></li>
+                  <li><Link to="/my-property-submissions" className="hover:text-[#0FA89C] transition-colors">Track My Property</Link></li>
                   <li><Link to="/propertyowner/dashboard" className="hover:text-[#0FA89C] transition-colors">Owner Dashboard</Link></li>
                   <li><Link to="/website/mystays" className="hover:text-[#0FA89C] transition-colors font-bold text-[#0FA89C]">Tenant Dashboard / My Stays</Link></li>
                   <li><Link to="/about-us" className="hover:text-[#0FA89C] transition-colors">About Us</Link></li>

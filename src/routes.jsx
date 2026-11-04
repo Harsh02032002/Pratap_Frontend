@@ -360,6 +360,7 @@ const routeEntries = [
   ["/website/bidding", "./pages/website/OurPropertyPage.jsx"],
   ["/fast-bidding", "./pages/website/FastBiddingPage.jsx"],
   ["/my-stays", "./pages/website/WebsiteMystays.jsx"],
+  ["/my-property-submissions", "./pages/website/MyPropertySubmissionsPage.jsx"],
   ["/refund-request", "./pages/website/WebsiteRefundRequest.jsx"],
   ["/cancellation", "./pages/website/WebsiteCancellation.jsx"],
   ["/cancellation-policy", "./pages/website/WebsiteCancellation.jsx"],

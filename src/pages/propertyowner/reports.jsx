@@ -1,3 +1,5 @@
+import toast from "react-hot-toast";
+import { buildOwnerReportCsv } from "../../utils/ownerReportCsv";
 import React, { useState, useEffect, useCallback } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
 import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerProperties } from "../../utils/propertyowner";
@@ -18,13 +20,10 @@ const REPORT_CATEGORIES = [
     bg: "bg-emerald-50",
     border: "border-emerald-200",
     headerBg: "bg-gradient-to-br from-emerald-500 to-teal-600",
-    description: "Track collections, dues, cashflow, and expenses",
+    description: "Track payment receipts and outstanding invoice balances",
     reports: [
-      { name: "Rent Collection Report", purpose: "Track all rent collected across properties. Identify payment modes and collection staff.", kpis: ["Total Collected", "Cash vs Online", "Receipts Issued"] },
-      { name: "Outstanding Dues Report", purpose: "Find tenants with overdue rent. Critical for follow-up and action.", kpis: ["Total Dues", "Tenants with Dues", "Days Overdue"] },
-      { name: "Cashflow Report", purpose: "See income vs expense trend. Make profit/loss decisions monthly.", kpis: ["Net Income", "Total Expenses", "Net Profit"] },
-      { name: "Expense Report", purpose: "Track all property expenses by category and property.", kpis: ["Total Expenses", "By Category"] },
-      { name: "Monthly Financial Statement", purpose: "Complete financial snapshot of a month across all properties.", kpis: ["Revenue", "Dues", "Collections", "Expenses"] },
+      { name: "Rent Collection Report", purpose: "Track all rent collected across properties. Identify payment modes and collection staff.", kpis: ["Total Collected", "Total Records"] },
+      { name: "Outstanding Dues Report", purpose: "Unpaid and partially paid invoices for current tenants. Date filters apply to invoice due dates.", kpis: ["Total Dues", "Tenants with Dues", "Days Overdue"] },
     ],
   },
   {
@@ -39,7 +38,6 @@ const REPORT_CATEGORIES = [
     reports: [
       { name: "Bed Occupancy Report", purpose: "See how many beds are filled vs vacant per property. Plan marketing efforts.", kpis: ["Total Beds", "Occupied", "Vacant", "Occupancy %"] },
       { name: "Room Occupancy Report", purpose: "Room-level breakdown of occupancy, capacity, and status.", kpis: ["Total Rooms", "Occupied Rooms", "Vacant Rooms"] },
-      { name: "Property Summary Report", purpose: "All properties side by side — revenue, occupancy, and tenant count.", kpis: ["Per Property Revenue", "Beds & Rooms", "Occupancy %"] },
     ],
   },
   {
@@ -50,27 +48,9 @@ const REPORT_CATEGORIES = [
     bg: "bg-violet-50",
     border: "border-violet-200",
     headerBg: "bg-gradient-to-br from-violet-500 to-purple-600",
-    description: "Active tenants, KYC, agreements, and move history",
+    description: "Current active tenants and their recorded details",
     reports: [
-      { name: "Active Tenant Report", purpose: "Full list of all current tenants with property, room, and rent details.", kpis: ["Total Active", "KYC %", "Agreement Status"] },
-      { name: "Tenant Ledger Report", purpose: "Each tenant's payment history — paid, pending, and security deposit.", kpis: ["Rent Paid", "Rent Pending", "Security Deposit"] },
-      { name: "KYC Pending Report", purpose: "Identify tenants missing documents. Trigger KYC follow-up.", kpis: ["KYC Pending Count", "Missing Docs"] },
-      { name: "Agreement Renewal Report", purpose: "Track agreements expiring soon. Renew before they lapse.", kpis: ["Expiring Soon", "Already Expired"] },
-    ],
-  },
-  {
-    id: "Lead",
-    label: "Lead Reports",
-    icon: TrendingUp,
-    color: "text-amber-600",
-    bg: "bg-amber-50",
-    border: "border-amber-200",
-    headerBg: "bg-gradient-to-br from-amber-400 to-orange-500",
-    description: "Lead pipeline, conversions, and follow-ups",
-    reports: [
-      { name: "Lead Report", purpose: "All leads with source, status, budget, and assigned property.", kpis: ["Total Leads", "New This Month"] },
-      { name: "Follow-up Report", purpose: "Leads needing follow-up. Prevent leads from going cold.", kpis: ["Overdue Follow-ups", "Next Actions"] },
-      { name: "Conversion Report", purpose: "Which leads converted to bookings. Measure team performance.", kpis: ["Conversion Rate", "Avg. Close Time"] },
+      { name: "Active Tenant Report", purpose: "Full list of all current tenants with property, room, and rent details.", kpis: ["Active Tenants"] },
     ],
   },
   {
@@ -83,8 +63,8 @@ const REPORT_CATEGORIES = [
     headerBg: "bg-gradient-to-br from-rose-500 to-pink-600",
     description: "Complaint resolution, escalations, and maintenance",
     reports: [
-      { name: "Open Complaint Report", purpose: "All unresolved complaints. Assign and prioritize action.", kpis: ["Open", "High Priority", "Escalated"] },
-      { name: "Resolution Report", purpose: "How fast complaints are resolved. Identify underperforming staff.", kpis: ["Avg Resolution Time", "Resolved This Month"] },
+      { name: "Open Complaint Report", purpose: "All unresolved complaints. Assign and prioritize action.", kpis: ["Total Complaints"] },
+      { name: "Resolution Report", purpose: "Resolved complaints and recorded resolution times. Date filters apply to the resolution date.", kpis: ["Total Complaints"] },
     ],
   },
   {
@@ -95,11 +75,9 @@ const REPORT_CATEGORIES = [
     bg: "bg-slate-50",
     border: "border-slate-200",
     headerBg: "bg-gradient-to-br from-slate-600 to-slate-700",
-    description: "Staff attendance, performance, and leave tracking",
+    description: "Recorded staff attendance and check-in/out times",
     reports: [
-      { name: "Attendance Report", purpose: "Daily check-in/out records. Identify late arrivals and absentees.", kpis: ["Present %", "Late Arrivals", "Absents"] },
-      { name: "Staff Performance Report", purpose: "Tasks completed, complaints resolved, attendance % per staff.", kpis: ["Tasks Completed", "Complaints Resolved", "Attendance %"] },
-      { name: "Leave Report", purpose: "Track all leave requests — approved, pending, rejected.", kpis: ["Total Leaves", "Approved", "Pending"] },
+      { name: "Attendance Report", purpose: "Daily check-in/out records. Identify late arrivals and absentees.", kpis: ["Total Records"] },
     ],
   },
 ];
@@ -193,13 +171,15 @@ export default function ReportsPage() {
     fetchHistory();
     fetchDemandData();
     fetchOwnerProperties(owner.loginId, true)
-      .then(list => setProperties(list || []))
+      // Only superadmin-approved properties belong in reports.
+      .then(list => setProperties((list || []).filter(p => /^(active|approved)$/i.test(String(p?.status || "")))))
       .catch(() => {});
   }, [fetchSummary, fetchHistory, fetchDemandData, owner.loginId]);
 
   const openModal = (report, catId) => {
     setSelectedReport({ ...report, category: catId });
     setGeneratedData(null);
+    setFilters(f => ({ ...f, status: "" }));
     setShowModal(true);
   };
 
@@ -217,6 +197,10 @@ export default function ReportsPage() {
   };
 
   const handleGenerate = async () => {
+    if (filters.startDate && filters.endDate && filters.startDate > filters.endDate) {
+      toast.error("Start date must be before end date");
+      return;
+    }
     setGenerating(true);
     setGeneratedData(null);
     try {
@@ -227,8 +211,7 @@ export default function ReportsPage() {
           reportName: selectedReport.name,
           category: selectedReport.category,
           format: filters.format,
-          startDate: filters.startDate,
-          endDate: filters.endDate,
+          ...(["Occupancy", "Tenant"].includes(selectedReport.category) ? {} : { startDate: filters.startDate, endDate: filters.endDate }),
           propertyId: filters.propertyId,
           status: filters.status,
         }),
@@ -248,19 +231,16 @@ export default function ReportsPage() {
           triggerCsvDownload(res.fileContent, fileName);
         } else if (res.data?.length > 0) {
           // Fallback: build CSV from data array
-          const headers = Object.keys(res.data[0]);
-          const csvRows = [
-            headers.join(","),
-            ...res.data.map(row => headers.map(h => `"${String(row[h] ?? "").replace(/"/g, '""')}"`).join(","))
-          ];
-          triggerCsvDownload(csvRows.join("\n"), fileName);
+          triggerCsvDownload(buildOwnerReportCsv(res.data), fileName);
         } else {
           // 0 records — still download empty CSV with headers note
           triggerCsvDownload(`"No data found for the selected date range and filters"\n"Try a wider date range or remove filters"`, fileName);
         }
+      } else {
+        toast.error(res?.message || "Failed to generate report");
       }
     } catch (err) {
-      alert("Failed to generate report: " + err.message);
+      toast.error("Failed to generate report: " + err.message);
     } finally {
       setGenerating(false);
     }
@@ -296,7 +276,6 @@ export default function ReportsPage() {
           { label: "Occupancy", value: `${summary.occupancyPct || 0}%`, icon: BedDouble, color: "bg-blue-500" },
           { label: "Active Tenants", value: summary.activeTenants ?? "—", icon: Users, color: "bg-violet-500" },
           { label: "Open Complaints", value: summary.openComplaints ?? "—", icon: Headset, color: "bg-rose-500" },
-          { label: "Total Leads", value: summary.newLeads ?? "—", icon: TrendingUp, color: "bg-amber-500" },
         ].map(({ label, value, icon: Icon, color }) => (
           <div key={label} className="bg-white rounded-2xl border border-slate-100 p-4 flex items-center gap-3 shadow-sm hover:shadow-md transition-all">
             <div className={`w-10 h-10 rounded-xl ${color} flex items-center justify-center shrink-0 shadow-md`}>
@@ -593,7 +572,7 @@ export default function ReportsPage() {
               <p className="text-xs text-slate-500 font-medium">{selectedReport.purpose}</p>
 
               {/* Filters */}
-              <div className="grid grid-cols-2 gap-3">
+              {!["Occupancy", "Tenant"].includes(selectedReport.category) ? <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Start Date</label>
                   <input type="date" value={filters.startDate} onChange={e => setFilters(f => ({ ...f, startDate: e.target.value }))}
@@ -604,7 +583,7 @@ export default function ReportsPage() {
                   <input type="date" value={filters.endDate} onChange={e => setFilters(f => ({ ...f, endDate: e.target.value }))}
                     className="w-full h-10 px-3 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10" />
                 </div>
-              </div>
+              </div> : <p className="text-xs text-slate-500">This report shows current records. Date filters do not apply.</p>}
 
               <div>
                 <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Property</label>
@@ -615,16 +594,15 @@ export default function ReportsPage() {
                 </select>
               </div>
 
-              {selectedReport?.category === "Financial" && (
+              {selectedReport?.name === "Outstanding Dues Report" && (
                 <div>
                   <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Status Filter</label>
                   <select value={filters.status} onChange={e => setFilters(f => ({ ...f, status: e.target.value }))}
                     className="w-full h-10 px-3 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-blue-400 bg-white">
                     <option value="">All Status</option>
-                    <option value="paid">Paid</option>
                     <option value="pending">Pending</option>
                     <option value="overdue">Overdue</option>
-                    <option value="completed">Completed</option>
+                    <option value="partial">Partially paid</option>
                   </select>
                 </div>
               )}

@@ -5,6 +5,7 @@ import { useHtmlPage } from "../../utils/htmlPage";
 import { getWebsiteApiUrl, getWebsiteUserEmail, getWebsiteUserId, logoutWebsite } from "../../utils/websiteSession";
 import { useLucideIcons, useWebsiteCommon, useWebsiteMenu } from "../../utils/websiteUi";
 import WebsiteNavbar from "../../components/website/WebsiteNavbar";
+import { getStayBookingAmount, mergeStayBookings } from "../../utils/myStaysBookings";
 export default function WebsiteMystays() {
   useWebsiteCommon();
   useWebsiteMenu();
@@ -81,17 +82,12 @@ export default function WebsiteMystays() {
   }, []);
 
   const collectBookings = useCallback(async () => {
-    const collected = [];
-    const seen = new Set();
+    const cachedBookings = [];
+    let apiBookings = [];
 
     const addBooking = (booking) => {
       if (!booking || typeof booking !== "object") return;
-      const key = booking.booking_id || booking.bookingId || booking._id || booking.id;
-      const fallbackKey = `${booking.user_id || booking.userId || ""}::${booking.property_id || booking.propertyId || ""}::${booking.payment_id || booking.paymentId || ""}`;
-      const finalKey = String(key || fallbackKey);
-      if (!finalKey || seen.has(finalKey)) return;
-      seen.add(finalKey);
-      collected.push(booking);
+      cachedBookings.push(booking);
     };
 
     try {
@@ -130,8 +126,7 @@ export default function WebsiteMystays() {
           if (res.status === 404) continue;
           if (!res.ok) break;
           const data = await res.json();
-          const apiBookings = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
-          apiBookings.forEach(addBooking);
+          apiBookings = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
           break;
         } catch (err) {
           console.warn("Booking API failed:", err);
@@ -140,6 +135,7 @@ export default function WebsiteMystays() {
       }
     }
 
+    const collected = mergeStayBookings(cachedBookings, apiBookings);
     collected.sort((a, b) => {
       const aTime = new Date(a.created_at || a.createdAt || a.submittedAt || a.updatedAt || 0).getTime();
       const bTime = new Date(b.created_at || b.createdAt || b.submittedAt || b.updatedAt || 0).getTime();
@@ -180,29 +176,12 @@ export default function WebsiteMystays() {
     }
   };
 
-  // Smart date resolver — uses actual field if set, else falls back to createdAt
-  const getCheckInDate = (booking) => {
-    return (
-      booking.check_in_date ||
-      booking.checkInDate ||
-      booking.start_date ||
-      booking.created_at ||
-      booking.createdAt ||
-      booking.submittedAt
-    );
+  // Dates come only from the tenant's real agreement (set by the backend as
+  // booking.agreementPeriod). No agreement yet -> null, and the row is hidden.
+  const getAgreementDates = (booking) => {
+    const period = booking.agreementPeriod;
+    return period && period.startDate && period.endDate ? period : null;
   };
-
-  const getCheckOutDate = (booking) => {
-    const explicit = booking.check_out_date || booking.checkOutDate || booking.end_date;
-    if (explicit) return explicit;
-    // Fallback: check-in + 30 days
-    const checkIn = getCheckInDate(booking);
-    if (!checkIn) return null;
-    const d = new Date(checkIn);
-    d.setDate(d.getDate() + 30);
-    return d.toISOString();
-  };
-
 
   const openRefundModal = (booking, type = "refund") => {
     setSelectedBooking(booking);
@@ -636,10 +615,12 @@ export default function WebsiteMystays() {
                       `https://images.unsplash.com/photo-1567016432779-1fee749a1532?q=80&w=1974&auto=format&fit=crop&property=${booking.propertyId || booking.property_id || "default"}`;
 
                     const thumbs = photos.slice(0, 4);
+                    const agreement = getAgreementDates(booking);
                     const propertyId = booking.propertyId || booking.property_id || booking._id || "N/A";
                     const displayPropertyId =
                       String(propertyId).length > 20 ? `${String(propertyId).slice(0, 12)}...` : String(propertyId);
                     const bookingStatus = String(booking.booking_status || booking.status || "confirmed").replace(/_/g, " ");
+                    const totalAmount = getStayBookingAmount(booking);
 
                     return (
                       <div key={`${propertyId}-${index}`} className="light-card rounded-xl overflow-hidden h-full flex flex-col bg-white shadow-sm hover:shadow-lg transition-shadow border border-gray-100">
@@ -667,25 +648,27 @@ export default function WebsiteMystays() {
                             </span>
                           </div>
 
+                          {agreement && (
                           <div className="grid grid-cols-2 gap-3 py-3 border-t border-b border-gray-200 mb-4">
                             <div>
                               <p className="text-xs text-gray-600 font-semibold uppercase">Check-in</p>
                               <p className="font-bold text-gray-900 text-sm">
-                                {formatDate(getCheckInDate(booking))}
+                                {formatDate(agreement.startDate)}
                               </p>
                             </div>
                             <div>
                               <p className="text-xs text-gray-600 font-semibold uppercase">Check-out</p>
                               <p className="font-bold text-gray-900 text-sm">
-                                {formatDate(getCheckOutDate(booking))}
+                                {formatDate(agreement.endDate)}
                               </p>
                             </div>
                           </div>
+                          )}
 
                           <div className="flex justify-between items-center mb-3">
                             <span className="text-gray-700 font-medium">Total Amount:</span>
                             <span className="text-2xl font-bold text-blue-600">
-                              ₹{Number(booking.total_amount || booking.totalAmount || booking.price || 0).toLocaleString("en-IN")}
+                              {totalAmount === null ? "Not available" : `₹${totalAmount.toLocaleString("en-IN")}`}
                             </span>
                           </div>
 

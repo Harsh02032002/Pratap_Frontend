@@ -133,6 +133,9 @@ export default function WebsiteNavbar() {
                           <button onClick={() => { setShowUserDropdown(false); navigate('/website/mystays'); }} className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3">
                             <Home className="w-4 h-4 text-gray-500" /> My Stays
                           </button>
+                          <Link to="/my-property-submissions" onClick={() => setShowUserDropdown(false)} className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3">
+                            <Building2 className="w-4 h-4 text-gray-500" /> My Property Submissions
+                          </Link>
                           <button onClick={handleLogout} className="w-full px-4 py-2 text-left text-sm text-red-650 hover:bg-red-50 flex items-center gap-3 border-t border-gray-100">
                             <LogOut className="w-4 h-4 text-red-500" /> Logout
                           </button>

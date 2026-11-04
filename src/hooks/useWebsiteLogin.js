@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { setWebsiteSession } from "../utils/websiteSession";
+import { getListingReturnPath } from "../utils/propertySubmissions";
 
 const getApiUrl = () =>
   import.meta.env?.VITE_API_URL ||
@@ -38,7 +39,7 @@ export function useWebsiteLogin() {
           setError("Staff, employee, or owner accounts cannot sign in on the public website. Please use your panel login.");
           return;
         }
-        window.location.href = "/";
+        window.location.href = getListingReturnPath(window.location.search);
         return;
       }
 
