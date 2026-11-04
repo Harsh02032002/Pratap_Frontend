@@ -5,6 +5,7 @@ import { useHtmlPage } from "../../utils/htmlPage";
 import { getWebsiteApiUrl, getWebsiteUserEmail, getWebsiteUserId, logoutWebsite } from "../../utils/websiteSession";
 import { useLucideIcons, useWebsiteCommon, useWebsiteMenu } from "../../utils/websiteUi";
 import WebsiteNavbar from "../../components/website/WebsiteNavbar";
+import { getStayBookingAmount, mergeStayBookings } from "../../utils/myStaysBookings";
 export default function WebsiteMystays() {
   useWebsiteCommon();
   useWebsiteMenu();
@@ -81,17 +82,12 @@ export default function WebsiteMystays() {
   }, []);
 
   const collectBookings = useCallback(async () => {
-    const collected = [];
-    const seen = new Set();
+    const cachedBookings = [];
+    let apiBookings = [];
 
     const addBooking = (booking) => {
       if (!booking || typeof booking !== "object") return;
-      const key = booking.booking_id || booking.bookingId || booking._id || booking.id;
-      const fallbackKey = `${booking.user_id || booking.userId || ""}::${booking.property_id || booking.propertyId || ""}::${booking.payment_id || booking.paymentId || ""}`;
-      const finalKey = String(key || fallbackKey);
-      if (!finalKey || seen.has(finalKey)) return;
-      seen.add(finalKey);
-      collected.push(booking);
+      cachedBookings.push(booking);
     };
 
     try {
@@ -130,8 +126,7 @@ export default function WebsiteMystays() {
           if (res.status === 404) continue;
           if (!res.ok) break;
           const data = await res.json();
-          const apiBookings = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
-          apiBookings.forEach(addBooking);
+          apiBookings = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
           break;
         } catch (err) {
           console.warn("Booking API failed:", err);
@@ -140,6 +135,7 @@ export default function WebsiteMystays() {
       }
     }
 
+    const collected = mergeStayBookings(cachedBookings, apiBookings);
     collected.sort((a, b) => {
       const aTime = new Date(a.created_at || a.createdAt || a.submittedAt || a.updatedAt || 0).getTime();
       const bTime = new Date(b.created_at || b.createdAt || b.submittedAt || b.updatedAt || 0).getTime();
@@ -624,6 +620,7 @@ export default function WebsiteMystays() {
                     const displayPropertyId =
                       String(propertyId).length > 20 ? `${String(propertyId).slice(0, 12)}...` : String(propertyId);
                     const bookingStatus = String(booking.booking_status || booking.status || "confirmed").replace(/_/g, " ");
+                    const totalAmount = getStayBookingAmount(booking);
 
                     return (
                       <div key={`${propertyId}-${index}`} className="light-card rounded-xl overflow-hidden h-full flex flex-col bg-white shadow-sm hover:shadow-lg transition-shadow border border-gray-100">
@@ -671,7 +668,7 @@ export default function WebsiteMystays() {
                           <div className="flex justify-between items-center mb-3">
                             <span className="text-gray-700 font-medium">Total Amount:</span>
                             <span className="text-2xl font-bold text-blue-600">
-                              ₹{Number(booking.total_amount || booking.totalAmount || booking.price || 0).toLocaleString("en-IN")}
+                              {totalAmount === null ? "Not available" : `₹${totalAmount.toLocaleString("en-IN")}`}
                             </span>
                           </div>
 
