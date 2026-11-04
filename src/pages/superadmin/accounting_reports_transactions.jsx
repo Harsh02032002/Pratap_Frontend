@@ -89,7 +89,6 @@ export default function TransactionsReport() {
           <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Total Transaction Volume</p>
           <div className="mt-2">
             <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{fmt(totalVolume)}</h3>
-            <p className="text-[11px] text-[#708088] mt-1">Gross platform bookings cleared</p>
           </div>
         </div>
 
@@ -97,7 +96,6 @@ export default function TransactionsReport() {
           <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Settled Payouts Count</p>
           <div className="mt-2">
             <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{countPaid} Settled</h3>
-            <p className="text-[11px] text-[#708088] mt-1">Transferred to owner wallets</p>
           </div>
         </div>
 
@@ -105,7 +103,6 @@ export default function TransactionsReport() {
           <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Pending Payouts</p>
           <div className="mt-2">
             <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{countPending} Accounts</h3>
-            <p className="text-[11px] text-[#708088] mt-1">Payout settlements in queue</p>
           </div>
         </div>
 
@@ -113,7 +110,6 @@ export default function TransactionsReport() {
           <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Total Platform Fees</p>
           <div className="mt-2">
             <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{fmt(totalComm)}</h3>
-            <p className="text-[11px] text-[#708088] mt-1">Total commission share collected</p>
           </div>
         </div>
       </div>

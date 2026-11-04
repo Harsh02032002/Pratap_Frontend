@@ -88,7 +88,6 @@ export default function ProfitLossReport() {
           <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Gross Commission Income</p>
           <div className="mt-2">
             <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{fmt(data.commissionRevenue)}</h3>
-            <p className="text-[11px] text-[#708088] mt-1">Managed revenue share total</p>
           </div>
         </div>
 
@@ -96,7 +95,6 @@ export default function ProfitLossReport() {
           <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Refund Outflows</p>
           <div className="mt-2">
             <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{fmt(data.outflowsRefunds)}</h3>
-            <p className="text-[11px] text-[#708088] mt-1">Deducted payouts returned</p>
           </div>
         </div>
 
@@ -104,7 +102,6 @@ export default function ProfitLossReport() {
           <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Net Operating Income</p>
           <div className="mt-2">
             <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{fmt(data.netOperatingIncome)}</h3>
-            <p className="text-[11px] text-[#708088] mt-1">Net platform operating profit</p>
           </div>
         </div>
 
@@ -112,7 +109,6 @@ export default function ProfitLossReport() {
           <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Platform Margin %</p>
           <div className="mt-2">
             <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{profitMargin}%</h3>
-            <p className="text-[11px] text-[#708088] mt-1">Operating profit margin ratio</p>
           </div>
         </div>
       </div>

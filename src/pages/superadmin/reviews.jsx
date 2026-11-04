@@ -191,7 +191,6 @@ export default function ReviewOverview() {
             <div className="mt-2">
               <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{loading ? "..." : c.val}</h3>
               {c.extra === "stars" && <div className="mt-1"><Stars count={Math.floor(Number(stats.avg))} size={10} /></div>}
-              <p className="text-[11px] text-[#708088] mt-1">{c.trend} · {c.sub}</p>
             </div>
           </div>
         ))}

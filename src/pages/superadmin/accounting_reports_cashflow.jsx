@@ -98,7 +98,6 @@ export default function CashflowDashboardReport() {
           <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Total Cash Volume Received</p>
           <div className="mt-2">
             <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{fmt(totalCashAmount)}</h3>
-            <p className="text-[11px] text-[#708088] mt-1">Direct cash paid by tenants</p>
           </div>
         </div>
 
@@ -106,7 +105,6 @@ export default function CashflowDashboardReport() {
           <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Cash Payment Receipts</p>
           <div className="mt-2">
             <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{cashPaymentsCount} Payments</h3>
-            <p className="text-[11px] text-[#708088] mt-1">Total cash payments transactions</p>
           </div>
         </div>
 
@@ -114,7 +112,6 @@ export default function CashflowDashboardReport() {
           <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">OTP Verified Cash Receipts</p>
           <div className="mt-2">
             <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{otpVerifiedCount} Payments</h3>
-            <p className="text-[11px] text-[#708088] mt-1">Dues matched and verified</p>
           </div>
         </div>
 
@@ -122,7 +119,6 @@ export default function CashflowDashboardReport() {
           <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Avg. Cash Payment</p>
           <div className="mt-2">
             <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{fmt(avgCashPayment)}</h3>
-            <p className="text-[11px] text-[#708088] mt-1">Average cash paid directly</p>
           </div>
         </div>
       </div>

@@ -81,7 +81,6 @@ export default function RoomhyRevenueReport() {
           <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Total Platform Commission</p>
           <div className="mt-2">
             <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{fmt(totalComm)}</h3>
-            <p className="text-[11px] text-[#708088] mt-1">Net platform earnings from bookings</p>
           </div>
         </div>
 
@@ -89,15 +88,13 @@ export default function RoomhyRevenueReport() {
           <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Avg. Monthly Commission</p>
           <div className="mt-2">
             <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{fmt(avgComm)}</h3>
-            <p className="text-[11px] text-[#708088] mt-1">Average commission share per month</p>
           </div>
         </div>
 
         <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
-          <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">GST Collected (18%)</p>
+          <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">GST Collected</p>
           <div className="mt-2">
             <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{fmt(totalGst)}</h3>
-            <p className="text-[11px] text-[#708088] mt-1">Tax liability on platform commission</p>
           </div>
         </div>
 
@@ -105,7 +102,6 @@ export default function RoomhyRevenueReport() {
           <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Gross Managed Rent Vol.</p>
           <div className="mt-2">
             <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{fmt(totalGross)}</h3>
-            <p className="text-[11px] text-[#708088] mt-1">Total billing transactions cleared</p>
           </div>
         </div>
       </div>

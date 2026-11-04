@@ -189,7 +189,7 @@ export default function ReportsRevenue() {
         </div>
 
         <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
-          <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Commission ({settings.commission_percentage || 10}%)</p>
+          <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Commission</p>
           <div className="mt-2">
             <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{formatStat(stats.commissionEarned)}</h3>
           </div>

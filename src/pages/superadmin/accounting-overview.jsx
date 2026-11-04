@@ -109,7 +109,6 @@ export default function AccountingOverview() {
               <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">
                 {loading ? "—" : card.val}
               </h3>
-              <p className="text-[11px] text-[#708088] mt-1">{card.sub}</p>
             </div>
           </div>
         ))}

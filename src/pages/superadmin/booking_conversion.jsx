@@ -78,16 +78,15 @@ export default function BookingConversionRate() {
           {/* KPI Cards (No Icons) */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { label: "Lead → Booking Rate",      val: data.metrics.overallRate, sub: "Source: Leads + Bookings" },
-              { label: "Direct Booking Conversion", val: data.metrics.directRate,  sub: "Source: Bookings" },
-              { label: "Online Request Conversion", val: data.metrics.onlineRate,  sub: "Source: Bookings" },
-              { label: "Avg. Time to Convert",      val: data.metrics.avgTime,     sub: "Source: Leads + Bookings" },
+              { label: "Lead to Booking Rate",      val: data.metrics.overallRate },
+              { label: "Direct Booking Conversion", val: data.metrics.directRate },
+              { label: "Online Request Conversion", val: data.metrics.onlineRate },
+              { label: "Avg. Time to Convert",      val: data.metrics.avgTime },
             ].map(c => (
               <div key={c.label} className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
                 <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">{c.label}</p>
                 <div className="mt-2">
                   <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{c.val}</h3>
-                  <p className="text-[11px] text-[#708088] mt-1">{c.sub}</p>
                 </div>
               </div>
             ))}

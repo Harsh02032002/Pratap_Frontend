@@ -127,7 +127,7 @@ export default function OwnerRequestsPage() {
                 filteredRequests.map((req, idx) => {
                   const dateStr = req.createdAt
                     ? new Date(req.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
-                    : "[Date]";
+                    : "—";
 
                   const priority = req.priority || (idx % 3 === 0 ? "High" : idx % 3 === 1 ? "Medium" : "Low");
                   const priorityClass = priority === "High"
@@ -147,11 +147,11 @@ export default function OwnerRequestsPage() {
                           <div className="w-7 h-7 rounded-full bg-[#D9E1E7] flex items-center justify-center font-bold text-[11px] text-[#4A5961]">
                             {(req.ownerLoginId || "O").charAt(0).toUpperCase()}
                           </div>
-                          <span className="font-semibold text-[13px] text-[#10242A]">{req.ownerLoginId || "[Name]"}</span>
+                          <span className="font-semibold text-[13px] text-[#10242A]">{req.ownerLoginId || "—"}</span>
                         </div>
                       </td>
                       <td className="py-2.5 px-4 text-[#10242A] text-[13px]">{reqTypeDisplay}</td>
-                      <td className="py-2.5 px-4 text-[#4A5961] text-[13px]">{req.subject || "[Subject]"}</td>
+                      <td className="py-2.5 px-4 text-[#4A5961] text-[13px]">{req.subject || "—"}</td>
                       <td className="py-2.5 px-4 text-[#4A5961] text-[13px]">{dateStr}</td>
                       <td className="py-2.5 px-4">
                         <span className={cn("text-[11px] font-semibold px-2.5 py-0.5 rounded-full inline-block", priorityClass)}>

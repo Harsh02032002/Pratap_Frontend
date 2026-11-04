@@ -203,8 +203,8 @@ export default function OwnerSubscriptions() {
                 const isExpiring = ts.status === "trial_active" && ts.daysRemaining <= 7;
                 const planName = o.subscriptionPlan || "Standard";
 
-                const startDateStr = ts.startDate ? new Date(ts.startDate).toLocaleDateString("en-IN", { day: 'numeric', month: 'short', year: 'numeric' }) : "[Date]";
-                const renewalDateStr = ts.endDate ? new Date(ts.endDate).toLocaleDateString("en-IN", { day: 'numeric', month: 'short', year: 'numeric' }) : "[Date]";
+                const startDateStr = ts.startDate ? new Date(ts.startDate).toLocaleDateString("en-IN", { day: 'numeric', month: 'short', year: 'numeric' }) : "—";
+                const renewalDateStr = ts.endDate ? new Date(ts.endDate).toLocaleDateString("en-IN", { day: 'numeric', month: 'short', year: 'numeric' }) : "—";
 
                 return (
                   <tr key={i} className="hover:bg-[#F9FAFB] transition-colors">
@@ -214,7 +214,7 @@ export default function OwnerSubscriptions() {
                         <div className="w-7 h-7 rounded-full bg-[#D9E1E7] flex items-center justify-center font-bold text-[11px] text-[#4A5961]">
                           {(o.name || "U").charAt(0).toUpperCase()}
                         </div>
-                        <span className="font-semibold text-[13px] text-[#10242A]">{o.name || "[Name]"}</span>
+                        <span className="font-semibold text-[13px] text-[#10242A]">{o.name || "—"}</span>
                       </div>
                     </td>
 

@@ -79,20 +79,17 @@ export default function BookingOverview() {
       {/* 6 STAT CARDS (No Icons) */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {[
-          { label: "Total Leads (Today)",      val: (summary.todayLeads || 0).toLocaleString(),     source: "Leads" },
-          { label: "Total Leads (This Week)",  val: (summary.weekLeads || 0).toLocaleString(),      source: "Leads" },
-          { label: "Total Leads (This Month)", val: (summary.monthLeads || 0).toLocaleString(),     source: "Leads" },
-          { label: "Bookings (Today)",         val: (summary.todayBookings || 0).toLocaleString(),  source: "Bookings" },
-          { label: "Bookings (This Week)",     val: (summary.weekBookings || 0).toLocaleString(),   source: "Bookings" },
-          { label: "Bookings (This Month)",    val: (summary.monthBookings || 0).toLocaleString(),  source: "Bookings" },
+          { label: "Today Leads",      val: (summary.todayLeads || 0).toLocaleString() },
+          { label: "Weekly Leads",     val: (summary.weekLeads || 0).toLocaleString() },
+          { label: "Monthly Leads",    val: (summary.monthLeads || 0).toLocaleString() },
+          { label: "Today Bookings",   val: (summary.todayBookings || 0).toLocaleString() },
+          { label: "Weekly Bookings",  val: (summary.weekBookings || 0).toLocaleString() },
+          { label: "Monthly Bookings", val: (summary.monthBookings || 0).toLocaleString() },
         ].map((c, i) => (
           <div key={i} className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
             <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">{c.label}</p>
             <div className="mt-2">
               <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{c.val}</h3>
-              {c.source && (
-                <p className="text-[11px] text-[#708088] mt-1">Source: {c.source}</p>
-              )}
             </div>
           </div>
         ))}
@@ -103,10 +100,7 @@ export default function BookingOverview() {
         {/* Recent Leads Card */}
         <div className="col-span-12 lg:col-span-7 bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs overflow-hidden">
           <div className="flex items-center justify-between mb-3">
-            <div>
-              <h3 className="text-[15px] font-bold text-[#10242A]">Recent Leads</h3>
-              <p className="text-[11px] text-[#4A5961]">Source: Leads</p>
-            </div>
+            <h3 className="text-[15px] font-bold text-[#10242A]">Recent Leads</h3>
           </div>
           {recentLeads.length === 0 ? (
             <div className="w-full py-10 flex items-center justify-center text-[13px] text-[#4A5961]">
@@ -154,10 +148,7 @@ export default function BookingOverview() {
         {/* Top Performing Locations */}
         <div className="col-span-12 lg:col-span-5 bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs overflow-hidden flex flex-col">
           <div className="flex items-center justify-between mb-3">
-            <div>
-              <h3 className="text-[15px] font-bold text-[#10242A]">Top Performing Locations</h3>
-              <p className="text-[11px] text-[#4A5961]">Source: Leads + Bookings</p>
-            </div>
+            <h3 className="text-[15px] font-bold text-[#10242A]">Top Performing Locations</h3>
           </div>
           {topLocations.length === 0 ? (
             <div className="w-full flex-1 flex items-center justify-center text-[13px] text-[#4A5961] py-10">
@@ -197,10 +188,7 @@ export default function BookingOverview() {
         {/* Leads vs Bookings Trend */}
         <div className="col-span-12 lg:col-span-5 bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col h-[360px]">
           <div className="flex items-center justify-between mb-3">
-            <div>
-              <h3 className="text-[15px] font-bold text-[#10242A]">Leads vs Bookings Trend</h3>
-              <p className="text-[11px] text-[#4A5961]">Source: Leads + Bookings</p>
-            </div>
+            <h3 className="text-[15px] font-bold text-[#10242A]">Leads vs Bookings Trend</h3>
           </div>
           <div className="flex items-center gap-6 mb-3">
             <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-[#0E7C86]"/><span className="text-[11px] font-semibold text-[#4A5961] uppercase tracking-wider">Leads</span></div>
@@ -236,7 +224,6 @@ export default function BookingOverview() {
         <div className="col-span-12 lg:col-span-3 bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col items-center h-[360px]">
           <div className="self-start mb-4">
             <h3 className="text-[15px] font-bold text-[#10242A]">Conversion Rate %</h3>
-            <p className="text-[11px] text-[#4A5961]">Source: Leads + Bookings</p>
           </div>
           <div className="relative flex items-center justify-center my-auto" style={{width:180,height:160}}>
             {totalLeads === 0 ? (
@@ -265,7 +252,6 @@ export default function BookingOverview() {
         <div className="col-span-12 lg:col-span-4 bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col h-[360px]">
           <div className="mb-3">
             <h3 className="text-[15px] font-bold text-[#10242A]">Conversion Funnel</h3>
-            <p className="text-[11px] text-[#4A5961]">Source: Leads + Bookings</p>
           </div>
           {/* Visual Funnel */}
           <div className="flex-1 flex flex-col justify-center gap-1.5">
@@ -338,7 +324,6 @@ export default function BookingOverview() {
               </div>
             )}
           </div>
-          <p className="text-[11px] text-[#708088] mt-2">Source: Leads</p>
         </div>
 
         {/* Avg Response Time */}
@@ -346,7 +331,6 @@ export default function BookingOverview() {
           <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Avg. Response Time</p>
           <div className="mt-2">
             <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">No Data Available</h3>
-            <p className="text-[11px] text-[#708088] mt-1">Source: Support</p>
           </div>
         </div>
 
@@ -355,9 +339,8 @@ export default function BookingOverview() {
           <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Bookings Value</p>
           <div className="mt-2">
             <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">
-              {bookingsValue > 0 ? `₹${bookingsValue.toLocaleString('en-IN')}` : "No Revenue Data Available"}
+              {bookingsValue > 0 ? `₹${bookingsValue.toLocaleString('en-IN')}` : "0"}
             </h3>
-            <p className="text-[11px] text-[#708088] mt-1">Source: Payments</p>
           </div>
         </div>
 
@@ -366,7 +349,6 @@ export default function BookingOverview() {
           <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Top Converting Agents</p>
           <div className="mt-2">
             <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">No Data Available</h3>
-            <p className="text-[11px] text-[#708088] mt-1">Source: Support</p>
           </div>
         </div>
       </div>

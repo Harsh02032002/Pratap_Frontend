@@ -90,7 +90,6 @@ export default function TotalLeads() {
             <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">{c.label}</p>
             <div className="mt-2">
               <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{c.val}</h3>
-              <p className="text-[11px] text-[#708088] mt-1">Source: Leads</p>
             </div>
           </div>
         ))}

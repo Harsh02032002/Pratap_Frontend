@@ -438,12 +438,12 @@ export default function Manager() {
                               <div className="w-8 h-8 rounded-full bg-[#D9E1E7] flex items-center justify-center font-bold text-[12px] text-[#4A5961] shrink-0">
                                 {buildInitials(e.name)}
                               </div>
-                              <span className="text-[13px] font-medium text-[#10242A]">{e.name || "[Name]"}</span>
+                              <span className="text-[13px] font-medium text-[#10242A]">{e.name || "—"}</span>
                             </div>
                           </td>
-                          <td className="py-3 text-left text-[13px] text-[#4A5961]">{e.role || "[Role]"}</td>
-                          <td className="py-3 text-left text-[13px] text-[#4A5961]">{e.phone || "[Phone]"}</td>
-                          <td className="py-3 text-left text-[13px] text-[#4A5961]">{e.email || "[Email]"}</td>
+                          <td className="py-3 text-left text-[13px] text-[#4A5961]">{e.role || "—"}</td>
+                          <td className="py-3 text-left text-[13px] text-[#4A5961]">{e.phone || "—"}</td>
+                          <td className="py-3 text-left text-[13px] text-[#4A5961]">{e.email || "—"}</td>
                           <td className="py-3 text-left">
                             <span className={cn(
                               "inline-block px-3 py-1 rounded-full text-[12px] font-semibold",

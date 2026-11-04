@@ -198,7 +198,6 @@ export default function SupportOverview() {
             <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">{c.label}</p>
             <div className="mt-2">
               <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{loading ? "..." : c.val}</h3>
-              <p className="text-[11px] text-[#708088] mt-1">{c.trend} · {c.sub}</p>
             </div>
           </div>
         ))}
@@ -393,9 +392,8 @@ export default function SupportOverview() {
         {/* Resolution Time */}
         <div className="bg-white rounded-[12px] p-4 border border-[#E1E6EA] shadow-xs flex flex-col justify-between">
           <div>
-            <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Resolution Time (Avg.)</p>
+            <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Avg. Resolution Time</p>
             <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none mt-2">{stats.avgResolutionTime}</h3>
-            <p className="text-[11px] text-[#708088] mt-1">Live tracking</p>
           </div>
           <div className="h-[35px] mt-2">
             <ResponsiveContainer width="100%" height="100%">
@@ -409,7 +407,6 @@ export default function SupportOverview() {
           <div>
             <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">SLA Performance</p>
             <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none mt-2">{stats.slaMetPct}</h3>
-            <p className="text-[11px] text-[#708088] mt-1">SLA Met</p>
           </div>
           <div className="h-[35px] mt-2">
             <ResponsiveContainer width="100%" height="100%">
@@ -426,7 +423,6 @@ export default function SupportOverview() {
             <div className="flex items-center gap-0.5 mt-1.5">
               {[1,2,3,4,5].map(i=><Star key={i} size={11} className={tickets.length > 0 && i <= Math.round(stats.resolutionRate / 20) ? "text-amber-400 fill-amber-400" : "text-slate-200 fill-slate-200"}/>)}
             </div>
-            <p className="text-[11px] text-[#708088] mt-1">Based on resolved tickets</p>
           </div>
         </div>
 
@@ -435,7 +431,6 @@ export default function SupportOverview() {
           <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Pending High Priority</p>
           <div className="mt-2">
             <h3 className="text-[24px] font-bold text-rose-600 tracking-tight leading-none">{stats.pendingHighPriorityCount}</h3>
-            <p className="text-[11px] text-[#708088] mt-1">Requires immediate attention</p>
           </div>
         </div>
       </div>
