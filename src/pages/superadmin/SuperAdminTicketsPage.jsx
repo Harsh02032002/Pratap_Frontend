@@ -399,7 +399,7 @@ export default function SuperAdminTicketsPage() {
                   </span>
                   {getStatusBadge(selectedTicket.status)}
                 </div>
-                <h2 className="text-lg font-bold text-slate-800 mt-3">{selectedTicket.subject}</h2>
+                <h2 className="text-lg font-bold text-[#10242A] mt-3 break-words [overflow-wrap:anywhere]">{selectedTicket.subject}</h2>
                 <p className="text-xs text-slate-400 mt-0.5">Category: {selectedTicket.ticket_type}</p>
               </div>
 
@@ -416,7 +416,7 @@ export default function SuperAdminTicketsPage() {
               {/* Description */}
               <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Issue Description</p>
-                <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line">
+                <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line break-words [overflow-wrap:anywhere]">
                   {selectedTicket.description}
                 </p>
               </div>

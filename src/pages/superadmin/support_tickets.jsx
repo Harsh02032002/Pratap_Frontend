@@ -45,11 +45,37 @@ export default function VerificationCenter() {
   const fmtVal = (v) => {
     if (v === null || v === undefined || v === "") return "—";
     if (typeof v === "boolean") return v ? "Yes" : "No";
-    if (typeof v === "object") return JSON.stringify(v);
+    if (Array.isArray(v)) {
+      if (v.length === 0) return "—";
+      return v
+        .map((item) => {
+          if (item === null || item === undefined) return "";
+          if (typeof item === "object") {
+            return Object.entries(item)
+              .filter(([k, val]) => val !== null && val !== undefined && val !== "" && k !== "_id")
+              .map(([k, val]) => `${k}: ${typeof val === "object" ? JSON.stringify(val) : val}`)
+              .join(", ");
+          }
+          return String(item);
+        })
+        .filter(Boolean)
+        .join(" | ");
+    }
+    if (typeof v === "object") {
+      const entries = Object.entries(v).filter(([k, val]) => val !== null && val !== undefined && val !== "" && k !== "_id");
+      if (entries.length === 0) return "—";
+      return entries.map(([k, val]) => `${k}: ${typeof val === "object" ? JSON.stringify(val) : val}`).join(", ");
+    }
     return String(v);
   };
-  const imgUrl = (img) => (img && typeof img === "object" ? img.url : img);
-  const isMediaField = (field) => field === "images" || field === "media";
+  const formatFieldLabel = (field) => {
+    return String(field || "")
+      .replace(/([a-z])([A-Z])/g, "$1 $2")
+      .replace(/_/g, " ")
+      .toUpperCase();
+  };
+  const imgUrl = (img) => (img && typeof img === "object" ? img.url || img.secure_url || img.src || "" : String(img || ""));
+  const isMediaField = (field) => ["images", "media", "photos", "roomPhotos", "propertyPhotos"].includes(field);
 
   const loadData = async () => {
     const token = sessionStorage.getItem("token") || localStorage.getItem("token");
@@ -599,7 +625,7 @@ export default function VerificationCenter() {
           The Review buttons set selectedItem; without this block they open nothing. */}
       {selectedItem && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[16px] w-full max-w-4xl shadow-2xl border border-[#E1E6EA] overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="bg-white rounded-[16px] w-full max-w-5xl shadow-2xl border border-[#E1E6EA] overflow-hidden flex flex-col max-h-[90vh]">
             <div className="px-5 py-4 border-b border-[#E1E6EA] flex items-start justify-between bg-[#F4F6F8] shrink-0">
               <div>
                 <h3 className="text-sm font-bold text-[#10242A]">
@@ -658,46 +684,70 @@ export default function VerificationCenter() {
                       This request has no field changes recorded.
                     </div>
                   ) : (
-                    <div className="border border-[#E1E6EA] rounded-xl overflow-hidden">
-                      <table className="w-full text-xs">
-                        <thead className="bg-[#F4F6F8] font-bold text-[#4A5961] uppercase tracking-wider text-[9px] border-b border-[#E1E6EA]">
+                    <div className="border border-[#E1E6EA] rounded-xl overflow-x-auto">
+                      <table className="w-full table-fixed min-w-[620px] text-xs border-collapse">
+                        <thead className="bg-[#F4F6F8] font-bold text-[#4A5961] uppercase tracking-wider text-[10px] border-b border-[#E1E6EA]">
                           <tr>
-                            <th className="px-4 py-3 text-left">Field</th>
-                            <th className="px-4 py-3 text-left">Current (live)</th>
-                            <th className="px-4 py-3 text-left bg-[#E6F4F5] text-[#09626A]">Requested (new)</th>
+                            <th className="w-[24%] px-4 py-3 text-left">Field</th>
+                            <th className="w-[38%] px-4 py-3 text-left border-l border-[#E1E6EA]">Current (Live)</th>
+                            <th className="w-[38%] px-4 py-3 text-left bg-[#E6F4F5] text-[#09626A] border-l border-[#CBE6E8]">Requested (New)</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-[#E1E6EA]">
                           {Object.keys(selectedItem.data.pendingChanges.data).map(field => {
                             const liveVal = selectedItem.data[field];
                             const requestedVal = selectedItem.data.pendingChanges.data[field];
+                            const liveStr = fmtVal(liveVal);
+                            const reqStr = fmtVal(requestedVal);
+                            const isChanged = liveStr !== reqStr;
 
                             if (isMediaField(field)) {
-                              const strip = (list, extra) => (
-                                <div className="flex gap-1.5 overflow-x-auto max-w-[260px] pb-1">
-                                  {(Array.isArray(list) ? list : []).length === 0 && <span className="text-[#4A5961]">—</span>}
-                                  {(Array.isArray(list) ? list : []).map((img, i) => (
-                                    <img key={i} src={imgUrl(img)} alt="" loading="lazy"
-                                      className={cn("w-12 h-10 object-cover rounded-lg cursor-pointer", extra)}
-                                      onClick={() => setFullscreenImage({ url: imgUrl(img), index: i })}
-                                      onError={(e) => { e.currentTarget.style.display = "none"; }} />
-                                  ))}
-                                </div>
-                              );
+                              const strip = (list, extra) => {
+                                const arr = Array.isArray(list) ? list.filter(Boolean) : (list ? [list] : []);
+                                if (arr.length === 0) return <span className="text-[#4A5961]">—</span>;
+                                return (
+                                  <div className="flex flex-wrap gap-2 py-1">
+                                    {arr.map((img, i) => (
+                                      <img key={i} src={imgUrl(img)} alt="" loading="lazy"
+                                        className={cn("w-14 h-12 object-cover rounded-lg cursor-pointer shrink-0 shadow-2xs", extra)}
+                                        onClick={() => setFullscreenImage({ url: imgUrl(img), index: i })}
+                                        onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                                    ))}
+                                  </div>
+                                );
+                              };
                               return (
-                                <tr key={field}>
-                                  <td className="px-4 py-4 font-bold text-[#4A5961] uppercase tracking-wider text-[9px]">{field === "media" ? "Room Media" : "Images"}</td>
-                                  <td className="px-4 py-4">{strip(liveVal, "border border-[#E1E6EA]")}</td>
-                                  <td className="px-4 py-4 bg-[#E6F4F5]/40">{strip(requestedVal, "border border-[#0E7C86]")}</td>
+                                <tr key={field} className="align-top">
+                                  <td className="px-4 py-3.5 font-bold text-[#4A5961] uppercase tracking-wider text-[10px] break-words">
+                                    <span>{field === "media" ? "Room Media" : formatFieldLabel(field)}</span>
+                                  </td>
+                                  <td className="px-4 py-3.5 border-l border-[#F0F4F6]">{strip(liveVal, "border border-[#E1E6EA]")}</td>
+                                  <td className="px-4 py-3.5 bg-[#E6F4F5]/40 border-l border-[#CBE6E8]">{strip(requestedVal, "border-2 border-[#0E7C86]")}</td>
                                 </tr>
                               );
                             }
 
                             return (
-                              <tr key={field}>
-                                <td className="px-4 py-3 font-bold text-[#4A5961] uppercase tracking-wider text-[9px]">{field}</td>
-                                <td className="px-4 py-3 font-medium text-[#4A5961] break-words">{fmtVal(liveVal)}</td>
-                                <td className="px-4 py-3 font-bold text-[#09626A] bg-[#E6F4F5]/40 break-words">{fmtVal(requestedVal)}</td>
+                              <tr key={field} className={cn("align-top", isChanged ? "bg-white" : "bg-[#FAFCFD]")}>
+                                <td className="px-4 py-3 font-bold text-[#4A5961] uppercase tracking-wider text-[10px] break-words">
+                                  <div className="flex flex-wrap items-center gap-1.5">
+                                    <span>{formatFieldLabel(field)}</span>
+                                    {isChanged && (
+                                      <span className="px-1.5 py-0.5 rounded bg-[#E6F4F5] text-[#0E7C86] text-[8px] font-extrabold uppercase">
+                                        Modified
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="px-4 py-3 font-medium text-[#4A5961] border-l border-[#F0F4F6] break-words [overflow-wrap:anywhere] whitespace-pre-wrap">
+                                  {liveStr}
+                                </td>
+                                <td className={cn(
+                                  "px-4 py-3 border-l border-[#CBE6E8] break-words [overflow-wrap:anywhere] whitespace-pre-wrap",
+                                  isChanged ? "font-bold text-[#09626A] bg-[#E6F4F5]/55" : "font-semibold text-[#10242A] bg-[#E6F4F5]/25"
+                                )}>
+                                  {reqStr}
+                                </td>
                               </tr>
                             );
                           })}

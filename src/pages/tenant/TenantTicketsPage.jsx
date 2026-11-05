@@ -153,19 +153,19 @@ export default function TenantTicketsPage() {
     <div className="min-h-screen bg-slate-50 p-4 md:p-8">
       <div className="max-w-6xl mx-auto space-y-6">
 
-        {/* Top Header */}
-        <div className="bg-gradient-to-r from-teal-900 to-slate-900 rounded-3xl p-6 md:p-8 text-white shadow-xl flex flex-wrap items-center justify-between gap-6">
+        {/* Top Header (Light Theme) */}
+        <div className="bg-gradient-to-r from-[#F0FDFA] via-white to-[#E6F4F5] border border-[#99F6E4] rounded-2xl p-6 md:p-8 text-[#10242A] shadow-xs flex flex-wrap items-center justify-between gap-6">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/20 text-teal-300 text-xs font-bold border border-teal-500/30 mb-2">
-              <LifeBuoy className="w-4 h-4" /> Tenant Support Desk
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#CCFBF1] text-[#0F766E] text-xs font-bold border border-[#99F6E4] mb-2">
+              <LifeBuoy className="w-4 h-4 text-[#0E7C86]" /> Tenant Support Desk
             </div>
-            <h1 className="text-2xl font-black text-white">Help &amp; Support Tickets</h1>
-            <p className="text-slate-300 text-xs mt-1">Raise complaints or payment issues and track updates with your Ref ID.</p>
+            <h1 className="text-2xl font-black text-[#10242A]">Help &amp; Support Tickets</h1>
+            <p className="text-[#4A5961] text-xs mt-1">Raise complaints or payment issues and track updates with your Ref ID.</p>
           </div>
 
           <button
             onClick={() => setShowRaiseModal(true)}
-            className="bg-[#0FA89C] hover:bg-[#0b7a73] text-white font-bold text-xs px-5 py-3 rounded-2xl transition-all shadow-lg flex items-center gap-2"
+            className="bg-[#0E7C86] hover:bg-[#095256] text-white font-bold text-xs px-5 py-3 rounded-xl transition-all shadow-sm flex items-center gap-2 cursor-pointer"
           >
             <Plus className="w-4 h-4" /> Raise New Ticket
           </button>
