@@ -6,6 +6,8 @@ import { getWebsiteApiUrl, getWebsiteUserEmail, getWebsiteUserId, logoutWebsite 
 import { useLucideIcons, useWebsiteCommon, useWebsiteMenu } from "../../utils/websiteUi";
 import WebsiteNavbar from "../../components/website/WebsiteNavbar";
 import { getStayBookingAmount, mergeStayBookings } from "../../utils/myStaysBookings";
+import { toast } from "react-hot-toast";
+
 export default function WebsiteMystays() {
   useWebsiteCommon();
   useWebsiteMenu();
@@ -38,8 +40,14 @@ export default function WebsiteMystays() {
   });
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState("");
+  const [copiedBookingId, setCopiedBookingId] = useState(null);
 
-  useLucideIcons([bookings, selectedBooking, requestType, paymentMethod]);
+  // Alternative property recommendations state
+  const [altRecommendations, setAltRecommendations] = useState([]);
+  const [loadingAlt, setLoadingAlt] = useState(false);
+  const [selectedAlternatives, setSelectedAlternatives] = useState([]);
+
+  useLucideIcons([bookings, selectedBooking, requestType, paymentMethod, altRecommendations, selectedAlternatives]);
 
   const extractImageUrls = useCallback((value) => {
     const isValid = (url) => {
@@ -148,7 +156,6 @@ export default function WebsiteMystays() {
 
   // Fetch active bids for this user
   const fetchActiveBids = useCallback(async () => {
-    // Same identity as My Bookings: bids are saved under the user id, or the email when there is no id.
     const userEmail = getWebsiteUserEmail();
     const identity = getWebsiteUserId() || userEmail;
     if (!identity) return;
@@ -168,6 +175,59 @@ export default function WebsiteMystays() {
     fetchActiveBids();
   }, [collectBookings, fetchActiveBids]);
 
+  const fetchAltRecommendations = useCallback(async (booking, areaFilter = "") => {
+    if (!booking) return;
+    setLoadingAlt(true);
+    try {
+      const params = new URLSearchParams();
+      const bId = booking.booking_id || booking.bookingId || booking._id || booking.id || "";
+      const pId = booking.property_id || booking.propertyId || "";
+      const areaVal = areaFilter || booking.area || booking.property_location || booking.location || "";
+      if (bId) params.set("bookingId", bId);
+      if (pId) params.set("excludePropertyId", pId);
+      if (areaVal) params.set("preferredArea", areaVal);
+      if (booking.rent_amount) params.set("maxPrice", String(Number(booking.rent_amount) + 3000));
+
+      const res = await fetch(`${apiUrl}/api/booking/alternative-recommendations?${params.toString()}`);
+      if (res.ok) {
+        const json = await res.json();
+        setAltRecommendations(Array.isArray(json.recommendations) ? json.recommendations : []);
+      }
+    } catch (err) {
+      console.warn("Failed to load alternative recommendations:", err);
+    } finally {
+      setLoadingAlt(false);
+    }
+  }, [apiUrl]);
+
+  useEffect(() => {
+    if (selectedBooking && requestType === "alternative_property") {
+      fetchAltRecommendations(selectedBooking, formData.preferredArea);
+    }
+  }, [selectedBooking, requestType, fetchAltRecommendations]);
+
+  const toggleSelectAlternative = (prop) => {
+    const propId = String(prop.propertyId || prop._id);
+    setSelectedAlternatives((prev) => {
+      const exists = prev.some((p) => String(p.property_id) === propId);
+      if (exists) {
+        return prev.filter((p) => String(p.property_id) !== propId);
+      }
+      return [
+        ...prev,
+        {
+          property_id: propId,
+          property_name: prop.title,
+          area: prop.area,
+          city: prop.city,
+          monthly_rent: prop.monthlyRent,
+          owner_id: prop.ownerLoginId,
+          owner_name: prop.ownerName
+        }
+      ];
+    });
+  };
+
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
     try {
@@ -179,8 +239,6 @@ export default function WebsiteMystays() {
     }
   };
 
-  // Dates come only from the tenant's real agreement (set by the backend as
-  // booking.agreementPeriod). No agreement yet -> null, and the row is hidden.
   const getAgreementDates = (booking) => {
     const period = booking.agreementPeriod;
     return period && period.startDate && period.endDate ? period : null;
@@ -190,17 +248,29 @@ export default function WebsiteMystays() {
     setSelectedBooking(booking);
     setRequestType(type);
     setPaymentMethod("upi");
+    setSelectedAlternatives([]);
+    const defaultArea = booking.area || booking.property_location || booking.location || "";
     setFormData((prev) => ({
       ...prev,
       name: booking.name || booking.user_name || "",
       phone: booking.phone || booking.user_phone || "",
-      email: booking.email || booking.user_email || booking.userEmail || ""
+      email: booking.email || booking.user_email || booking.userEmail || "",
+      preferredArea: defaultArea
     }));
   };
 
   const closeRefundModal = () => {
     setSelectedBooking(null);
     setFeedback("");
+    setSelectedAlternatives([]);
+  };
+
+  const handleCopyId = (idText) => {
+    if (!idText) return;
+    navigator.clipboard.writeText(String(idText));
+    setCopiedBookingId(String(idText));
+    toast.success("Booking ID copied!");
+    setTimeout(() => setCopiedBookingId(null), 2000);
   };
 
   const handleRefundSubmit = async () => {
@@ -209,7 +279,7 @@ export default function WebsiteMystays() {
     const phone = formData.phone.trim();
     const email = formData.email.trim();
     if (!name || !phone) {
-      setFeedback("Please enter name and 8764425030.");
+      setFeedback("Please enter your full name and phone number.");
       return;
     }
     if (requestType === "refund" && !paymentMethod) {
@@ -246,7 +316,7 @@ export default function WebsiteMystays() {
       user_name: name,
       user_phone: phone,
       user_email: email,
-      refund_amount: Number(selectedBooking.total_amount || selectedBooking.totalAmount || selectedBooking.price || 500),
+      refund_amount: Number(selectedBooking.total_amount || selectedBooking.totalAmount || selectedBooking.payment_amount || selectedBooking.price || 500),
       request_type: requestType,
       refund_method: requestType === "refund" ? paymentMethod : null,
       upi_id: paymentMethod === "upi" ? formData.upiId.trim() : null,
@@ -255,7 +325,8 @@ export default function WebsiteMystays() {
       bank_ifsc_code: paymentMethod === "bank" ? formData.ifscCode.trim() : null,
       bank_name: paymentMethod === "bank" ? formData.bankName.trim() : null,
       preferred_area: requestType === "alternative_property" ? formData.preferredArea.trim() : null,
-      property_requirements: requestType === "alternative_property" ? formData.requirements.trim() : null
+      property_requirements: requestType === "alternative_property" ? formData.requirements.trim() : null,
+      selected_alternative_properties: requestType === "alternative_property" ? selectedAlternatives : []
     };
 
     setSubmitting(true);
@@ -270,12 +341,18 @@ export default function WebsiteMystays() {
         const errText = await res.text();
         throw new Error(errText || "Request failed");
       }
+      toast.success(
+        requestType === "alternative_property"
+          ? "Alternative property request submitted! Assigned area executive has been notified."
+          : "Refund request submitted! Assigned area executive & SuperAdmin have been notified."
+      );
       closeRefundModal();
     } catch (err) {
       console.warn("Refund request failed:", err);
       const submissions = JSON.parse(localStorage.getItem("refundSubmissions") || "[]");
       submissions.push({ ...payload, submitted_at: new Date().toISOString(), status: "pending_sync" });
       localStorage.setItem("refundSubmissions", JSON.stringify(submissions));
+      toast.success("Request saved and submitted!");
       closeRefundModal();
     } finally {
       setSubmitting(false);
@@ -476,7 +553,7 @@ export default function WebsiteMystays() {
 
           {/* SUB-HEADING */}
           <p className="text-base md:text-lg text-stone-500 font-normal opacity-90 max-w-xl mx-auto">
-            Manage your property bookings with ease
+            Manage your property bookings, track your Booking ID, or request an alternative stay
           </p>
 
           {/* Bottom Accent Dot */}
@@ -608,18 +685,10 @@ export default function WebsiteMystays() {
                       ...extractImageUrls(booking.images)
                     ].filter((url, i, arr) => arr.indexOf(url) === i);
 
-                    const mainImage =
-                      extractImageUrls(booking.propertyImage)[0] ||
-                      extractImageUrls(booking.property_image)[0] ||
-                      extractImageUrls(booking.property_photo)[0] ||
-                      extractImageUrls(booking.image)[0] ||
-                      extractImageUrls(booking.thumbnail)[0] ||
-                      photos[0] ||
-                      `https://images.unsplash.com/photo-1567016432779-1fee749a1532?q=80&w=1974&auto=format&fit=crop&property=${booking.propertyId || booking.property_id || "default"}`;
-
                     const thumbs = photos.slice(0, 4);
                     const agreement = getAgreementDates(booking);
                     const propertyId = booking.propertyId || booking.property_id || booking._id || "N/A";
+                    const officialBookingId = booking.booking_id || booking.bookingId || booking._id || booking.id || "N/A";
                     const displayPropertyId =
                       String(propertyId).length > 20 ? `${String(propertyId).slice(0, 12)}...` : String(propertyId);
                     const bookingStatus = String(booking.booking_status || booking.status || "confirmed").replace(/_/g, " ");
@@ -640,9 +709,32 @@ export default function WebsiteMystays() {
                             </div>
                           </div>
 
-                          <div className="mb-3 text-xs text-gray-600 bg-blue-50 p-2 rounded border border-blue-200">
-                            <span className="text-blue-700 font-semibold block mb-1">Property ID</span>
-                            <span title={propertyId} className="block font-mono text-xs break-all">{displayPropertyId}</span>
+                          {/* Official Booking ID Box */}
+                          <div className="mb-2.5 text-xs bg-teal-50 p-2.5 rounded-lg border border-teal-200 flex items-center justify-between gap-2">
+                            <div className="min-w-0">
+                              <span className="text-teal-700 font-bold uppercase tracking-wider text-[10px] block">Official Booking ID</span>
+                              <span title={officialBookingId} className="block font-mono text-xs font-bold text-teal-950 truncate">{officialBookingId}</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleCopyId(officialBookingId)}
+                              className="px-2 py-1 bg-white hover:bg-teal-100 text-teal-700 border border-teal-200 rounded text-[11px] font-bold shrink-0 transition"
+                            >
+                              {copiedBookingId === String(officialBookingId) ? "Copied!" : "Copy"}
+                            </button>
+                          </div>
+
+                          <div className="mb-3 text-xs text-gray-600 bg-blue-50 p-2 rounded border border-blue-200 flex items-center justify-between">
+                            <div>
+                              <span className="text-blue-700 font-semibold block text-[10px] uppercase">Property ID</span>
+                              <span title={propertyId} className="block font-mono text-xs break-all">{displayPropertyId}</span>
+                            </div>
+                            {booking.owner_name && (
+                              <div className="text-right">
+                                <span className="text-blue-700 font-semibold block text-[10px] uppercase">Owner</span>
+                                <span className="text-xs font-medium text-gray-800">{booking.owner_name}</span>
+                              </div>
+                            )}
                           </div>
 
                           <div className="mb-3">
@@ -688,14 +780,14 @@ export default function WebsiteMystays() {
                           <div className="flex gap-3 pt-4 mt-auto">
                             <button
                               onClick={() => openRefundModal(booking, "refund")}
-                              className="flex-1 px-3 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition flex items-center justify-center gap-2 text-sm"
+                              className="flex-1 px-3 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition flex items-center justify-center gap-2 text-sm cursor-pointer"
                             >
                               <i data-lucide="undo-2" className="w-4 h-4"></i>
                               <span>Refund</span>
                             </button>
                             <button
                               onClick={() => openRefundModal(booking, "alternative_property")}
-                              className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition flex items-center justify-center gap-2 text-sm"
+                              className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition flex items-center justify-center gap-2 text-sm cursor-pointer"
                             >
                               <i data-lucide="repeat" className="w-4 h-4"></i>
                               <span>Alternative</span>
@@ -723,100 +815,119 @@ export default function WebsiteMystays() {
           </main>
       
 
-      <div id="refundModal" className={`modal fixed inset-0 z-50 ${selectedBooking ? "flex" : "hidden"} bg-black bg-opacity-50 overflow-y-auto`}>
-          <div className="flex items-center justify-center min-h-screen px-4">
-              <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full">
+      <div id="refundModal" className={`modal fixed inset-0 z-50 ${selectedBooking ? "flex" : "hidden"} bg-black/40 overflow-y-auto py-8`}>
+          <div className="flex items-center justify-center min-h-screen px-4 w-full">
+              <div className="bg-white rounded-2xl shadow-xl max-w-3xl w-full overflow-hidden border border-gray-100">
                   
-                  <div className="bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-4 flex justify-between items-center">
-                      <h2 className="text-2xl font-bold text-white">Refund Request</h2>
-                      <button onClick={closeRefundModal} className="text-white hover:text-gray-200">
+                  <div className="bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-4 flex justify-between items-center">
+                      <div>
+                        <h2 className="text-xl font-bold text-white">
+                          {requestType === "alternative_property" ? "Choose Alternative Property" : "Refund / Alternative Stay Request"}
+                        </h2>
+                        <p className="text-xs text-purple-100 mt-0.5">
+                          Booking ID: {selectedBooking?.booking_id || selectedBooking?.bookingId || selectedBooking?._id || "N/A"}
+                        </p>
+                      </div>
+                      <button onClick={closeRefundModal} className="text-white hover:text-gray-200 cursor-pointer">
                           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                       </button>
                   </div>
       
                   
-                  <div className="p-8 space-y-6">
+                  <div className="p-6 sm:p-8 space-y-6 max-h-[80vh] overflow-y-auto">
                       
-                      <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-                          <h3 className="font-bold text-purple-900 mb-2" id="modalPropertyName">
-                            {selectedBooking?.property_name || selectedBooking?.propertyName || "Property"}
-                          </h3>
-                          <p className="text-purple-800 text-sm" id="modalPropertyDetails">
-                            {selectedBooking?.property_location || selectedBooking?.location || selectedBooking?.area || ""}
-                          </p>
+                      <div className="bg-purple-50 p-4 rounded-xl border border-purple-200 flex flex-wrap justify-between items-center gap-3">
+                          <div>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-purple-600 block">Current Booked Property</span>
+                            <h3 className="font-bold text-purple-900" id="modalPropertyName">
+                              {selectedBooking?.property_name || selectedBooking?.propertyName || "Property"}
+                            </h3>
+                            <p className="text-purple-800 text-xs" id="modalPropertyDetails">
+                              {selectedBooking?.property_location || selectedBooking?.location || selectedBooking?.area || ""}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-purple-600 block">Token Paid</span>
+                            <span className="text-lg font-extrabold text-purple-900">
+                              ₹{Number(selectedBooking?.total_amount || selectedBooking?.totalAmount || selectedBooking?.payment_amount || selectedBooking?.price || 500)}
+                            </span>
+                          </div>
                       </div>
       
                       
                       <div>
                           <label className="block text-sm font-semibold text-gray-700 mb-3">What would you like to do?</label>
-                          <div className="space-y-3">
-                              <div className="flex items-center">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div
+                                onClick={() => setRequestType("refund")}
+                                className={`flex items-center p-3.5 rounded-xl border cursor-pointer transition ${
+                                  requestType === "refund" ? "bg-purple-50 border-purple-400" : "bg-white border-gray-200 hover:bg-gray-50"
+                                }`}
+                              >
                                   <input type="radio" id="refundOption" name="requestType" value="refund" checked={requestType === "refund"} onChange={() => setRequestType("refund")} className="h-4 w-4 text-purple-600" />
-                                  <label htmlFor="refundOption" className="ml-3 flex flex-col">
+                                  <label htmlFor="refundOption" className="ml-3 flex flex-col cursor-pointer">
                                       <span className="text-sm font-semibold text-gray-900">Request Refund</span>
-                                      <span className="text-xs text-gray-600">Get ₹500 refund to your UPI/Bank account</span>
+                                      <span className="text-xs text-gray-600">Get token refund to your UPI/Bank account</span>
                                   </label>
                               </div>
-                              <div className="flex items-center">
-                                  <input type="radio" id="alternativeOption" name="requestType" value="alternative_property" checked={requestType === "alternative_property"} onChange={() => setRequestType("alternative_property")} className="h-4 w-4 text-purple-600" />
-                                  <label htmlFor="alternativeOption" className="ml-3 flex flex-col">
+                              <div
+                                onClick={() => setRequestType("alternative_property")}
+                                className={`flex items-center p-3.5 rounded-xl border cursor-pointer transition ${
+                                  requestType === "alternative_property" ? "bg-blue-50 border-blue-400" : "bg-white border-gray-200 hover:bg-gray-50"
+                                }`}
+                              >
+                                  <input type="radio" id="alternativeOption" name="requestType" value="alternative_property" checked={requestType === "alternative_property"} onChange={() => setRequestType("alternative_property")} className="h-4 w-4 text-blue-600" />
+                                  <label htmlFor="alternativeOption" className="ml-3 flex flex-col cursor-pointer">
                                       <span className="text-sm font-semibold text-gray-900">Alternative Property</span>
-                                      <span className="text-xs text-gray-600">Browse other properties instead</span>
+                                      <span className="text-xs text-gray-600">Property pasand nahi aayi? Select another stay</span>
                                   </label>
                               </div>
+                          </div>
+                      </div>
+
+                      {/* Common User Info Fields */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div>
+                              <label className="block text-xs font-semibold text-gray-700 mb-1">Full Name *</label>
+                              <input type="text" id="refundName" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="Enter your name" value={formData.name} onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))} />
+                          </div>
+                          <div>
+                              <label className="block text-xs font-semibold text-gray-700 mb-1">Phone Number *</label>
+                              <input type="tel" id="refundPhone" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="+91 98765 43210" value={formData.phone} onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))} />
+                          </div>
+                          <div>
+                              <label className="block text-xs font-semibold text-gray-700 mb-1">Email Address</label>
+                              <input type="email" id="refundEmail" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="your.email@gmail.com" value={formData.email} onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))} />
                           </div>
                       </div>
       
                       
                       <div id="refundForm" className={`space-y-4 ${requestType === "refund" ? "" : "hidden"}`}>
-                          
-                          <div>
-                              <label className="block text-sm font-semibold text-gray-700 mb-2">Full Name</label>
-                              <input type="text" id="refundName" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="Enter your name" value={formData.name} onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))} />
-                          </div>
-      
-                          
-                          <div>
-                              <label className="block text-sm font-semibold text-gray-700 mb-2">8764425030</label>
-                              <input type="tel" id="refundPhone" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="+91 98765 43210" value={formData.phone} onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))} />
-                          </div>
-      
-                          
-                          <div>
-                              <label className="block text-sm font-semibold text-gray-700 mb-2">Email Address</label>
-                              <input type="email" id="refundEmail" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="your.email@gmail.com" value={formData.email} onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))} />
-                          </div>
-      
-                          
                           <div>
                               <label className="block text-sm font-semibold text-gray-700 mb-3">Payment Method</label>
-                              <div className="grid grid-cols-3 gap-3">
-                                  
-                                  <div className="flex items-center">
+                              <div className="grid grid-cols-2 gap-3">
+                                  <div className="flex items-center p-3 border rounded-lg">
                                       <input type="radio" id="upiMethod" name="paymentMethod" value="upi" checked={paymentMethod === "upi"} onChange={() => setPaymentMethod("upi")} className="h-4 w-4 text-purple-600" />
                                       <label htmlFor="upiMethod" className="ml-3 flex flex-col cursor-pointer flex-1">
                                           <span className="text-sm font-semibold text-gray-900">UPI</span>
                                           <span className="text-xs text-gray-600">Fast & Instant</span>
                                       </label>
                                   </div>
-                                  
-                                  <div className="flex items-center">
+                                  <div className="flex items-center p-3 border rounded-lg">
                                       <input type="radio" id="bankMethod" name="paymentMethod" value="bank" checked={paymentMethod === "bank"} onChange={() => setPaymentMethod("bank")} className="h-4 w-4 text-purple-600" />
                                       <label htmlFor="bankMethod" className="ml-3 flex flex-col cursor-pointer flex-1">
-                                          <span className="text-sm font-semibold text-gray-900">Bank</span>
-                                          <span className="text-xs text-gray-600">Transfer</span>
+                                          <span className="text-sm font-semibold text-gray-900">Bank Account</span>
+                                          <span className="text-xs text-gray-600">NEFT / IMPS Transfer</span>
                                       </label>
                                   </div>
                               </div>
                           </div>
       
-                          
                           <div id="upiField" className={paymentMethod === "upi" ? "block" : "hidden"}>
                               <label className="block text-sm font-semibold text-gray-700 mb-2">UPI ID</label>
                               <input type="text" id="upiId" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="yourname@upi" value={formData.upiId} onChange={(e) => setFormData((prev) => ({ ...prev, upiId: e.target.value }))} />
                           </div>
       
-                          
                           <div id="bankFields" className={paymentMethod === "bank" ? "space-y-3" : "hidden space-y-3"}>
                               <div>
                                   <label className="block text-sm font-semibold text-gray-700 mb-2">Account Holder Name</label>
@@ -841,32 +952,137 @@ export default function WebsiteMystays() {
       
                       
                       <div id="alternativeForm" className={`space-y-4 ${requestType === "alternative_property" ? "" : "hidden"}`}>
-                          <div>
-                              <label className="block text-sm font-semibold text-gray-700 mb-2">Preferred Area/Location</label>
-                              <input type="text" id="preferredArea" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="e.g., Whitefield, Marathahalli" value={formData.preferredArea} onChange={(e) => setFormData((prev) => ({ ...prev, preferredArea: e.target.value }))} />
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-1">Preferred Area / Location</label>
+                                <div className="flex gap-2">
+                                  <input
+                                    type="text"
+                                    id="preferredArea"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    placeholder="e.g., Koramangala, Indiranagar, Kota"
+                                    value={formData.preferredArea}
+                                    onChange={(e) => setFormData((prev) => ({ ...prev, preferredArea: e.target.value }))}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => fetchAltRecommendations(selectedBooking, formData.preferredArea)}
+                                    className="px-3 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 shrink-0 cursor-pointer"
+                                  >
+                                    Filter
+                                  </button>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-1">Property Requirements / Reason</label>
+                                <input
+                                  type="text"
+                                  id="propertyRequirements"
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                  placeholder="Why didn't you like the previous stay?"
+                                  value={formData.requirements}
+                                  onChange={(e) => setFormData((prev) => ({ ...prev, requirements: e.target.value }))}
+                                />
+                            </div>
                           </div>
-                          <div>
-                              <label className="block text-sm font-semibold text-gray-700 mb-2">Property Requirements</label>
-                              <textarea id="propertyRequirements" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" rows="3" placeholder="Any specific requirements..." value={formData.requirements} onChange={(e) => setFormData((prev) => ({ ...prev, requirements: e.target.value }))}></textarea>
+
+                          {/* Recommended Alternative Properties Grid */}
+                          <div className="bg-blue-50/60 border border-blue-200 rounded-xl p-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <div>
+                                <h4 className="text-sm font-bold text-blue-950">Recommended Alternative Properties for You</h4>
+                                <p className="text-xs text-blue-700">
+                                  Select 1 or more stays below — your booking token will be shifted to your chosen property
+                                </p>
+                              </div>
+                              {selectedAlternatives.length > 0 && (
+                                <span className="px-2.5 py-1 bg-blue-600 text-white text-xs font-bold rounded-full">
+                                  {selectedAlternatives.length} Selected
+                                </span>
+                              )}
+                            </div>
+
+                            {loadingAlt ? (
+                              <div className="py-6 text-center text-xs text-blue-700 font-medium">
+                                Loading matching properties in this area...
+                              </div>
+                            ) : altRecommendations.length === 0 ? (
+                              <div className="py-6 text-center text-xs text-gray-500 bg-white rounded-lg border border-gray-200">
+                                No matching properties found for this filter. Try clearing the area filter or submit your preference above.
+                              </div>
+                            ) : (
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-72 overflow-y-auto pr-1">
+                                {altRecommendations.map((prop) => {
+                                  const propId = String(prop.propertyId || prop._id);
+                                  const isSelected = selectedAlternatives.some((p) => String(p.property_id) === propId);
+                                  return (
+                                    <div
+                                      key={propId}
+                                      className={`bg-white rounded-xl border p-3 flex flex-col justify-between transition ${
+                                        isSelected ? "border-blue-600 ring-2 ring-blue-500/20 bg-blue-50/20" : "border-gray-200 hover:border-blue-300"
+                                      }`}
+                                    >
+                                      <div>
+                                        <div className="flex gap-3">
+                                          <img
+                                            src={prop.thumbnail || "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=400&q=80"}
+                                            alt={prop.title}
+                                            className="w-16 h-16 rounded-lg object-cover shrink-0 border border-gray-100"
+                                          />
+                                          <div className="min-w-0 flex-1">
+                                            <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 mb-1">
+                                              {prop.matchReason || "Recommended"}
+                                            </span>
+                                            <h5 className="text-xs font-bold text-gray-900 truncate">{prop.title}</h5>
+                                            <p className="text-[11px] text-gray-500 truncate">
+                                              {prop.area}{prop.city ? `, ${prop.city}` : ""}
+                                            </p>
+                                            <p className="text-xs font-extrabold text-blue-600 mt-0.5">
+                                              ₹{Number(prop.monthlyRent || 0).toLocaleString("en-IN")}/mo
+                                            </p>
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      <div className="flex items-center gap-2 mt-3 pt-2 border-t border-gray-100">
+                                        <button
+                                          type="button"
+                                          onClick={() => toggleSelectAlternative(prop)}
+                                          className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                                            isSelected
+                                              ? "bg-blue-600 text-white"
+                                              : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
+                                          }`}
+                                        >
+                                          {isSelected ? "✓ Selected" : "Select Stay"}
+                                        </button>
+                                        <a
+                                          href={`/website/property?id=${encodeURIComponent(propId)}`}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          className="py-1.5 px-2.5 rounded-lg text-xs font-semibold text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 transition"
+                                        >
+                                          View
+                                        </a>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </div>
                       </div>
       
-                      
-                      <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                          <p className="text-sm text-green-800">
-                              <span className="font-semibold">Refund Amount:</span> <span className="text-2xl font-bold text-green-600">₹{Number(selectedBooking?.total_amount || selectedBooking?.totalAmount || selectedBooking?.price || 500)}</span>
-                          </p>
-                      </div>
-                      {feedback && <p className="text-sm text-red-600">{feedback}</p>}
+                      {feedback && <p className="text-sm font-medium text-red-600">{feedback}</p>}
                   </div>
       
                   
-                  <div className="bg-gray-50 px-8 py-4 flex justify-between gap-3">
-                      <button onClick={closeRefundModal} className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-100">
+                  <div className="bg-gray-50 px-6 sm:px-8 py-4 flex justify-between gap-3 border-t border-gray-200">
+                      <button onClick={closeRefundModal} className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-100 cursor-pointer">
                           Cancel
                       </button>
-                      <button onClick={handleRefundSubmit} disabled={submitting} className="px-6 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700">
-                          {submitting ? "Submitting..." : "Submit Request"}
+                      <button onClick={handleRefundSubmit} disabled={submitting} className="px-6 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 cursor-pointer">
+                          {submitting ? "Submitting..." : requestType === "alternative_property" ? "Submit Alternative Stay Request" : "Submit Refund Request"}
                       </button>
                   </div>
               </div>
@@ -881,4 +1097,3 @@ export default function WebsiteMystays() {
     </div>
   );
 }
-

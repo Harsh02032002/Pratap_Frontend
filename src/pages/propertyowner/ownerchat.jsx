@@ -178,7 +178,9 @@ export default function OwnerChat() {
     const bookingId = associatedBooking._id;
 
     setIsSending(true);
-    let paymentUrl = `https://roomhy.com/website/pay?bookingId=${bookingId}&amount=${amount}`;
+    const isLocal = typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+    const baseWebUrl = isLocal ? window.location.origin : "https://roomhy.com";
+    let paymentUrl = `${baseWebUrl}/website/pay?bookingId=${bookingId}&amount=${amount}`;
 
     try {
       // Create PayU payment session & link
@@ -196,13 +198,13 @@ export default function OwnerChat() {
       }).catch(() => null);
 
       if (payuRes?.actionUrl) {
-        paymentUrl = `https://roomhy.com/website/pay?bookingId=${bookingId}&amount=${amount}`;
+        paymentUrl = `${baseWebUrl}/website/pay?bookingId=${bookingId}&amount=${amount}`;
       }
     } catch (_) {}
 
     paymentUrl = paymentUrl.replace(/app\.roomhy\.com/g, 'roomhy.com');
 
-    const paymentMessage = `Dear ${tenantName}, please complete the token payment of ₹${amount} to confirm your booking for "${propertyName}". 💳 You can pay securely via PayU here: ${paymentUrl}`;
+    const paymentMessage = `Dear ${tenantName}, please complete the token payment of ₹${amount} to confirm your booking for "${propertyName}" (Booking ID: ${bookingId}). 💳 You can pay securely via PayU here: ${paymentUrl}`;
 
     const optimisticMsg = {
       id: Date.now(),
@@ -672,7 +674,7 @@ export default function OwnerChat() {
 
             <button
               onClick={() => setShowBypassWarning(false)}
-              className="w-full h-10 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-colors"
+              className="w-full h-10 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold transition-colors"
             >
               Got it
             </button>

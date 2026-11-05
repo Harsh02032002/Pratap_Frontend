@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { CreditCard, ShieldCheck, ArrowLeft, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { CreditCard, ShieldCheck, ArrowLeft, CheckCircle2, AlertCircle, Loader2, Copy, Check } from "lucide-react";
 import WebsiteNavbar from "../../components/website/WebsiteNavbar";
 import WebsiteFooter from "../../components/website/WebsiteFooter";
 import { fetchJson } from "../../utils/api";
@@ -35,6 +35,7 @@ export default function PaymentCheckout() {
   const [bookingData, setBookingData] = useState(null);
   const [paymentStatus, setPaymentStatus] = useState("pending"); // pending, success, failed
   const [error, setError] = useState("");
+  const [copiedId, setCopiedId] = useState(false);
 
   const redirectStatus = String(
     searchParams.get("txStatus") ||
@@ -155,6 +156,15 @@ export default function PaymentCheckout() {
     }
   };
 
+  const displayBookingId = bookingData?.booking_id || bookingData?._id || extractedBookingId || rawBookingId || "";
+
+  const handleCopyBookingId = () => {
+    if (!displayBookingId) return;
+    navigator.clipboard.writeText(displayBookingId);
+    setCopiedId(true);
+    setTimeout(() => setCopiedId(false), 2000);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -175,21 +185,39 @@ export default function PaymentCheckout() {
           
           {paymentStatus === "pending" && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="p-8 bg-gradient-to-br from-teal-600 to-teal-800 text-white text-center">
+              <div className="p-8 bg-gradient-to-br from-teal-500 to-teal-600 text-white text-center">
                 <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-md border border-white/30">
                   <CreditCard size={32} />
                 </div>
                 <h1 className="text-2xl font-bold">Secure Checkout</h1>
-                <p className="text-teal-100 text-sm mt-1 opacity-80">Complete your payment for Roomhy</p>
+                <p className="text-teal-50 text-sm mt-1">Complete your booking payment for Roomhy</p>
               </div>
 
               <div className="p-8 space-y-6">
-                <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
-                   <div className="flex justify-between items-center mb-4">
+                <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100 space-y-3">
+                   {displayBookingId && (
+                     <div className="flex justify-between items-center pb-3 border-b border-gray-200">
+                       <span className="text-xs font-bold text-teal-700 uppercase tracking-widest">Booking ID</span>
+                       <div className="flex items-center gap-1.5">
+                         <span className="text-xs font-mono font-bold text-teal-900 bg-teal-50 px-2 py-1 rounded border border-teal-200">
+                           {displayBookingId}
+                         </span>
+                         <button
+                           type="button"
+                           onClick={handleCopyBookingId}
+                           className="p-1 text-teal-600 hover:bg-teal-100 rounded transition"
+                           title="Copy Booking ID"
+                         >
+                           {copiedId ? <Check size={14} /> : <Copy size={14} />}
+                         </button>
+                       </div>
+                     </div>
+                   )}
+                   <div className="flex justify-between items-center">
                       <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Property</span>
                       <span className="text-sm font-bold text-gray-900">{bookingData?.property_name || "Roomhy Stay"}</span>
                    </div>
-                   <div className="flex justify-between items-center mb-4">
+                   <div className="flex justify-between items-center">
                       <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Area</span>
                       <span className="text-sm font-medium text-gray-600">{bookingData?.area || "N/A"}</span>
                    </div>
@@ -203,20 +231,20 @@ export default function PaymentCheckout() {
                   <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-xl border border-blue-100">
                     <ShieldCheck className="text-blue-600 shrink-0 mt-0.5" size={18} />
                     <p className="text-[11px] text-blue-700 leading-relaxed font-medium">
-                      Your payment is secured by PayU. Roomhy does not store your card or bank details.
+                      Your payment is secured by PayU. After payment, your official <strong>Booking ID</strong> will be sent to your email for future reference or refund tracking.
                     </p>
                   </div>
 
                   <button 
                     onClick={handlePayNow}
-                    className="w-full py-4 bg-gray-900 hover:bg-black text-white font-bold rounded-2xl shadow-xl hover:shadow-2xl transition-all transform hover:-translate-y-1 active:translate-y-0 flex items-center justify-center gap-2"
+                    className="w-full py-4 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-2xl shadow-lg shadow-teal-600/20 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 cursor-pointer"
                   >
                     Pay ₹{amount || bookingData?.amount || bookingData?.booking_amount || 0} Now
                   </button>
 
                   <button 
                     onClick={() => navigate(-1)}
-                    className="w-full py-3 text-gray-500 font-medium hover:text-gray-800 transition-all flex items-center justify-center gap-2 text-sm"
+                    className="w-full py-3 text-gray-500 font-medium hover:text-gray-800 transition-all flex items-center justify-center gap-2 text-sm cursor-pointer"
                   >
                     <ArrowLeft size={16} /> Cancel Payment
                   </button>
@@ -231,7 +259,7 @@ export default function PaymentCheckout() {
                 <CheckCircle2 size={40} />
               </div>
               <h2 className="text-3xl font-black text-gray-900 mb-2">Payment Success!</h2>
-              <p className="text-gray-500 mb-8">Thank you for choosing Roomhy. Your payment has been confirmed and the owner has been notified.</p>
+              <p className="text-gray-500 mb-8">Thank you for choosing Roomhy. Your payment has been confirmed and the Booking ID has been emailed to you.</p>
               
               <button 
                 onClick={() => navigate("/website/index")}
@@ -253,7 +281,7 @@ export default function PaymentCheckout() {
               
               <button 
                 onClick={() => setPaymentStatus("pending")}
-                className="w-full py-4 bg-gray-900 hover:bg-black text-white font-bold rounded-2xl shadow-xl transition-all mb-4"
+                className="w-full py-4 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-2xl shadow-lg shadow-teal-600/20 transition-all mb-4"
               >
                 Try Again
               </button>
@@ -274,4 +302,3 @@ export default function PaymentCheckout() {
     </div>
   );
 }
-

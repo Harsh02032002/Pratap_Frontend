@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
-import { CheckCircle2, ShieldCheck, ArrowRight, Home, Building2, Calendar, FileText, Download, MessageSquare, PhoneCall, Clock } from 'lucide-react';
+import { CheckCircle2, ShieldCheck, ArrowRight, Building2, Calendar, FileText, Download, Copy, Check, Mail } from 'lucide-react';
 import WebsiteNavbar from '../../components/website/WebsiteNavbar';
 import WebsiteFooter from '../../components/website/WebsiteFooter';
 import MobileBottomNav from '../../components/website/MobileBottomNav';
 import { fetchJson } from '../../utils/api';
+import { toast } from 'react-hot-toast';
 
 export default function PaymentSuccessPage() {
   const [searchParams] = useSearchParams();
@@ -12,11 +13,12 @@ export default function PaymentSuccessPage() {
 
   const orderId = searchParams.get('order_id') || searchParams.get('txnid') || searchParams.get('orderId') || '';
   const amountParam = searchParams.get('amount') || searchParams.get('amt') || '';
-  const statusParam = searchParams.get('status') || 'success';
+  const bookingIdParam = searchParams.get('bookingId') || searchParams.get('booking_id') || '';
 
   const [loading, setLoading] = useState(true);
   const [paymentDetails, setPaymentDetails] = useState(null);
-  const [countdown, setCountdown] = useState(5);
+  const [countdown, setCountdown] = useState(12);
+  const [copiedBookingId, setCopiedBookingId] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -40,13 +42,12 @@ export default function PaymentSuccessPage() {
     return () => { isMounted = false; };
   }, [orderId]);
 
-  // Auto-redirect to Tenant Panel Dashboard after 5 seconds
   useEffect(() => {
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          navigate('/tenant/tenantdashboard');
+          navigate('/my-stays');
           return 0;
         }
         return prev - 1;
@@ -56,10 +57,24 @@ export default function PaymentSuccessPage() {
     return () => clearInterval(timer);
   }, [navigate]);
 
-  const displayAmount = paymentDetails?.booking_amount || paymentDetails?.amount || amountParam || '1,000';
+  const displayAmount = paymentDetails?.booking_amount || paymentDetails?.amount || amountParam || '500';
   const displayPropName = paymentDetails?.property_name || 'Roomhy Verified Stay';
   const displayTxnid = orderId || paymentDetails?.order_id || paymentDetails?.cf_order_id || `RMH_PAYU_${Date.now()}`;
-  const displayDate = paymentDetails?.paidAt ? new Date(paymentDetails.paidAt).toLocaleString('en-IN') : new Date().toLocaleString('en-IN');
+  const displayBookingId = paymentDetails?.booking_id || bookingIdParam || displayTxnid;
+  const displayOwner = paymentDetails?.owner_name
+    ? `${paymentDetails.owner_name}${paymentDetails.owner_id ? ` (${paymentDetails.owner_id})` : ''}`
+    : (paymentDetails?.owner_id || 'Verified Property Owner');
+  const displayDate = paymentDetails?.paidAt
+    ? new Date(paymentDetails.paidAt).toLocaleString('en-IN')
+    : new Date().toLocaleString('en-IN');
+
+  const handleCopyBookingId = () => {
+    if (!displayBookingId) return;
+    navigator.clipboard?.writeText(String(displayBookingId));
+    setCopiedBookingId(true);
+    toast.success('Booking ID copied to clipboard!');
+    setTimeout(() => setCopiedBookingId(false), 2500);
+  };
 
   const handlePrint = () => {
     window.print();
@@ -87,7 +102,7 @@ export default function PaymentSuccessPage() {
               Payment Successful! 🎉
             </h1>
             <p className="text-teal-100 text-xs md:text-sm font-semibold max-w-md mx-auto leading-relaxed">
-              Your payment receipt has been auto-generated with Online Mode. You are being redirected to your Tenant Panel.
+              Your booking confirmation and Official Booking ID have also been sent to your registered email.
             </p>
 
             <div className="mt-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-[11px] font-extrabold uppercase tracking-widest text-white border border-white/30">
@@ -98,19 +113,45 @@ export default function PaymentSuccessPage() {
           {/* Details Section */}
           <div className="p-6 md:p-8 space-y-6">
             
+            {/* Official Booking ID Highlight Box */}
+            <div className="bg-teal-50/70 border-2 border-dashed border-teal-500 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="text-center sm:text-left">
+                <div className="inline-flex items-center gap-1.5 text-[11px] font-black text-teal-700 uppercase tracking-wider">
+                  <Mail className="w-3.5 h-3.5" />
+                  <span>Official Booking ID (Sent to Your Email)</span>
+                </div>
+                <div className="text-xl sm:text-2xl font-mono font-black text-slate-900 mt-1 break-all">
+                  {displayBookingId}
+                </div>
+                <p className="text-[11px] text-slate-600 font-medium mt-1">
+                  Save this Booking ID to track your stay or request a Refund / Alternative Property in the future.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleCopyBookingId}
+                className="px-4 py-2.5 bg-white hover:bg-teal-600 hover:text-white text-teal-700 border border-teal-300 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 shrink-0 shadow-2xs cursor-pointer"
+              >
+                {copiedBookingId ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                <span>{copiedBookingId ? 'Copied!' : 'Copy Booking ID'}</span>
+              </button>
+            </div>
+
             {/* Auto-redirect Callout Banner */}
             <div className="bg-teal-50 border border-teal-200 text-teal-800 px-4 py-3 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-bold">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-teal-600 animate-ping"></span>
-                <span>Redirecting to Tenant Panel in <span className="text-sm font-black text-teal-900">{countdown}s</span>...</span>
+                <span>Redirecting to My Stays in <span className="text-sm font-black text-teal-900">{countdown}s</span>...</span>
               </div>
-              <button 
-                onClick={() => navigate('/tenant/tenantdashboard')}
-                className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-black uppercase transition-all shadow-md shrink-0 flex items-center gap-1.5 cursor-pointer"
-              >
-                <span>Go to Tenant Panel</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => navigate('/my-stays')}
+                  className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-black uppercase transition-all shadow-md shrink-0 flex items-center gap-1.5 cursor-pointer"
+                >
+                  <span>Go to My Stays</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
 
             {/* Amount Callout */}
@@ -135,7 +176,7 @@ export default function PaymentSuccessPage() {
                   <FileText className="w-4 h-4 text-teal-600 shrink-0 mt-0.5" />
                   <div>
                     <span className="text-[10px] font-bold text-slate-400 block uppercase">Transaction ID</span>
-                    <span className="font-extrabold text-slate-900 break-all">{displayTxnid}</span>
+                    <span className="font-extrabold text-slate-900 break-all font-mono">{displayTxnid}</span>
                   </div>
                 </div>
 
@@ -144,13 +185,14 @@ export default function PaymentSuccessPage() {
                   <div>
                     <span className="text-[10px] font-bold text-slate-400 block uppercase">Property / Stay</span>
                     <span className="font-extrabold text-slate-900 line-clamp-1">{displayPropName}</span>
+                    <span className="text-[10px] text-slate-500 font-semibold block mt-0.5">Owner: {displayOwner}</span>
                   </div>
                 </div>
 
                 <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 flex items-start gap-3">
                   <Calendar className="w-4 h-4 text-teal-600 shrink-0 mt-0.5" />
                   <div>
-                    <span className="text-[10px] font-bold text-slate-400 block uppercase">Payment Date</span>
+                    <span className="text-[10px] font-bold text-slate-400 block uppercase">Payment Date &amp; Time</span>
                     <span className="font-extrabold text-slate-900">{displayDate}</span>
                   </div>
                 </div>
@@ -166,8 +208,8 @@ export default function PaymentSuccessPage() {
               </div>
             </div>
 
-            {/* Only Print Receipt button - auto-redirect handles navigation */}
-            <div className="pt-4 border-t border-slate-100 flex justify-center">
+            {/* Print & Refund/Alternative Desk Actions */}
+            <div className="pt-4 border-t border-slate-100 flex flex-wrap items-center justify-center gap-3">
               <button
                 type="button"
                 onClick={handlePrint}
@@ -176,6 +218,12 @@ export default function PaymentSuccessPage() {
                 <Download className="w-4 h-4" />
                 <span>Print Receipt</span>
               </button>
+              <Link
+                to={`/refund-request?bookingId=${encodeURIComponent(displayBookingId)}`}
+                className="py-3 px-6 bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2"
+              >
+                <span>Refund / Alternative Stay Desk</span>
+              </Link>
             </div>
 
           </div>
