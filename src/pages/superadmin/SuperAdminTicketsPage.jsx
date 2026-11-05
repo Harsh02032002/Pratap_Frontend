@@ -432,12 +432,12 @@ export default function SuperAdminTicketsPage() {
               )}
 
               {/* Action Button */}
-              {['Open', 'In Progress', 'Assigned'].includes(selectedTicket.status) && (
+              {['Open', 'In Progress', 'Assigned', 'Waiting For Response'].includes(selectedTicket.status) && (
                 <button
                   onClick={() => setShowResolveModal(true)}
                   className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-3 rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <CheckCircle2 className="w-4 h-4" /> Resolve / Complete Ticket
+                  <CheckCircle2 className="w-4 h-4" /> Update Status / Resolve Ticket
                 </button>
               )}
 
@@ -491,8 +491,11 @@ export default function SuperAdminTicketsPage() {
                   onChange={(e) => setResolveStatus(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-800"
                 >
+                  <option value="In Progress">🔄 In Progress</option>
+                  <option value="Waiting For Response">⏳ Waiting For Response</option>
                   <option value="Resolved">🟢 Resolved</option>
                   <option value="Completed">✅ Completed (For Property/Room Edits)</option>
+                  <option value="Closed">🔒 Closed</option>
                 </select>
               </div>
 

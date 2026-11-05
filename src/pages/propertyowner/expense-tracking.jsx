@@ -1,215 +1,350 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
 import { getOwnerRuntimeSession, clearOwnerRuntimeSession } from "../../utils/propertyowner";
-import { Plus, Search, TrendingDown, IndianRupee, ArrowDownRight, Tag } from "lucide-react";
+import { apiFetch } from "../../utils/api";
+import { Plus, Search, TrendingDown, IndianRupee, Tag, Trash2, RefreshCw } from "lucide-react";
 
 export default function ExpenseTracking() {
   const owner = getOwnerRuntimeSession();
-  if (!owner?.loginId && typeof window !== "undefined") { 
-    window.location.href = "/propertyowner/ownerlogin"; 
-    return null; 
+  if (!owner?.loginId && typeof window !== "undefined") {
+    window.location.href = "/propertyowner/ownerlogin";
+    return null;
   }
 
   const [search, setSearch] = useState("");
-  const [expenses, setExpenses] = useState([
-    { id: 1, category: "Maintenance", desc: "Plumber charges for toilet leakage", amount: 2500, date: "15 May 2026", paid: "Cash" },
-    { id: 2, category: "Electricity", desc: "Main building May electricity bill", amount: 8200, date: "14 May 2026", paid: "UPI" },
-    { id: 3, category: "Cleaning", desc: "Monthly housekeeping contractor payment", amount: 3500, date: "12 May 2026", paid: "Bank" },
-    { id: 4, category: "Internet", desc: "Broadband office monthly plan", amount: 1800, date: "10 May 2026", paid: "Auto-debit" },
-    { id: 5, category: "Repairs", desc: "Water lift motor rewinding", amount: 4500, date: "08 May 2026", paid: "Cash" }
-  ]);
+  const [expenses, setExpenses] = useState([]);
+  const [properties, setProperties] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [propertyFilter, setPropertyFilter] = useState("all");
 
   const [showAddModal, setShowAddModal] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [newPropertyId, setNewPropertyId] = useState("");
   const [newDesc, setNewDesc] = useState("");
   const [newCategory, setNewCategory] = useState("Maintenance");
   const [newAmount, setNewAmount] = useState("");
   const [newPaid, setNewPaid] = useState("Cash");
+  const [newDate, setNewDate] = useState(new Date().toISOString().slice(0, 10));
 
-  const handleAddExpense = (e) => {
-    e.preventDefault();
-    if (!newDesc || !newAmount) return;
-    const newExp = {
-      id: expenses.length + 1,
-      category: newCategory,
-      desc: newDesc,
-      amount: parseFloat(newAmount),
-      date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-      paid: newPaid
-    };
-    setExpenses([newExp, ...expenses]);
-    setNewDesc("");
-    setNewAmount("");
-    setShowAddModal(false);
+  const fetchExpenses = async () => {
+    try {
+      setLoading(true);
+      const q = propertyFilter !== "all" ? `?propertyId=${encodeURIComponent(propertyFilter)}` : "";
+      const res = await apiFetch(
+        `/api/owner-analytics/${encodeURIComponent(owner.loginId)}/expenses${q}`
+      );
+      setExpenses(Array.isArray(res?.expenses) ? res.expenses : []);
+      if (Array.isArray(res?.properties)) {
+        setProperties(res.properties);
+        if (!newPropertyId && res.properties[0]?._id) {
+          setNewPropertyId(res.properties[0]._id);
+        }
+      }
+    } catch (_) {
+      setExpenses([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const filtered = expenses.filter(e => 
-    !search || 
-    e.desc.toLowerCase().includes(search.toLowerCase()) || 
-    e.category.toLowerCase().includes(search.toLowerCase())
+  useEffect(() => {
+    fetchExpenses();
+  }, [propertyFilter]);
+
+  const handleAddExpense = async (e) => {
+    e.preventDefault();
+    if (!newDesc || !newAmount) return;
+    try {
+      setSaving(true);
+      await apiFetch(`/api/owner-analytics/${encodeURIComponent(owner.loginId)}/expenses`, {
+        method: "POST",
+        body: {
+          propertyId: newPropertyId || undefined,
+          category: newCategory,
+          description: newDesc,
+          amount: parseFloat(newAmount),
+          paymentMethod: newPaid,
+          expenseDate: newDate
+        }
+      });
+      setNewDesc("");
+      setNewAmount("");
+      setShowAddModal(false);
+      await fetchExpenses();
+    } catch (err) {
+      alert(err?.body?.message || err?.message || "Failed to save expense");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteExpense = async (id) => {
+    try {
+      await apiFetch(
+        `/api/owner-analytics/${encodeURIComponent(owner.loginId)}/expenses/${encodeURIComponent(id)}`,
+        { method: "DELETE" }
+      );
+      await fetchExpenses();
+    } catch (_) {}
+  };
+
+  const filtered = expenses.filter(
+    (e) =>
+      !search ||
+      String(e.description || "").toLowerCase().includes(search.toLowerCase()) ||
+      String(e.category || "").toLowerCase().includes(search.toLowerCase()) ||
+      String(e.propertyName || "").toLowerCase().includes(search.toLowerCase())
   );
-  
-  const total = expenses.reduce((s, e) => s + e.amount, 0);
+
+  const total = filtered.reduce((s, e) => s + Number(e.amount || 0), 0);
 
   return (
-    <PropertyOwnerLayout 
-      owner={owner} 
-      title="Expense Ledger" 
-      onLogout={() => { clearOwnerRuntimeSession(); window.location.href = "/propertyowner/ownerlogin"; }}
+    <PropertyOwnerLayout
+      owner={owner}
+      title="Expense Ledger"
+      onLogout={() => {
+        clearOwnerRuntimeSession();
+        window.location.href = "/propertyowner/ownerlogin";
+      }}
     >
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-8">
         <div>
-          <h1 className="font-serif text-[38px] md:text-[44px] leading-[1.05] text-foreground">Expenses</h1>
-          <p className="mt-1.5 text-[13.5px] text-muted-foreground">Track all property repairs, staff payrolls, utilities, and daily operations costs.</p>
+          <h1 className="font-serif text-[38px] md:text-[44px] leading-[1.05] text-foreground">
+            Expenses
+          </h1>
+          <p className="mt-1.5 text-[13.5px] text-muted-foreground">
+            Track all property repairs, staff payrolls, utilities, and daily operations costs.
+          </p>
         </div>
-        <button 
-          onClick={() => setShowAddModal(true)}
-          className="inline-flex items-center gap-1.5 h-10 px-4 rounded-xl bg-slate-900 text-white text-[13px] font-medium hover:opacity-90 md:mt-2"
-        >
-          <Plus className="size-4" /> Add Expense
-        </button>
+        <div className="flex items-center gap-2 md:mt-2">
+          <select
+            value={propertyFilter}
+            onChange={(e) => setPropertyFilter(e.target.value)}
+            className="h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-medium"
+          >
+            <option value="all">All Properties</option>
+            {properties.map((p) => (
+              <option key={p._id} value={p._id}>
+                {p.title}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="inline-flex items-center gap-1.5 h-10 px-4 rounded-xl bg-teal-600 text-white hover:bg-teal-700 text-[13px] font-medium hover:opacity-90"
+          >
+            <Plus className="size-4" /> Add Expense
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="rounded-2xl border border-border bg-rose-50/50 p-6 shadow-soft">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[12.5px] text-muted-foreground font-medium">This Month Outflow</span>
+            <span className="text-[12.5px] text-muted-foreground font-medium">Total Outflow</span>
             <TrendingDown className="size-4 text-rose-500" />
           </div>
-          <div className="font-serif text-[28px] font-bold text-rose-600">₹{total.toLocaleString("en-IN")}</div>
-          <div className="text-[11.5px] text-muted-foreground mt-1">{expenses.length} transaction entries</div>
+          <div className="font-serif text-[28px] font-bold text-rose-600">
+            ₹{total.toLocaleString("en-IN")}
+          </div>
+          <div className="text-[11.5px] text-muted-foreground mt-1">
+            {filtered.length} recorded expense entries
+          </div>
         </div>
         <div className="rounded-2xl border border-border bg-card p-6 shadow-soft">
           <div className="flex items-center justify-between mb-3">
             <span className="text-[12.5px] text-muted-foreground font-medium">Daily Outflow Avg</span>
             <IndianRupee className="size-4 text-muted-foreground" />
           </div>
-          <div className="font-serif text-[28px] font-bold text-foreground">₹{Math.round(total/30).toLocaleString("en-IN")}</div>
+          <div className="font-serif text-[28px] font-bold text-foreground">
+            ₹{Math.round(total / 30).toLocaleString("en-IN")}
+          </div>
         </div>
         <div className="rounded-2xl border border-border bg-card p-6 shadow-soft">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[12.5px] text-muted-foreground font-medium">Largest Billing Outflow</span>
+            <span className="text-[12.5px] text-muted-foreground font-medium">
+              Largest Billing Outflow
+            </span>
             <IndianRupee className="size-4 text-muted-foreground" />
           </div>
           <div className="font-serif text-[28px] font-bold text-foreground">
-            ₹{expenses.length > 0 ? Math.max(...expenses.map(e => e.amount)).toLocaleString("en-IN") : "0"}
+            ₹
+            {filtered.length > 0
+              ? Math.max(...filtered.map((e) => Number(e.amount || 0))).toLocaleString("en-IN")
+              : "0"}
           </div>
         </div>
       </div>
 
       <div className="relative mb-4">
         <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <input 
-          value={search} 
-          onChange={e => setSearch(e.target.value)} 
-          placeholder="Search expenses by category or description..." 
-          className="w-full h-10 pl-9 pr-3 rounded-xl bg-card border border-border text-[13px] focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground"
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search expense by description, property, or category..."
+          className="h-10 w-full rounded-xl border border-border bg-background pl-9 pr-3 text-[13px] outline-none focus:ring-2 focus:ring-ring"
         />
       </div>
 
       <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-soft">
-        <div className="overflow-x-auto">
-          <table className="w-full text-[13px]">
+        {loading ? (
+          <div className="p-10 text-center text-xs text-slate-500">
+            <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2" />
+            Loading expense records…
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="p-10 text-center text-xs text-slate-500">
+            No expenses recorded yet. Click <strong>Add Expense</strong> to log property costs.
+          </div>
+        ) : (
+          <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="text-left text-[11.5px] uppercase tracking-wider text-muted-foreground bg-muted/50">
-                <th className="px-6 py-3.5 font-semibold">Category</th>
-                <th className="px-6 py-3.5 font-semibold">Description</th>
-                <th className="px-6 py-3.5 font-semibold">Paid Method</th>
-                <th className="px-6 py-3.5 font-semibold">Transaction Date</th>
-                <th className="px-6 py-3.5 font-semibold">Amount</th>
+              <tr className="border-b border-border bg-secondary/40 text-[11px] uppercase tracking-wider text-muted-foreground">
+                <th className="py-3.5 px-4 font-semibold">Description</th>
+                <th className="py-3.5 px-4 font-semibold">Property</th>
+                <th className="py-3.5 px-4 font-semibold">Category</th>
+                <th className="py-3.5 px-4 font-semibold">Date</th>
+                <th className="py-3.5 px-4 font-semibold">Mode</th>
+                <th className="py-3.5 px-4 font-semibold text-right">Amount</th>
+                <th className="py-3.5 px-4 font-semibold text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
-              {filtered.map(e => (
-                <tr key={e.id} className="hover:bg-muted/40 transition-colors">
-                  <td className="px-6 py-4">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600">
-                      {e.category}
+            <tbody className="divide-y divide-border text-[13px]">
+              {filtered.map((e) => (
+                <tr key={e._id} className="hover:bg-secondary/20 transition-colors">
+                  <td className="py-3.5 px-4 font-medium text-foreground">{e.description}</td>
+                  <td className="py-3.5 px-4 text-muted-foreground">{e.propertyName || "General"}</td>
+                  <td className="py-3.5 px-4">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-medium text-slate-700">
+                      <Tag className="size-3" /> {e.category}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-foreground font-medium">{e.desc}</td>
-                  <td className="px-6 py-4 text-muted-foreground">{e.paid}</td>
-                  <td className="px-6 py-4 text-muted-foreground">{e.date}</td>
-                  <td className="px-6 py-4 font-bold text-rose-600">-₹{e.amount.toLocaleString("en-IN")}</td>
+                  <td className="py-3.5 px-4 text-muted-foreground">
+                    {e.expenseDate
+                      ? new Date(e.expenseDate).toLocaleDateString("en-IN", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric"
+                        })
+                      : "-"}
+                  </td>
+                  <td className="py-3.5 px-4 text-muted-foreground">{e.paymentMethod}</td>
+                  <td className="py-3.5 px-4 text-right font-semibold text-rose-600">
+                    -₹{Number(e.amount || 0).toLocaleString("en-IN")}
+                  </td>
+                  <td className="py-3.5 px-4 text-right">
+                    <button
+                      onClick={() => handleDeleteExpense(e._id)}
+                      className="text-slate-400 hover:text-rose-600 p-1"
+                      title="Delete expense"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+        )}
       </div>
 
-      {/* Record Expense Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100">
-            <h3 className="font-serif text-[22px] text-foreground mb-4">Add Property Expense</h3>
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
+            <h3 className="font-serif text-xl font-bold mb-4">Record New Expense</h3>
             <form onSubmit={handleAddExpense} className="space-y-4">
               <div>
-                <label className="text-[12px] font-bold text-slate-700 block mb-1">Description / Details</label>
-                <input 
-                  type="text" 
-                  value={newDesc} 
-                  onChange={(e) => setNewDesc(e.target.value)}
-                  placeholder="e.g. Electrician replacement of LED bulbs"
-                  className="w-full h-10 px-3 border border-border rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  required
-                />
+                <label className="block text-xs font-medium text-slate-700 mb-1">Property</label>
+                <select
+                  value={newPropertyId}
+                  onChange={(e) => setNewPropertyId(e.target.value)}
+                  className="w-full h-10 rounded-xl border border-slate-200 px-3 text-sm"
+                >
+                  <option value="">General / All Properties</option>
+                  {properties.map((p) => (
+                    <option key={p._id} value={p._id}>
+                      {p.title}
+                    </option>
+                  ))}
+                </select>
               </div>
-
               <div>
-                <label className="text-[12px] font-bold text-slate-700 block mb-1">Category</label>
-                <select 
-                  value={newCategory} 
+                <label className="block text-xs font-medium text-slate-700 mb-1">Category</label>
+                <select
+                  value={newCategory}
                   onChange={(e) => setNewCategory(e.target.value)}
-                  className="w-full h-10 px-3 border border-border rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className="w-full h-10 rounded-xl border border-slate-200 px-3 text-sm"
                 >
-                  <option value="Maintenance">Maintenance</option>
-                  <option value="Electricity">Electricity</option>
-                  <option value="Cleaning">Cleaning</option>
-                  <option value="Internet">Internet</option>
-                  <option value="Repairs">Repairs</option>
-                  <option value="Others">Others</option>
+                  <option>Maintenance</option>
+                  <option>Electricity</option>
+                  <option>Water</option>
+                  <option>Cleaning</option>
+                  <option>Internet</option>
+                  <option>Salary</option>
+                  <option>Repairs</option>
+                  <option>Other</option>
                 </select>
               </div>
-
               <div>
-                <label className="text-[12px] font-bold text-slate-700 block mb-1">Amount (₹)</label>
-                <input 
-                  type="number" 
-                  value={newAmount} 
-                  onChange={(e) => setNewAmount(e.target.value)}
-                  placeholder="Enter amount"
-                  className="w-full h-10 px-3 border border-border rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/20"
+                <label className="block text-xs font-medium text-slate-700 mb-1">Description</label>
+                <input
+                  type="text"
+                  value={newDesc}
+                  onChange={(e) => setNewDesc(e.target.value)}
+                  placeholder="e.g. Electric wire repair Room 102"
+                  className="w-full h-10 rounded-xl border border-slate-200 px-3 text-sm"
                   required
                 />
               </div>
-
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">Amount (₹)</label>
+                  <input
+                    type="number"
+                    value={newAmount}
+                    onChange={(e) => setNewAmount(e.target.value)}
+                    placeholder="2500"
+                    className="w-full h-10 rounded-xl border border-slate-200 px-3 text-sm"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">Date</label>
+                  <input
+                    type="date"
+                    value={newDate}
+                    onChange={(e) => setNewDate(e.target.value)}
+                    className="w-full h-10 rounded-xl border border-slate-200 px-3 text-sm"
+                  />
+                </div>
+              </div>
               <div>
-                <label className="text-[12px] font-bold text-slate-700 block mb-1">Payment Method</label>
-                <select 
-                  value={newPaid} 
+                <label className="block text-xs font-medium text-slate-700 mb-1">Payment Mode</label>
+                <select
+                  value={newPaid}
                   onChange={(e) => setNewPaid(e.target.value)}
-                  className="w-full h-10 px-3 border border-border rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className="w-full h-10 rounded-xl border border-slate-200 px-3 text-sm"
                 >
-                  <option value="Cash">Cash</option>
-                  <option value="UPI">UPI</option>
-                  <option value="Bank Transfer">Bank Transfer</option>
-                  <option value="Card">Card</option>
+                  <option>Cash</option>
+                  <option>UPI</option>
+                  <option>Bank Transfer</option>
+                  <option>Card</option>
                 </select>
               </div>
-
-              <div className="flex gap-2 pt-2">
-                <button 
-                  type="button" 
+              <div className="flex justify-end gap-2 pt-4">
+                <button
+                  type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="flex-1 h-10 rounded-xl border border-border text-xs font-bold hover:bg-muted"
+                  className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-medium"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   type="submit"
-                  className="flex-1 h-10 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold"
+                  disabled={saving}
+                  className="px-4 py-2 rounded-xl bg-teal-600 text-white hover:bg-teal-700 text-xs font-medium"
                 >
-                  Save Outflow
+                  {saving ? "Saving..." : "Save Expense"}
                 </button>
               </div>
             </form>

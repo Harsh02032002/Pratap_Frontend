@@ -80,7 +80,14 @@ export default function TenantTicketsPage() {
           raised_by_name: tenant.name || loginId,
           raised_by_role: 'tenant',
           user_email: tenant.email || '',
-          user_phone: tenant.phone || ''
+          user_phone: tenant.phone || '',
+          property_id: tenant.propertyId || tenant.property?._id || tenant.property || '',
+          property_name: formData.property_name || tenant.propertyTitle || tenant.property?.title || '',
+          owner_id: tenant.ownerLoginId || '',
+          city: tenant.city || tenant.locationCode || '',
+          area: tenant.area || '',
+          routed_to_panel: 'employee',
+          target_recipient: 'employee_superadmin'
         })
       });
 

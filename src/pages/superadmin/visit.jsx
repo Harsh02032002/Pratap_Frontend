@@ -592,6 +592,20 @@ export default function Visit() {
     locationVerified || (!REQUIRE_VERIFIED_LOCATION && locationUnresolved);
 
   const [photoUploading, setPhotoUploading] = useState(0);
+  const sessionPhotoHashesRef = useRef(new Set());
+
+  const computeBlobSha256 = async (blob) => {
+    try {
+      if (!blob || !window.crypto?.subtle) return null;
+      const buf = await blob.arrayBuffer();
+      const digest = await window.crypto.subtle.digest("SHA-256", buf);
+      return Array.from(new Uint8Array(digest))
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+    } catch (_) {
+      return null;
+    }
+  };
 
   /**
    * Put a photo in Cloudinary and return its https URL.
@@ -602,9 +616,17 @@ export default function Visit() {
    * was classified. Uploading gives a real URL the site can actually render,
    * and keeps multi-megabyte base64 blobs out of the visit document.
    */
-  const uploadPhotoToCloud = async (blob, filename) => {
+  const uploadPhotoToCloud = async (blob, filename, extra = {}) => {
+    const localHash = await computeBlobSha256(blob);
+    if (localHash && sessionPhotoHashesRef.current.has(localHash)) {
+      throw new Error("Duplicate image detected! You have already uploaded this exact photo in the current visit report.");
+    }
     const body = new FormData();
     body.append("file", blob, filename);
+    body.append("purpose", "visit_report");
+    body.append("photoSource", extra.source || "upload");
+    const activeVisitId = editingVisit?.visitId || editingVisit?._id || draftVisitIdRef.current || "";
+    if (activeVisitId) body.append("visitId", String(activeVisitId));
     const res = await fetch(`${getApiBase()}/api/upload`, {
       method: "POST",
       headers: { ...getAuthHeader() },   // NOT Content-Type: the browser sets the multipart boundary
@@ -614,6 +636,7 @@ export default function Visit() {
     if (!res.ok || !(data.url || data.secure_url)) {
       throw new Error(data.message || data.error || `Upload failed (${res.status})`);
     }
+    if (localHash) sessionPhotoHashesRef.current.add(localHash);
     return data.url || data.secure_url;
   };
 
@@ -758,7 +781,7 @@ export default function Visit() {
     canvas.toBlob(async (blob) => {
       try {
         if (!blob) throw new Error("Could not read the captured frame");
-        const url = await uploadPhotoToCloud(blob, `live-capture-${Date.now()}.jpg`);
+        const url = await uploadPhotoToCloud(blob, `live-capture-${Date.now()}.jpg`, { source: "camera" });
         setFormPhotos(prev => [...prev, url]);
         setFormPhotoDetails(prev => [...prev, {
           url,
@@ -1112,6 +1135,7 @@ export default function Visit() {
     setActiveCatIdx(0); setNewCatLabel(""); setAddingCat(false);
     setOpenSections({ owner: true, property: true, location: true, occupancy: false, features: false, roomTypes: false, policies: false, ratings: false, photos: false });
     draftVisitIdRef.current = null;
+    sessionPhotoHashesRef.current.clear();
     setEditingVisit(null);
   };
 
@@ -1163,6 +1187,7 @@ export default function Visit() {
       : [{ label: "Main", images: [] }, { label: "Room", images: [] }]);
     setOpenSections({ owner: true, property: true, location: true, occupancy: true, features: true, roomTypes: false, policies: true, ratings: false, photos: false });
     draftVisitIdRef.current = v.visitId || v._id;
+    sessionPhotoHashesRef.current.clear();
     setEditingVisit(v);
     setViewingVisit(null);
     setCurrentView("addOwner");
@@ -1299,6 +1324,7 @@ export default function Visit() {
           staffName: JSON.parse(sessionStorage.getItem("staff_user") || sessionStorage.getItem("user") || localStorage.getItem("staff_user") || localStorage.getItem("user") || "{}").name || "Staff Member",
           staffId: JSON.parse(sessionStorage.getItem("staff_user") || sessionStorage.getItem("user") || localStorage.getItem("staff_user") || localStorage.getItem("user") || "{}").loginId || "STAFF",
           _id: visitId,
+          enforceImageCheck: true,
           ...(editingVisit ? { _isEdit: true } : {}),
         }),
       });

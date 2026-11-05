@@ -98,7 +98,7 @@ const normalizeRoom = (room, ownerId, properties = []) => {
 
 // A blocked/rejected property is frozen by Roomhy/superadmin action — the owner
 // must not be able to add rooms (or beds) to it until it's reinstated.
-const isPropertyRestricted = (p) => p?.status === "blocked" || p?.status === "rejected";
+const isPropertyRestricted = (p) => !["active", "approved"].includes(String(p?.status || "").toLowerCase());
 
 const readJson = (k, fb) => { try { const r = localStorage.getItem(k); return r ? JSON.parse(r) : fb; } catch { return fb; } };
 const writeJson = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { } };
@@ -209,7 +209,7 @@ export default function Rooms() {
     }
     const targetProp = properties.find(p => String(p._id || p.id) === String(propId));
     if (isPropertyRestricted(targetProp)) {
-      toast.error(`This property is ${targetProp.status} — rooms can't be added until it's reinstated. Contact Roomhy support.`);
+      toast.error(`This property is ${targetProp?.status || "pending approval"} — you cannot add rooms until the property is approved.`);
       return;
     }
     const totalCount = Number(bulkForm.count || 1);
@@ -436,7 +436,7 @@ export default function Rooms() {
 
     const targetProp = properties.find(p => String(p._id || p.id) === String(propId));
     if (isPropertyRestricted(targetProp)) {
-      toast.error(`This property is ${targetProp.status} — rooms can't be added until it's reinstated. Contact Roomhy support.`);
+      toast.error(`This property is ${targetProp?.status || "pending approval"} — you cannot add rooms until the property is approved.`);
       return;
     }
 
@@ -470,7 +470,7 @@ export default function Rooms() {
         setRoomForm(defaultRoomForm);
         clearOwnerFetchCache(owner.loginId);
         await load(owner, 1, ROOMS_PER_PAGE, true);
-        toast.success("Room updated");
+        toast.success(updated?.requiresApproval ? (updated.message || "Room edit request submitted for approval!") : "Room updated");
         const rentNotice = describeRentChange(updated?.rentChange);
         if (rentNotice) toast(rentNotice, { duration: 9000 });
       } else {
@@ -892,7 +892,7 @@ export default function Rooms() {
                       <h3 className="text-[15px] font-semibold text-slate-800 mb-1">No Rooms Added Yet</h3>
                       {sectionRestricted ? (
                         <p className="text-[13px] text-rose-600 font-semibold mb-1 max-w-sm">
-                          {propTitle} is {sectionProperty.status} — rooms can't be added until it's reinstated.
+                          {propTitle} is {sectionProperty?.status || "pending approval"} — you cannot add rooms until the property is approved.
                         </p>
                       ) : (
                         <>

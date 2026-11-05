@@ -466,6 +466,8 @@ const routeEntries = [
   ["/propertyowner/listing", "./pages/propertyowner/listing.jsx"],
   ["/propertyowner/occupancy-report", "./pages/propertyowner/occupancy-report.jsx"],
   ["/propertyowner/property-managers", "./pages/propertyowner/property-managers.jsx"],
+  ["/propertyowner/property-comparison", "./pages/propertyowner/property-comparison.jsx"],
+  ["/propertyowner/conversion-tracking", "./pages/propertyowner/conversion-tracking.jsx"],
 
   // Property Manager Routes
   ["/manager/login", "./pages/manager/login.jsx"],

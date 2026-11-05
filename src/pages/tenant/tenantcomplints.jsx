@@ -150,11 +150,13 @@ export default function Tenantcomplints() {
   const [majorModalOpen, setMajorModalOpen] = useState(false);
 
   // Minor Complaint State
+  const [minorRecipient, setMinorRecipient] = useState("employee_superadmin");
   const [minorCategory, setMinorCategory] = useState("");
   const [minorDesc, setMinorDesc] = useState("");
   const [minorStatus, setMinorStatus] = useState({ loading: false, error: "" });
 
   // Major/Priority Complaint State
+  const [majorRecipient, setMajorRecipient] = useState("employee_superadmin");
   const [majorDesc, setMajorDesc] = useState("");
   const [majorImageFile, setMajorImageFile] = useState(null); // File object — uploaded to Cloudinary on submit
   const [majorStatus, setMajorStatus] = useState({ loading: false, error: "" });
@@ -238,6 +240,30 @@ export default function Tenantcomplints() {
     setMinorStatus({ loading: true, error: "" });
     
     try {
+      const sendToEmp = minorRecipient === "employee_superadmin" || minorRecipient === "both";
+      if (sendToEmp) {
+        await fetchJson("/api/tickets/create", {
+          method: "POST",
+          body: JSON.stringify({
+            ticket_type: "Tenant Complaint",
+            priority: "Low",
+            subject: `${minorCategory}: ${minorDesc.slice(0, 60)}`,
+            description: minorDesc,
+            raised_by: tenant.loginId || tenant._id,
+            raised_by_name: tenant.name || tenant.loginId,
+            raised_by_role: "tenant",
+            user_email: tenant.email || "",
+            user_phone: tenant.phone || "",
+            property_id: tenant.propertyId || tenant.property?._id || "",
+            property_name: tenant.propertyTitle || tenant.property?.title || "",
+            owner_id: resolveOwnerLoginId(tenant),
+            city: tenant.city || tenant.locationCode || "",
+            area: tenant.area || "",
+            routed_to_panel: "employee",
+            target_recipient: minorRecipient
+          })
+        });
+      }
       await fetchJson("/api/complaints", {
         method: "POST",
         body: JSON.stringify({
@@ -255,7 +281,7 @@ export default function Tenantcomplints() {
           description: minorDesc,
           priority: "Low",
           status: "Open",
-          escalated: false,
+          escalated: sendToEmp,
           createdAt: new Date().toISOString()
         })
       });
@@ -326,10 +352,36 @@ export default function Tenantcomplints() {
     };
 
     try {
+      const sendToEmp = majorRecipient === "employee_superadmin" || majorRecipient === "both";
+      if (sendToEmp) {
+        await fetchJson("/api/tickets/create", {
+          method: "POST",
+          body: JSON.stringify({
+            ticket_type: "Tenant Complaint",
+            priority: "High",
+            subject: `Major Issue: ${majorDesc.slice(0, 60)}`,
+            description: majorDesc,
+            raised_by: tenant.loginId || tenant._id,
+            raised_by_name: tenant.name || tenant.loginId,
+            raised_by_role: "tenant",
+            user_email: tenant.email || "",
+            user_phone: tenant.phone || "",
+            property_id: tenant.propertyId || tenant.property?._id || "",
+            property_name: tenant.propertyTitle || tenant.property?.title || "",
+            owner_id: resolveOwnerLoginId(tenant),
+            city: tenant.city || tenant.locationCode || "",
+            area: tenant.area || "",
+            routed_to_panel: "employee",
+            target_recipient: majorRecipient,
+            attachments: imageStr ? [{ filename: "proof.jpg", url: imageStr }] : []
+          })
+        });
+      }
       await fetchJson("/api/complaints", {
         method: "POST",
         body: JSON.stringify({
           ...basePayload,
+          escalated: sendToEmp,
           category: "Major Issue",
           issueType: "Major Issue"
         })
@@ -603,6 +655,18 @@ export default function Tenantcomplints() {
               <p className="text-xs text-slate-500">For less critical issues. Standard priority and normal response time.</p>
               
               <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Send To</label>
+                <select
+                  value={minorRecipient}
+                  onChange={(e) => setMinorRecipient(e.target.value)}
+                  className="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none mb-3"
+                >
+                  <option value="employee_superadmin">Direct to Employee &amp; Superadmin (Support Ticket)</option>
+                  <option value="owner">Property Owner (Room / Maintenance)</option>
+                  <option value="both">Both (Owner + Employee &amp; Superadmin)</option>
+                </select>
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Issue Category</label>
                 <select
                   value={minorCategory}
@@ -678,7 +742,18 @@ export default function Tenantcomplints() {
 
             <div className="space-y-4">
               <p className="text-xs text-red-500 font-medium bg-red-50 p-2 rounded">For urgent, critical problems requiring immediate attention.</p>
-              
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Send To</label>
+                <select
+                  value={majorRecipient}
+                  onChange={(e) => setMajorRecipient(e.target.value)}
+                  className="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-red-500 outline-none"
+                >
+                  <option value="employee_superadmin">Direct to Employee &amp; Superadmin (Support Ticket)</option>
+                  <option value="owner">Property Owner (Room / Maintenance)</option>
+                  <option value="both">Both (Owner + Employee &amp; Superadmin)</option>
+                </select>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
                 <textarea

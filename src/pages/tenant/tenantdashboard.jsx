@@ -450,6 +450,7 @@ export default function Tenantdashboard() {
   const [gateLeaveReason, setGateLeaveReason] = useState("");
 
   // Complaints State
+  const [complaintRecipient, setComplaintRecipient] = useState("employee_superadmin");
   const [complaintCategory, setComplaintCategory] = useState("Plumbing");
   const [complaintDesc, setComplaintDesc] = useState("");
   const [complaintPriority, setComplaintPriority] = useState("Low");
@@ -1208,27 +1209,75 @@ export default function Tenantdashboard() {
     e.preventDefault();
     if (!tenant) return;
     setComplaintBusy(true);
-    setComplaintStatusMsg("Submitting complaint...");
+    setComplaintStatusMsg("Submitting request...");
     try {
-      await fetchJson("/api/complaints", {
-        method: "POST",
-        body: JSON.stringify({
-          tenantId: tenant._id,
-          tenantLoginId: tenant.loginId,
-          tenantName: tenantUser?.name || tenant.name,
-          tenantPhone: tenantUser?.phone || tenant.phone,
-          tenantEmail: tenantUser?.email || tenant.email,
-          property: tenant.propertyTitle || tenant.property?.title,
-          propertyId: tenant.propertyId || tenant.property?._id,
-          roomNo: tenant.roomNo,
-          bedNo: tenant.bedNo,
-          category: complaintCategory,
-          description: complaintDesc,
-          priority: complaintPriority,
-          status: "Open"
-        })
-      });
-      setComplaintStatusMsg("Complaint submitted successfully! The owner has been notified.");
+      const sendToEmp = complaintRecipient === "employee_superadmin" || complaintRecipient === "both";
+      const sendToOwner = complaintRecipient === "owner" || complaintRecipient === "both";
+      let createdTicketId = null;
+
+      if (sendToEmp) {
+        const ticketTypesAllowed = [
+          "Tenant Complaint", "Owner Complaint", "Booking Dispute",
+          "Payment Issue", "Payment / PayU Issue", "Razorpay Issue",
+          "Property Issue", "Move-in Issue", "Refund Request", "Technical Issue", "Other"
+        ];
+        const mappedTicketType = ticketTypesAllowed.includes(complaintCategory)
+          ? complaintCategory
+          : "Tenant Complaint";
+
+        const ticketRes = await fetchJson("/api/tickets/create", {
+          method: "POST",
+          body: JSON.stringify({
+            ticket_type: mappedTicketType,
+            priority: complaintPriority || "Medium",
+            subject: `${complaintCategory}: ${complaintDesc.slice(0, 60)}`,
+            description: complaintDesc,
+            raised_by: tenant.loginId || tenant._id,
+            raised_by_name: tenantUser?.name || tenant.name || tenant.loginId,
+            raised_by_role: "tenant",
+            user_email: tenantUser?.email || tenant.email || "",
+            user_phone: tenantUser?.phone || tenant.phone || "",
+            property_id: tenant.propertyId || tenant.property?._id || tenant.property || "",
+            property_name: tenant.propertyTitle || tenant.property?.title || "",
+            owner_id: tenant.ownerLoginId || "",
+            city: tenant.city || tenant.locationCode || "",
+            area: tenant.area || "",
+            routed_to_panel: "employee",
+            target_recipient: complaintRecipient
+          })
+        });
+        createdTicketId = ticketRes?.ticket?.ticket_id || null;
+      }
+
+      if (sendToOwner || sendToEmp) {
+        await fetchJson("/api/complaints", {
+          method: "POST",
+          body: JSON.stringify({
+            tenantId: tenant._id,
+            tenantLoginId: tenant.loginId,
+            tenantName: tenantUser?.name || tenant.name,
+            tenantPhone: tenantUser?.phone || tenant.phone,
+            tenantEmail: tenantUser?.email || tenant.email,
+            property: tenant.propertyTitle || tenant.property?.title,
+            propertyId: tenant.propertyId || tenant.property?._id,
+            roomNo: tenant.roomNo,
+            bedNo: tenant.bedNo,
+            category: complaintCategory,
+            description: complaintDesc,
+            priority: complaintPriority,
+            escalated: sendToEmp,
+            status: "Open"
+          })
+        });
+      }
+
+      if (sendToEmp && sendToOwner) {
+        setComplaintStatusMsg(`Submitted successfully! Sent to Owner, Employee & Superadmin${createdTicketId ? ` (Ticket: ${createdTicketId})` : ""}.`);
+      } else if (sendToEmp) {
+        setComplaintStatusMsg(`Ticket ${createdTicketId || ""} submitted directly to Employee & Superadmin successfully!`);
+      } else {
+        setComplaintStatusMsg("Complaint submitted successfully! The owner has been notified.");
+      }
       setComplaintDesc("");
       fetchMyComplaints();
     } catch (err) {
@@ -1240,12 +1289,31 @@ export default function Tenantdashboard() {
 
   const fetchMyComplaints = async (t = null) => {
     const target = t || tenant;
-    if (!target?._id) return;
+    if (!target?._id && !target?.loginId) return;
     try {
-      const data = await fetchJson(`/api/complaints/tenant/${target._id}`);
-      if (data && data.complaints) {
-        setMyComplaints(data.complaints);
-      }
+      const [compRes, tickRes] = await Promise.all([
+        target._id ? fetchJson(`/api/complaints/tenant/${target._id}`).catch(() => null) : Promise.resolve(null),
+        target.loginId ? fetchJson(`/api/tickets/my-tickets?loginId=${encodeURIComponent(target.loginId)}`).catch(() => null) : Promise.resolve(null)
+      ]);
+      const comps = (compRes?.complaints || []).map(c => ({
+        ...c,
+        sentToLabel: c.escalated ? "Employee & Superadmin" : "Property Owner"
+      }));
+      const ticks = (tickRes?.tickets || []).map(tk => ({
+        _id: tk._id,
+        ticket_id: tk.ticket_id,
+        category: tk.ticket_type || tk.subject,
+        description: tk.description,
+        priority: tk.priority,
+        status: tk.status,
+        resolution_notes: tk.resolution_notes,
+        createdAt: tk.created_at,
+        sentToLabel: tk.routed_to_panel === "owner" ? "Property Owner" : "Employee & Superadmin"
+      }));
+      const combined = [...ticks, ...comps].sort(
+        (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+      );
+      setMyComplaints(combined);
     } catch (err) {
       console.error("Failed to fetch complaints:", err);
     }
@@ -2627,6 +2695,7 @@ export default function Tenantdashboard() {
                   <ComplaintForm
                     category={complaintCategory} setCategory={setComplaintCategory}
                     priority={complaintPriority} setPriority={setComplaintPriority}
+                    recipientTarget={complaintRecipient} setRecipientTarget={setComplaintRecipient}
                     desc={complaintDesc} setDesc={setComplaintDesc}
                     msg={complaintStatusMsg} busy={complaintBusy}
                     onSubmit={handleComplaintSubmit}

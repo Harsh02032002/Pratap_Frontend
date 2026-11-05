@@ -318,7 +318,7 @@ export default function VerificationCenter() {
       {/* Stats Quick Cards (NO ICONS) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {[
-          { key: "property_edits", label: "Property Edit Requests", count: propertyEdits.length },
+          { key: "property_edits", label: "Property Edit Requests", count: propertyEdits.length + newProperties.length },
           { key: "room_edits", label: "Room Edit Requests", count: roomEdits.length }
         ].map(tab => (
           <div
@@ -357,7 +357,8 @@ export default function VerificationCenter() {
             onChange={e => setActiveTab(e.target.value)}
             className="bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-1.5 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs"
           >
-            <option value="property_edits">Property Edit Requests ({filteredPropertyEdits.length})</option>
+            <option value="property_edits">Property & Listing Requests ({filteredPropertyEdits.length + filteredNewProperties.length})</option>
+            <option value="new_properties">New Property Listings Only ({filteredNewProperties.length})</option>
             <option value="room_edits">Room Edit Requests ({filteredRoomEdits.length})</option>
           </select>
         </div>
@@ -431,57 +432,110 @@ export default function VerificationCenter() {
                 ))
               )}
 
-              {/* Tab 2: Property Edits */}
+              {/* Tab 2: Property Edits & Owner New Property Listings */}
               {activeTab === "property_edits" && (
-                filteredPropertyEdits.length === 0 ? (
-                  <tr><td colSpan={isEmployeeView ? 5 : 6} className="py-12 text-center text-[13px] font-medium text-[#4A5961]">No property edit requests pending</td></tr>
-                ) : filteredPropertyEdits.map(p => (
-                  <tr key={p._id} className="hover:bg-[#F9FAFB] transition-colors">
-                    <td className="py-2.5 pr-4">
-                      <div>
-                        <p className="font-semibold text-[#10242A] text-[13px]">{p.title || "No Title"}</p>
-                        <p className="text-[11px] text-[#4A5961] mt-0.5">Edit Request</p>
-                      </div>
-                    </td>
-                    <td className="py-2.5 px-4">
-                      <p className="text-[13px] font-semibold text-[#10242A]">{p.ownerName || "Unknown Owner"}</p>
-                      <p className="text-[11px] text-[#4A5961] font-mono mt-0.5">{p.ownerLoginId || "N/A"}</p>
-                    </td>
-                    <td className="py-2.5 px-4">
-                      <p className="text-[13px] font-medium text-[#4A5961] flex items-center gap-1"><MapPin size={12} className="text-[#0E7C86]" /> {p.city || "N/A"}</p>
-                    </td>
-                    {!isEmployeeView && (
-                      <td className="py-2.5 px-4">
-                        {p.pendingChanges?.assignedToName || p.pendingChanges?.assignedTo || p.assignedToName || p.assignedTo ? (
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[11px] font-semibold text-[#10242A] bg-[#F4F6F8] border border-[#E1E6EA] px-2 py-0.5 rounded-[4px] inline-flex items-center gap-1">
-                              <User size={11} className="text-[#0E7C86]" /> {p.pendingChanges?.assignedToName || p.pendingChanges?.assignedTo || p.assignedToName || p.assignedTo}
+                (filteredPropertyEdits.length === 0 && filteredNewProperties.length === 0) ? (
+                  <tr><td colSpan={isEmployeeView ? 5 : 6} className="py-12 text-center text-[13px] font-medium text-[#4A5961]">No property edit or new listing requests pending</td></tr>
+                ) : (
+                  <>
+                    {filteredNewProperties.map(p => (
+                      <tr key={`new-${p._id}`} className="hover:bg-[#F9FAFB] transition-colors bg-amber-50/30">
+                        <td className="py-2.5 pr-4">
+                          <div>
+                            <p className="font-semibold text-[#10242A] text-[13px]">{p.title || "No Title"}</p>
+                            <span className="inline-block text-[10px] font-bold text-amber-800 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded mt-0.5">
+                              New Property Listing (Pending Approval)
                             </span>
-                            <button onClick={() => setAssignModal({ type: "property", id: p._id, city: p.city, title: p.title })} className="text-[11px] text-[#4A5961] hover:text-[#0E7C86] underline cursor-pointer" title="Reassign">Edit</button>
                           </div>
-                        ) : (
-                          <button onClick={() => setAssignModal({ type: "property", id: p._id, city: p.city, title: p.title })} className="text-[12px] font-semibold text-[#0E7C86] hover:underline flex items-center gap-1 cursor-pointer"><UserPlus size={12} /> Assign</button>
+                        </td>
+                        <td className="py-2.5 px-4">
+                          <p className="text-[13px] font-semibold text-[#10242A]">{p.ownerName || "Unknown Owner"}</p>
+                          <p className="text-[11px] text-[#4A5961] font-mono mt-0.5">{p.ownerLoginId || "N/A"}</p>
+                        </td>
+                        <td className="py-2.5 px-4">
+                          <p className="text-[13px] font-medium text-[#4A5961] flex items-center gap-1"><MapPin size={12} className="text-[#0E7C86]" /> {p.city || "N/A"}</p>
+                        </td>
+                        {!isEmployeeView && (
+                          <td className="py-2.5 px-4">
+                            {p.assignedToName || p.assignedTo ? (
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[11px] font-semibold text-[#10242A] bg-[#F4F6F8] border border-[#E1E6EA] px-2 py-0.5 rounded-[4px] inline-flex items-center gap-1">
+                                  <User size={11} className="text-[#0E7C86]" /> {p.assignedToName || p.assignedTo}
+                                </span>
+                                <button onClick={() => setAssignModal({ type: "property", id: p._id, city: p.city, title: p.title })} className="text-[11px] text-[#4A5961] hover:text-[#0E7C86] underline cursor-pointer" title="Reassign">Edit</button>
+                              </div>
+                            ) : (
+                              <button onClick={() => setAssignModal({ type: "property", id: p._id, city: p.city, title: p.title })} className="text-[12px] font-semibold text-[#0E7C86] hover:underline flex items-center gap-1 cursor-pointer"><UserPlus size={12} /> Assign</button>
+                            )}
+                          </td>
                         )}
-                      </td>
-                    )}
-                    <td className="py-2.5 px-4 text-[12px] text-[#4A5961]">
-                      {new Date(p.updatedAt || p.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="py-2.5 pl-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button onClick={() => setSelectedItem({ type: "property_edit", data: p })} className="px-2.5 py-1 bg-white hover:bg-[#F4F6F8] text-[#10242A] border border-[#CBD3D9] rounded-[6px] text-[12px] font-semibold transition-all flex items-center gap-1 cursor-pointer">
-                          <Eye size={12} /> Review
-                        </button>
-                        <button onClick={() => handleApprovePropertyEdit(p._id)} className="px-2.5 py-1 bg-[#095256] hover:bg-[#073E42] text-white rounded-[6px] text-[12px] font-semibold transition-all cursor-pointer">
-                          Approve
-                        </button>
-                        <button onClick={() => handleRejectPropertyEdit(p._id)} className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-[6px] text-[12px] font-semibold transition-all cursor-pointer">
-                          Reject
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                        <td className="py-2.5 px-4 text-[12px] text-[#4A5961]">
+                          {new Date(p.createdAt).toLocaleDateString()}
+                        </td>
+                        <td className="py-2.5 pl-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button onClick={() => setSelectedItem({ type: "new_property", data: p })} className="px-2.5 py-1 bg-white hover:bg-[#F4F6F8] text-[#10242A] border border-[#CBD3D9] rounded-[6px] text-[12px] font-semibold transition-all flex items-center gap-1 cursor-pointer">
+                              <Eye size={12} /> View
+                            </button>
+                            <button onClick={() => handleApproveNewProperty(p._id)} className="px-2.5 py-1 bg-[#095256] hover:bg-[#073E42] text-white rounded-[6px] text-[12px] font-semibold transition-all cursor-pointer">
+                              Approve
+                            </button>
+                            <button onClick={() => handleRejectNewProperty(p._id)} className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-[6px] text-[12px] font-semibold transition-all cursor-pointer">
+                              Reject
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {filteredPropertyEdits.map(p => (
+                      <tr key={p._id} className="hover:bg-[#F9FAFB] transition-colors">
+                        <td className="py-2.5 pr-4">
+                          <div>
+                            <p className="font-semibold text-[#10242A] text-[13px]">{p.title || "No Title"}</p>
+                            <p className="text-[11px] text-[#4A5961] mt-0.5">Edit Request</p>
+                          </div>
+                        </td>
+                        <td className="py-2.5 px-4">
+                          <p className="text-[13px] font-semibold text-[#10242A]">{p.ownerName || "Unknown Owner"}</p>
+                          <p className="text-[11px] text-[#4A5961] font-mono mt-0.5">{p.ownerLoginId || "N/A"}</p>
+                        </td>
+                        <td className="py-2.5 px-4">
+                          <p className="text-[13px] font-medium text-[#4A5961] flex items-center gap-1"><MapPin size={12} className="text-[#0E7C86]" /> {p.city || "N/A"}</p>
+                        </td>
+                        {!isEmployeeView && (
+                          <td className="py-2.5 px-4">
+                            {p.pendingChanges?.assignedToName || p.pendingChanges?.assignedTo || p.assignedToName || p.assignedTo ? (
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[11px] font-semibold text-[#10242A] bg-[#F4F6F8] border border-[#E1E6EA] px-2 py-0.5 rounded-[4px] inline-flex items-center gap-1">
+                                  <User size={11} className="text-[#0E7C86]" /> {p.pendingChanges?.assignedToName || p.pendingChanges?.assignedTo || p.assignedToName || p.assignedTo}
+                                </span>
+                                <button onClick={() => setAssignModal({ type: "property", id: p._id, city: p.city, title: p.title })} className="text-[11px] text-[#4A5961] hover:text-[#0E7C86] underline cursor-pointer" title="Reassign">Edit</button>
+                              </div>
+                            ) : (
+                              <button onClick={() => setAssignModal({ type: "property", id: p._id, city: p.city, title: p.title })} className="text-[12px] font-semibold text-[#0E7C86] hover:underline flex items-center gap-1 cursor-pointer"><UserPlus size={12} /> Assign</button>
+                            )}
+                          </td>
+                        )}
+                        <td className="py-2.5 px-4 text-[12px] text-[#4A5961]">
+                          {new Date(p.updatedAt || p.createdAt).toLocaleDateString()}
+                        </td>
+                        <td className="py-2.5 pl-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button onClick={() => setSelectedItem({ type: "property_edit", data: p })} className="px-2.5 py-1 bg-white hover:bg-[#F4F6F8] text-[#10242A] border border-[#CBD3D9] rounded-[6px] text-[12px] font-semibold transition-all flex items-center gap-1 cursor-pointer">
+                              <Eye size={12} /> Review
+                            </button>
+                            <button onClick={() => handleApprovePropertyEdit(p._id)} className="px-2.5 py-1 bg-[#095256] hover:bg-[#073E42] text-white rounded-[6px] text-[12px] font-semibold transition-all cursor-pointer">
+                              Approve
+                            </button>
+                            <button onClick={() => handleRejectPropertyEdit(p._id)} className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-[6px] text-[12px] font-semibold transition-all cursor-pointer">
+                              Reject
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </>
+                )
               )}
 
               {/* Tab 3: Room Edits */}

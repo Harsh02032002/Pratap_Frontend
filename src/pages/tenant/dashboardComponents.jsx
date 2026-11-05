@@ -2745,14 +2745,35 @@ function CardHeading({ icon: Icon, title }) {
 }
 
 // ─── Complaints: new request form (presentational) ───────────────────────────
-export function ComplaintForm({ category, setCategory, priority, setPriority, desc, setDesc, msg, busy, onSubmit }) {
+export function ComplaintForm({
+  category, setCategory,
+  priority, setPriority,
+  recipientTarget = "owner", setRecipientTarget,
+  desc, setDesc,
+  msg, busy, onSubmit
+}) {
   const labelCls = "block text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 mb-2.5";
   const selectCls = "w-full h-[54px] pl-11 pr-10 rounded-[16px] border border-[#eceef3] text-[14px] text-slate-700 bg-white appearance-none hover:border-slate-300 focus:outline-none focus:ring-4 focus:ring-[#6D3DF5]/12 focus:border-[#6D3DF5]/50 transition";
   return (
     <div className="rounded-[24px] border border-[#edeef2] bg-white p-8 sm:p-9 shadow-[0_10px_44px_-22px_rgba(15,23,42,0.20)]">
-      <CardHeading icon={FileText} title="New Request" />
+      <CardHeading icon={FileText} title="New Request / Support Ticket" />
 
-      <form onSubmit={onSubmit} className="space-y-7">
+      <form onSubmit={onSubmit} className="space-y-6">
+        {setRecipientTarget && (
+          <div>
+            <label className={labelCls}>Send Complaint / Ticket To</label>
+            <div className="relative">
+              <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+              <select value={recipientTarget} onChange={(e) => setRecipientTarget(e.target.value)} className={selectCls}>
+                <option value="owner">Property Owner (Room / Maintenance)</option>
+                <option value="employee_superadmin">Direct to Employee &amp; Superadmin (Support Ticket)</option>
+                <option value="both">Both (Property Owner + Employee &amp; Superadmin)</option>
+              </select>
+              <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+            </div>
+          </div>
+        )}
+
         <div>
           <label className={labelCls}>Issue Category</label>
           <div className="relative">
@@ -2764,6 +2785,9 @@ export function ComplaintForm({ category, setCategory, priority, setPriority, de
               <option value="Appliances">Appliances</option>
               <option value="Cleaning">Cleaning</option>
               <option value="Internet">Internet</option>
+              <option value="Payment Issue">Payment / PayU Issue</option>
+              <option value="Refund Request">Refund Request</option>
+              <option value="Owner Complaint">Owner Behaviour / Dispute</option>
               <option value="Other">Other</option>
             </select>
             <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
@@ -2846,21 +2870,38 @@ export function ComplaintHistory({ complaints }) {
       ) : (
         <div className="flex-1 overflow-y-auto -mr-2 pr-2 space-y-3">
           {list.map((c) => (
-            <div key={c._id} className="p-4 rounded-[16px] border border-[#eef0f4] bg-[#fafafb]">
+            <div key={c._id || c.ticket_id} className="p-4 rounded-[16px] border border-[#eef0f4] bg-[#fafafb]">
               <div className="flex justify-between items-start gap-3">
-                <span className="text-[13.5px] font-semibold text-slate-700">{c.category || "Complaint"}</span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {c.ticket_id && (
+                    <span className="font-mono text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#6D3DF5]/10 text-[#6D3DF5]">
+                      {c.ticket_id}
+                    </span>
+                  )}
+                  <span className="text-[13.5px] font-semibold text-slate-700">{c.category || c.ticket_type || c.subject || "Complaint"}</span>
+                  {c.sentToLabel && (
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-200/70 text-slate-600">
+                      To: {c.sentToLabel}
+                    </span>
+                  )}
+                </div>
                 <span className={`text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full ${
-                  c.status === "Resolved" ? "bg-emerald-50 text-emerald-600"
-                  : c.status === "In Progress" ? "bg-blue-50 text-blue-600"
+                  ["Resolved", "Completed"].includes(c.status) ? "bg-emerald-50 text-emerald-600"
+                  : ["In Progress", "Assigned"].includes(c.status) ? "bg-blue-50 text-blue-600"
                   : "bg-amber-50 text-amber-600"
                 }`}>
                   {c.status || "Open"}
                 </span>
               </div>
-              {c.description && <p className="text-[12.5px] text-slate-400 mt-2 leading-relaxed line-clamp-2">{c.description}</p>}
+              {c.description && <p className="text-[12.5px] text-slate-500 mt-2 leading-relaxed line-clamp-2">{c.description}</p>}
+              {c.resolution_notes && (
+                <p className="text-[11.5px] text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-2.5 py-1.5 mt-2">
+                  Resolution: {c.resolution_notes}
+                </p>
+              )}
               <div className="flex justify-between items-center text-[11px] text-slate-400 mt-2.5">
                 <span>Priority: {c.priority || "Low"}</span>
-                <span>{fmt(c.createdAt)}</span>
+                <span>{fmt(c.createdAt || c.created_at)}</span>
               </div>
             </div>
           ))}

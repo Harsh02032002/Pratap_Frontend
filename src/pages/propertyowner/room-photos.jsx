@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
-import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerRooms, updateRoom } from "../../utils/propertyowner";
-import { Image as ImageIcon, UploadCloud, Loader2, CheckCircle2, XCircle, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerRooms, updateRoom, clearOwnerFetchCache } from "../../utils/propertyowner";
+import { getApiBase, getAuthHeader } from "../../utils/api";
+import { Image as ImageIcon, UploadCloud, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { toast } from "react-hot-toast";
 
 export default function RoomPhotos() {
   const owner = getOwnerRuntimeSession();
@@ -16,11 +18,11 @@ export default function RoomPhotos() {
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 8;
 
-  const loadRooms = async () => {
+  const loadRooms = async (skipCache = false) => {
     try {
       setLoading(true);
-      const data = await fetchOwnerRooms(owner.loginId);
-      setRooms(Array.isArray(data) ? data : []);
+      const data = await fetchOwnerRooms(owner.loginId, 1, 500, skipCache);
+      setRooms(Array.isArray(data) ? data : (data?.rooms || []));
     } catch (e) {
       console.error(e);
     } finally {
@@ -58,21 +60,54 @@ export default function RoomPhotos() {
 
     try {
       setSaving((s) => ({ ...s, [roomId]: true }));
-      const compressed = [];
+      const token = localStorage.getItem("token") || localStorage.getItem("roomhy_owner_token") || localStorage.getItem("owner_token") || localStorage.getItem("user_token");
+      const authHeaders = token ? { Authorization: `Bearer ${token}` } : getAuthHeader();
+
+      const uploadedMedia = [];
       for (const file of files) {
-        compressed.push(await compress(file));
+        let fileToUpload = file;
+        try {
+          fileToUpload = await compress(file);
+        } catch (_) {}
+        const formData = new FormData();
+        formData.append("image", fileToUpload);
+        const res = await fetch(`${getApiBase()}/api/upload`, {
+          method: "POST",
+          headers: authHeaders,
+          body: formData
+        });
+        const data = await res.json();
+        const mediaUrl = data.url || data.filePath || data.location || data.fileUrl;
+        if (mediaUrl) {
+          uploadedMedia.push({
+            url: mediaUrl,
+            type: file.type.startsWith("video/") ? "video" : "image",
+            uploadedAt: new Date().toISOString()
+          });
+        }
+      }
+
+      if (uploadedMedia.length === 0) {
+        toast.error("Failed to upload photo. Please try again.");
+        return;
       }
 
       const room = rooms.find((r) => String(r._id || r.id) === String(roomId));
       const existing = Array.isArray(room?.media) ? room.media : [];
-      const newUrls = compressed.map((file) => URL.createObjectURL(file));
 
-      await updateRoom(roomId, { media: [...existing, ...newUrls] });
-      await loadRooms();
+      await updateRoom(roomId, {
+        media: [...existing, ...uploadedMedia],
+        ownerLoginId: owner.loginId
+      });
+      clearOwnerFetchCache(owner.loginId);
+      await loadRooms(true);
+      toast.success("Room photo upload submitted for approval!");
     } catch (err) {
       console.error("Upload failed:", err);
+      toast.error(err?.message || "Failed to upload photos");
     } finally {
       setSaving((s) => ({ ...s, [roomId]: false }));
+      if (e?.target) e.target.value = "";
     }
   };
 
@@ -106,7 +141,10 @@ export default function RoomPhotos() {
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
             {paginated.map((room) => {
-              const media = Array.isArray(room.media) ? room.media : [];
+              const pendingMedia = room.pendingChanges?.status === "pending" && Array.isArray(room.pendingChanges?.data?.media)
+                ? room.pendingChanges.data.media
+                : null;
+              const media = pendingMedia || (Array.isArray(room.media) ? room.media : []);
               const isSaving = !!saving[room._id || room.id];
               return (
                 <div key={room._id || room.id} className="rounded-2xl border border-border bg-card p-5 shadow-soft">
@@ -121,11 +159,14 @@ export default function RoomPhotos() {
                   </div>
 
                   <div className="grid grid-cols-3 gap-2 mb-4">
-                    {media.slice(0, 6).map((m, i) => (
-                      <div key={i} className="aspect-square rounded-xl overflow-hidden bg-slate-100 border border-slate-100">
-                        <img src={m} alt="" className="w-full h-full object-cover" loading="lazy" />
-                      </div>
-                    ))}
+                    {media.slice(0, 6).map((m, i) => {
+                      const src = m && typeof m === "object" ? m.url : m;
+                      return (
+                        <div key={i} className="aspect-square rounded-xl overflow-hidden bg-slate-100 border border-slate-100">
+                          <img src={src} alt="" className="w-full h-full object-cover" loading="lazy" />
+                        </div>
+                      );
+                    })}
                     {media.length === 0 && (
                       <div className="col-span-3 aspect-[16/9] rounded-xl bg-slate-50 border border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400">
                         <ImageIcon size={22} />

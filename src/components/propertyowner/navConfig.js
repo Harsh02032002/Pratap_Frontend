@@ -27,6 +27,7 @@ export const PROPERTY_OWNER_NAV = [
       { label: "Add Property", href: "/propertyowner/add-property", goldOnly: false },
       { label: "Rooms", href: "/propertyowner/rooms", goldOnly: false },
       { label: "Add Room", href: "/propertyowner/rooms?action=add", goldOnly: false },
+      { label: "Property Comparison", href: "/propertyowner/property-comparison", goldOnly: false },
     ]
   },
   {
@@ -51,6 +52,7 @@ export const PROPERTY_OWNER_NAV = [
     href: "/propertyowner/enquiry",
     submenus: [
       { label: "All Leads", href: "/propertyowner/enquiry", goldOnly: false },
+      { label: "Conversion Tracking", href: "/propertyowner/conversion-tracking", goldOnly: false },
       { label: "New Enquiries", href: "/propertyowner/new-enquiries", goldOnly: false },
       { label: "Booking Requests", href: "/propertyowner/booking_request", goldOnly: false },
       { label: "Confirmed Bookings", href: "/propertyowner/booking", goldOnly: false },

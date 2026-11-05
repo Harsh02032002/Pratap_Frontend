@@ -248,9 +248,17 @@ export default function Transactions() {
   const getFilteredData = () => {
     const query = searchQuery.toLowerCase();
     if (activeTab === "all") {
+      const onboardingTxIds = new Set(
+        payments
+          .map(p => String(p.razorpay_payment_id || "").trim())
+          .filter(id => id && id !== "N/A")
+      );
+      const uniqueRentPayments = rentPayments.filter(
+        rp => !onboardingTxIds.has(String(rp.transaction_id || "").trim())
+      );
       const allTx = [
         ...payments.map(p => ({ ...p, txn_type: "Onboarding (With Deposit)", method: "Online" })),
-        ...rentPayments.map(rp => ({
+        ...uniqueRentPayments.map(rp => ({
           ...rp,
           razorpay_payment_id: rp.transaction_id,
           txn_type: "Monthly Rent",
