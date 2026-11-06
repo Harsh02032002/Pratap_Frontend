@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
+import LeadAccessGuard from "../../components/propertyowner/LeadAccessGuard";
 import { getOwnerRuntimeSession, clearOwnerRuntimeSession } from "../../utils/propertyowner";
 import { apiFetch } from "../../utils/api";
 import { toast } from "react-hot-toast";
@@ -64,6 +65,7 @@ export default function WhatsappLeadsPage() {
       title="WhatsApp Integration Leads" 
       onLogout={() => { clearOwnerRuntimeSession(); window.location.href = "/propertyowner/ownerlogin"; }}
     >
+      <LeadAccessGuard owner={owner}>
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-8">
         <div>
           <h1 className="font-serif text-[38px] md:text-[44px] leading-[1.05] text-foreground">WhatsApp Chat Leads</h1>
@@ -163,6 +165,7 @@ export default function WhatsappLeadsPage() {
           })}
         </div>
       )}
+    </LeadAccessGuard>
     </PropertyOwnerLayout>
   );
 }

@@ -1,5 +1,6 @@
 import { fetchPropertiesLocal } from './mockApi';
 import { getScopedAuthToken, clearScopedSession } from './authScope';
+import { isLeadBlockedResponse, setLeadAccess } from './ownerLeadAccess';
 export { getScopedAuthToken, clearScopedSession };
 import { normalizeTierKey, composeTieredPropertyName } from './propertyTiers';
 
@@ -190,6 +191,9 @@ export const fetchJson = (path, options = {}) => {
         err.status = res.status;
         err.body = text;
         err.sessionEnded = sessionEnded;
+        // Backstop: a blocked owner hit a lead/bid/chat API, so flip the shared flag
+        // even if the /me check or the socket event was missed.
+        if (isLeadBlockedResponse(res.status, text)) setLeadAccess({ blocked: true });
         if (res.status === 401 && (sessionEnded || errorMsg.includes("token invalid") || errorMsg.includes("Token expired") || errorMsg.includes("token missing"))) {
           try { clearScopedSession(); } catch (_) {}
         }

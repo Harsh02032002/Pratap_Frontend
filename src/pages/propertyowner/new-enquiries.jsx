@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
+import LeadAccessGuard from "../../components/propertyowner/LeadAccessGuard";
 import { getOwnerRuntimeSession, clearOwnerRuntimeSession } from "../../utils/propertyowner";
 import { apiFetch } from "../../utils/api";
 import { 
@@ -85,6 +86,7 @@ export default function NewEnquiriesPage() {
       title="New Enquiries" 
       onLogout={() => { clearOwnerRuntimeSession(); window.location.href = "/propertyowner/ownerlogin"; }}
     >
+      <LeadAccessGuard owner={owner}>
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
         <div>
           <h1 className="font-serif text-[38px] md:text-[44px] leading-[1.05] text-foreground">New Enquiries</h1>
@@ -220,6 +222,7 @@ export default function NewEnquiriesPage() {
           ))}
         </div>
       )}
+    </LeadAccessGuard>
     </PropertyOwnerLayout>
   );
 }

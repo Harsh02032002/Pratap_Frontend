@@ -297,7 +297,7 @@ export default function ChatAlerts() {
               : "border-[#E1E6EA] hover:border-[#CBD3D9]"
           }`}
         >
-          <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Blocked Owners</p>
+          <p className="text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">Leads/Bids/Chat Blocked</p>
           <div className="mt-2">
             <h3 className="text-[24px] font-bold text-[#10242A] tracking-tight leading-none">{analytics.blockedOwnersCount}</h3>
           </div>
@@ -314,7 +314,7 @@ export default function ChatAlerts() {
           >
             <option value="logs">Violation Logs ({getFilteredViolations().length})</option>
             <option value="flagged">Flagged Conversations ({getFilteredFlagged().length})</option>
-            <option value="blocked">Blocked Owners ({blockedOwnersList.length})</option>
+            <option value="blocked">Leads/Bids/Chat Blocked ({blockedOwnersList.length})</option>
           </select>
 
           <select
@@ -327,7 +327,7 @@ export default function ChatAlerts() {
             <option value="commission_bypass">Commission Bypass Attempts</option>
             <option value="external_settlement">External Settlement Attempts</option>
             <option value="repeated_violators">Repeated Violators</option>
-            <option value="blocked_owners">Blocked Owners</option>
+            <option value="blocked_owners">Leads/Bids/Chat Blocked</option>
           </select>
 
           {filterType && (
@@ -369,7 +369,7 @@ export default function ChatAlerts() {
                 : "text-[#4A5961] hover:text-[#10242A]"
             }`}
           >
-            Blocked Owners ({blockedOwnersList.length})
+            Leads/Bids/Chat Blocked ({blockedOwnersList.length})
           </button>
         </div>
       </div>
@@ -677,8 +677,8 @@ export default function ChatAlerts() {
                 ) : blockedOwnersList.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="py-12 text-center text-[#4A5961]">
-                      <p className="text-[13px] font-semibold text-[#10242A]">No blocked owners found</p>
-                      <p className="text-[12px] text-[#4A5961] mt-0.5">No owner accounts are currently suspended or blocked.</p>
+                      <p className="text-[13px] font-semibold text-[#10242A]">No owners are blocked from leads, bids and chats</p>
+                      <p className="text-[12px] text-[#4A5961] mt-0.5">Owners blocked after chat violations appear here. Their panel still works.</p>
                     </td>
                   </tr>
                 ) : blockedOwnersList.map((owner) => (
@@ -841,12 +841,12 @@ export default function ChatAlerts() {
                 <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 bg-emerald-50 border border-emerald-100 px-2.5 py-0.5 rounded-full">
                   Confirmation Needed
                 </span>
-                <h3 className="font-serif text-[20px] font-bold text-slate-900 dark:text-white mt-1">Unblock Owner Account</h3>
+                <h3 className="font-serif text-[20px] font-bold text-slate-900 dark:text-white mt-1">Unblock Leads, Bids &amp; Chats</h3>
               </div>
             </div>
 
             <p className="text-[13px] text-slate-600 dark:text-slate-300 leading-relaxed mb-6">
-              Are you sure you want to unblock owner <strong className="text-slate-900 dark:text-white">{unblockConfirmId}</strong>? This will restore their chat privileges and reactivate their account on Roomhy.
+              Are you sure you want to unblock owner <strong className="text-slate-900 dark:text-white">{unblockConfirmId}</strong>? This restores their access to leads, bids and chats and clears their chat violation history. Their account was never deactivated, so the rest of their panel is unaffected.
             </p>
 
             <div className="flex items-center justify-end gap-3 border-t border-slate-100 dark:border-slate-800 pt-4">

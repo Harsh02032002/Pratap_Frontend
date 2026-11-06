@@ -870,7 +870,7 @@ export default function PropertyOwnerLayout({
               </div>
 
               <span className="text-[10px] font-black uppercase tracking-widest text-rose-600 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 px-3.5 py-1 rounded-full">
-                🚨 ACCOUNT PERMANENTLY BLOCKED
+                🚨 ACCOUNT BLOCKED
               </span>
 
               <h2 className="text-2xl font-black text-slate-900 dark:text-white mt-4 mb-2">Access Denied</h2>
@@ -879,8 +879,8 @@ export default function PropertyOwnerLayout({
               </p>
 
               <div className="p-3.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 rounded-2xl text-left text-[11px] font-semibold text-rose-900 dark:text-rose-200 mb-5 space-y-1">
-                <p className="font-bold text-rose-600 dark:text-rose-400">⚠️ PERMANENT SUSPENSION NOTICE:</p>
-                <p>Sharing phone numbers, social handles, requesting offline payments, or bypassing Roomhy's platform commission is strictly prohibited. Once blocked, accounts CANNOT be unblocked.</p>
+                <p className="font-bold text-rose-600 dark:text-rose-400">⚠️ SUSPENSION NOTICE:</p>
+                <p>Sharing phone numbers, social handles, requesting offline payments, or bypassing Roomhy's platform commission is strictly prohibited. If you believe this is a mistake, please contact the Roomhy team.</p>
               </div>
 
               {/* Countdown indicator */}

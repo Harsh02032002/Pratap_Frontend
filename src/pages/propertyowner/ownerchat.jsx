@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
+import LeadAccessGuard from "../../components/propertyowner/LeadAccessGuard";
 import { getOwnerRuntimeSession, clearOwnerRuntimeSession, fetchOwnerTenants } from "../../utils/propertyowner";
 import { apiFetch, getApiBase } from "../../utils/api";
 import { io } from "socket.io-client";
@@ -615,6 +616,7 @@ export default function OwnerChat() {
 
   return (
     <PropertyOwnerLayout owner={owner} title="Messages" onLogout={() => { clearOwnerRuntimeSession(); window.location.href = "/propertyowner/ownerlogin"; }}>
+      <LeadAccessGuard owner={owner}>
       <div className="mb-6">
         <h1 className="font-serif text-[38px] md:text-[44px] leading-[1.05] text-foreground">Messages</h1>
         <p className="mt-1.5 text-[13.5px] text-muted-foreground">Chat with tenants and staff.</p>
@@ -840,6 +842,7 @@ export default function OwnerChat() {
           )}
         </div>
       </div>
+    </LeadAccessGuard>
     </PropertyOwnerLayout>
   );
 }

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import toast from "react-hot-toast";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
+import LeadAccessGuard from "../../components/propertyowner/LeadAccessGuard";
 import { getOwnerRuntimeSession, clearOwnerRuntimeSession, filterByActiveProperty, fetchOwnerProperties } from "../../utils/propertyowner";
 import { fetchJson } from "../../utils/api";
 import { cacheGet, cacheSet, cacheInvalidate } from "../../utils/cache";
@@ -176,6 +177,7 @@ export default function BookingRequestPage() {
       title="Booking Requests" 
       onLogout={() => { clearOwnerRuntimeSession(); window.location.href = "/propertyowner/ownerlogin"; }}
     >
+      <LeadAccessGuard owner={owner}>
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
         <div>
           <h1 className="font-serif text-[38px] md:text-[44px] leading-[1.05] text-foreground">Booking Requests</h1>
@@ -457,6 +459,7 @@ export default function BookingRequestPage() {
           onClose={() => setSelectedRequestForView(null)} 
         />
       )}
+    </LeadAccessGuard>
     </PropertyOwnerLayout>
   );
 }
