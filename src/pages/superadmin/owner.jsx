@@ -9,7 +9,8 @@ import {
    Eye, UserPlus, FileCheck, ClipboardList, FileText,
    ShieldAlert, Send, Save, Lock, Plus, X
 } from "lucide-react";
-import { fetchJson, getAuthHeader } from "../../utils/api";
+import toast from "react-hot-toast";
+import { fetchJson, getAuthHeader, clearApiCache } from "../../utils/api";
 import { PageHeader } from "../../components/superadmin/PageHeader";
 import { StatCard } from "../../components/superadmin/StatCard";
 import OwnerAgreementModal from "../../components/superadmin/OwnerAgreementModal";
@@ -200,16 +201,17 @@ export default function Owner() {
 
    const deleteOwner = async (owner) => {
       const id = owner.loginId || owner._id;
-      if (!confirm("Permanently delete this property owner?")) return;
+      if (!confirm("Remove this owner's access? Their staff and tenants will also lose access. All data is kept and nobody is notified.")) return;
       try {
-         await fetchJson(`/api/owners/${encodeURIComponent(id)}`, { 
+         await fetchJson(`/api/owners/${encodeURIComponent(id)}`, {
             method: "DELETE",
             headers: getAuthHeader()
          });
+         clearApiCache();
          setOwners(prev => prev.filter(o => o.loginId !== id && o._id !== id));
-         alert("Property owner deleted successfully");
+         toast.success("Owner access removed. Data kept.");
       } catch (err) {
-         alert("Failed to delete owner: " + (err.body?.message || err.message));
+         toast.error("Failed to remove owner: " + (err.body?.message || err.message));
       }
    };
 
@@ -321,18 +323,6 @@ export default function Owner() {
       } finally {
          setLoading(false);
       }
-   };
-
-   const handleDelete = async (id) => {
-      if (!window.confirm(`Are you sure you want to delete owner ${id}?`)) return;
-      try {
-         await fetchJson(`/api/owners/${encodeURIComponent(id)}`, {
-            method: "DELETE",
-            headers: getAuthHeader()
-         });
-         loadOwners();
-         if (selectedOwner?.loginId === id) setSelectedOwner(null);
-      } catch (err) { alert("Failed to delete owner"); }
    };
 
    const exportToExcel = () => {
