@@ -1,7 +1,10 @@
 // In-memory TTL cache for rent-collection API responses.
 // Lives for the lifetime of the browser tab — cleared on refresh.
 
+import { onAuthSessionChange } from "./authScope";
+
 const store = new Map();
+onAuthSessionChange(() => store.clear());
 
 export function cacheGet(key) {
   const entry = store.get(key);

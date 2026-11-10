@@ -15,6 +15,7 @@ import { cacheInvalidate } from "../../utils/cache";
 import { API_URL } from "../../utils/api";
 import { initNotificationManager } from "../../utils/notificationManager";
 import { subscribeOwnerSocket } from "../../utils/ownerSocket";
+import { invalidateAuthSession } from "../../utils/authScope";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
@@ -159,6 +160,7 @@ export default function PropertyOwnerMobileLayout({
       sessionStorage.clear();
       localStorage.clear();
     } catch (_) {}
+    invalidateAuthSession();
     window.location.href = "/propertyowner/ownerlogin";
   };
 

@@ -9,6 +9,7 @@ import { requestNotificationPermission, showNativeNotification } from "../utils/
 import NotificationPromptBanner from "./NotificationPromptBanner";
 import AdminNotificationPrompt from "./AdminNotificationPrompt";
 import { getModuleActionPermissions } from "../utils/employeePermissions";
+import { invalidateAuthSession } from "../utils/authScope";
 
 const SAFE_BUTTON_TEXT_RE = /^(all|active|inactive|pending|verified|approved|rejected|published|overview|details|view|view details|preview|cancel|close|back|next|prev|previous|reset|clear|refresh|retry|filter|filters|search|export|export csv|export excel|download|print|ok|got it|\d+|✕|×)$/i;
 
@@ -400,6 +401,7 @@ export default function SharedShell() {
             const role = String(user?.role || "").toLowerCase();
             localStorage.clear();
             sessionStorage.clear();
+            invalidateAuthSession();
             window.location.href = (role === "employee" || role === "areamanager" || role === "manager") ? "/employee/index" : "/superadmin/index";
           }}
         />
@@ -585,7 +587,7 @@ export default function SharedShell() {
                 <div className="absolute top-full right-0 mt-4 w-48 bg-white rounded-xl shadow-xl border border-slate-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all -translate-y-2 group-hover:translate-y-0 z-50 overflow-hidden">
                   <div className="p-2 space-y-1">
                     <button onClick={() => navigate(section === "employee" ? "/employee/settings" : "/superadmin/settings")} className="w-full text-left px-3 py-2 hover:bg-slate-50 rounded-lg text-sm text-slate-600 font-medium transition-colors">Profile Settings</button>
-                    <button onClick={() => { localStorage.clear(); sessionStorage.clear(); window.location.href = section === "employee" ? "/employee/index" : "/superadmin/index"; }} className="w-full text-left px-3 py-2 hover:bg-rose-50 text-rose-600 rounded-lg text-sm font-medium transition-colors">Log Out</button>
+                    <button onClick={() => { localStorage.clear(); sessionStorage.clear(); invalidateAuthSession(); window.location.href = section === "employee" ? "/employee/index" : "/superadmin/index"; }} className="w-full text-left px-3 py-2 hover:bg-rose-50 text-rose-600 rounded-lg text-sm font-medium transition-colors">Log Out</button>
                   </div>
                 </div>
               </div>

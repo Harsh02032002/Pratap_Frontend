@@ -23,6 +23,7 @@ import { LayoutDashboard,
   Search, Lock, ChevronRight, Crown, Zap, Users, BookOpen, FileText, Smartphone, Wallet, PieChart, Shield, Target, Navigation, Megaphone, Coffee, Receipt, Sparkles, LinkIcon, UserPlus, AlertCircle, Calendar, HelpCircle, Building2, Image as ImageIcon } from "lucide-react";
 import { SILVER_NAV, GOLD_NAV } from './navConfig';
 import { fetchOwnerProperties, clearOwnerRuntimeSession } from "../../utils/propertyowner";
+import { clearScopedSession } from "../../utils/authScope";
 import { getStaffPanelNav, filterNotificationsForStaff, hasStaffPermission } from "../../utils/staffAccess";
 import { API_URL } from "../../utils/api";
 import PropertyOwnerMobileLayout from "./PropertyOwnerMobileLayout";
@@ -387,6 +388,7 @@ export default function PropertyOwnerLayout({
     } catch (_) {
       // ignore
     }
+    clearScopedSession("/propertyowner");
     window.location.href = "/propertyowner/ownerlogin";
   };
 

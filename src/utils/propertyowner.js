@@ -3,6 +3,7 @@ import { cacheGet, cacheSet, cacheInvalidate } from "./cache";
 import { getOwnerSession } from "./ownerSession";
 import { getStaffSession } from "./staffAccess";
 import { stripTieredPropertyName } from "./propertyTiers";
+import { clearScopedSession, onAuthSessionChange } from "./authScope";
 
 const OWNER_LOGIN_ID_REGEX = /^(ROOMHY\d+|\d{10}|\d{3,6}|[a-zA-Z0-9_\-\.]+)/i;
 
@@ -32,6 +33,9 @@ const writeJson = (key, value) => {
 };
 
 const _fetchCache = {};
+onAuthSessionChange(() => {
+  Object.keys(_fetchCache).forEach((key) => delete _fetchCache[key]);
+});
 const _CACHE_TTL = 30 * 1000; // 30 sec — deduplicates burst requests without hiding mutations
 const _getCached = (key) => { const e = _fetchCache[key]; return e && Date.now() - e.ts < _CACHE_TTL ? e.data : null; };
 const _setCached = (key, data) => { _fetchCache[key] = { data, ts: Date.now() }; };
@@ -345,6 +349,7 @@ export const clearOwnerRuntimeSession = () => {
   } catch (_) {
     // ignore
   }
+  clearScopedSession("/propertyowner");
 };
 
 export const formatDate = (value) => {

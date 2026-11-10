@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Lock, Clock, Crown, Phone, ChevronRight, AlertTriangle, RefreshCw, CreditCard, ShieldCheck, LogOut } from 'lucide-react';
 import { getApiBase, fetchJson } from '../../utils/api';
 import { getOwnerRuntimeSession } from '../../utils/propertyowner';
+import { clearScopedSession } from '../../utils/authScope';
 
 const CACHE_KEY = 'owner_trial_status';
 const CACHE_TTL_MS = 5 * 60 * 1000;
@@ -143,6 +144,7 @@ export default function TrialGuard({ owner, children, onLogout }) {
         localStorage.removeItem('owner_runtime_session');
         sessionStorage.clear();
       } catch (_) {}
+      clearScopedSession('/propertyowner');
       window.location.href = '/propertyowner/ownerlogin';
     }
   };

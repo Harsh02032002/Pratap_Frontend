@@ -8,6 +8,7 @@ import {
 import { useLocation, useNavigate } from "react-router-dom";
 import { LogoutDialog } from "./superadmin/LogoutDialog";
 import { readEmployeePermissionKeys, toPanelPath, isStaffRole } from "../utils/employeePermissions";
+import { invalidateAuthSession } from "../utils/authScope";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
@@ -64,6 +65,7 @@ export function Sidebar({ open, isMobile, onClose, onLogout, activeModuleId, set
     } else {
       sessionStorage.clear();
       localStorage.clear();
+      invalidateAuthSession();
       navigate("/superadmin/index");
     }
   };

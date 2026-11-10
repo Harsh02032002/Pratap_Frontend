@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchJson } from '../../utils/api';
+import { invalidateAuthSession } from '../../utils/authScope';
 import { Eye, EyeOff } from 'lucide-react';
 
 const ManagerLogin = () => {
@@ -38,6 +39,7 @@ const ManagerLogin = () => {
         localStorage.removeItem('staff_token');
         localStorage.removeItem('managerToken');
         localStorage.removeItem('managerData');
+        invalidateAuthSession();
       }
     } catch (_) {
       // ignore storage parsing issues
@@ -82,6 +84,7 @@ const ManagerLogin = () => {
         localStorage.setItem('managerData', JSON.stringify(managerUser));
         localStorage.setItem('user', JSON.stringify(managerUser));
         localStorage.setItem('token', response.token);
+        invalidateAuthSession();
         navigate('/propertyowner/admin');
       }
     } catch (err) {

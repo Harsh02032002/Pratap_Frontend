@@ -4,6 +4,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { useHtmlPage } from "../../utils/htmlPage";
 import { fetchJson } from "../../utils/api";
 import { getFirstAllowedEmployeeRoute } from "../../utils/employeePermissions";
+import { invalidateAuthSession } from "../../utils/authScope";
 
 const WINDOW_NAME_SESSION_PREFIX = "__ROOMHY_STAFF_SESSION__:";
 
@@ -72,6 +73,7 @@ export default function Index() {
     localStorage.setItem("token", tokenValue);
     sessionStorage.removeItem("owner_session");
     localStorage.removeItem("owner_user");
+    invalidateAuthSession();
   };
 
   const handleSuperAdminLogin = async (identifier, pass) => {
@@ -89,6 +91,7 @@ export default function Index() {
         localStorage.setItem("staff_token", data.token);
         sessionStorage.removeItem("owner_session");
         localStorage.removeItem("owner_user");
+        invalidateAuthSession();
         navigate(resolvePanelPath("superadmin", "superadmin"));
         return true;
       }
@@ -136,6 +139,7 @@ export default function Index() {
         localStorage.setItem("user", JSON.stringify(data.user));
         sessionStorage.setItem("token", data.token);
         sessionStorage.setItem("user", JSON.stringify(data.user));
+        invalidateAuthSession();
         const role = data.user.role;
         if (role === "superadmin" || role === "admin") {
           navigate(resolvePanelPath("superadmin", "superadmin"));

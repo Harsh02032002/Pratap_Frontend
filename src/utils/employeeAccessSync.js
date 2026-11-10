@@ -1,5 +1,6 @@
 import { fetchJson, getApiBase, getScopedAuthToken } from "./api";
 import { getFirstAllowedEmployeeRoute, hasEmployeePermission, isStaffRole } from "./employeePermissions";
+import { invalidateAuthSession } from "./authScope";
 
 export const ACCESS_UPDATED_EVENT = "roomhy-access-updated";
 
@@ -59,6 +60,7 @@ export async function refreshEmployeeAccess() {
 
   if (next.isActive === false) {
     try { sessionStorage.clear(); localStorage.clear(); } catch (_) { /* ignore */ }
+    invalidateAuthSession();
     window.location.replace("/employee/index?expired=1");
     return null;
   }

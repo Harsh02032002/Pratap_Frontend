@@ -5,8 +5,12 @@ import {
   clearScopedSession,
   hasFabricatedSession,
   isWebsiteRoute,
-  isAdminRole
+  isAdminRole,
+  getAuthSession,
+  invalidateAuthSession,
+  onAuthSessionChange
 } from '../utils/authScope';
+import { fetchJson } from '../utils/api';
 
 const AuthContext = createContext();
 
@@ -18,22 +22,25 @@ export const useAuth = () => {
   return context;
 };
 
-const getAuthApiUrl = () =>
-  import.meta.env?.VITE_API_URL ||
-  (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-    ? "http://localhost:5001"
-    : window.location.origin);
-
 export const AuthProvider = ({ children }) => {
   const [panelUser, setPanelUser] = useState(null);
   const [websiteUser, setWebsiteUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [sessionVersion, setSessionVersion] = useState(0);
   const [pathname, setPathname] = useState(() => {
     try { return window.location.pathname || "/"; } catch { return "/"; }
   });
 
+  useEffect(() => onAuthSessionChange(() => {
+    setPanelUser(null);
+    setWebsiteUser(null);
+    setLoading(true);
+    setSessionVersion((version) => version + 1);
+  }), []);
+
   useEffect(() => {
     const syncPath = () => {
+      getAuthSession();
       try { setPathname(window.location.pathname || "/"); } catch (_) {}
     };
     window.addEventListener("popstate", syncPath);
@@ -57,6 +64,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
+    getAuthSession();
     const onWebsite = isWebsiteRoute(pathname);
 
     if (hasFabricatedSession(pathname)) {
@@ -86,12 +94,10 @@ export const AuthProvider = ({ children }) => {
     if (onWebsite) setWebsiteUser(parsedUser);
     else setPanelUser(parsedUser);
 
-    fetch(`${getAuthApiUrl()}/api/auth/me`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then((res) => (res.ok ? res.json() : null))
+    let active = true;
+    fetchJson('/api/auth/me')
       .then((data) => {
-        if (data) {
+        if (active && data) {
           const backendUser = (data?.user && typeof data.user === "object") ? data.user : data;
           if (backendUser && typeof backendUser === "object" && backendUser.role) {
             if (onWebsite && (isAdminRole(backendUser.role) || backendUser.team || /^RY[A-Z0-9]+/i.test(String(backendUser.loginId || "")))) {
@@ -105,12 +111,13 @@ export const AuthProvider = ({ children }) => {
         }
       })
       .catch((err) => {
-        console.warn("[AuthContext] Auth verify warning:", err?.message);
+        if (active && err?.name !== 'AbortError') console.warn("[AuthContext] Auth verify warning:", err?.message);
       })
       .finally(() => {
-        setLoading(false);
+        if (active) setLoading(false);
       });
-  }, [pathname]);
+    return () => { active = false; };
+  }, [pathname, sessionVersion]);
 
   const onWebsiteNow = isWebsiteRoute(pathname);
   const user = onWebsiteNow ? websiteUser : panelUser;
@@ -118,17 +125,21 @@ export const AuthProvider = ({ children }) => {
   const login = (userData, token) => {
     if (isWebsiteRoute()) {
       if (!isAdminRole(userData?.role) && !userData?.team) {
-        setWebsiteUser(userData);
         localStorage.setItem('website_token', token);
         sessionStorage.setItem('website_token', token);
         localStorage.setItem('website_user', JSON.stringify(userData));
         sessionStorage.setItem('website_user', JSON.stringify(userData));
+        invalidateAuthSession();
+        setWebsiteUser(userData);
       }
     } else {
-      setPanelUser(userData);
       localStorage.setItem('token', token);
       sessionStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(userData));
+      sessionStorage.setItem('user', JSON.stringify(userData));
       localStorage.setItem('userData', JSON.stringify(userData));
+      invalidateAuthSession();
+      setPanelUser(userData);
     }
   };
 
@@ -172,5 +183,10 @@ export const clearAllAuthKeys = () => {
     localStorage.removeItem("website_token");
     sessionStorage.removeItem("website_user");
     localStorage.removeItem("website_user");
+    ["staff_token", "managerToken", "accessToken", "adminToken"].forEach((key) => {
+      sessionStorage.removeItem(key);
+      localStorage.removeItem(key);
+    });
   } catch (_) {}
+  invalidateAuthSession();
 };

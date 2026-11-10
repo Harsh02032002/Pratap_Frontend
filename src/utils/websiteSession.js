@@ -1,3 +1,5 @@
+import { invalidateAuthSession } from "./authScope.js";
+
 const WEBSITE_USER_KEY = "website_user";
 const WEBSITE_TOKEN_KEY = "website_token";
 const ACCESS_TOKEN_KEY = "accessToken";
@@ -92,6 +94,7 @@ export const setWebsiteSession = (user, token) => {
   } catch (error) {
     console.error("Failed to store website session:", error);
   }
+  invalidateAuthSession();
   return normalized;
 };
 
@@ -105,6 +108,7 @@ export const clearWebsiteSession = () => {
   } catch (error) {
     console.error("Failed to clear website session:", error);
   }
+  invalidateAuthSession();
 };
 
 export const getWebsiteSession = () => {

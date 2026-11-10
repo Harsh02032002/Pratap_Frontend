@@ -1,4 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
+import { onAuthSessionChange } from "../utils/authScope";
 
 // Named, reusable stale times so cache policy lives in one place.
 // Values are milliseconds.
@@ -44,3 +45,5 @@ export const queryClient = new QueryClient({
     },
   },
 });
+
+onAuthSessionChange(() => queryClient.clear());

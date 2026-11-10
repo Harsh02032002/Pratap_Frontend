@@ -1,5 +1,5 @@
 import { fetchPropertiesLocal } from './mockApi';
-import { getScopedAuthToken, clearScopedSession } from './authScope';
+import { getScopedAuthToken, clearScopedSession, getAuthSession, createAuthRequest, onAuthSessionChange } from './authScope';
 import { isLeadBlockedResponse, setLeadAccess } from './ownerLeadAccess';
 export { getScopedAuthToken, clearScopedSession };
 import { normalizeTierKey, composeTieredPropertyName } from './propertyTiers';
@@ -22,7 +22,7 @@ let _formattedPropertiesCache = null;
 let _formattedPropertiesCacheTs = 0;
 
 // In-flight GET request deduplication.
-// If the exact same GET URL is requested while one is already in-flight,
+// If the same GET is requested in the same session while already in-flight,
 // the existing Promise is returned — no second network request is made.
 const _inflightRequests = new Map();
 
@@ -32,14 +32,20 @@ export const clearApiCache = () => {
   _formattedPropertiesCacheTs = 0;
 };
 
+onAuthSessionChange(() => {
+  clearApiCache();
+  _inflightRequests.clear();
+});
+
 const _fetchCached = (url, ttlMs = _CACHE_TTL_MS) => {
-  const entry = _cache.get(url);
+  const key = `${getAuthSession().generation}:${url}`;
+  const entry = _cache.get(key);
   if (entry && Date.now() - entry.ts < ttlMs) return entry.promise;
   const promise = fetchJson(url).catch(err => {
-    _cache.delete(url); // never cache a failed request
+    _cache.delete(key); // never cache a failed request
     throw err;
   });
-  _cache.set(url, { promise, ts: Date.now() });
+  _cache.set(key, { promise, ts: Date.now() });
   return promise;
 };
 
@@ -79,20 +85,7 @@ export const getApiBase = () => {
 // authenticate every website visitor as that superadmin.
 // Cookie is also set by the backend for httpOnly support.
 export const getAuthHeader = () => {
-  let token = getScopedAuthToken();
-  if (!token) {
-    try {
-      token =
-        sessionStorage.getItem("token") ||
-        localStorage.getItem("token") ||
-        sessionStorage.getItem("staff_token") ||
-        localStorage.getItem("staff_token") ||
-        sessionStorage.getItem("managerToken") ||
-        localStorage.getItem("managerToken") ||
-        sessionStorage.getItem("accessToken") ||
-        localStorage.getItem("accessToken");
-    } catch (_) {}
-  }
+  const token = getScopedAuthToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
@@ -151,31 +144,48 @@ export const fetchJson = (path, options = {}) => {
   const base = getApiBase();
   const url = path.startsWith("http") ? path : `${base}${path}`;
   const method = (fetchOptions.method || 'GET').toUpperCase();
+  const session = getAuthSession();
+  const hasBody = method !== 'GET' && method !== 'HEAD';
+  const headers = new Headers(fetchOptions.headers);
+  if (hasBody && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
+  // Caller-supplied Authorization must not resurrect a token from another scope.
+  headers.delete('Authorization');
+  if (session.token) headers.set('Authorization', `Bearer ${session.token}`);
+  const requestKey = JSON.stringify([
+    session.generation, url,
+    { ...fetchOptions, headers: [...headers].filter(([name]) => name !== 'authorization') },
+    timeoutMs,
+  ]);
+  // A caller with its own cancellation signal owns an independent request.
+  const deduplicate = method === 'GET' && !fetchOptions.signal;
 
-  // Return the existing in-flight Promise for identical GET requests
-  if (method === 'GET') {
-    const existing = _inflightRequests.get(url);
+  if (deduplicate) {
+    const existing = _inflightRequests.get(requestKey);
     if (existing) return existing;
   }
 
   const promise = (async () => {
-    const hasBody = method !== 'GET' && method !== 'HEAD';
-    const headers = {
-      ...(hasBody ? { "Content-Type": "application/json" } : {}),
-      ...(fetchOptions.headers || {}),
-      ...getAuthHeader(),
-    };
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    const request = createAuthRequest(session, fetchOptions.signal);
+    const { controller } = request;
+    let timedOut = false;
+    const timeoutId = setTimeout(() => {
+      if (!controller.signal.aborted) {
+        timedOut = true;
+        controller.abort();
+      }
+    }, timeoutMs);
     try {
+      request.assertCurrent();
       const res = await fetch(url, {
         credentials: "include",
         ...fetchOptions,
         headers,
         signal: controller.signal,
       });
+      request.assertCurrent();
       if (!res.ok) {
         const text = await res.text();
+        request.assertCurrent();
         let errorMsg = `Request failed: ${res.status} ${res.statusText}`;
         // The backend sets this when the account was deactivated or force-logged
         // out, so the stored token is dead and no retry will help. Matching the
@@ -199,11 +209,13 @@ export const fetchJson = (path, options = {}) => {
         }
         throw err;
       }
-      // 2xx on a write — let cache owners drop anything this may have changed.
+      const data = await res.json();
+      request.assertCurrent();
+      // Only current-session writes may invalidate caches or update shared state.
       if (hasBody) _notifyMutation(method, path);
-      return res.json();
+      return data;
     } catch (err) {
-      if (err.name === 'AbortError') {
+      if (err.name === 'AbortError' && timedOut && err.code !== 'AUTH_SESSION_CHANGED') {
         const timeoutErr = new Error('Request timed out. Please try again.');
         timeoutErr.status = 408;
         timeoutErr.name = 'TimeoutError';
@@ -212,12 +224,13 @@ export const fetchJson = (path, options = {}) => {
       throw err;
     } finally {
       clearTimeout(timeoutId);
+      request.release();
     }
   })().finally(() => {
-    if (method === 'GET') _inflightRequests.delete(url);
+    if (deduplicate && _inflightRequests.get(requestKey) === promise) _inflightRequests.delete(requestKey);
   });
 
-  if (method === 'GET') _inflightRequests.set(url, promise);
+  if (deduplicate) _inflightRequests.set(requestKey, promise);
   return promise;
 };
 
@@ -818,6 +831,7 @@ const _formatProperty = (p) => {
 
 // Fetch properties from backend — cached 5 minutes
 export const fetchProperties = async () => {
+  getAuthSession();
   // Return already-formatted result if still fresh — skips _formatProperty re-run
   const now = Date.now();
   if (_formattedPropertiesCache && (now - _formattedPropertiesCacheTs) < _CACHE_TTL_MS) {

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useHtmlPage } from "../../utils/htmlPage";
 import { fetchJson } from "../../utils/api";
+import { invalidateAuthSession } from "../../utils/authScope";
 import { User, Key, Eye, EyeOff, ArrowRight, Lock, X } from "lucide-react";
 import { isStaffLoginId, setStaffSession, STAFF_HOME_PATH } from "../../utils/staffAccess";
 
@@ -75,6 +76,7 @@ export default function Ownerlogin() {
     sessionStorage.setItem("user", JSON.stringify(sessionUser));
     localStorage.setItem("owner_user", JSON.stringify(sessionUser));
     sessionStorage.setItem("owner_session", JSON.stringify(sessionUser));
+    invalidateAuthSession();
   };
 
   // Staff members (owner-scoped employees) authenticate through this same form.

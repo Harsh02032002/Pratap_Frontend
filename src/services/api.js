@@ -1,6 +1,6 @@
 // Centralized API service for Roomhy React App
 // This replaces the vanilla JS API calls with proper React-compatible fetch calls
-import { getScopedAuthToken } from '../utils/authScope';
+import { getAuthSession, createAuthRequest, clearScopedSession } from '../utils/authScope';
 
 const getApiUrl = () => {
   if (import.meta.env?.VITE_API_URL && import.meta.env.VITE_API_URL !== 'undefined') return import.meta.env.VITE_API_URL;
@@ -40,30 +40,23 @@ export const API_URL = getApiUrl();
 // Generic fetch wrapper with error handling
 export const apiFetch = async (endpoint, options = {}) => {
   const url = `${API_URL}${endpoint}`;
-  const defaultHeaders = {
-    'Content-Type': 'application/json',
-  };
-
-  // Add auth token if available. The route-scoped JWT comes first — it is what
-  // fetchJson sends, and the owner/staff logins store their token under `token`,
-  // not inside the `user` object, so `user.token` alone left owner-panel calls
-  // unauthenticated. `user.token` stays as the fallback for logins that set it.
-  const user = JSON.parse(localStorage.getItem('user') || 'null');
-  const authToken = getScopedAuthToken() || user?.token;
-  if (authToken) {
-    defaultHeaders['Authorization'] = `Bearer ${authToken}`;
-  }
+  const session = getAuthSession();
+  const headers = new Headers(options.headers);
+  if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
+  headers.delete('Authorization');
+  if (session.token) headers.set('Authorization', `Bearer ${session.token}`);
+  const request = createAuthRequest(session, options.signal);
 
   try {
+    request.assertCurrent();
     const response = await fetch(url, {
       ...options,
-      headers: {
-        ...defaultHeaders,
-        ...options.headers,
-      },
+      headers,
+      signal: request.controller.signal,
     });
-
+    request.assertCurrent();
     const data = await response.json();
+    request.assertCurrent();
 
     if (!response.ok) {
       throw new Error(data.error || data.message || 'API request failed');
@@ -71,8 +64,10 @@ export const apiFetch = async (endpoint, options = {}) => {
 
     return data;
   } catch (error) {
-    console.error(`API Error [${endpoint}]:`, error);
+    if (error.name !== 'AbortError') console.error(`API Error [${endpoint}]:`, error);
     throw error;
+  } finally {
+    request.release();
   }
 };
 
@@ -84,7 +79,7 @@ export const authApi = {
   }),
 
   logout: () => {
-    localStorage.removeItem('user');
+    clearScopedSession();
     window.location.href = '/propertyowner/ownerlogin';
   },
 

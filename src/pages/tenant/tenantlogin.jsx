@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useHtmlPage } from "../../utils/htmlPage";
 import { fetchJson } from "../../utils/api";
+import { invalidateAuthSession } from "../../utils/authScope";
 import { Eye, EyeOff, Home, User, KeyRound, ArrowRight, Lock, X } from "lucide-react";
 
 const resolvePanelPath = (folder, fileName) => {
@@ -53,6 +54,7 @@ export default function Tenantlogin() {
     localStorage.setItem("user", JSON.stringify(data.user));
     sessionStorage.setItem("user", JSON.stringify(data.user));
     localStorage.setItem("tenant_user", JSON.stringify(data.user));
+    invalidateAuthSession();
   };
 
   const handleLogin = async () => {

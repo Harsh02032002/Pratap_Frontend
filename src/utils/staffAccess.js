@@ -19,6 +19,7 @@ import {
   Target, Calendar, CalendarDays, IndianRupee, Wallet, BarChart3, FileText, UserCheck, Wrench,
 } from "lucide-react";
 import { PROPERTY_OWNER_NAV } from "../components/propertyowner/navConfig";
+import { getAuthSession, clearScopedSession } from "./authScope";
 
 // ----------------------------------------------------------------------------
 // Canonical permission catalog.
@@ -205,6 +206,9 @@ export function setStaffSession(emp, token) {
     try { sessionStorage.setItem("token", token); } catch (_) { }
     try { localStorage.setItem("token", token); } catch (_) { }
   }
+  // This helper also refreshes staff metadata; unchanged credentials must not
+  // cancel that staff member's requests on every permissions refresh.
+  getAuthSession();
 }
 
 export function getStaffSession() {
@@ -223,6 +227,7 @@ export function clearStaffSession() {
     try { sessionStorage.removeItem(k); } catch (_) { }
     try { localStorage.removeItem(k); } catch (_) { }
   });
+  clearScopedSession("/staff");
 }
 
 // Single canonical login destination for the whole app.
