@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { postExpectSuccess } from "./utils";
+import { recognizeOcrText } from "../../utils/tesseractOcr";
 import {
   extractAadhaarFromText,
   hasAadhaarKeywords,
@@ -61,10 +62,7 @@ export const useAadhaarOcr = (apiBases, role = "tenant") => {
       // Layer 2 — Tesseract.js browser OCR (sandbox fallback or File-only input)
       try {
         setter({ status: "loading", message: "Reading card with OCR…" });
-        const { createWorker } = await import("tesseract.js");
-        const worker = await createWorker("eng");
-        const { data: { text } } = await worker.recognize(tesseractSrc);
-        await worker.terminate();
+        const text = await recognizeOcrText(tesseractSrc, { apiBases });
 
         const candidate  = extractAadhaarFromText(text);
         const hasKeywords = hasAadhaarKeywords(text) || hasAadhaarSecondaryMarkers(text);

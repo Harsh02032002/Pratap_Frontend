@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   formatAadhaarWithSpaces,
   getApiBases,
@@ -11,6 +11,7 @@ import {
 } from "./utils";
 import { compressImage, PRESETS } from "../../utils/imageCompression";
 import { captureOwnerOnboardingLink, loadOwnerOnboardingProfile, saveOwnerOnboardingProfile } from "../../utils/ownerOnboarding";
+import { recognizeOcrText } from "../../utils/tesseractOcr";
 
 const emptyDoc = { file: null, preview: "", name: "", type: "", uploaded: false, url: "" };
 
@@ -104,6 +105,7 @@ export const useOwnerProfile = () => {
   const [bankOcrStatus, setBankOcrStatus] = useState({ loading: false, text: "", type: "" });
   const [docUploading, setDocUploading] = useState(false);
   const [docStatus, setDocStatus] = useState({ type: "", text: "" });
+  const bankScanSeqRef = useRef(0);
 
   const updateForm = useCallback((patch) => {
     setForm((prev) => ({ ...prev, ...patch }));
@@ -365,11 +367,8 @@ export const useOwnerProfile = () => {
 
       if (cashfreeDone) return;
 
-      // Layer 2 — Tesseract.js browser OCR fallback
-      const { createWorker } = await import("tesseract.js");
-      const worker = await createWorker("eng");
-      const { data: { text } } = await worker.recognize(file);
-      await worker.terminate();
+      // Layer 2 — Self-hosted Tesseract.js OCR (+ backend fallback)
+      const text = await recognizeOcrText(file, { apiBases });
 
       const candidate = extractAadhaarFromText(text);
       const hasKeywords = hasAadhaarKeywords(text) || hasAadhaarSecondaryMarkers(text);
@@ -393,8 +392,70 @@ export const useOwnerProfile = () => {
   }, [apiBases]);
 
   // Bank Proof OCR verification — checks that uploaded image is a real bank document matching owner bank details
+  const evaluateBankProofText = useCallback((rawText) => {
+    const cleanRaw = String(rawText || "");
+    const upper = cleanRaw.toUpperCase();
+    const compactUpper = upper.replace(/[\s\-:]/g, "");
+    const digitsOnly = cleanRaw.replace(/\D/g, "");
+
+    const bankKeywords = [
+      "BANK", "ACCOUNT", "A/C", "IFSC", "BRANCH", "CHEQUE", "PASSBOOK",
+      "STATEMENT", "SAVINGS", "CURRENT", "HOLDER", "RUPEES", "MICR",
+      "NEFT", "RTGS", "IMPS", "CIF", "PASS BOOK", "PAY TO",
+      "SBI", "STATE BANK", "HDFC", "ICICI", "AXIS", "PNB", "PUNJAB NATIONAL",
+      "BARODA", "KOTAK", "CANARA", "UNION BANK", "INDUSIND", "YES BANK",
+      "AU SMALL", "PAYTM", "FEDERAL", "IDBI", "IDFC", "INDIAN BANK",
+      "CENTRAL BANK", "BANDHAN", "UCO", "GRAMIN"
+    ];
+    const hasBankKeyword = bankKeywords.some((kw) => upper.includes(kw));
+
+    const rawIfscMatches = compactUpper.match(/[A-Z]{4}[0O][A-Z0-9]{6}/g) || [];
+    const normalizedIfscs = rawIfscMatches.map((code) => code.slice(0, 4) + "0" + code.slice(5));
+    const ifscMatch = normalizedIfscs[0] || "";
+
+    const labeledAcct = cleanRaw.match(/(?:a\/?c|account|acc)[^\n\d]{0,16}([\d\s\-]{9,24})/i);
+    const labeledAcctDigits = labeledAcct ? labeledAcct[1].replace(/\D/g, "") : "";
+    const acctMatch =
+      (labeledAcctDigits.length >= 9 && labeledAcctDigits.length <= 18 ? labeledAcctDigits : "") ||
+      (cleanRaw.match(/\b\d{9,18}\b/)?.[0] || "");
+
+    const expectedAcct = String(form.bankAccountNumber || "").replace(/\D/g, "");
+    const rawExpectedIfsc = String(form.ifscCode || "").trim().toUpperCase();
+    const expectedIfsc =
+      rawExpectedIfsc.length === 11
+        ? rawExpectedIfsc.slice(0, 4) + "0" + rawExpectedIfsc.slice(5)
+        : rawExpectedIfsc;
+    const expectedBank = String(form.bankName || "").trim().toUpperCase();
+
+    const acctLast4 = expectedAcct.length >= 4 ? expectedAcct.slice(-4) : "";
+    const ifscPrefix = expectedIfsc.length >= 4 ? expectedIfsc.slice(0, 4) : "";
+
+    const matchedAcct = Boolean(acctLast4 && digitsOnly.includes(acctLast4));
+    const matchedIfsc = Boolean(
+      (expectedIfsc && (compactUpper.includes(expectedIfsc) || normalizedIfscs.includes(expectedIfsc))) ||
+      (ifscPrefix && compactUpper.includes(ifscPrefix))
+    );
+    const matchedBankName = Boolean(
+      expectedBank && expectedBank.split(/\s+/).filter((w) => w.length >= 3).some((w) => upper.includes(w))
+    );
+
+    return {
+      hasBankKeyword,
+      ifscMatch,
+      acctMatch,
+      expectedAcct,
+      expectedIfsc,
+      acctLast4,
+      matchedAcct,
+      matchedIfsc,
+      matchedBankName,
+      hasAnySignal: Boolean(hasBankKeyword || ifscMatch || acctMatch || matchedAcct || matchedIfsc || matchedBankName)
+    };
+  }, [form.bankAccountNumber, form.bankName, form.ifscCode]);
+
   const handleBankProofImagePick = useCallback(async (file) => {
     if (!file) return;
+    const scanId = ++bankScanSeqRef.current;
     const preview = file.type.startsWith("image/") ? URL.createObjectURL(file) : "";
     setBankProof({ file, preview, name: file.name, type: file.type, uploaded: false, url: "" });
 
@@ -405,43 +466,28 @@ export const useOwnerProfile = () => {
 
     setBankOcrStatus({ loading: true, text: "Scanning bank proof via OCR to verify bank details...", type: "scanning" });
     try {
-      const { createWorker } = await import("tesseract.js");
-      const worker = await createWorker("eng");
-      const { data: { text } } = await worker.recognize(file);
-      await worker.terminate();
+      let combinedText = await recognizeOcrText(file, { apiBases });
+      if (scanId !== bankScanSeqRef.current) return;
 
-      const rawText = String(text || "");
-      const upper = rawText.toUpperCase();
-      const compactUpper = upper.replace(/[\s\-:]/g, "");
-      const digitsOnly = rawText.replace(/\D/g, "");
+      let check = evaluateBankProofText(combinedText);
+      if (!check.matchedAcct && !check.matchedIfsc) {
+        try {
+          const rawPassText = await recognizeOcrText(file, { raw: true, apiBases });
+          if (scanId !== bankScanSeqRef.current) return;
+          const mergedText = combinedText + "\n" + rawPassText;
+          const mergedCheck = evaluateBankProofText(mergedText);
+          if (mergedCheck.matchedAcct || mergedCheck.matchedIfsc || (!check.hasAnySignal && mergedCheck.hasAnySignal)) {
+            combinedText = mergedText;
+            check = mergedCheck;
+          }
+        } catch (_) {
+          // keep first pass result
+        }
+      }
 
-      const bankKeywords = [
-        "BANK", "ACCOUNT", "A/C", "IFSC", "BRANCH", "CHEQUE", "PASSBOOK",
-        "STATEMENT", "SAVINGS", "CURRENT", "HOLDER", "PAY", "RUPEES", "MICR",
-        "SBI", "STATE BANK", "HDFC", "ICICI", "AXIS", "PNB", "PUNJAB NATIONAL",
-        "BARODA", "KOTAK", "CANARA", "UNION BANK", "INDUSIND", "YES BANK", "AU SMALL", "PAYTM", "FEDERAL", "IDBI", "IDFC"
-      ];
-      const hasBankKeyword = bankKeywords.some((kw) => upper.includes(kw));
-      const ifscMatch = compactUpper.match(/[A-Z]{4}0[A-Z0-9]{6}/);
-      const acctMatch = rawText.match(/\b\d{9,18}\b/);
+      if (scanId !== bankScanSeqRef.current) return;
 
-      const expectedAcct = String(form.bankAccountNumber || "").replace(/\D/g, "");
-      const expectedIfsc = String(form.ifscCode || "").trim().toUpperCase();
-      const expectedBank = String(form.bankName || "").trim().toUpperCase();
-
-      const acctLast4 = expectedAcct.length >= 4 ? expectedAcct.slice(-4) : "";
-      const ifscPrefix = expectedIfsc.length >= 4 ? expectedIfsc.slice(0, 4) : "";
-
-      const matchedAcct = Boolean(acctLast4 && digitsOnly.includes(acctLast4));
-      const matchedIfsc = Boolean(
-        (expectedIfsc && compactUpper.includes(expectedIfsc)) ||
-        (ifscPrefix && compactUpper.includes(ifscPrefix))
-      );
-      const matchedBankName = Boolean(
-        expectedBank && expectedBank.split(/\s+/).filter(w => w.length >= 3).some(w => upper.includes(w))
-      );
-
-      if (!hasBankKeyword && !ifscMatch && !acctMatch && !matchedAcct && !matchedIfsc) {
+      if (!check.hasBankKeyword && !check.ifscMatch && !check.acctMatch && !check.matchedAcct && !check.matchedIfsc) {
         setBankOcrStatus({
           loading: false,
           text: "OCR Failed: This image does not appear to be a valid Bank Proof (Passbook / Cancelled Cheque / Statement).",
@@ -450,20 +496,20 @@ export const useOwnerProfile = () => {
         return;
       }
 
-      if (matchedAcct || matchedIfsc) {
+      if (check.matchedAcct || check.matchedIfsc) {
         const matchedParts = [];
-        if (matchedAcct) matchedParts.push(`A/C ending ${acctLast4}`);
-        if (matchedIfsc) matchedParts.push(`IFSC ${expectedIfsc || ifscMatch?.[0] || ""}`);
+        if (check.matchedAcct) matchedParts.push("A/C ending " + check.acctLast4);
+        if (check.matchedIfsc) matchedParts.push("IFSC " + (check.expectedIfsc || check.ifscMatch || ""));
         setBankOcrStatus({
           loading: false,
-          text: `Bank Proof OCR Verified (${matchedParts.join(", ")} matched).`,
+          text: "Bank Proof OCR Verified (" + matchedParts.join(", ") + " matched).",
           type: "verified"
         });
-      } else if (hasBankKeyword || ifscMatch || acctMatch || matchedBankName) {
-        if ((expectedAcct || expectedIfsc) && ifscMatch && expectedIfsc && ifscMatch[0] !== expectedIfsc) {
+      } else if (check.hasBankKeyword || check.ifscMatch || check.acctMatch || check.matchedBankName) {
+        if ((check.expectedAcct || check.expectedIfsc) && check.ifscMatch && check.expectedIfsc && check.ifscMatch !== check.expectedIfsc) {
           setBankOcrStatus({
             loading: false,
-            text: `OCR Mismatch: Detected IFSC ${ifscMatch[0]} does not match entered IFSC ${expectedIfsc}.`,
+            text: "OCR Mismatch: Detected IFSC " + check.ifscMatch + " does not match entered IFSC " + check.expectedIfsc + ".",
             type: "rejected"
           });
         } else {
@@ -481,14 +527,17 @@ export const useOwnerProfile = () => {
         });
       }
     } catch (_) {
+      if (scanId !== bankScanSeqRef.current) return;
       setBankOcrStatus({ loading: false, text: "Could not scan image automatically. Ensure bank details are clearly visible.", type: "suspicious" });
     }
-  }, [form.bankAccountNumber, form.bankName, form.ifscCode]);
+  }, [apiBases, evaluateBankProofText]);
 
   const handleFileSelect = useCallback((docType, file) => {
+    setDocStatus({ type: "", text: "" });
     if (!file) {
       if (docType === "ownerPhoto") setOwnerPhoto(emptyDoc);
       else if (docType === "bankProof") {
+        bankScanSeqRef.current += 1;
         setBankProof(emptyDoc);
         setBankOcrStatus({ loading: false, text: "", type: "" });
       }
@@ -509,6 +558,9 @@ export const useOwnerProfile = () => {
     const loginId = form.loginId.trim();
     if (!loginId) return alert("Save profile first (Login ID is required)");
 
+    if (bankProof.file && bankOcrStatus.loading) {
+      return alert("Bank proof scan is still in progress. Please wait a moment and try again.");
+    }
     if (bankProof.file && bankOcrStatus.type === "rejected") {
       return alert(bankOcrStatus.text || "Please upload a valid Bank Proof image matching your bank details.");
     }
@@ -562,17 +614,17 @@ export const useOwnerProfile = () => {
         } else if (data.ocrResult) {
           setAadhaarOcrStatus({ loading: false, text: "Aadhaar OCR verified successfully.", type: "verified" });
         } else if (data.ocrError) {
-          setAadhaarOcrStatus({ loading: false, text: `OCR: ${data.ocrError}`, type: "error" });
+          setAadhaarOcrStatus({ loading: false, text: "OCR: " + data.ocrError, type: "error" });
         }
       }
 
       setDocStatus({ type: "success", text: "Documents uploaded successfully." });
     } catch (err) {
-      setDocStatus({ type: "error", text: `Upload failed: ${err.message}` });
+      setDocStatus({ type: "error", text: "Upload failed: " + err.message });
     } finally {
       setDocUploading(false);
     }
-  }, [apiBases, aadhaarDoc, bankProof, form.loginId, ownerPhoto]);
+  }, [apiBases, aadhaarDoc, bankOcrStatus, bankProof, form.loginId, ownerPhoto]);
 
   const handleStartVerification = useCallback(async () => {
     const trimmedLogin = form.loginId.trim();

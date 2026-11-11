@@ -10,7 +10,7 @@ import {
 import { getApiBase, fetchJson, getAuthHeader } from "../../utils/api";
 import { toast } from "react-hot-toast";
 import { PageHeader } from "../../components/superadmin/PageHeader";
-import Tesseract from 'tesseract.js';
+import { recognizeOcrText } from '../../utils/tesseractOcr';
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
@@ -474,15 +474,9 @@ export default function AddTenant() {
     const loadingToast = toast.loading(`Processing Aadhaar ${side}...`);
 
     try {
-      const result = await Tesseract.recognize(
-        imageFile,
-        'eng',
-        {
-          logger: m => console.log(m)
-        }
-      );
-
-      const text = result.data.text;
+      const text = await recognizeOcrText(imageFile, {
+        logger: m => console.log(m)
+      });
       console.log('Extracted text:', text);
 
       // Parse extracted text and map to form fields

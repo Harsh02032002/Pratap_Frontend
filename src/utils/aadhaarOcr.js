@@ -1,4 +1,4 @@
-import Tesseract from "tesseract.js";
+import { recognizeOcrText } from "./tesseractOcr";
 import { verhoeffCheck } from "../pages/digital-checkin/utils";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -478,8 +478,7 @@ const preprocessForOcr = async (file) => {
 // pass alone drops.
 export const readTextFromImage = async (file, { raw = false } = {}) => {
   const source = raw ? file : await preprocessForOcr(file);
-  const result = await Tesseract.recognize(source, "eng");
-  return result?.data?.text || "";
+  return recognizeOcrText(source, { raw: true, preprocess: false });
 };
 
 // ── the gate ─────────────────────────────────────────────────────────────────

@@ -31,7 +31,7 @@ function AadhaarUploadArea({ doc, ocrStatus, onFileChange, onRemove, onUpload, u
           accept="image/*"
           capture="environment"
           style={{ display: "none" }}
-          onChange={(e) => onFileChange(e.target.files?.[0])}
+          onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; onFileChange(f); }}
         />
       </div>
 
@@ -111,7 +111,7 @@ function UploadBox({ label, icon, doc, ocrStatus, inputId, capture, onFileChange
           accept="image/*,application/pdf"
           capture={capture}
           style={{ display: "none" }}
-          onChange={(e) => onFileChange(e.target.files?.[0])}
+          onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; onFileChange(f); }}
         />
       </div>
 
@@ -382,10 +382,10 @@ export default function DigitalCheckinOwnerprofile() {
             <button
               type="button"
               onClick={handleDocumentUpload}
-              disabled={docUploading}
+              disabled={docUploading || bankOcrStatus.loading}
               className="upload-btn"
             >
-              {docUploading ? "Uploading..." : "Upload Documents"}
+              {docUploading ? "Uploading..." : bankOcrStatus.loading ? "Scanning Bank Proof..." : "Upload Documents"}
             </button>
           </div>
 

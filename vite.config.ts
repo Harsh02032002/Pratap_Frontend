@@ -134,8 +134,8 @@ export default defineConfig(({ mode }) => {
           ],
           // Never precache index.html — always fetch from network on F5.
           globPatterns: ['**/*.{js,css,png,jpg,webp,svg,ico,woff2}'],
-          // Exclude HTML from precache so the SW never serves stale pages.
-          globIgnores: ['**/*.html'],
+          // Exclude HTML and large on-demand OCR WASM/traineddata assets from precache.
+          globIgnores: ['**/*.html', 'tesseract/**'],
         },
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
         manifest: {
