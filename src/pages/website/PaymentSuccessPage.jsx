@@ -1,75 +1,42 @@
 import React, { useEffect, useState } from 'react';
-import { useSearchParams, useNavigate, Link } from 'react-router-dom';
-import { CheckCircle2, ShieldCheck, ArrowRight, Building2, Calendar, FileText, Download, Copy, Check, Mail } from 'lucide-react';
+import { useSearchParams, Link } from 'react-router-dom';
+import { CheckCircle2, ShieldCheck, ArrowRight, Building2, Calendar, FileText, Download, Copy, Check, Mail, AlertCircle, Clock, Loader2 } from 'lucide-react';
 import WebsiteNavbar from '../../components/website/WebsiteNavbar';
 import WebsiteFooter from '../../components/website/WebsiteFooter';
 import MobileBottomNav from '../../components/website/MobileBottomNav';
-import { fetchJson } from '../../utils/api';
+import { usePaymentConfirmation } from '../../utils/paymentConfirmation';
+import { getAuthSession } from '../../utils/authScope';
 import { toast } from 'react-hot-toast';
 
 export default function PaymentSuccessPage() {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
 
   const orderId = searchParams.get('order_id') || searchParams.get('txnid') || searchParams.get('orderId') || '';
-  const amountParam = searchParams.get('amount') || searchParams.get('amt') || '';
-  const bookingIdParam = searchParams.get('bookingId') || searchParams.get('booking_id') || '';
-
-  const [loading, setLoading] = useState(true);
-  const [paymentDetails, setPaymentDetails] = useState(null);
-  const [countdown, setCountdown] = useState(12);
+  const confirmation = usePaymentConfirmation(orderId);
+  const { state, receipt: paymentDetails, check } = confirmation;
   const [copiedBookingId, setCopiedBookingId] = useState(false);
+  const [printing, setPrinting] = useState(false);
+  const paid = state === 'paid' && paymentDetails !== null;
 
+  useEffect(() => { setPrinting(false); }, [orderId]);
+
+  // Printing always rechecks the server so a stale or refunded record cannot
+  // produce a new paid receipt from an earlier successful page load.
   useEffect(() => {
-    let isMounted = true;
-    const loadStatus = async () => {
-      if (!orderId) {
-        setLoading(false);
-        return;
-      }
-      try {
-        const res = await fetchJson(`/api/payments/payu/status/${orderId}`).catch(() => null);
-        if (isMounted && res && (res.success || res.transaction)) {
-          setPaymentDetails(res.transaction || res.data || res);
-        }
-      } catch (err) {
-        console.error('Error fetching transaction status:', err);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
-    loadStatus();
-    return () => { isMounted = false; };
-  }, [orderId]);
+    if (!printing || state === 'loading') return;
+    setPrinting(false);
+    if (paid && confirmation.generation === getAuthSession().generation) window.print();
+  }, [printing, state, paid, confirmation.generation]);
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          navigate('/my-stays');
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [navigate]);
-
-  const displayAmount = paymentDetails?.booking_amount || paymentDetails?.amount || amountParam || '500';
-  const displayPropName = paymentDetails?.property_name || 'Roomhy Verified Stay';
-  const displayTxnid = orderId || paymentDetails?.order_id || paymentDetails?.cf_order_id || `RMH_PAYU_${Date.now()}`;
-  const displayBookingId = paymentDetails?.booking_id || bookingIdParam || displayTxnid;
-  const displayOwner = paymentDetails?.owner_name
-    ? `${paymentDetails.owner_name}${paymentDetails.owner_id ? ` (${paymentDetails.owner_id})` : ''}`
-    : (paymentDetails?.owner_id || 'Verified Property Owner');
-  const displayDate = paymentDetails?.paidAt
-    ? new Date(paymentDetails.paidAt).toLocaleString('en-IN')
-    : new Date().toLocaleString('en-IN');
+  const displayAmount = paymentDetails?.amount;
+  const displayPropName = paymentDetails?.propertyName;
+  const displayTxnid = paymentDetails?.paymentId;
+  const displayBookingId = paymentDetails?.bookingId;
+  const displayOwner = paymentDetails?.ownerName || 'Not recorded';
+  const displayDate = paymentDetails?.paidAt ? new Date(paymentDetails.paidAt).toLocaleString('en-IN') : '';
 
   const handleCopyBookingId = () => {
-    if (!displayBookingId) return;
+    if (!paid || !displayBookingId) return;
     navigator.clipboard?.writeText(String(displayBookingId));
     setCopiedBookingId(true);
     toast.success('Booking ID copied to clipboard!');
@@ -77,7 +44,8 @@ export default function PaymentSuccessPage() {
   };
 
   const handlePrint = () => {
-    window.print();
+    setPrinting(true);
+    check();
   };
 
   return (
@@ -86,7 +54,21 @@ export default function PaymentSuccessPage() {
 
       <main className="flex-1 max-w-3xl w-full mx-auto px-4 py-8 md:py-14 flex flex-col items-center justify-center">
         
-        {/* Animated Success Badge & Card */}
+        {!paid && (
+          <div className="w-full bg-white rounded-3xl shadow-xl border border-slate-100 p-8 text-center space-y-5" role="status">
+            {state === 'loading' ? <Loader2 className="w-12 h-12 mx-auto text-teal-600 animate-spin" /> : state === 'pending' ? <Clock className="w-12 h-12 mx-auto text-amber-600" /> : <AlertCircle className="w-12 h-12 mx-auto text-slate-500" />}
+            <h1 className="text-2xl font-black">{state === 'loading' ? 'Checking payment…' : state === 'pending' ? 'Payment pending' : state === 'failed' ? 'Payment not completed' : 'Payment confirmation unavailable'}</h1>
+            <p className="text-sm text-slate-600">{state === 'loading' ? 'Please wait while we verify your payment.' : state === 'pending' ? 'Your payment is awaiting confirmation. Check again before making another payment.' : state === 'failed' ? 'This payment failed, was cancelled, or was refunded. A paid receipt is unavailable.' : 'We could not verify this payment. Sign in with the account used for your booking and check again, or contact support.'}</p>
+            <div className="flex flex-wrap justify-center gap-3">
+              {orderId && state !== 'loading' && <button type="button" onClick={check} className="px-5 py-3 rounded-xl bg-teal-600 text-white font-bold">Check again</button>}
+              <Link to="/my-stays" className="px-5 py-3 rounded-xl bg-slate-100 font-bold">Go to My Stays</Link>
+              {state === 'unavailable' && <Link to="/login" className="px-5 py-3 rounded-xl bg-slate-100 font-bold">Sign in</Link>}
+            </div>
+          </div>
+        )}
+
+        {paid && (
+        /* Verified payment receipt */
         <div className="w-full bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-300">
           
           {/* Top Hero Banner */}
@@ -102,11 +84,11 @@ export default function PaymentSuccessPage() {
               Payment Successful! 🎉
             </h1>
             <p className="text-teal-100 text-xs md:text-sm font-semibold max-w-md mx-auto leading-relaxed">
-              Your booking confirmation and Official Booking ID have also been sent to your registered email.
+              Your payment has been verified. Keep this receipt for your records.
             </p>
 
             <div className="mt-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-[11px] font-extrabold uppercase tracking-widest text-white border border-white/30">
-              <ShieldCheck className="w-3.5 h-3.5" /> 100% Secure Online Payment
+              <ShieldCheck className="w-3.5 h-3.5" /> Payment verified
             </div>
           </div>
 
@@ -118,7 +100,7 @@ export default function PaymentSuccessPage() {
               <div className="text-center sm:text-left">
                 <div className="inline-flex items-center gap-1.5 text-[11px] font-black text-teal-700 uppercase tracking-wider">
                   <Mail className="w-3.5 h-3.5" />
-                  <span>Official Booking ID (Sent to Your Email)</span>
+                  <span>Booking ID</span>
                 </div>
                 <div className="text-xl sm:text-2xl font-mono font-black text-slate-900 mt-1 break-all">
                   {displayBookingId}
@@ -137,22 +119,9 @@ export default function PaymentSuccessPage() {
               </button>
             </div>
 
-            {/* Auto-redirect Callout Banner */}
-            <div className="bg-teal-50 border border-teal-200 text-teal-800 px-4 py-3 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-bold">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-teal-600 animate-ping"></span>
-                <span>Redirecting to My Stays in <span className="text-sm font-black text-teal-900">{countdown}s</span>...</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <button 
-                  onClick={() => navigate('/my-stays')}
-                  className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-black uppercase transition-all shadow-md shrink-0 flex items-center gap-1.5 cursor-pointer"
-                >
-                  <span>Go to My Stays</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
+            <Link to="/my-stays" className="inline-flex items-center gap-2 text-teal-700 font-bold">
+              Go to My Stays <ArrowRight className="w-4 h-4" />
+            </Link>
 
             {/* Amount Callout */}
             <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-5 text-center flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -168,7 +137,7 @@ export default function PaymentSuccessPage() {
 
             {/* Receipt Summary Grid */}
             <div className="space-y-3">
-              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Transaction Breakdown</h3>
+              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Receipt {paymentDetails.receiptId}</h3>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 
@@ -213,6 +182,7 @@ export default function PaymentSuccessPage() {
               <button
                 type="button"
                 onClick={handlePrint}
+                disabled={printing}
                 className="py-3 px-6 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Download className="w-4 h-4" />
@@ -234,6 +204,7 @@ export default function PaymentSuccessPage() {
           </div>
 
         </div>
+        )}
 
       </main>
 

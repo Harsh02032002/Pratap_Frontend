@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { CreditCard, ShieldCheck, ArrowLeft, CheckCircle2, AlertCircle, Loader2, Copy, Check } from "lucide-react";
+import { CreditCard, ShieldCheck, ArrowLeft, AlertCircle, Loader2, Copy, Check } from "lucide-react";
 import WebsiteNavbar from "../../components/website/WebsiteNavbar";
 import WebsiteFooter from "../../components/website/WebsiteFooter";
 import { fetchJson } from "../../utils/api";
@@ -31,57 +31,21 @@ export default function PaymentCheckout() {
   }, [rawAmount]);
   
   const [loading, setLoading] = useState(true);
-  const [razorpayKey, setRazorpayKey] = useState("");
   const [bookingData, setBookingData] = useState(null);
-  const [paymentStatus, setPaymentStatus] = useState("pending"); // pending, success, failed
+  const [paymentStatus, setPaymentStatus] = useState("pending");
   const [error, setError] = useState("");
   const [copiedId, setCopiedId] = useState(false);
-
-  const redirectStatus = String(
-    searchParams.get("txStatus") ||
-    searchParams.get("link_status") ||
-    searchParams.get("order_status") ||
-    searchParams.get("status") ||
-    ""
-  ).toUpperCase();
 
   useEffect(() => {
     const init = async () => {
       setLoading(true);
       try {
-        if (redirectStatus === "SUCCESS" || redirectStatus === "PAID" || redirectStatus === "PAID_SUCCESSFULLY") {
-          navigate(`/website/payment-success?order_id=${encodeURIComponent(orderId || '')}&status=success`);
+        if (orderId) {
+          // A gateway return is only a reference, never evidence of payment.
+          // The confirmation page verifies it for the signed-in booking user.
+          navigate(`/website/payment-success?order_id=${encodeURIComponent(orderId)}`, { replace: true });
           return;
         }
-
-        if (orderId) {
-          const statusRes = await fetchJson(`/api/payments/payu/status/${orderId}`).catch(() => null);
-          const rawStatus = String(
-            statusRes?.status ||
-            statusRes?.transaction?.status ||
-            ""
-          ).toUpperCase();
-
-          if (rawStatus === "PAID" || rawStatus === "SUCCESS" || rawStatus === "VERIFIED" || rawStatus === "SETTLED") {
-            navigate(`/website/payment-success?order_id=${encodeURIComponent(orderId)}&status=success`);
-            return;
-          } else if (rawStatus === "FAILED" || rawStatus === "CANCELLED") {
-            setPaymentStatus("failed");
-            setError(statusRes?.message || "Payment transaction was not completed.");
-            setLoading(false);
-            return;
-          }
-          if (statusRes?.transaction) {
-            setBookingData({
-              property_name: statusRes.transaction.property_name || "Roomhy Stay",
-              amount: statusRes.transaction.booking_amount || 0
-            });
-          }
-        }
-
-        // Fetch Razorpay Key
-        const keyRes = await fetchJson("/api/booking/config/razorpay-key").catch(() => null);
-        setRazorpayKey(keyRes?.razorpayKey || keyRes?.key || "");
 
         // Fetch dynamic booking amount config as fallback
         const bookingAmtRes = await fetchJson("/api/booking/config/booking-amount").catch(() => null);
@@ -111,7 +75,7 @@ export default function PaymentCheckout() {
       }
     };
     init();
-  }, [extractedBookingId, rawBookingId, orderId, redirectStatus]);
+  }, [extractedBookingId, rawBookingId, orderId, navigate]);
 
   const handlePayNow = async () => {
     try {
@@ -250,23 +214,6 @@ export default function PaymentCheckout() {
                   </button>
                 </div>
               </div>
-            </div>
-          )}
-
-          {paymentStatus === "success" && (
-            <div className="p-10 text-center animate-in zoom-in-95 duration-500">
-              <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                <CheckCircle2 size={40} />
-              </div>
-              <h2 className="text-3xl font-black text-gray-900 mb-2">Payment Success!</h2>
-              <p className="text-gray-500 mb-8">Thank you for choosing Roomhy. Your payment has been confirmed and the Booking ID has been emailed to you.</p>
-              
-              <button 
-                onClick={() => navigate("/website/index")}
-                className="w-full py-4 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-2xl shadow-xl shadow-teal-600/20 transition-all"
-              >
-                Go to Dashboard
-              </button>
             </div>
           )}
 
