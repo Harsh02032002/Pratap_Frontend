@@ -95,7 +95,7 @@ export default function AddPropertyWizard() {
       const uploadedUrls = [];
       for (const file of Array.from(files)) {
         // Resize/compress before upload — camera originals are 3-12MB.
-        const optimizedFile = await compressImage(file);
+        const optimizedFile = await compressImage(file).catch(() => file);
         const data = new FormData();
         data.append('image', optimizedFile);
 
@@ -103,6 +103,7 @@ export default function AddPropertyWizard() {
         const res = await fetch(`${base}/api/upload`, {
           method: 'POST',
           body: data,
+          credentials: 'include',
           headers: getAuthHeader()
         });
 
@@ -116,8 +117,13 @@ export default function AddPropertyWizard() {
         }
 
         if (!res.ok) throw new Error(json?.error || json?.message || `HTTP error ${res.status}`);
-        const imgUrl = json?.url || json?.secure_url || json?.filePath || json?.location;
-        if (imgUrl) uploadedUrls.push(imgUrl);
+        const rawUrl = json?.secure_url || json?.url || json?.data?.url || json?.filePath || json?.location;
+        if (rawUrl) {
+          const finalUrl = String(rawUrl).startsWith('http') || String(rawUrl).startsWith('data:')
+            ? rawUrl
+            : `${base}${String(rawUrl).startsWith('/') ? '' : '/'}${rawUrl}`;
+          uploadedUrls.push(finalUrl);
+        }
       }
 
       if (target === 'images') {
@@ -194,6 +200,15 @@ export default function AddPropertyWizard() {
 
     setLoading(true);
     try {
+      const viewImages = (formData.propertyViews || []).flatMap(v => Array.isArray(v?.images) ? v.images : []).filter(Boolean);
+      const mergedImages = [...new Set([...(formData.images || []).filter(Boolean), ...viewImages])];
+      const normalizedViews = (formData.propertyViews || []).map((v, idx) => {
+        if (idx === 0 && (!v.images || v.images.length === 0) && mergedImages.length > 0) {
+          return { ...v, label: v.label || 'Main', images: mergedImages };
+        }
+        return v;
+      });
+
       const propertyData = {
         title: formData.propertyName,
         description: formData.description || '',
@@ -208,9 +223,9 @@ export default function AddPropertyWizard() {
         ownerLoginId: owner?.loginId || '',
         ownerName: formData.ownerName,
         ownerPhone: formData.phone,
-        images: formData.images || [],
-        featuredImage: formData.images?.[0] || '',
-        propertyViews: formData.propertyViews || [],
+        images: mergedImages,
+        featuredImage: mergedImages[0] || '',
+        propertyViews: normalizedViews,
         status: 'pending_approval',
         contact: {
           name: formData.ownerName,

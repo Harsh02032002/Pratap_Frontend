@@ -23,16 +23,16 @@ export default function PropertyOverview() {
       try {
         const [statsRes, propsRes] = await Promise.all([
           fetchPropertyOverviewStats().catch(() => null),
-          fetchJson("/api/properties?limit=5&sort=-createdAt").catch(() => null)
+          fetchJson("/api/properties?hasVisitReport=true&limit=5&sort=-createdAt").catch(() => null)
         ]);
 
         if (statsRes?.success && statsRes.summary) {
           setStats({
-            total: statsRes.summary.total || statsRes.summary.totalProperties || 0,
-            active: statsRes.summary.approved || statsRes.summary.activeProperties || statsRes.summary.approvedProperties || 0,
-            pending: statsRes.summary.pending || statsRes.summary.pendingReview || statsRes.summary.pendingProperties || 0,
-            rejected: statsRes.summary.rejected || statsRes.summary.rejectedProperties || 0,
-            leads: statsRes.summary.newThisMonth || statsRes.summary.totalLeads || 0
+            total: statsRes.summary.total ?? statsRes.summary.totalProperties ?? 0,
+            active: statsRes.summary.approved ?? statsRes.summary.activeProperties ?? statsRes.summary.approvedProperties ?? 0,
+            pending: statsRes.summary.pending ?? statsRes.summary.pendingReview ?? statsRes.summary.pendingProperties ?? 0,
+            rejected: statsRes.summary.rejected ?? statsRes.summary.rejectedProperties ?? 0,
+            leads: statsRes.summary.newThisMonth ?? statsRes.summary.totalLeads ?? 0
           });
         }
 
@@ -42,7 +42,11 @@ export default function PropertyOverview() {
             name: p.title || p.propertyName || p.name || "Unnamed Property",
             owner: p.ownerName || p.owner?.name || "—",
             location: p.city || p.locationCode || "—",
-            status: p.status === "approved" ? "Approved" : p.status === "rejected" ? "Rejected" : "Pending",
+            status: (p.isLiveOnWebsite || p.status === "active" || p.status === "approved")
+              ? "Approved"
+              : (p.status === "blocked" || p.status === "rejected")
+                ? "Rejected"
+                : "Pending",
             date: p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : "—"
           })));
         }

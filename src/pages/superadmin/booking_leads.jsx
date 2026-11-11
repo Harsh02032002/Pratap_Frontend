@@ -44,6 +44,14 @@ export default function TotalLeads() {
     return matchSearch && matchStatus && matchLoc;
   });
 
+  const availableLocations = Array.from(
+    new Set(
+      leads
+        .map((l) => String(l.location || "").trim())
+        .filter((loc) => loc && loc !== "—" && loc.toLowerCase() !== "n/a")
+    )
+  ).sort((a, b) => a.localeCompare(b));
+
   const counts = {
     total: leads.length,
     converted: leads.filter(l => l.status === "Converted").length,
@@ -114,11 +122,9 @@ export default function TotalLeads() {
 
         <select value={locationFilter} onChange={e => setLocationFilter(e.target.value)} className="bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-1.5 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs">
           <option value="All">All Locations</option>
-          <option value="Mumbai">Mumbai</option>
-          <option value="Bangalore">Bangalore</option>
-          <option value="Pune">Pune</option>
-          <option value="Hyderabad">Hyderabad</option>
-          <option value="Chennai">Chennai</option>
+          {availableLocations.map((loc) => (
+            <option key={loc} value={loc}>{loc}</option>
+          ))}
         </select>
       </div>
 

@@ -9,7 +9,7 @@ import {
   Activity, LayoutGrid, FileText, Sparkles,
   Layers, Box, Globe2, Loader2, Save, Plus, X,
   CheckCircle2, AlertCircle, Camera,
-  Building2, UserCog, ChevronDown
+  Building2, UserCog, ChevronDown, ArrowRightLeft, UserPlus, Copy
 } from "lucide-react";
 import { fetchJson, getApiBase, getAuthHeader } from "../../utils/api";
 import { PageHeader } from "../../components/superadmin/PageHeader";
@@ -47,8 +47,32 @@ export default function Manager() {
   const [loading, setLoading] = useState(true);
   const [currentTeam, setCurrentTeam] = useState("All");
   const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
   const [filterCity, setFilterCity] = useState("");
   const [filterArea, setFilterArea] = useState("");
+
+  // Handover & Safe Delete Modal State
+  const [handoverModal, setHandoverModal] = useState(null); // { staff, openedFromDelete }
+  const [portfolioLoading, setPortfolioLoading] = useState(false);
+  const [portfolioSummary, setPortfolioSummary] = useState(null);
+  const [handoverMode, setHandoverMode] = useState("existing"); // "existing" | "new"
+  const [targetStaffLoginId, setTargetStaffLoginId] = useState("");
+  const [handoverSearch, setHandoverSearch] = useState("");
+  const [deleteAfterHandover, setDeleteAfterHandover] = useState(false);
+  const [handoverSubmitting, setHandoverSubmitting] = useState(false);
+  const [createdStaffCreds, setCreatedStaffCreds] = useState(null);
+
+  // Inline New Replacement Staff Form State
+  const [newStaffForm, setNewStaffForm] = useState({
+    name: "",
+    role: FALLBACK_STAFF_ROLES[4] || "Field Agent",
+    city: "",
+    area: "",
+    phone: "",
+    email: "",
+    loginId: "",
+    password: "",
+  });
   
   // Modal State
   const [showModal, setShowModal] = useState(false);
@@ -122,15 +146,25 @@ export default function Manager() {
 
   const filteredEmployees = useMemo(() => {
     return employees.filter(e => {
-      const matchesSearch = (e.name || "").toLowerCase().includes(search.toLowerCase()) || 
-                           (e.loginId || "").toLowerCase().includes(search.toLowerCase());
+      const q = search.toLowerCase();
+      const matchesSearch =
+        !q ||
+        (e.name || "").toLowerCase().includes(q) ||
+        (e.loginId || "").toLowerCase().includes(q) ||
+        (e.email || "").toLowerCase().includes(q) ||
+        (e.phone || "").toLowerCase().includes(q);
       const matchesTeam = currentTeam === "All" ? true : e.role === currentTeam;
+      const isActive = e.isActive !== false;
+      const matchesStatus =
+        !filterStatus ||
+        (filterStatus === "active" && isActive) ||
+        (filterStatus === "inactive" && !isActive);
       const matchesCity = !filterCity || e.city === filterCity;
       const matchesArea = !filterArea || e.area === filterArea;
-      
-      return matchesSearch && matchesTeam && matchesCity && matchesArea;
+
+      return matchesSearch && matchesTeam && matchesStatus && matchesCity && matchesArea;
     });
-  }, [employees, search, currentTeam, filterCity, filterArea]);
+  }, [employees, search, currentTeam, filterStatus, filterCity, filterArea]);
 
   const stats = useMemo(() => {
     const total = employees.length;
@@ -309,17 +343,179 @@ export default function Manager() {
     }
   };
 
-  const deleteEmployee = async (emp) => {
-    const targetId = typeof emp === 'object' ? (emp.loginId || emp.id || emp._id || emp.email) : emp;
-    if (!confirm("Permanently purge this personnel record?")) return;
+  const generateReplacementCreds = (city = "", area = "") => {
+    const localCode = getLocalCode(city, area);
+    const prefix = localCode ? `RY${localCode}` : "RY";
+    return {
+      loginId: `${prefix}${Math.floor(1000 + Math.random() * 9000)}`,
+      password: Math.random().toString(36).slice(-8).toUpperCase(),
+    };
+  };
+
+  const eligibleTargetStaff = useMemo(() => {
+    if (!handoverModal?.staff) return [];
+    const srcId = String(handoverModal.staff.loginId || handoverModal.staff._id || "").toLowerCase();
+    const srcMongoId = String(handoverModal.staff._id || "").toLowerCase();
+    const q = handoverSearch.trim().toLowerCase();
+
+    return employees
+      .filter((e) => {
+        if (e.isActive === false || e.isDeleted === true) return false;
+        if (e.parentLoginId) return false;
+        const eid = String(e.loginId || "").toLowerCase();
+        const emid = String(e._id || "").toLowerCase();
+        if ((srcId && eid === srcId) || (srcMongoId && emid === srcMongoId)) return false;
+        if (!q) return true;
+        return (
+          (e.name || "").toLowerCase().includes(q) ||
+          eid.includes(q) ||
+          (e.role || "").toLowerCase().includes(q) ||
+          (e.city || "").toLowerCase().includes(q)
+        );
+      })
+      .sort((a, b) => {
+        const srcCity = (handoverModal.staff.city || "").toLowerCase().trim();
+        const aLocal = srcCity && (a.city || "").toLowerCase().includes(srcCity);
+        const bLocal = srcCity && (b.city || "").toLowerCase().includes(srcCity);
+        if (aLocal && !bLocal) return -1;
+        if (!aLocal && bLocal) return 1;
+        return (a.name || "").localeCompare(b.name || "");
+      });
+  }, [employees, handoverModal, handoverSearch]);
+
+  const openHandoverModal = async (emp, fromDelete = false) => {
+    if (!emp) return;
+    const creds = generateReplacementCreds(emp.city || "", emp.area || "");
+    const defaultRole = emp.role && roleOptions.includes(emp.role)
+      ? emp.role
+      : (roleOptions.includes("Field Agent") ? "Field Agent" : roleOptions[0] || "Field Agent");
+
+    setHandoverModal({ staff: emp, openedFromDelete: fromDelete });
+    setDeleteAfterHandover(fromDelete);
+    setHandoverSearch("");
+    setPortfolioSummary(null);
+
+    const srcId = String(emp.loginId || emp._id || "").toLowerCase();
+    const otherActive = employees.filter(
+      (e) =>
+        e.isActive !== false &&
+        e.isDeleted !== true &&
+        !e.parentLoginId &&
+        String(e.loginId || e._id || "").toLowerCase() !== srcId
+    );
+    setHandoverMode(otherActive.length > 0 ? "existing" : "new");
+    setTargetStaffLoginId(otherActive[0]?.loginId || otherActive[0]?._id || "");
+
+    setNewStaffForm({
+      name: "",
+      role: defaultRole,
+      city: emp.city || "",
+      area: emp.area || "",
+      phone: "",
+      email: "",
+      loginId: creds.loginId,
+      password: creds.password,
+    });
+
+    const lookup = emp.loginId || emp.id || emp._id || emp.email;
+    if (!lookup) return;
+    setPortfolioLoading(true);
+    try {
+      const res = await fetchJson(`/api/employees/${encodeURIComponent(lookup)}/portfolio-summary?t=${Date.now()}`);
+      if (res?.success) {
+        setPortfolioSummary(res);
+      }
+    } catch (err) {
+      console.warn("Failed to load portfolio summary:", err);
+    } finally {
+      setPortfolioLoading(false);
+    }
+  };
+
+  const handleSubmitHandover = async () => {
+    if (!handoverModal?.staff || handoverSubmitting) return;
+    const srcLookup = handoverModal.staff.loginId || handoverModal.staff.id || handoverModal.staff._id || handoverModal.staff.email;
+
+    if (handoverMode === "existing" && !targetStaffLoginId) {
+      showNotification("Please select an existing staff member to receive the portfolio", "error");
+      return;
+    }
+    if (handoverMode === "new" && !String(newStaffForm.name || "").trim()) {
+      showNotification("Please enter the new replacement staff member's full name", "error");
+      return;
+    }
+
+    setHandoverSubmitting(true);
+    try {
+      const payload =
+        handoverMode === "existing"
+          ? {
+              mode: "existing",
+              targetLoginId: targetStaffLoginId,
+              deleteSource: deleteAfterHandover,
+            }
+          : {
+              mode: "new",
+              deleteSource: deleteAfterHandover,
+              newStaff: {
+                name: newStaffForm.name.trim(),
+                role: newStaffForm.role,
+                city: newStaffForm.city,
+                area: newStaffForm.area,
+                phone: newStaffForm.phone.trim(),
+                email: newStaffForm.email.trim(),
+                loginId: newStaffForm.loginId,
+                password: newStaffForm.password,
+              },
+            };
+
+      const res = await fetchJson(`/api/employees/${encodeURIComponent(srcLookup)}/handover`, {
+        method: "POST",
+        headers: getAuthHeader(),
+        body: JSON.stringify(payload),
+      });
+
+      const targetName = res?.target?.name || newStaffForm.name || targetStaffLoginId;
+      showNotification(
+        deleteAfterHandover
+          ? `Portfolio handed over to ${targetName} & ${handoverModal.staff.name} removed`
+          : `Portfolio handed over to ${targetName} successfully`
+      );
+
+      setHandoverModal(null);
+      if (res?.createdCredentials) {
+        setCreatedStaffCreds(res.createdCredentials);
+      }
+      await loadData();
+    } catch (err) {
+      showNotification(err?.body?.message || err?.message || "Handover failed", "error");
+    } finally {
+      setHandoverSubmitting(false);
+    }
+  };
+
+  const directDeleteEmptyEmployee = async () => {
+    if (!handoverModal?.staff || handoverSubmitting) return;
+    const emp = handoverModal.staff;
+    const targetId = emp.loginId || emp.id || emp._id || emp.email;
+    if (!window.confirm(`Remove ${emp.name || targetId} from All Staff?`)) return;
+
+    setHandoverSubmitting(true);
     try {
       await fetchJson(`/api/employees/${encodeURIComponent(targetId)}`, { method: "DELETE" });
-      showNotification("Personnel purged from system");
+      showNotification(`${emp.name || "Staff member"} removed from system`);
+      setHandoverModal(null);
       setEmployees(prev => prev.filter(e => e.loginId !== targetId && e.id !== targetId && e._id !== targetId && e.email !== targetId));
       loadData();
     } catch (err) {
-      showNotification(`Purge failed: ${err.message}`, "error");
+      showNotification(`Removal failed: ${err.message}`, "error");
+    } finally {
+      setHandoverSubmitting(false);
     }
+  };
+
+  const deleteEmployee = (emp) => {
+    openHandoverModal(emp, true);
   };
 
   const toggleStatus = async (emp) => {
@@ -393,9 +589,9 @@ export default function Manager() {
             ))}
         </select>
         <select 
-          value={filterCity}
-          onChange={e => setFilterCity(e.target.value)}
-          className="appearance-none bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-2 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs w-[85px] sm:w-[90px]"
+          value={filterStatus}
+          onChange={e => setFilterStatus(e.target.value)}
+          className="appearance-none bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-2 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs w-[105px]"
         >
           <option value="">Status ▾</option>
           <option value="active">Active</option>
@@ -438,12 +634,12 @@ export default function Manager() {
                               <div className="w-8 h-8 rounded-full bg-[#D9E1E7] flex items-center justify-center font-bold text-[12px] text-[#4A5961] shrink-0">
                                 {buildInitials(e.name)}
                               </div>
-                              <span className="text-[13px] font-medium text-[#10242A]">{e.name || "�"}</span>
+                              <span className="text-[13px] font-medium text-[#10242A]">{e.name || "—"}</span>
                             </div>
                           </td>
-                          <td className="py-3 text-left text-[13px] text-[#4A5961]">{e.role || "�"}</td>
-                          <td className="py-3 text-left text-[13px] text-[#4A5961]">{e.phone || "�"}</td>
-                          <td className="py-3 text-left text-[13px] text-[#4A5961]">{e.email || "�"}</td>
+                          <td className="py-3 text-left text-[13px] text-[#4A5961]">{e.role || "—"}</td>
+                          <td className="py-3 text-left text-[13px] text-[#4A5961]">{e.phone || "—"}</td>
+                          <td className="py-3 text-left text-[13px] text-[#4A5961]">{e.email || "—"}</td>
                           <td className="py-3 text-left">
                             <span className={cn(
                               "inline-block px-3 py-1 rounded-full text-[12px] font-semibold",
@@ -453,12 +649,19 @@ export default function Manager() {
                             </span>
                           </td>
                           <td className="py-3 text-left pr-2">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <button onClick={() => openModal(e)} className="bg-white border border-[#CBD3D9] hover:bg-gray-50 text-[#10242A] text-[12px] font-semibold px-3 py-1 rounded-[6px] transition-all shadow-xs cursor-pointer">
                                 View
                               </button>
                               <button onClick={() => openModal(e)} className="bg-white border border-[#CBD3D9] hover:bg-gray-50 text-[#10242A] text-[12px] font-semibold px-3 py-1 rounded-[6px] transition-all shadow-xs cursor-pointer">
                                 Edit
+                              </button>
+                              <button
+                                onClick={() => openHandoverModal(e, false)}
+                                className="bg-[#E6F4F5] border border-[#CBE6E8] hover:bg-[#D4ECEE] text-[#095256] text-[12px] font-semibold px-3 py-1 rounded-[6px] transition-all shadow-xs cursor-pointer inline-flex items-center gap-1"
+                                title="Handover Visit Reports, Properties, Owners & Leads to another employee"
+                              >
+                                <ArrowRightLeft size={12} /> Handover
                               </button>
                               <button onClick={() => deleteEmployee(e)} className="bg-white border border-rose-200 hover:bg-rose-50 text-rose-600 text-[12px] font-semibold px-3 py-1 rounded-[6px] transition-all shadow-xs cursor-pointer">
                                 Delete
@@ -697,6 +900,460 @@ export default function Manager() {
                  </button>
               </div>
            </div>
+        </div>
+      )}
+
+      {/* Staff Portfolio Handover & Safe Delete Modal */}
+      {handoverModal && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
+          <div
+            className="bg-white w-full max-w-2xl rounded-[16px] shadow-2xl border border-[#E1E6EA] overflow-hidden flex flex-col max-h-[90vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-[#E1E6EA] bg-[#F8FAFC] flex items-start justify-between gap-4 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-[10px] bg-[#E6F4F5] border border-[#CBE6E8] text-[#095256] flex items-center justify-center shrink-0">
+                  <ArrowRightLeft size={18} />
+                </div>
+                <div>
+                  <h3 className="text-[16px] font-bold text-[#10242A] leading-tight">
+                    {handoverModal.openedFromDelete
+                      ? `Handover Portfolio & Remove Staff: ${handoverModal.staff.name || "Staff"}`
+                      : `Handover Staff Portfolio: ${handoverModal.staff.name || "Staff"}`}
+                  </h3>
+                  <p className="text-[12px] text-[#4A5961] mt-0.5">
+                    ID: <span className="font-mono font-semibold text-[#10242A]">{handoverModal.staff.loginId || "—"}</span>
+                    {handoverModal.staff.role ? ` • ${handoverModal.staff.role}` : ""}
+                    {handoverModal.staff.city ? ` • ${handoverModal.staff.city}` : ""}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => !handoverSubmitting && setHandoverModal(null)}
+                className="p-1.5 rounded-[8px] text-[#4A5961] hover:text-[#10242A] hover:bg-white border border-transparent hover:border-[#E1E6EA] transition-all cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-5">
+              {/* Portfolio Summary Box */}
+              <div className="bg-[#F8FAFC] border border-[#E1E6EA] rounded-[12px] p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#4A5961]">
+                    Visit Reports & Portfolio Data Linked to {handoverModal.staff.name || "This Staff"}
+                  </span>
+                  {portfolioLoading && (
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#0E7C86]">
+                      <Loader2 size={13} className="animate-spin" /> Scanning records...
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                  {[
+                    { label: "Visit Reports", val: portfolioSummary?.counts?.visits ?? "—" },
+                    { label: "Properties", val: portfolioSummary?.counts?.properties ?? "—" },
+                    { label: "Owners", val: portfolioSummary?.counts?.owners ?? "—" },
+                    { label: "Online Leads", val: portfolioSummary?.counts?.enquiries ?? "—" },
+                    { label: "Tickets", val: portfolioSummary?.counts?.tickets ?? "—" },
+                  ].map((item) => (
+                    <div key={item.label} className="bg-white border border-[#E1E6EA] rounded-[8px] px-3 py-2">
+                      <p className="text-[10px] font-semibold text-[#4A5961] uppercase tracking-wider truncate">{item.label}</p>
+                      <p className="text-[18px] font-bold text-[#10242A] mt-0.5 leading-tight">{item.val}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <p className="text-[11px] text-[#4A5961] leading-relaxed">
+                  All Visit Reports, onboarded Owners, Properties, Bookings/Reviews visibility, Online Leads, and Support Tickets will be safely transferred to the selected replacement employee without losing any historical data.
+                </p>
+              </div>
+
+              {/* Mode Switcher: Existing Employee vs Create New Employee */}
+              <div className="space-y-3">
+                <label className="text-[12px] font-bold text-[#10242A] block">
+                  Choose Who Receives This Portfolio:
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setHandoverMode("existing")}
+                    className={cn(
+                      "px-4 py-2.5 rounded-[10px] border text-left transition-all cursor-pointer flex items-center gap-2.5",
+                      handoverMode === "existing"
+                        ? "bg-[#E6F4F5] border-[#0E7C86] text-[#095256]"
+                        : "bg-white border-[#CBD3D9] text-[#4A5961] hover:bg-[#F8FAFC]"
+                    )}
+                  >
+                    <Users size={16} className={handoverMode === "existing" ? "text-[#0E7C86]" : "text-[#4A5961]"} />
+                    <div>
+                      <p className="text-[12px] font-bold text-[#10242A]">Handover to Existing Staff</p>
+                      <p className="text-[11px] text-[#4A5961]">Transfer to an active team member</p>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setHandoverMode("new")}
+                    className={cn(
+                      "px-4 py-2.5 rounded-[10px] border text-left transition-all cursor-pointer flex items-center gap-2.5",
+                      handoverMode === "new"
+                        ? "bg-[#E6F4F5] border-[#0E7C86] text-[#095256]"
+                        : "bg-white border-[#CBD3D9] text-[#4A5961] hover:bg-[#F8FAFC]"
+                    )}
+                  >
+                    <UserPlus size={16} className={handoverMode === "new" ? "text-[#0E7C86]" : "text-[#4A5961]"} />
+                    <div>
+                      <p className="text-[12px] font-bold text-[#10242A]">Create New Staff & Handover</p>
+                      <p className="text-[11px] text-[#4A5961]">Add replacement staff & assign data</p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Tab 1: Select Existing Staff */}
+              {handoverMode === "existing" && (
+                <div className="space-y-2.5">
+                  <div className="relative">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8C9BA5]" />
+                    <input
+                      value={handoverSearch}
+                      onChange={(e) => setHandoverSearch(e.target.value)}
+                      placeholder="Search existing staff by name, ID, role, city..."
+                      className="w-full bg-white border border-[#CBD3D9] rounded-[8px] pl-9 pr-3 py-2 text-[13px] text-[#10242A] placeholder-[#8C9BA5] outline-none focus:border-[#0E7C86]"
+                    />
+                  </div>
+
+                  <div className="border border-[#E1E6EA] rounded-[10px] max-h-52 overflow-y-auto divide-y divide-[#F0F4F6]">
+                    {eligibleTargetStaff.length === 0 ? (
+                      <div className="py-6 px-4 text-center text-[12px] text-[#4A5961]">
+                        No other active staff members found. Switch to{" "}
+                        <button
+                          type="button"
+                          onClick={() => setHandoverMode("new")}
+                          className="font-bold text-[#0E7C86] underline cursor-pointer"
+                        >
+                          Create New Staff & Handover
+                        </button>
+                        .
+                      </div>
+                    ) : (
+                      eligibleTargetStaff.map((emp) => {
+                        const empKey = emp.loginId || emp._id;
+                        const isSelected = targetStaffLoginId === empKey;
+                        const sameCity =
+                          handoverModal.staff.city &&
+                          emp.city &&
+                          emp.city.toLowerCase() === handoverModal.staff.city.toLowerCase();
+
+                        return (
+                          <label
+                            key={empKey}
+                            onClick={() => setTargetStaffLoginId(empKey)}
+                            className={cn(
+                              "flex items-center justify-between px-3.5 py-2.5 cursor-pointer transition-colors",
+                              isSelected ? "bg-[#E6F4F5]/70" : "bg-white hover:bg-[#F8FAFC]"
+                            )}
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <input
+                                type="radio"
+                                name="targetStaff"
+                                checked={isSelected}
+                                onChange={() => setTargetStaffLoginId(empKey)}
+                                className="accent-[#0E7C86]"
+                              />
+                              <div className="w-7 h-7 rounded-full bg-[#D9E1E7] flex items-center justify-center font-bold text-[11px] text-[#10242A] shrink-0">
+                                {buildInitials(emp.name)}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-[13px] font-semibold text-[#10242A] truncate">{emp.name}</p>
+                                <p className="text-[11px] text-[#4A5961] truncate">
+                                  <span className="font-mono">{emp.loginId}</span>
+                                  {emp.role ? ` • ${emp.role}` : ""}
+                                  {emp.city ? ` • ${emp.city}` : ""}
+                                </p>
+                              </div>
+                            </div>
+                            {sameCity && (
+                              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0">
+                                Same City
+                              </span>
+                            )}
+                          </label>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Tab 2: Create New Replacement Staff Inline */}
+              {handoverMode === "new" && (
+                <div className="bg-[#F8FAFC] border border-[#E1E6EA] rounded-[12px] p-4 space-y-3.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] font-semibold text-[#4A5961] block mb-1">Full Name *</label>
+                      <input
+                        value={newStaffForm.name}
+                        onChange={(e) => setNewStaffForm({ ...newStaffForm, name: e.target.value })}
+                        placeholder="e.g. Rohit Sharma"
+                        className="w-full bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-2 text-[13px] text-[#10242A] outline-none focus:border-[#0E7C86]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-semibold text-[#4A5961] block mb-1">Role *</label>
+                      <select
+                        value={newStaffForm.role}
+                        onChange={(e) => setNewStaffForm({ ...newStaffForm, role: e.target.value })}
+                        className="w-full bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-2 text-[13px] text-[#10242A] outline-none focus:border-[#0E7C86]"
+                      >
+                        {roleOptions.map((r) => (
+                          <option key={r} value={r}>{r}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-semibold text-[#4A5961] block mb-1">Phone Number</label>
+                      <input
+                        value={newStaffForm.phone}
+                        onChange={(e) => setNewStaffForm({ ...newStaffForm, phone: e.target.value })}
+                        placeholder="+91 98XXXXXXXX"
+                        className="w-full bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-2 text-[13px] text-[#10242A] outline-none focus:border-[#0E7C86]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-semibold text-[#4A5961] block mb-1">Email (for Login Credentials)</label>
+                      <input
+                        type="email"
+                        value={newStaffForm.email}
+                        onChange={(e) => setNewStaffForm({ ...newStaffForm, email: e.target.value })}
+                        placeholder="staff@roomhy.com"
+                        className="w-full bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-2 text-[13px] text-[#10242A] outline-none focus:border-[#0E7C86]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-semibold text-[#4A5961] block mb-1">City</label>
+                      <select
+                        value={newStaffForm.city}
+                        onChange={(e) => {
+                          const nextCity = e.target.value;
+                          const creds = generateReplacementCreds(nextCity, "");
+                          setNewStaffForm({ ...newStaffForm, city: nextCity, area: "", loginId: creds.loginId });
+                        }}
+                        className="w-full bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-2 text-[13px] text-[#10242A] outline-none focus:border-[#0E7C86]"
+                      >
+                        <option value="">Select City</option>
+                        {cities.map((c) => (
+                          <option key={c.id || c.name} value={c.name}>{c.name}</option>
+                        ))}
+                        {newStaffForm.city && !cities.some((c) => c.name === newStaffForm.city) && (
+                          <option value={newStaffForm.city}>{newStaffForm.city}</option>
+                        )}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-semibold text-[#4A5961] block mb-1">Area</label>
+                      <select
+                        value={newStaffForm.area}
+                        onChange={(e) => {
+                          const nextArea = e.target.value;
+                          const creds = generateReplacementCreds(newStaffForm.city, nextArea);
+                          setNewStaffForm({ ...newStaffForm, area: nextArea, loginId: creds.loginId });
+                        }}
+                        className="w-full bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-2 text-[13px] text-[#10242A] outline-none focus:border-[#0E7C86]"
+                      >
+                        <option value="">Select Area</option>
+                        {areas
+                          .filter((a) => {
+                            if (!newStaffForm.city) return true;
+                            const aCityName = typeof a.city === "object" ? (a.city?.name || "") : (a.city || "");
+                            return a.cityName === newStaffForm.city || aCityName === newStaffForm.city;
+                          })
+                          .map((a) => (
+                            <option key={a._id || a.id || a.name} value={a.name}>{a.name}</option>
+                          ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-[11px] font-semibold text-[#4A5961]">Generated Login ID</label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const creds = generateReplacementCreds(newStaffForm.city, newStaffForm.area);
+                            setNewStaffForm({ ...newStaffForm, loginId: creds.loginId, password: creds.password });
+                          }}
+                          className="text-[11px] font-semibold text-[#0E7C86] hover:underline cursor-pointer"
+                        >
+                          Re-generate
+                        </button>
+                      </div>
+                      <input
+                        value={newStaffForm.loginId}
+                        readOnly
+                        className="w-full bg-[#E6F4F5]/50 border border-[#CBE6E8] rounded-[8px] px-3 py-2 text-[13px] font-mono font-bold text-[#095256] outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-semibold text-[#4A5961] block mb-1">Access Password</label>
+                      <input
+                        value={newStaffForm.password}
+                        onChange={(e) => setNewStaffForm({ ...newStaffForm, password: e.target.value })}
+                        placeholder="Auto-generated password"
+                        className="w-full bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-2 text-[13px] font-mono text-[#10242A] outline-none focus:border-[#0E7C86]"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Remove Outgoing Staff Option */}
+              <label className="flex items-start gap-3 p-3.5 rounded-[10px] border border-rose-200 bg-rose-50/50 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={deleteAfterHandover}
+                  onChange={(e) => setDeleteAfterHandover(e.target.checked)}
+                  className="mt-0.5 accent-rose-600"
+                />
+                <div>
+                  <p className="text-[13px] font-bold text-rose-900">
+                    Remove & revoke login access for {handoverModal.staff.name || "outgoing staff"} after handover
+                  </p>
+                  <p className="text-[11px] text-rose-700 mt-0.5">
+                    Deactivates their account immediately, logs out active sessions, and removes them from All Staff while keeping 100% of Visit Report history intact under the new assignee.
+                  </p>
+                </div>
+              </label>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-[#E1E6EA] bg-[#F8FAFC] flex flex-wrap items-center justify-between gap-3 shrink-0">
+              <div>
+                {handoverModal.openedFromDelete && !portfolioLoading && portfolioSummary?.counts?.total === 0 && (
+                  <button
+                    type="button"
+                    disabled={handoverSubmitting}
+                    onClick={directDeleteEmptyEmployee}
+                    className="px-3.5 py-2 rounded-[8px] bg-white border border-rose-200 hover:bg-rose-50 text-rose-700 text-[12px] font-semibold transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    Delete Without Handover (0 Records)
+                  </button>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2.5 ml-auto">
+                <button
+                  type="button"
+                  disabled={handoverSubmitting}
+                  onClick={() => setHandoverModal(null)}
+                  className="px-4 py-2 rounded-[8px] bg-white border border-[#CBD3D9] hover:bg-gray-50 text-[#10242A] text-[12px] font-semibold transition-all cursor-pointer disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={handoverSubmitting}
+                  onClick={handleSubmitHandover}
+                  className={cn(
+                    "px-5 py-2 rounded-[8px] text-white text-[12px] font-semibold transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 shadow-xs",
+                    deleteAfterHandover
+                      ? "bg-rose-600 hover:bg-rose-700"
+                      : "bg-[#0E7C86] hover:bg-[#095256]"
+                  )}
+                >
+                  {handoverSubmitting ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" /> Processing Handover...
+                    </>
+                  ) : (
+                    <>
+                      <ArrowRightLeft size={14} />
+                      {handoverMode === "new"
+                        ? deleteAfterHandover
+                          ? "Create Staff, Handover & Delete"
+                          : "Create Staff & Handover"
+                        : deleteAfterHandover
+                          ? "Handover Portfolio & Delete Staff"
+                          : "Complete Portfolio Handover"}
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Newly Created Replacement Staff Credentials Modal */}
+      {createdStaffCreds && (
+        <div className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
+          <div className="bg-white w-full max-w-md rounded-[16px] shadow-2xl border border-[#E1E6EA] p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-[10px] bg-[#DDF3E4] text-[#14532D] flex items-center justify-center shrink-0">
+                <CheckCircle2 size={20} />
+              </div>
+              <div>
+                <h3 className="text-[16px] font-bold text-[#10242A]">New Staff Created & Portfolio Transferred</h3>
+                <p className="text-[12px] text-[#4A5961]">
+                  {createdStaffCreds.emailSent
+                    ? `Login credentials emailed to ${createdStaffCreds.email}`
+                    : "Save or copy the login credentials below for the new staff member."}
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-[#F8FAFC] border border-[#E1E6EA] rounded-[12px] p-4 space-y-2.5 text-[13px]">
+              <div className="flex justify-between items-center">
+                <span className="text-[#4A5961] font-medium">Staff Name:</span>
+                <span className="font-bold text-[#10242A]">{createdStaffCreds.name}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[#4A5961] font-medium">Role:</span>
+                <span className="font-semibold text-[#10242A]">{createdStaffCreds.role}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[#4A5961] font-medium">Login ID:</span>
+                <span className="font-mono font-bold text-[#095256] bg-[#E6F4F5] px-2 py-0.5 rounded">{createdStaffCreds.loginId}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[#4A5961] font-medium">Password:</span>
+                <span className="font-mono font-bold text-[#10242A] bg-white border border-[#CBD3D9] px-2 py-0.5 rounded">{createdStaffCreds.password}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(
+                    `Roomhy Staff Login\nName: ${createdStaffCreds.name}\nLogin ID: ${createdStaffCreds.loginId}\nPassword: ${createdStaffCreds.password}`
+                  );
+                  showNotification("Staff credentials copied to clipboard");
+                }}
+                className="px-4 py-2 rounded-[8px] bg-[#E6F4F5] border border-[#CBE6E8] hover:bg-[#D5ECEE] text-[#095256] text-[12px] font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+              >
+                <Copy size={13} /> Copy Credentials
+              </button>
+              <button
+                type="button"
+                onClick={() => setCreatedStaffCreds(null)}
+                className="px-4 py-2 rounded-[8px] bg-[#0E7C86] hover:bg-[#095256] text-white text-[12px] font-semibold cursor-pointer"
+              >
+                Done
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

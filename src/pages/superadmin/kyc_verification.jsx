@@ -8,13 +8,70 @@ const cn = (...classes) => classes.filter(Boolean).join(" ");
 
 const resolveUrl = (val) => {
   if (!val) return null;
-  const raw = typeof val === "object" ? (val.url || val.path || val.dataUrl || null) : val;
-  if (!raw) return null;
-  if (raw.startsWith("data:")) return raw;
-  if (raw.startsWith("http")) return raw;
-  if (raw.startsWith("/")) return `${API_URL}${raw}`;
-  return `${API_URL}/${raw}`;
+  const raw = typeof val === "object"
+    ? (val.secure_url || val.url || val.path || val.dataUrl || val.src || val.fileUrl || null)
+    : String(val);
+  const clean = String(raw || "").trim();
+  if (!clean) return null;
+  if (/^(https?:|data:|blob:)/i.test(clean)) return clean;
+  const base = (API_URL || "").replace(/\/+$/, "");
+  return clean.startsWith("/") ? `${base}${clean}` : `${base}/${clean}`;
 };
+
+const toPreviewUrl = (url) => {
+  if (!url) return "";
+  if (/res\.cloudinary\.com\/[^/]+\/image\/upload\//i.test(url) && /\.pdf(\?.*)?$/i.test(url)) {
+    return url
+      .replace(/\/image\/upload\//i, "/image/upload/f_jpg,pg_1/")
+      .replace(/\.pdf(\?.*)?$/i, ".jpg$1");
+  }
+  return url;
+};
+
+function KycDocPreviewBox({ url, label }) {
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [url]);
+
+  if (!url) {
+    return (
+      <div className="w-full h-32 bg-[#E1E6EA] rounded-[6px] flex flex-col items-center justify-center text-[#4A5961] text-[11px] p-2 overflow-hidden">
+        <ImageIcon className="w-5 h-5 mb-1 text-[#4A5961]" />
+        <span>Not uploaded</span>
+      </div>
+    );
+  }
+
+  const isDirectPdf =
+    /^data:application\/pdf/i.test(url) ||
+    (/\.pdf(\?.*)?$/i.test(url) && !/res\.cloudinary\.com\/[^/]+\/image\/upload\//i.test(url));
+
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noreferrer"
+      className="block w-full h-32 bg-[#E1E6EA] rounded-[6px] overflow-hidden relative group"
+      title={`Open ${label}`}
+    >
+      {!isDirectPdf && !failed ? (
+        <img
+          src={toPreviewUrl(url)}
+          alt={label}
+          className="w-full h-full object-cover rounded-[4px] group-hover:scale-105 transition-transform"
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <div className="w-full h-full flex flex-col items-center justify-center text-[#10242A] p-2">
+          <FileText className="w-6 h-6 mb-1 text-[#0E7C86]" />
+          <span className="text-[11px] font-semibold text-[#0E7C86] underline">Open Document ↗</span>
+        </div>
+      )}
+    </a>
+  );
+}
 
 export default function KycVerification() {
   const [owners, setOwners] = useState([]);
@@ -174,20 +231,16 @@ export default function KycVerification() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* 1. ID Proof Card */}
                 {(() => {
-                  const url = resolveUrl(selectedOwner.kyc?.idProof) || resolveUrl(selectedOwner.checkinAadhaarFront) || resolveUrl(selectedOwner.checkinAadhaarImage);
+                  const url =
+                    resolveUrl(selectedOwner.kyc?.idProof) ||
+                    resolveUrl(selectedOwner.checkinAadhaarFront) ||
+                    resolveUrl(selectedOwner.checkinAadhaarImage) ||
+                    resolveUrl(selectedOwner.kyc?.documentImage) ||
+                    resolveUrl(selectedOwner.documentImage);
                   const status = (selectedOwner.kycStatus || selectedOwner.kyc?.status || "pending").toLowerCase();
                   return (
                     <div className="border border-[#CBD3D9] rounded-[8px] p-3 text-center space-y-2 bg-[#F9FAFB]">
-                      <div className="w-full h-32 bg-[#E1E6EA] rounded-[6px] flex flex-col items-center justify-center text-[#4A5961] text-[11px] p-2 overflow-hidden">
-                        {url ? (
-                          <img src={url} alt="ID proof" className="w-full h-full object-cover rounded-[4px]" />
-                        ) : (
-                          <>
-                            <ImageIcon className="w-5 h-5 mb-1 text-[#4A5961]" />
-                            <span>Document preview</span>
-                          </>
-                        )}
-                      </div>
+                      <KycDocPreviewBox url={url} label="ID proof" />
                       <div className="text-left">
                         <p className="text-[12px] font-bold text-[#10242A] mb-1">ID proof</p>
                         <span className={cn(
@@ -217,24 +270,19 @@ export default function KycVerification() {
                   );
                 })()}
 
-                {/* 2. Address Proof Card */}
+                {/* 2. Owner Photo / Address Proof Card */}
                 {(() => {
-                  const url = resolveUrl(selectedOwner.kyc?.addressProof) || resolveUrl(selectedOwner.checkinAadhaarBack);
+                  const url =
+                    resolveUrl(selectedOwner.kyc?.addressProof) ||
+                    resolveUrl(selectedOwner.checkinAadhaarBack) ||
+                    resolveUrl(selectedOwner.checkinOwnerPhoto) ||
+                    resolveUrl(selectedOwner.profile?.photo);
                   const status = (selectedOwner.kycStatus || selectedOwner.kyc?.status || "pending").toLowerCase();
                   return (
                     <div className="border border-[#CBD3D9] rounded-[8px] p-3 text-center space-y-2 bg-[#F9FAFB]">
-                      <div className="w-full h-32 bg-[#E1E6EA] rounded-[6px] flex flex-col items-center justify-center text-[#4A5961] text-[11px] p-2 overflow-hidden">
-                        {url ? (
-                          <img src={url} alt="Address proof" className="w-full h-full object-cover rounded-[4px]" />
-                        ) : (
-                          <>
-                            <ImageIcon className="w-5 h-5 mb-1 text-[#4A5961]" />
-                            <span>Document preview</span>
-                          </>
-                        )}
-                      </div>
+                      <KycDocPreviewBox url={url} label="Address / Owner photo" />
                       <div className="text-left">
-                        <p className="text-[12px] font-bold text-[#10242A] mb-1">Address proof</p>
+                        <p className="text-[12px] font-bold text-[#10242A] mb-1">Address / Owner photo</p>
                         <span className={cn(
                           "text-[11px] font-semibold px-2 py-0.5 rounded-full inline-block mb-2",
                           status === "verified" ? "bg-[#DDF3E4] text-[#14532D]" : status === "rejected" ? "bg-[#FEE2E2] text-[#991B1B]" : "bg-[#FDEBD0] text-[#7A3E00]"
@@ -262,24 +310,18 @@ export default function KycVerification() {
                   );
                 })()}
 
-                {/* 3. Ownership Proof Card */}
+                {/* 3. Bank / Ownership Proof Card */}
                 {(() => {
-                  const url = resolveUrl(selectedOwner.kyc?.ownershipProof) || resolveUrl(selectedOwner.checkinBankProof);
+                  const url =
+                    resolveUrl(selectedOwner.kyc?.ownershipProof) ||
+                    resolveUrl(selectedOwner.checkinBankProof) ||
+                    resolveUrl(selectedOwner.checkinCancelledCheque);
                   const status = (selectedOwner.kycStatus || selectedOwner.kyc?.status || "pending").toLowerCase();
                   return (
                     <div className="border border-[#CBD3D9] rounded-[8px] p-3 text-center space-y-2 bg-[#F9FAFB]">
-                      <div className="w-full h-32 bg-[#E1E6EA] rounded-[6px] flex flex-col items-center justify-center text-[#4A5961] text-[11px] p-2 overflow-hidden">
-                        {url ? (
-                          <img src={url} alt="Ownership proof" className="w-full h-full object-cover rounded-[4px]" />
-                        ) : (
-                          <>
-                            <ImageIcon className="w-5 h-5 mb-1 text-[#4A5961]" />
-                            <span>Document preview</span>
-                          </>
-                        )}
-                      </div>
+                      <KycDocPreviewBox url={url} label="Bank / Ownership proof" />
                       <div className="text-left">
-                        <p className="text-[12px] font-bold text-[#10242A] mb-1">Ownership proof</p>
+                        <p className="text-[12px] font-bold text-[#10242A] mb-1">Bank / Ownership proof</p>
                         <span className={cn(
                           "text-[11px] font-semibold px-2 py-0.5 rounded-full inline-block mb-2",
                           status === "verified" ? "bg-[#DDF3E4] text-[#14532D]" : status === "rejected" ? "bg-[#FEE2E2] text-[#991B1B]" : "bg-[#FDEBD0] text-[#7A3E00]"

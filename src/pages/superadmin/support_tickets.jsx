@@ -30,12 +30,12 @@ export default function VerificationCenter() {
       setActiveTab("property_edits");
     }
   }, [location.pathname]);
-  const [newProperties, setNewProperties] = useState([]);
   const [propertyEdits, setPropertyEdits] = useState([]);
   const [roomEdits, setRoomEdits] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState(null);
+  const [showModifiedOnly, setShowModifiedOnly] = useState(true);
   const [assignModal, setAssignModal] = useState(null);
   const [fullscreenImage, setFullscreenImage] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -68,14 +68,123 @@ export default function VerificationCenter() {
     }
     return String(v);
   };
+
   const formatFieldLabel = (field) => {
+    if (field === "media") return "ROOM MEDIA";
+    if (field === "propertyViews") return "CATEGORIZED PHOTOS";
     return String(field || "")
       .replace(/([a-z])([A-Z])/g, "$1 $2")
       .replace(/_/g, " ")
       .toUpperCase();
   };
-  const imgUrl = (img) => (img && typeof img === "object" ? img.url || img.secure_url || img.src || "" : String(img || ""));
-  const isMediaField = (field) => ["images", "media", "photos", "roomPhotos", "propertyPhotos"].includes(field);
+
+  const resolveMediaUrl = (raw) => {
+    const u = raw && typeof raw === "object" ? (raw.url || raw.secure_url || raw.src || raw.path || "") : String(raw || "");
+    const clean = u.trim();
+    if (!clean) return "";
+    if (/^(https?:|data:|blob:)/i.test(clean)) return clean;
+    const base = getApiUrl().replace(/\/+$/, "");
+    return clean.startsWith("/") ? `${base}${clean}` : `${base}/${clean}`;
+  };
+
+  const imgUrl = (img) => resolveMediaUrl(img);
+
+  const extractMediaList = (val) => {
+    if (!val) return [];
+    if (Array.isArray(val)) return val.map(resolveMediaUrl).filter(Boolean);
+    if (typeof val === "object") {
+      const urls = [];
+      Object.values(val).forEach((arr) => {
+        if (Array.isArray(arr)) {
+          arr.forEach((entry) => {
+            const u = resolveMediaUrl(entry);
+            if (u) urls.push(u);
+          });
+        } else {
+          const u = resolveMediaUrl(arr);
+          if (u) urls.push(u);
+        }
+      });
+      return urls;
+    }
+    const single = resolveMediaUrl(val);
+    return single ? [single] : [];
+  };
+
+  const isMediaField = (field) =>
+    ["images", "media", "photos", "roomPhotos", "propertyPhotos", "propertyViews", "featuredImage"].includes(field);
+
+  const CURRENCY_FIELDS = new Set([
+    "monthlyRent", "rent", "price", "deposit", "securityDeposit", "maintenanceCharges", "electricityCharges"
+  ]);
+
+  const IGNORED_DIFF_FIELDS = new Set([
+    "_id", "__v", "createdAt", "updatedAt", "pendingChanges", "visitId"
+  ]);
+
+  const formatShortDiffVal = (field, rawVal, strVal) => {
+    if (isMediaField(field)) {
+      const count = extractMediaList(rawVal).length;
+      return `${count} photo${count === 1 ? "" : "s"}`;
+    }
+    if (strVal === "—") return "—";
+    if (CURRENCY_FIELDS.has(field) && !Number.isNaN(Number(rawVal)) && rawVal !== "" && rawVal !== null) {
+      return `₹${Number(rawVal).toLocaleString("en-IN")}`;
+    }
+    return strVal.length > 26 ? `${strVal.slice(0, 24)}…` : strVal;
+  };
+
+  const getEditDiffEntries = (item) => {
+    const pendingData = item?.pendingChanges?.data;
+    if (!pendingData || typeof pendingData !== "object") return { all: [], modified: [] };
+
+    const entries = Object.keys(pendingData)
+      .filter((field) => !IGNORED_DIFF_FIELDS.has(field))
+      .map((field) => {
+        const liveVal = item?.[field];
+        const requestedVal = pendingData[field];
+        if (isMediaField(field)) {
+          const liveList = extractMediaList(liveVal);
+          const reqList = extractMediaList(requestedVal);
+          const isChanged = JSON.stringify(liveList) !== JSON.stringify(reqList);
+          return {
+            field,
+            label: formatFieldLabel(field),
+            liveVal,
+            requestedVal,
+            liveStr: liveList.length ? `${liveList.length} photo${liveList.length === 1 ? "" : "s"}` : "0 photos",
+            reqStr: reqList.length ? `${reqList.length} photo${reqList.length === 1 ? "" : "s"}` : "0 photos",
+            shortOld: `${liveList.length} photo${liveList.length === 1 ? "" : "s"}`,
+            shortNew: `${reqList.length} photo${reqList.length === 1 ? "" : "s"}`,
+            isMedia: true,
+            isChanged,
+          };
+        }
+
+        const liveStr = fmtVal(liveVal);
+        const reqStr = fmtVal(requestedVal);
+        const isChanged = liveStr !== reqStr;
+        return {
+          field,
+          label: formatFieldLabel(field),
+          liveVal,
+          requestedVal,
+          liveStr,
+          reqStr,
+          shortOld: formatShortDiffVal(field, liveVal, liveStr),
+          shortNew: formatShortDiffVal(field, requestedVal, reqStr),
+          isMedia: false,
+          isChanged,
+        };
+      });
+
+    // Sort modified fields first so reviewers immediately see what changed
+    entries.sort((a, b) => (a.isChanged === b.isChanged ? 0 : a.isChanged ? -1 : 1));
+    return {
+      all: entries,
+      modified: entries.filter((e) => e.isChanged),
+    };
+  };
 
   const loadData = async () => {
     const token = sessionStorage.getItem("token") || localStorage.getItem("token");
@@ -87,23 +196,21 @@ export default function VerificationCenter() {
 
     setLoading(true);
     try {
-      const newPropsRes = await fetchJson("/api/properties?pendingApproval=true&withoutVisitReport=true&limit=1000");
-      if (newPropsRes.success) {
-        setNewProperties((newPropsRes.properties || []).filter(p => !p.visitId || !String(p.visitId).trim()));
-      }
+      const [propEditsRes, roomEditsRes, empRes] = await Promise.all([
+        fetchJson(`/api/properties?pendingChanges=true&limit=1000&t=${Date.now()}`),
+        fetchJson(`/api/rooms/all?pendingChanges=true&limit=1000&t=${Date.now()}`),
+        fetchJson("/api/employees").catch(() => ({ success: false, data: [] })),
+      ]);
 
-      const propEditsRes = await fetchJson("/api/properties?pendingChanges=true&limit=1000");
-      if (propEditsRes.success) {
+      if (propEditsRes?.success) {
         setPropertyEdits(propEditsRes.properties || []);
       }
 
-      const roomEditsRes = await fetchJson("/api/rooms/all?pendingChanges=true&limit=1000");
-      if (roomEditsRes.success) {
+      if (roomEditsRes?.success) {
         setRoomEdits(roomEditsRes.rooms || []);
       }
 
-      const empRes = await fetchJson("/api/employees");
-      if (empRes.success) {
+      if (empRes?.success) {
         setEmployees(empRes.data || []);
       }
     } catch (err) {
@@ -120,53 +227,6 @@ export default function VerificationCenter() {
   useEffect(() => {
     loadData();
   }, []);
-
-  const handleApproveNewProperty = async (id) => {
-    try {
-      const res = await fetch(`${getApiUrl()}/api/properties/${id}/publish`, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          ...getAuthHeader()
-        }
-      });
-      const data = await res.json();
-      if (data.success || res.ok) {
-        toast.success("Property approved & published successfully!");
-        setNewProperties(prev => prev.filter(p => p._id !== id));
-        setSelectedItem(null);
-      } else {
-        toast.error(data.message || "Failed to approve property");
-      }
-    } catch (e) {
-      console.error(e);
-      toast.error("Failed to approve property");
-    }
-  };
-
-  const handleRejectNewProperty = async (id) => {
-    try {
-      const res = await fetch(`${getApiUrl()}/api/properties/${id}`, {
-        method: "PUT",
-        headers: { 
-          "Content-Type": "application/json",
-          ...getAuthHeader()
-        },
-        body: JSON.stringify({ status: "blocked", isPublished: false, isLiveOnWebsite: false })
-      });
-      const data = await res.json();
-      if (data.success || res.ok) {
-        toast.success("Property request rejected");
-        setNewProperties(prev => prev.filter(p => p._id !== id));
-        setSelectedItem(null);
-      } else {
-        toast.error(data.message || "Failed to reject property");
-      }
-    } catch (e) {
-      console.error(e);
-      toast.error("Failed to reject property");
-    }
-  };
 
   const handleApprovePropertyEdit = async (id) => {
     try {
@@ -263,12 +323,10 @@ export default function VerificationCenter() {
 
   const handleAssignVerification = async (itemId, employeeId, employeeName) => {
     try {
-      let endpoint = "";
-      if (activeTab === "new_properties" || activeTab === "property_edits") {
-        endpoint = `${getApiUrl()}/api/properties/${itemId}/assign-verification`;
-      } else {
-        endpoint = `${getApiUrl()}/api/rooms/${itemId}/assign-verification`;
-      }
+      const isPropertyAssign = assignModal?.type ? assignModal.type !== "room" : activeTab === "property_edits";
+      const endpoint = isPropertyAssign
+        ? `${getApiUrl()}/api/properties/${itemId}/assign-verification`
+        : `${getApiUrl()}/api/rooms/${itemId}/assign-verification`;
 
       const res = await fetch(endpoint, {
         method: "PUT",
@@ -278,14 +336,12 @@ export default function VerificationCenter() {
       const data = await res.json();
 
       if (data.success || res.ok) {
-        toast.success(data.message || `Successfully assigned to ${employeeName || 'Staff'}`);
-        
+        toast.success(data.message || `Successfully assigned to ${employeeName || "Staff"}`);
+
         const assignedId = data.property?.assignedTo || employeeId;
         const assignedName = data.property?.assignedToName || employeeName;
 
-        if (activeTab === "new_properties") {
-          setNewProperties(prev => prev.map(p => p._id === itemId ? { ...p, assignedTo: assignedId, assignedToName: assignedName } : p));
-        } else if (activeTab === "property_edits") {
+        if (isPropertyAssign) {
           setPropertyEdits(prev => prev.map(p => p._id === itemId ? {
             ...p,
             assignedTo: assignedId,
@@ -317,10 +373,6 @@ export default function VerificationCenter() {
     return items.filter(item => keySelector(item).toLowerCase().includes(query));
   };
 
-  const filteredNewProperties = useMemo(() => {
-    return searchFilter(newProperties, p => `${p.title} ${p.ownerName || ""} ${p.ownerLoginId || ""} ${p.city || ""}`);
-  }, [newProperties, searchQuery]);
-
   const filteredPropertyEdits = useMemo(() => {
     return searchFilter(propertyEdits, p => `${p.title} ${p.ownerName || ""} ${p.ownerLoginId || ""} ${p.city || ""}`);
   }, [propertyEdits, searchQuery]);
@@ -328,6 +380,12 @@ export default function VerificationCenter() {
   const filteredRoomEdits = useMemo(() => {
     return searchFilter(roomEdits, r => `${r.title} ${r.property?.title || ""} ${r.property?.ownerLoginId || ""}`);
   }, [roomEdits, searchQuery]);
+
+  const openReviewModal = (type, data) => {
+    const diff = getEditDiffEntries(data);
+    setShowModifiedOnly(diff.modified.length > 0);
+    setSelectedItem({ type, data });
+  };
 
   return (
     <div className="space-y-4 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
@@ -344,7 +402,7 @@ export default function VerificationCenter() {
       {/* Stats Quick Cards (NO ICONS) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {[
-          { key: "property_edits", label: "Property Edit Requests", count: propertyEdits.length + newProperties.length },
+          { key: "property_edits", label: "Property Edit Requests", count: propertyEdits.length },
           { key: "room_edits", label: "Room Edit Requests", count: roomEdits.length }
         ].map(tab => (
           <div
@@ -383,8 +441,7 @@ export default function VerificationCenter() {
             onChange={e => setActiveTab(e.target.value)}
             className="bg-white border border-[#CBD3D9] rounded-[8px] px-3 py-1.5 text-[13px] font-medium text-[#10242A] outline-none cursor-pointer focus:border-[#0E7C86] shadow-xs"
           >
-            <option value="property_edits">Property & Listing Requests ({filteredPropertyEdits.length + filteredNewProperties.length})</option>
-            <option value="new_properties">New Property Listings Only ({filteredNewProperties.length})</option>
+            <option value="property_edits">Property Edit Requests ({filteredPropertyEdits.length})</option>
             <option value="room_edits">Room Edit Requests ({filteredRoomEdits.length})</option>
           </select>
         </div>
@@ -396,7 +453,7 @@ export default function VerificationCenter() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-[#E1E6EA]">
-                <th className="pb-2 pr-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Property / Room Details</th>
+                <th className="pb-2 pr-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Property / Room & Requested Changes</th>
                 <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Owner Details</th>
                 <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Location</th>
                 {!isEmployeeView && <th className="pb-2 px-4 text-[12px] font-semibold text-[#4A5961] uppercase tracking-wider">Assigned Employee</th>}
@@ -405,135 +462,65 @@ export default function VerificationCenter() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#F0F4F6] text-[13px]">
-              {/* Tab 1: New Properties */}
-              {activeTab === "new_properties" && (
-                filteredNewProperties.length === 0 ? (
-                  <tr><td colSpan={isEmployeeView ? 5 : 6} className="py-12 text-center text-[13px] font-medium text-[#4A5961]">No property approvals pending</td></tr>
-                ) : filteredNewProperties.map(p => (
-                  <tr key={p._id} className="hover:bg-[#F9FAFB] transition-colors">
-                    <td className="py-2.5 pr-4">
-                      <div>
-                        <p className="font-semibold text-[#10242A] text-[13px]">{p.title || "No Title"}</p>
-                        <p className="text-[11px] text-[#4A5961] mt-0.5">{p.propertyType || "Property"}</p>
-                      </div>
-                    </td>
-                    <td className="py-2.5 px-4">
-                      <p className="text-[13px] font-semibold text-[#10242A]">{p.ownerName || "Unknown Owner"}</p>
-                      <p className="text-[11px] text-[#4A5961] font-mono mt-0.5">{p.ownerLoginId || "N/A"}</p>
-                    </td>
-                    <td className="py-2.5 px-4">
-                      <p className="text-[13px] font-medium text-[#4A5961] flex items-center gap-1"><MapPin size={12} className="text-[#0E7C86]" /> {p.city || "N/A"}</p>
-                    </td>
-                    {!isEmployeeView && (
-                      <td className="py-2.5 px-4">
-                        {p.assignedToName || p.assignedTo ? (
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[11px] font-semibold text-[#10242A] bg-[#F4F6F8] border border-[#E1E6EA] px-2 py-0.5 rounded-[4px] inline-flex items-center gap-1">
-                              <User size={11} className="text-[#0E7C86]" /> {p.assignedToName || p.assignedTo}
-                            </span>
-                            <button onClick={() => setAssignModal({ type: "property", id: p._id, city: p.city, title: p.title })} className="text-[11px] text-[#4A5961] hover:text-[#0E7C86] underline cursor-pointer" title="Reassign">Edit</button>
-                          </div>
-                        ) : (
-                          <button onClick={() => setAssignModal({ type: "property", id: p._id, city: p.city, title: p.title })} className="text-[12px] font-semibold text-[#0E7C86] hover:underline flex items-center gap-1 cursor-pointer"><UserPlus size={12} /> Assign</button>
-                        )}
-                      </td>
-                    )}
-                    <td className="py-2.5 px-4 text-[12px] text-[#4A5961]">
-                      {new Date(p.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="py-2.5 pl-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button onClick={() => setSelectedItem({ type: "new_property", data: p })} className="px-2.5 py-1 bg-white hover:bg-[#F4F6F8] text-[#10242A] border border-[#CBD3D9] rounded-[6px] text-[12px] font-semibold transition-all flex items-center gap-1 cursor-pointer">
-                          <Eye size={12} /> View
-                        </button>
-                        <button onClick={() => handleApproveNewProperty(p._id)} className="px-2.5 py-1 bg-[#095256] hover:bg-[#073E42] text-white rounded-[6px] text-[12px] font-semibold transition-all cursor-pointer">
-                          Approve
-                        </button>
-                        <button onClick={() => handleRejectNewProperty(p._id)} className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-[6px] text-[12px] font-semibold transition-all cursor-pointer">
-                          Reject
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-
-              {/* Tab 2: Property Edits & Owner New Property Listings */}
+              {/* Tab 1: Property Edit Requests ONLY */}
               {activeTab === "property_edits" && (
-                (filteredPropertyEdits.length === 0 && filteredNewProperties.length === 0) ? (
-                  <tr><td colSpan={isEmployeeView ? 5 : 6} className="py-12 text-center text-[13px] font-medium text-[#4A5961]">No property edit or new listing requests pending</td></tr>
+                filteredPropertyEdits.length === 0 ? (
+                  <tr><td colSpan={isEmployeeView ? 5 : 6} className="py-12 text-center text-[13px] font-medium text-[#4A5961]">No property edit requests pending</td></tr>
                 ) : (
-                  <>
-                    {filteredNewProperties.map(p => (
-                      <tr key={`new-${p._id}`} className="hover:bg-[#F9FAFB] transition-colors bg-amber-50/30">
-                        <td className="py-2.5 pr-4">
+                  filteredPropertyEdits.map(p => {
+                    const { modified } = getEditDiffEntries(p);
+                    return (
+                      <tr key={p._id} className="hover:bg-[#F9FAFB] transition-colors">
+                        <td className="py-3 pr-4">
                           <div>
-                            <p className="font-semibold text-[#10242A] text-[13px]">{p.title || "No Title"}</p>
-                            <span className="inline-block text-[10px] font-bold text-amber-800 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded mt-0.5">
-                              New Property Listing (Pending Approval)
-                            </span>
-                          </div>
-                        </td>
-                        <td className="py-2.5 px-4">
-                          <p className="text-[13px] font-semibold text-[#10242A]">{p.ownerName || "Unknown Owner"}</p>
-                          <p className="text-[11px] text-[#4A5961] font-mono mt-0.5">{p.ownerLoginId || "N/A"}</p>
-                        </td>
-                        <td className="py-2.5 px-4">
-                          <p className="text-[13px] font-medium text-[#4A5961] flex items-center gap-1"><MapPin size={12} className="text-[#0E7C86]" /> {p.city || "N/A"}</p>
-                        </td>
-                        {!isEmployeeView && (
-                          <td className="py-2.5 px-4">
-                            {p.assignedToName || p.assignedTo ? (
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-[11px] font-semibold text-[#10242A] bg-[#F4F6F8] border border-[#E1E6EA] px-2 py-0.5 rounded-[4px] inline-flex items-center gap-1">
-                                  <User size={11} className="text-[#0E7C86]" /> {p.assignedToName || p.assignedTo}
-                                </span>
-                                <button onClick={() => setAssignModal({ type: "property", id: p._id, city: p.city, title: p.title })} className="text-[11px] text-[#4A5961] hover:text-[#0E7C86] underline cursor-pointer" title="Reassign">Edit</button>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="font-semibold text-[#10242A] text-[13px]">{p.title || "No Title"}</p>
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#E6F4F5] text-[#095256] border border-[#CBE6E8]">
+                                {modified.length > 0 ? `${modified.length} field${modified.length === 1 ? "" : "s"} modified` : "Edit Request"}
+                              </span>
+                            </div>
+                            {modified.length > 0 ? (
+                              <div className="flex flex-wrap gap-1.5 mt-1.5">
+                                {modified.slice(0, 3).map((m) => (
+                                  <span
+                                    key={m.field}
+                                    onClick={() => openReviewModal("property_edit", p)}
+                                    className="inline-flex items-center gap-1 text-[11px] bg-amber-50 hover:bg-amber-100/80 text-[#10242A] border border-amber-200 px-2 py-0.5 rounded-[6px] cursor-pointer transition-colors"
+                                    title={`Click to review ${m.label}`}
+                                  >
+                                    <span className="font-bold text-amber-900">{m.label}:</span>
+                                    <span className="line-through text-[#708088]">{m.shortOld}</span>
+                                    <ArrowRight size={10} className="text-[#0E7C86] shrink-0" />
+                                    <span className="font-bold text-[#095256]">{m.shortNew}</span>
+                                  </span>
+                                ))}
+                                {modified.length > 3 && (
+                                  <span
+                                    onClick={() => openReviewModal("property_edit", p)}
+                                    className="inline-flex items-center text-[11px] font-bold text-[#0E7C86] bg-[#E6F4F5] border border-[#CBE6E8] px-2 py-0.5 rounded-[6px] cursor-pointer"
+                                  >
+                                    +{modified.length - 3} more
+                                  </span>
+                                )}
                               </div>
                             ) : (
-                              <button onClick={() => setAssignModal({ type: "property", id: p._id, city: p.city, title: p.title })} className="text-[12px] font-semibold text-[#0E7C86] hover:underline flex items-center gap-1 cursor-pointer"><UserPlus size={12} /> Assign</button>
+                              <p className="text-[11px] text-[#4A5961] mt-0.5">Property Modification Request</p>
                             )}
-                          </td>
-                        )}
-                        <td className="py-2.5 px-4 text-[12px] text-[#4A5961]">
-                          {new Date(p.createdAt).toLocaleDateString()}
-                        </td>
-                        <td className="py-2.5 pl-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <button onClick={() => setSelectedItem({ type: "new_property", data: p })} className="px-2.5 py-1 bg-white hover:bg-[#F4F6F8] text-[#10242A] border border-[#CBD3D9] rounded-[6px] text-[12px] font-semibold transition-all flex items-center gap-1 cursor-pointer">
-                              <Eye size={12} /> View
-                            </button>
-                            <button onClick={() => handleApproveNewProperty(p._id)} className="px-2.5 py-1 bg-[#095256] hover:bg-[#073E42] text-white rounded-[6px] text-[12px] font-semibold transition-all cursor-pointer">
-                              Approve
-                            </button>
-                            <button onClick={() => handleRejectNewProperty(p._id)} className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-[6px] text-[12px] font-semibold transition-all cursor-pointer">
-                              Reject
-                            </button>
                           </div>
                         </td>
-                      </tr>
-                    ))}
-                    {filteredPropertyEdits.map(p => (
-                      <tr key={p._id} className="hover:bg-[#F9FAFB] transition-colors">
-                        <td className="py-2.5 pr-4">
-                          <div>
-                            <p className="font-semibold text-[#10242A] text-[13px]">{p.title || "No Title"}</p>
-                            <p className="text-[11px] text-[#4A5961] mt-0.5">Edit Request</p>
-                          </div>
-                        </td>
-                        <td className="py-2.5 px-4">
+                        <td className="py-3 px-4">
                           <p className="text-[13px] font-semibold text-[#10242A]">{p.ownerName || "Unknown Owner"}</p>
                           <p className="text-[11px] text-[#4A5961] font-mono mt-0.5">{p.ownerLoginId || "N/A"}</p>
                         </td>
-                        <td className="py-2.5 px-4">
+                        <td className="py-3 px-4">
                           <p className="text-[13px] font-medium text-[#4A5961] flex items-center gap-1"><MapPin size={12} className="text-[#0E7C86]" /> {p.city || "N/A"}</p>
                         </td>
                         {!isEmployeeView && (
-                          <td className="py-2.5 px-4">
+                          <td className="py-3 px-4">
                             {p.pendingChanges?.assignedToName || p.pendingChanges?.assignedTo || p.assignedToName || p.assignedTo ? (
                               <div className="flex items-center gap-1.5">
                                 <span className="text-[11px] font-semibold text-[#10242A] bg-[#F4F6F8] border border-[#E1E6EA] px-2 py-0.5 rounded-[4px] inline-flex items-center gap-1">
-                                  <User size={11} className="text-[#0E7C86]" /> {p.pendingChanges?.assignedToName || p.pendingChanges?.assignedTo || p.assignedToName || p.assignedTo}
+                                  <User size={11} className="text-[#0E7C86]" /> {p.pendingChanges?.assignedToName || p.assignedToName || p.pendingChanges?.assignedTo || p.assignedTo}
                                 </span>
                                 <button onClick={() => setAssignModal({ type: "property", id: p._id, city: p.city, title: p.title })} className="text-[11px] text-[#4A5961] hover:text-[#0E7C86] underline cursor-pointer" title="Reassign">Edit</button>
                               </div>
@@ -542,12 +529,12 @@ export default function VerificationCenter() {
                             )}
                           </td>
                         )}
-                        <td className="py-2.5 px-4 text-[12px] text-[#4A5961]">
-                          {new Date(p.updatedAt || p.createdAt).toLocaleDateString()}
+                        <td className="py-3 px-4 text-[12px] text-[#4A5961]">
+                          {new Date(p.pendingChanges?.requestedAt || p.updatedAt || p.createdAt).toLocaleDateString("en-IN")}
                         </td>
-                        <td className="py-2.5 pl-4 text-right">
+                        <td className="py-3 pl-4 text-right">
                           <div className="flex items-center justify-end gap-1.5">
-                            <button onClick={() => setSelectedItem({ type: "property_edit", data: p })} className="px-2.5 py-1 bg-white hover:bg-[#F4F6F8] text-[#10242A] border border-[#CBD3D9] rounded-[6px] text-[12px] font-semibold transition-all flex items-center gap-1 cursor-pointer">
+                            <button onClick={() => openReviewModal("property_edit", p)} className="px-2.5 py-1 bg-white hover:bg-[#F4F6F8] text-[#10242A] border border-[#CBD3D9] rounded-[6px] text-[12px] font-semibold transition-all flex items-center gap-1 cursor-pointer">
                               <Eye size={12} /> Review
                             </button>
                             <button onClick={() => handleApprovePropertyEdit(p._id)} className="px-2.5 py-1 bg-[#095256] hover:bg-[#073E42] text-white rounded-[6px] text-[12px] font-semibold transition-all cursor-pointer">
@@ -559,127 +546,189 @@ export default function VerificationCenter() {
                           </div>
                         </td>
                       </tr>
-                    ))}
-                  </>
+                    );
+                  })
                 )
               )}
 
-              {/* Tab 3: Room Edits */}
+              {/* Tab 2: Room Edit Requests */}
               {activeTab === "room_edits" && (
                 filteredRoomEdits.length === 0 ? (
                   <tr><td colSpan={isEmployeeView ? 5 : 6} className="py-12 text-center text-[13px] font-medium text-[#4A5961]">No room edit requests pending</td></tr>
-                ) : filteredRoomEdits.map(r => (
-                  <tr key={r._id} className="hover:bg-[#F9FAFB] transition-colors">
-                    <td className="py-2.5 pr-4">
-                      <div>
-                        <p className="font-semibold text-[#10242A] text-[13px]">{r.title || "Room"}</p>
-                        <p className="text-[11px] text-[#4A5961] mt-0.5">{r.property?.title || "Property"}</p>
-                      </div>
-                    </td>
-                    <td className="py-2.5 px-4">
-                      <p className="text-[13px] font-semibold text-[#10242A]">{r.property?.ownerName || "Unknown Owner"}</p>
-                      <p className="text-[11px] text-[#4A5961] font-mono mt-0.5">{r.property?.ownerLoginId || "N/A"}</p>
-                    </td>
-                    <td className="py-2.5 px-4">
-                      <p className="text-[13px] font-medium text-[#4A5961] flex items-center gap-1"><MapPin size={12} className="text-[#0E7C86]" /> {r.property?.city || "N/A"}</p>
-                    </td>
-                    {!isEmployeeView && (
-                      <td className="py-2.5 px-4">
-                        {r.pendingChanges?.assignedToName || r.pendingChanges?.assignedTo ? (
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[11px] font-semibold text-[#10242A] bg-[#F4F6F8] border border-[#E1E6EA] px-2 py-0.5 rounded-[4px] inline-flex items-center gap-1">
-                              <User size={11} className="text-[#0E7C86]" /> {r.pendingChanges?.assignedToName || r.pendingChanges?.assignedTo}
+                ) : filteredRoomEdits.map(r => {
+                  const { modified } = getEditDiffEntries(r);
+                  return (
+                    <tr key={r._id} className="hover:bg-[#F9FAFB] transition-colors">
+                      <td className="py-3 pr-4">
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-semibold text-[#10242A] text-[13px]">{r.title || "Room"}</p>
+                            <span className="text-[11px] text-[#4A5961]">• {r.property?.title || "Property"}</span>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#E6F4F5] text-[#095256] border border-[#CBE6E8]">
+                              {modified.length > 0 ? `${modified.length} field${modified.length === 1 ? "" : "s"} modified` : "Room Edit"}
                             </span>
-                            <button onClick={() => setAssignModal({ type: "room", id: r._id, city: r.property?.city, title: r.title })} className="text-[11px] text-[#4A5961] hover:text-[#0E7C86] underline cursor-pointer" title="Reassign">Edit</button>
                           </div>
-                        ) : (
-                          <button onClick={() => setAssignModal({ type: "room", id: r._id, city: r.property?.city, title: r.title })} className="text-[12px] font-semibold text-[#0E7C86] hover:underline flex items-center gap-1 cursor-pointer"><UserPlus size={12} /> Assign</button>
-                        )}
+                          {modified.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 mt-1.5">
+                              {modified.slice(0, 3).map((m) => (
+                                <span
+                                  key={m.field}
+                                  onClick={() => openReviewModal("room_edit", r)}
+                                  className="inline-flex items-center gap-1 text-[11px] bg-amber-50 hover:bg-amber-100/80 text-[#10242A] border border-amber-200 px-2 py-0.5 rounded-[6px] cursor-pointer transition-colors"
+                                  title={`Click to review ${m.label}`}
+                                >
+                                  <span className="font-bold text-amber-900">{m.label}:</span>
+                                  <span className="line-through text-[#708088]">{m.shortOld}</span>
+                                  <ArrowRight size={10} className="text-[#0E7C86] shrink-0" />
+                                  <span className="font-bold text-[#095256]">{m.shortNew}</span>
+                                </span>
+                              ))}
+                              {modified.length > 3 && (
+                                <span
+                                  onClick={() => openReviewModal("room_edit", r)}
+                                  className="inline-flex items-center text-[11px] font-bold text-[#0E7C86] bg-[#E6F4F5] border border-[#CBE6E8] px-2 py-0.5 rounded-[6px] cursor-pointer"
+                                >
+                                  +{modified.length - 3} more
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </td>
-                    )}
-                    <td className="py-2.5 px-4 text-[12px] text-[#4A5961]">
-                      {new Date(r.updatedAt || r.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="py-2.5 pl-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button onClick={() => setSelectedItem({ type: "room_edit", data: r })} className="px-2.5 py-1 bg-white hover:bg-[#F4F6F8] text-[#10242A] border border-[#CBD3D9] rounded-[6px] text-[12px] font-semibold transition-all flex items-center gap-1 cursor-pointer">
-                          <Eye size={12} /> Review
-                        </button>
-                        <button onClick={() => handleApproveRoomEdit(r._id)} className="px-2.5 py-1 bg-[#095256] hover:bg-[#073E42] text-white rounded-[6px] text-[12px] font-semibold transition-all cursor-pointer">
-                          Approve
-                        </button>
-                        <button onClick={() => handleRejectRoomEdit(r._id)} className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-[6px] text-[12px] font-semibold transition-all cursor-pointer">
-                          Reject
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                      <td className="py-3 px-4">
+                        <p className="text-[13px] font-semibold text-[#10242A]">{r.property?.ownerName || "Unknown Owner"}</p>
+                        <p className="text-[11px] text-[#4A5961] font-mono mt-0.5">{r.property?.ownerLoginId || "N/A"}</p>
+                      </td>
+                      <td className="py-3 px-4">
+                        <p className="text-[13px] font-medium text-[#4A5961] flex items-center gap-1"><MapPin size={12} className="text-[#0E7C86]" /> {r.property?.city || "N/A"}</p>
+                      </td>
+                      {!isEmployeeView && (
+                        <td className="py-3 px-4">
+                          {r.pendingChanges?.assignedToName || r.pendingChanges?.assignedTo ? (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[11px] font-semibold text-[#10242A] bg-[#F4F6F8] border border-[#E1E6EA] px-2 py-0.5 rounded-[4px] inline-flex items-center gap-1">
+                                <User size={11} className="text-[#0E7C86]" /> {r.pendingChanges?.assignedToName || r.pendingChanges?.assignedTo}
+                              </span>
+                              <button onClick={() => setAssignModal({ type: "room", id: r._id, city: r.property?.city, title: r.title })} className="text-[11px] text-[#4A5961] hover:text-[#0E7C86] underline cursor-pointer" title="Reassign">Edit</button>
+                            </div>
+                          ) : (
+                            <button onClick={() => setAssignModal({ type: "room", id: r._id, city: r.property?.city, title: r.title })} className="text-[12px] font-semibold text-[#0E7C86] hover:underline flex items-center gap-1 cursor-pointer"><UserPlus size={12} /> Assign</button>
+                          )}
+                        </td>
+                      )}
+                      <td className="py-3 px-4 text-[12px] text-[#4A5961]">
+                        {new Date(r.pendingChanges?.requestedAt || r.updatedAt || r.createdAt).toLocaleDateString("en-IN")}
+                      </td>
+                      <td className="py-3 pl-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button onClick={() => openReviewModal("room_edit", r)} className="px-2.5 py-1 bg-white hover:bg-[#F4F6F8] text-[#10242A] border border-[#CBD3D9] rounded-[6px] text-[12px] font-semibold transition-all flex items-center gap-1 cursor-pointer">
+                            <Eye size={12} /> Review
+                          </button>
+                          <button onClick={() => handleApproveRoomEdit(r._id)} className="px-2.5 py-1 bg-[#095256] hover:bg-[#073E42] text-white rounded-[6px] text-[12px] font-semibold transition-all cursor-pointer">
+                            Approve
+                          </button>
+                          <button onClick={() => handleRejectRoomEdit(r._id)} className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-[6px] text-[12px] font-semibold transition-all cursor-pointer">
+                            Reject
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Review Modal — current vs requested values for edit requests, details for new listings.
-          The Review buttons set selectedItem; without this block they open nothing. */}
-      {selectedItem && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[16px] w-full max-w-5xl shadow-2xl border border-[#E1E6EA] overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="px-5 py-4 border-b border-[#E1E6EA] flex items-start justify-between bg-[#F4F6F8] shrink-0">
-              <div>
-                <h3 className="text-sm font-bold text-[#10242A]">
-                  {selectedItem.type === "new_property" && `Property Verification: ${selectedItem.data.title}`}
-                  {selectedItem.type === "property_edit" && `Edit Request: ${selectedItem.data.title}`}
-                  {selectedItem.type === "room_edit" && `Room Edit Request: ${selectedItem.data.title}`}
-                </h3>
-                <p className="text-[10px] text-[#4A5961] font-semibold uppercase tracking-wider mt-1">
-                  Requested by: {selectedItem.type === "new_property" ? selectedItem.data.ownerLoginId : selectedItem.data.pendingChanges?.requestedBy}
-                </p>
-              </div>
-              <button onClick={() => setSelectedItem(null)} className="p-1.5 text-[#4A5961] hover:text-[#10242A] hover:bg-white rounded-lg transition-all"><X size={16} /></button>
-            </div>
+      {/* Review Modal — highlights modified fields clearly */}
+      {selectedItem && (() => {
+        const { all: allDiffs, modified: modifiedDiffs } = getEditDiffEntries(selectedItem.data);
+        const visibleRows = showModifiedOnly && modifiedDiffs.length > 0 ? modifiedDiffs : allDiffs;
 
-            <div className="flex-1 overflow-y-auto p-5 space-y-5">
-              {selectedItem.type === "new_property" && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div className="space-y-3">
-                    <h4 className="text-[10px] font-bold text-[#10242A] uppercase tracking-wider">Property Media</h4>
-                    <div className="grid grid-cols-2 gap-2">
-                      {selectedItem.data.images?.length > 0 ? (
-                        selectedItem.data.images.map((img, i) => <img key={i} src={img} alt="" className="w-full h-32 object-cover rounded-xl border border-[#E1E6EA]" loading="lazy" onError={(e) => { e.currentTarget.style.display = "none"; }} />)
-                      ) : (
-                        <div className="col-span-2 py-8 bg-[#F4F6F8] rounded-xl text-center text-xs font-semibold text-[#4A5961] uppercase">No images uploaded</div>
-                      )}
+        return (
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-[16px] w-full max-w-5xl shadow-2xl border border-[#E1E6EA] overflow-hidden flex flex-col max-h-[90vh]">
+              <div className="px-5 py-4 border-b border-[#E1E6EA] flex items-start justify-between bg-[#F4F6F8] shrink-0">
+                <div>
+                  <h3 className="text-sm font-bold text-[#10242A]">
+                    {selectedItem.type === "property_edit" && `Edit Request: ${selectedItem.data.title}`}
+                    {selectedItem.type === "room_edit" && `Room Edit Request: ${selectedItem.data.title}`}
+                  </h3>
+                  <p className="text-[11px] text-[#4A5961] font-semibold uppercase tracking-wider mt-1">
+                    Requested by: {selectedItem.data.pendingChanges?.requestedBy || selectedItem.data.ownerLoginId || selectedItem.data.property?.ownerLoginId || "Owner"}
+                  </p>
+                </div>
+                <button onClick={() => setSelectedItem(null)} className="p-1.5 text-[#4A5961] hover:text-[#10242A] hover:bg-white rounded-lg transition-all cursor-pointer"><X size={16} /></button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                {/* Highlighted Summary Banner */}
+                {modifiedDiffs.length > 0 && (
+                  <div className="bg-amber-50/70 border border-amber-200 rounded-[12px] p-4 space-y-2.5">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 rounded-full bg-amber-200/80 text-amber-950 text-[11px] font-extrabold uppercase tracking-wider">
+                          {modifiedDiffs.length} {modifiedDiffs.length === 1 ? "Change" : "Changes"} Requested
+                        </span>
+                        <span className="text-[12px] font-semibold text-[#10242A]">
+                          Owner modified the highlighted fields below:
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                  <div className="space-y-3">
-                    <h4 className="text-[10px] font-bold text-[#10242A] uppercase tracking-wider">Details</h4>
-                    <div className="bg-[#F4F6F8] rounded-xl p-4 border border-[#E1E6EA] space-y-3">
-                      {[
-                        { label: "Property Name", val: selectedItem.data.title },
-                        { label: "City", val: selectedItem.data.city },
-                        { label: "Locality", val: selectedItem.data.locality },
-                        { label: "Full Address", val: selectedItem.data.address },
-                        { label: "Monthly Rent", val: `₹${selectedItem.data.monthlyRent || 0}` },
-                        { label: "Property Age", val: selectedItem.data.propertyDetails?.propertyAge },
-                      ].map(f => (
-                        <div key={f.label} className="flex justify-between text-xs items-start">
-                          <span className="text-[#4A5961] font-semibold shrink-0">{f.label}:</span>
-                          <span className="text-[#10242A] font-bold text-right ml-4">{fmtVal(f.val)}</span>
+                    <div className="flex flex-wrap gap-2">
+                      {modifiedDiffs.map((m) => (
+                        <div
+                          key={`summary-${m.field}`}
+                          className="inline-flex items-center gap-1.5 bg-white border border-amber-200 rounded-[8px] px-2.5 py-1 text-[11px] shadow-2xs"
+                        >
+                          <span className="font-bold text-[#10242A]">{m.label}:</span>
+                          <span className="line-through text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded font-medium">{m.shortOld}</span>
+                          <ArrowRight size={11} className="text-[#0E7C86] shrink-0" />
+                          <span className="font-bold text-[#095256] bg-[#E6F4F5] px-1.5 py-0.5 rounded">{m.shortNew}</span>
                         </div>
                       ))}
                     </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {(selectedItem.type === "property_edit" || selectedItem.type === "room_edit") && (
                 <div className="space-y-3">
-                  <h4 className="text-[10px] font-bold text-[#10242A] uppercase tracking-wider flex items-center gap-1.5">
-                    <Info size={14} className="text-[#0E7C86]" /> Requested changes — current vs new
-                  </h4>
-                  {Object.keys(selectedItem.data.pendingChanges?.data || {}).length === 0 ? (
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h4 className="text-[11px] font-bold text-[#10242A] uppercase tracking-wider flex items-center gap-1.5">
+                      <Info size={14} className="text-[#0E7C86]" /> Requested changes — Current (Live) vs Requested (New)
+                    </h4>
+
+                    {allDiffs.length > 0 && modifiedDiffs.length > 0 && (
+                      <div className="inline-flex rounded-[8px] border border-[#CBD3D9] bg-[#F4F6F8] p-0.5">
+                        <button
+                          type="button"
+                          onClick={() => setShowModifiedOnly(true)}
+                          className={cn(
+                            "px-3 py-1 rounded-[6px] text-[11px] font-semibold transition-all cursor-pointer",
+                            showModifiedOnly
+                              ? "bg-[#095256] text-white shadow-2xs"
+                              : "text-[#4A5961] hover:text-[#10242A]"
+                          )}
+                        >
+                          Modified Only ({modifiedDiffs.length})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowModifiedOnly(false)}
+                          className={cn(
+                            "px-3 py-1 rounded-[6px] text-[11px] font-semibold transition-all cursor-pointer",
+                            !showModifiedOnly
+                              ? "bg-[#095256] text-white shadow-2xs"
+                              : "text-[#4A5961] hover:text-[#10242A]"
+                          )}
+                        >
+                          Show All Fields ({allDiffs.length})
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {allDiffs.length === 0 ? (
                     <div className="py-8 bg-[#F4F6F8] rounded-xl text-center text-xs font-semibold text-[#4A5961]">
                       This request has no field changes recorded.
                     </div>
@@ -694,59 +743,89 @@ export default function VerificationCenter() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-[#E1E6EA]">
-                          {Object.keys(selectedItem.data.pendingChanges.data).map(field => {
-                            const liveVal = selectedItem.data[field];
-                            const requestedVal = selectedItem.data.pendingChanges.data[field];
-                            const liveStr = fmtVal(liveVal);
-                            const reqStr = fmtVal(requestedVal);
-                            const isChanged = liveStr !== reqStr;
-
-                            if (isMediaField(field)) {
-                              const strip = (list, extra) => {
-                                const arr = Array.isArray(list) ? list.filter(Boolean) : (list ? [list] : []);
-                                if (arr.length === 0) return <span className="text-[#4A5961]">—</span>;
+                          {visibleRows.map(({ field, label, liveVal, requestedVal, liveStr, reqStr, isMedia, isChanged }) => {
+                            if (isMedia) {
+                              const renderMediaStrip = (val, extra) => {
+                                const arr = extractMediaList(val);
+                                if (arr.length === 0) return <span className="text-[#4A5961]">No photos (0)</span>;
                                 return (
                                   <div className="flex flex-wrap gap-2 py-1">
-                                    {arr.map((img, i) => (
-                                      <img key={i} src={imgUrl(img)} alt="" loading="lazy"
-                                        className={cn("w-14 h-12 object-cover rounded-lg cursor-pointer shrink-0 shadow-2xs", extra)}
-                                        onClick={() => setFullscreenImage({ url: imgUrl(img), index: i })}
-                                        onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                                    {arr.map((u, i) => (
+                                      <img
+                                        key={i}
+                                        src={u}
+                                        alt=""
+                                        className={cn("w-16 h-14 object-cover rounded-lg cursor-pointer shrink-0 shadow-2xs", extra)}
+                                        onClick={() => setFullscreenImage({ url: u, index: i })}
+                                        onError={(e) => { e.currentTarget.style.display = "none"; }}
+                                      />
                                     ))}
                                   </div>
                                 );
                               };
                               return (
-                                <tr key={field} className="align-top">
-                                  <td className="px-4 py-3.5 font-bold text-[#4A5961] uppercase tracking-wider text-[10px] break-words">
-                                    <span>{field === "media" ? "Room Media" : formatFieldLabel(field)}</span>
+                                <tr key={field} className={cn("align-top", isChanged ? "bg-amber-50/40" : "bg-white")}>
+                                  <td className={cn(
+                                    "px-4 py-3.5 font-bold text-[#10242A] uppercase tracking-wider text-[10px] break-words",
+                                    isChanged && "border-l-4 border-l-[#0E7C86]"
+                                  )}>
+                                    <div className="flex flex-wrap items-center gap-1.5">
+                                      <span>{label}</span>
+                                      {isChanged && (
+                                        <span className="px-1.5 py-0.5 rounded bg-amber-200/80 text-amber-950 text-[9px] font-extrabold uppercase">
+                                          Modified
+                                        </span>
+                                      )}
+                                    </div>
                                   </td>
-                                  <td className="px-4 py-3.5 border-l border-[#F0F4F6]">{strip(liveVal, "border border-[#E1E6EA]")}</td>
-                                  <td className="px-4 py-3.5 bg-[#E6F4F5]/40 border-l border-[#CBE6E8]">{strip(requestedVal, "border-2 border-[#0E7C86]")}</td>
+                                  <td className="px-4 py-3.5 border-l border-[#F0F4F6]">
+                                    {renderMediaStrip(liveVal, "border border-[#E1E6EA]")}
+                                  </td>
+                                  <td className={cn(
+                                    "px-4 py-3.5 border-l border-[#CBE6E8]",
+                                    isChanged ? "bg-[#E6F4F5]/65" : "bg-[#E6F4F5]/25"
+                                  )}>
+                                    {renderMediaStrip(requestedVal, "border-2 border-[#0E7C86]")}
+                                  </td>
                                 </tr>
                               );
                             }
 
                             return (
-                              <tr key={field} className={cn("align-top", isChanged ? "bg-white" : "bg-[#FAFCFD]")}>
-                                <td className="px-4 py-3 font-bold text-[#4A5961] uppercase tracking-wider text-[10px] break-words">
+                              <tr key={field} className={cn("align-top", isChanged ? "bg-amber-50/40" : "bg-[#FAFCFD]")}>
+                                <td className={cn(
+                                  "px-4 py-3 font-bold uppercase tracking-wider text-[10px] break-words",
+                                  isChanged ? "text-[#10242A] border-l-4 border-l-[#0E7C86]" : "text-[#4A5961]"
+                                )}>
                                   <div className="flex flex-wrap items-center gap-1.5">
-                                    <span>{formatFieldLabel(field)}</span>
+                                    <span>{label}</span>
                                     {isChanged && (
-                                      <span className="px-1.5 py-0.5 rounded bg-[#E6F4F5] text-[#0E7C86] text-[8px] font-extrabold uppercase">
+                                      <span className="px-1.5 py-0.5 rounded bg-amber-200/80 text-amber-950 text-[9px] font-extrabold uppercase">
                                         Modified
                                       </span>
                                     )}
                                   </div>
                                 </td>
                                 <td className="px-4 py-3 font-medium text-[#4A5961] border-l border-[#F0F4F6] break-words [overflow-wrap:anywhere] whitespace-pre-wrap">
-                                  {liveStr}
+                                  {isChanged ? (
+                                    <span className="inline-block line-through text-rose-700 bg-rose-50/80 border border-rose-200/70 px-2 py-0.5 rounded">
+                                      {liveStr}
+                                    </span>
+                                  ) : (
+                                    liveStr
+                                  )}
                                 </td>
                                 <td className={cn(
                                   "px-4 py-3 border-l border-[#CBE6E8] break-words [overflow-wrap:anywhere] whitespace-pre-wrap",
-                                  isChanged ? "font-bold text-[#09626A] bg-[#E6F4F5]/55" : "font-semibold text-[#10242A] bg-[#E6F4F5]/25"
+                                  isChanged ? "font-bold text-[#095256] bg-[#E6F4F5]/75" : "font-semibold text-[#10242A] bg-[#E6F4F5]/20"
                                 )}>
-                                  {reqStr}
+                                  {isChanged ? (
+                                    <span className="inline-block bg-white border border-[#0E7C86]/40 text-[#095256] font-extrabold px-2.5 py-0.5 rounded shadow-2xs">
+                                      {reqStr}
+                                    </span>
+                                  ) : (
+                                    reqStr
+                                  )}
                                 </td>
                               </tr>
                             );
@@ -756,40 +835,48 @@ export default function VerificationCenter() {
                     </div>
                   )}
                 </div>
-              )}
-            </div>
+              </div>
 
-            <div className="px-5 py-4 border-t border-[#E1E6EA] bg-[#F4F6F8] flex gap-2 justify-end shrink-0">
-              <button onClick={() => setSelectedItem(null)} className="px-3.5 py-2 bg-white border border-[#E1E6EA] text-[#10242A] rounded-lg text-xs font-semibold hover:bg-[#F4F6F8] transition-all">Cancel</button>
-              {!isEmployeeView && (
-                <button onClick={() => setAssignModal({ type: selectedItem.type === "room_edit" ? "room" : "property", id: selectedItem.data._id })} className="px-3.5 py-2 bg-white border border-[#E1E6EA] text-[#0E7C86] rounded-lg text-xs font-semibold hover:bg-[#E6F4F5] transition-all flex items-center gap-1.5"><UserPlus size={13} /> Assign Verification</button>
-              )}
-              <button
-                onClick={() => {
-                  const id = selectedItem.data._id;
-                  if (selectedItem.type === "new_property") handleRejectNewProperty(id);
-                  else if (selectedItem.type === "property_edit") handleRejectPropertyEdit(id);
-                  else handleRejectRoomEdit(id);
-                }}
-                className="px-3.5 py-2 bg-white border border-rose-200 text-rose-700 rounded-lg text-xs font-semibold hover:bg-rose-50 transition-all"
-              >
-                {selectedItem.type === "new_property" ? "Reject" : "Reject Changes"}
-              </button>
-              <button
-                onClick={() => {
-                  const id = selectedItem.data._id;
-                  if (selectedItem.type === "new_property") handleApproveNewProperty(id);
-                  else if (selectedItem.type === "property_edit") handleApprovePropertyEdit(id);
-                  else handleApproveRoomEdit(id);
-                }}
-                className="px-3.5 py-2 bg-[#0E7C86] hover:bg-[#09626A] text-white rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5"
-              >
-                <Check size={13} /> {selectedItem.type === "new_property" ? "Approve" : "Approve Changes"}
-              </button>
+              <div className="px-5 py-4 border-t border-[#E1E6EA] bg-[#F4F6F8] flex gap-2 justify-end shrink-0">
+                <button onClick={() => setSelectedItem(null)} className="px-3.5 py-2 bg-white border border-[#E1E6EA] text-[#10242A] rounded-lg text-xs font-semibold hover:bg-[#F4F6F8] transition-all cursor-pointer">Cancel</button>
+                {!isEmployeeView && (
+                  <button
+                    onClick={() => setAssignModal({
+                      type: selectedItem.type === "room_edit" ? "room" : "property",
+                      id: selectedItem.data._id,
+                      city: selectedItem.data.city || selectedItem.data.property?.city,
+                      title: selectedItem.data.title
+                    })}
+                    className="px-3.5 py-2 bg-white border border-[#E1E6EA] text-[#0E7C86] rounded-lg text-xs font-semibold hover:bg-[#E6F4F5] transition-all flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <UserPlus size={13} /> Assign Verification
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    const id = selectedItem.data._id;
+                    if (selectedItem.type === "property_edit") handleRejectPropertyEdit(id);
+                    else handleRejectRoomEdit(id);
+                  }}
+                  className="px-3.5 py-2 bg-white border border-rose-200 text-rose-700 rounded-lg text-xs font-semibold hover:bg-rose-50 transition-all cursor-pointer"
+                >
+                  Reject Changes
+                </button>
+                <button
+                  onClick={() => {
+                    const id = selectedItem.data._id;
+                    if (selectedItem.type === "property_edit") handleApprovePropertyEdit(id);
+                    else handleApproveRoomEdit(id);
+                  }}
+                  className="px-3.5 py-2 bg-[#0E7C86] hover:bg-[#09626A] text-white rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Check size={13} /> Approve Changes
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Fullscreen Image Viewer */}
       {fullscreenImage && (

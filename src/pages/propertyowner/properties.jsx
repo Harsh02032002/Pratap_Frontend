@@ -48,6 +48,42 @@ const fmtVal = (val) => {
   return String(val);
 };
 
+const resolvePropertyImgUrl = (raw) => {
+  if (!raw) return "";
+  const str = typeof raw === "object" ? (raw.secure_url || raw.url || raw.fileUrl || raw.dataUrl || "") : String(raw);
+  const trimmed = str.trim();
+  if (!trimmed) return "";
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("data:") || trimmed.startsWith("blob:")) {
+    return trimmed;
+  }
+  const base = getApiBase();
+  return `${base}${trimmed.startsWith("/") ? "" : "/"}${trimmed}`;
+};
+
+function PropertyThumb({ src, alt, className = "", placeholderClassName = "" }) {
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    setFailed(false);
+  }, [src]);
+
+  if (!src || failed) {
+    return (
+      <div className={placeholderClassName || "w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-muted"}>
+        <Home className="size-10 text-primary/40" />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={alt || "Property"}
+      onError={() => setFailed(true)}
+      className={className}
+    />
+  );
+}
+
 // ─── Sub-UI Components ──────────────────────────────────────────────────────────
 function SectionCard({ title, icon: Icon, colorClass = "blue", defaultOpen = true, children }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -1130,8 +1166,14 @@ export default function Properties() {
             const originalPrice = hasDiscount ? (actualRent + discountAmount) : actualRent;
             const discountPercent = hasDiscount ? Math.round((discountAmount / originalPrice) * 100) : 0;
             const amenities = p.amenities && p.amenities.length > 0 ? p.amenities : [];
-            const displayImage = p.image || (p.images?.[0]) || (p.professionalPhotos?.[0]) || null;
-            const cardImages = [...(p.images || []), ...(p.professionalPhotos || []), ...((p.propertyViews || []).flatMap(v => v.images || []))].filter(Boolean);
+            const cardImages = [...new Set([
+              p.featuredImage,
+              p.image,
+              ...(Array.isArray(p.images) ? p.images : []),
+              ...(Array.isArray(p.professionalPhotos) ? p.professionalPhotos : []),
+              ...((p.propertyViews || []).flatMap(v => v?.images || []))
+            ].map(resolvePropertyImgUrl).filter(Boolean))];
+            const displayImage = cardImages[0] || null;
             const hasPendingChanges = p.pendingChanges?.status === "pending";
 
             return (
@@ -1141,13 +1183,11 @@ export default function Properties() {
                   {/* Image */}
                   <div className="w-[280px] h-full flex-shrink-0 relative border-r border-border">
                     <div className="w-full h-full overflow-hidden relative">
-                      {displayImage ? (
-                        <img src={displayImage} alt={p.title || p.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-muted">
-                          <Home className="size-10 text-primary/40" />
-                        </div>
-                      )}
+                      <PropertyThumb
+                        src={displayImage}
+                        alt={p.title || p.name}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
                       {p.status === 'pending_approval' ? (
                         <div className="absolute top-2 left-2 bg-amber-500 text-white text-[9px] font-bold px-2 py-1 rounded uppercase tracking-wider shadow-sm flex items-center gap-1">
                           <Clock className="w-3 h-3" /> Pending Approval
@@ -1250,7 +1290,12 @@ export default function Properties() {
                       <div className="flex overflow-x-auto snap-x snap-mandatory w-full h-full hide-scrollbar gap-2 px-3">
                         {cardImages.map((img, idx) => (
                           <div key={idx} className="w-[48%] h-full shrink-0 snap-center relative rounded-xl overflow-hidden shadow-sm border border-slate-100/50">
-                            <img src={img} alt={`${p.title || p.name} ${idx + 1}`} className="w-full h-full object-cover" />
+                            <PropertyThumb
+                              src={img}
+                              alt={`${p.title || p.name} ${idx + 1}`}
+                              className="w-full h-full object-cover"
+                              placeholderClassName="w-full h-full flex items-center justify-center bg-slate-100"
+                            />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent pointer-events-none" />
                           </div>
                         ))}

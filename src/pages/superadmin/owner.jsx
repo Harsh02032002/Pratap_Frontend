@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
    Building2, Users, Shield, Clock, Search,
    Filter, MapPin, Sheet, Trash2,
@@ -7,10 +7,10 @@ import {
    Loader2, ShieldCheck, CheckCircle2, AlertCircle,
    Calendar, Fingerprint, Banknote,
    Eye, UserPlus, FileCheck, ClipboardList, FileText,
-   ShieldAlert, Send, Save, Lock, Plus, X
+   ShieldAlert, Send, Save, Lock, Plus, X, Image as ImageIcon
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { fetchJson, getAuthHeader, clearApiCache } from "../../utils/api";
+import { fetchJson, getApiBase, getAuthHeader, clearApiCache } from "../../utils/api";
 import { broadcastStatusChange, useLiveStatusSync } from "../../utils/liveStatusSync";
 import { safeOwnerOnboardingLink } from "../../utils/ownerOnboarding";
 import { PageHeader } from "../../components/superadmin/PageHeader";
@@ -20,7 +20,88 @@ import * as XLSX from 'xlsx';
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 
+const resolveOwnerDocUrl = (val) => {
+   if (!val) return "";
+   const raw = typeof val === "object"
+      ? (val.secure_url || val.url || val.dataUrl || val.path || val.src || val.fileUrl || "")
+      : String(val);
+   const clean = String(raw || "").trim();
+   if (!clean) return "";
+   if (/^(https?:|data:|blob:)/i.test(clean)) return clean;
+   const base = (getApiBase() || "").replace(/\/+$/, "");
+   return clean.startsWith("/") ? `${base}${clean}` : `${base}/${clean}`;
+};
+
+const toDocPreviewThumbUrl = (url) => {
+   if (!url) return "";
+   if (/res\.cloudinary\.com\/[^/]+\/image\/upload\//i.test(url) && /\.pdf(\?.*)?$/i.test(url)) {
+      return url
+         .replace(/\/image\/upload\//i, "/image/upload/f_jpg,pg_1/")
+         .replace(/\.pdf(\?.*)?$/i, ".jpg$1");
+   }
+   return url;
+};
+
+const isNonRenderablePdf = (url) => {
+   if (!url) return false;
+   if (/^data:application\/pdf/i.test(url)) return true;
+   if (/\.pdf(\?.*)?$/i.test(url) && !/res\.cloudinary\.com\/[^/]+\/image\/upload\//i.test(url)) return true;
+   return false;
+};
+
+function OwnerDocPreviewCard({ label, rawVal }) {
+   const fullUrl = resolveOwnerDocUrl(rawVal);
+   const thumbUrl = toDocPreviewThumbUrl(fullUrl);
+   const [imgError, setImgError] = useState(false);
+
+   useEffect(() => {
+      setImgError(false);
+   }, [fullUrl]);
+
+   if (!fullUrl) {
+      return (
+         <div className="rounded-xl border border-dashed border-slate-200 p-2 text-center bg-slate-50/70">
+            <div className="aspect-square w-full rounded-lg bg-slate-100 mb-1.5 flex flex-col items-center justify-center text-slate-400 p-2">
+               <ImageIcon size={22} className="mb-1 opacity-60" />
+               <span className="text-[10px] font-medium">Not Uploaded</span>
+            </div>
+            <span className="text-[11px] font-semibold text-slate-400">{label}</span>
+         </div>
+      );
+   }
+
+   const showPdfCard = isNonRenderablePdf(fullUrl) || imgError;
+
+   return (
+      <a
+         href={fullUrl}
+         target="_blank"
+         rel="noreferrer"
+         className="group relative rounded-xl border border-slate-200 p-2 text-center bg-slate-50 hover:bg-[#E6F4F5]/40 hover:border-[#0E7C86] transition-all block"
+      >
+         <div className="aspect-square w-full rounded-lg overflow-hidden bg-slate-100 mb-1.5 flex flex-col items-center justify-center text-slate-500">
+            {!showPdfCard ? (
+               <img
+                  src={thumbUrl}
+                  alt={label}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                  onError={() => setImgError(true)}
+               />
+            ) : (
+               <div className="flex flex-col items-center justify-center p-2 text-center">
+                  <FileText size={26} className="text-[#0E7C86] mb-1" />
+                  <span className="text-[10px] font-semibold text-slate-600 leading-tight">Click to Open Document</span>
+               </div>
+            )}
+         </div>
+         <span className="text-[11px] font-bold text-slate-700 group-hover:text-[#0E7C86]">{label} ↗</span>
+      </a>
+   );
+}
+
 export default function Owner() {
+   const navigate = useNavigate();
+   const isEmployeeView = typeof window !== "undefined" && window.location.pathname.startsWith("/employee");
    const [searchParams, setSearchParams] = useSearchParams();
    const currentView = searchParams.get("view") || "list";
 
@@ -100,7 +181,15 @@ export default function Owner() {
             const refreshed = mergedOwners.find(
                o => (prev.loginId && o.loginId === prev.loginId) || (prev._id && o._id === prev._id)
             );
-            return refreshed || prev;
+            if (!refreshed) return prev;
+            return {
+               ...prev,
+               ...refreshed,
+               checkinOwnerPhoto: refreshed.checkinOwnerPhoto || prev.checkinOwnerPhoto || "",
+               checkinAadhaarImage: refreshed.checkinAadhaarImage || prev.checkinAadhaarImage || "",
+               checkinBankProof: refreshed.checkinBankProof || prev.checkinBankProof || "",
+               checkinCancelledCheque: refreshed.checkinCancelledCheque || prev.checkinCancelledCheque || null,
+            };
          });
       } catch (err) {
          console.error("Failed to load owners:", err);
@@ -231,6 +320,52 @@ export default function Owner() {
          alert("Failed to update owner details: " + (err.body?.message || err.message));
       } finally {
          setSavingEdit(false);
+      }
+   };
+
+   const populateEditFormFromOwner = (o) => {
+      if (!o) return;
+      setEditOwnerForm({
+         email: o.email || o.checkinEmail || "",
+         phone: o.phone || o.checkinPhone || "",
+         checkinDob: o.checkinDob || "",
+         address: o.address || o.checkinAddress || "",
+         bankName: o.bankName || o.checkinBankName || "",
+         branchName: o.branchName || o.checkinBranchName || "",
+         accountNumber: o.accountNumber || o.checkinBankAccountNumber || "",
+         ifscCode: o.ifscCode || o.checkinIfscCode || "",
+         accountHolderName: o.checkinAccountHolderName || "",
+         checkinUpiId: o.checkinUpiId || "",
+      });
+   };
+
+   const openOwnerDetails = async (o, editMode = false) => {
+      setSelectedOwner(o);
+      setIsEditingOwner(editMode);
+      populateEditFormFromOwner(o);
+
+      const lookupId = o?.loginId || o?._id;
+      if (!lookupId) return;
+      try {
+         const detail = await fetchJson(`/api/owners/${encodeURIComponent(lookupId)}?t=${Date.now()}`);
+         const full = detail?.owner || detail?.data || (detail?.loginId || detail?._id ? detail : null);
+         if (full) {
+            setSelectedOwner((prev) => {
+               if (!prev || ((prev.loginId || prev._id) !== (o.loginId || o._id))) return prev;
+               const merged = {
+                  ...prev,
+                  ...full,
+                  checkinOwnerPhoto: full.checkinOwnerPhoto || prev.checkinOwnerPhoto || "",
+                  checkinAadhaarImage: full.checkinAadhaarImage || prev.checkinAadhaarImage || "",
+                  checkinBankProof: full.checkinBankProof || prev.checkinBankProof || "",
+                  checkinCancelledCheque: full.checkinCancelledCheque || prev.checkinCancelledCheque || null,
+               };
+               if (editMode) populateEditFormFromOwner(merged);
+               return merged;
+            });
+         }
+      } catch (err) {
+         console.warn("Could not hydrate extended owner details:", err);
       }
    };
 
@@ -394,7 +529,7 @@ export default function Owner() {
                   Export
                </button>
                <button
-                  onClick={() => navigate("/superadmin/add-owner")}
+                  onClick={() => navigate(isEmployeeView ? "/employee/add-owner" : "/superadmin/add-owner")}
                   className="bg-[#0E7C86] hover:bg-[#0B666E] text-white font-semibold text-[13px] px-4 py-1.5 rounded-[8px] flex items-center gap-2 transition-colors cursor-pointer shadow-xs"
                >
                   <Plus size={16} /> Add Owner
@@ -469,7 +604,7 @@ export default function Owner() {
                                     </div>
                                  </div>
                               </td>
-                              <td className="py-2.5 text-[#4A5961] text-[13px]">{o.propertyCount || 1} Properties</td>
+                              <td className="py-2.5 text-[#4A5961] text-[13px]">{o.propertyCount ?? 0} {(o.propertyCount ?? 0) === 1 ? "Property" : "Properties"}</td>
                               <td className="py-2.5 text-[#4A5961] text-[13px]">{o.phone || o.profile?.phone || "—"}</td>
                               <td className="py-2.5">
                                  <span className={cn(
@@ -494,10 +629,10 @@ export default function Owner() {
                               </td>
                               <td className="py-2.5 px-6 text-right">
                                  <div className="flex items-center justify-end gap-2">
-                                    <button onClick={() => { setSelectedOwner(o); setIsEditingOwner(false); }} className="px-3 py-1 bg-white border border-[#CBD3D9] hover:bg-gray-50 text-[#10242A] rounded-[6px] text-[11px] font-semibold transition shadow-xs cursor-pointer">
+                                    <button onClick={() => openOwnerDetails(o, false)} className="px-3 py-1 bg-white border border-[#CBD3D9] hover:bg-gray-50 text-[#10242A] rounded-[6px] text-[11px] font-semibold transition shadow-xs cursor-pointer">
                                        View
                                     </button>
-                                    <button onClick={() => { setSelectedOwner(o); setIsEditingOwner(true); }} className="px-3 py-1 bg-white border border-[#CBD3D9] hover:bg-gray-50 text-[#10242A] rounded-[6px] text-[11px] font-semibold transition shadow-xs cursor-pointer">
+                                    <button onClick={() => openOwnerDetails(o, true)} className="px-3 py-1 bg-white border border-[#CBD3D9] hover:bg-gray-50 text-[#10242A] rounded-[6px] text-[11px] font-semibold transition shadow-xs cursor-pointer">
                                        Edit
                                     </button>
                                     <button onClick={() => deleteOwner(o)} className="bg-white border border-rose-200 hover:bg-rose-50 text-rose-600 text-[11px] font-semibold px-3 py-1 rounded-[6px] transition-all shadow-xs cursor-pointer">
@@ -565,7 +700,13 @@ export default function Owner() {
                               Save
                            </button>
                         )}
-                        <button onClick={() => setIsEditingOwner(!isEditingOwner)} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all border border-slate-200">
+                        <button
+                           onClick={() => {
+                              if (!isEditingOwner) populateEditFormFromOwner(selectedOwner);
+                              setIsEditingOwner(!isEditingOwner);
+                           }}
+                           className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all border border-slate-200 cursor-pointer"
+                        >
                            {isEditingOwner ? "Cancel" : "Edit"}
                         </button>
                         <button onClick={() => setSelectedOwner(null)} className="p-2 rounded-xl bg-white text-slate-400 hover:text-slate-700 transition-all border border-slate-200 shadow-sm">
@@ -623,42 +764,35 @@ export default function Owner() {
 
                         {/* Uploaded Document Previews */}
                         <div className="grid grid-cols-3 gap-3 pt-2">
-                           {selectedOwner.checkinOwnerPhoto && (
-                              <a href={selectedOwner.checkinOwnerPhoto} target="_blank" rel="noreferrer" className="group relative rounded-xl border border-slate-200 p-2 text-center bg-slate-50 hover:bg-blue-50/50 hover:border-blue-300 transition-all">
-                                 <div className="aspect-square w-full rounded-lg overflow-hidden bg-slate-200 mb-1.5">
-                                    <img src={selectedOwner.checkinOwnerPhoto} alt="Owner Photo" className="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement && (e.currentTarget.parentElement.innerHTML = '<div class=\'flex items-center justify-center h-full text-slate-400 text-xs\'>No Preview</div>'); }} />
-                                 </div>
-                                 <span className="text-[11px] font-bold text-slate-700 group-hover:text-blue-600">Owner Photo ↗</span>
-                              </a>
-                           )}
-                           {(selectedOwner.checkinAadhaarImage || selectedOwner.kyc?.documentImage || selectedOwner.documentImage) && (
-                              <a href={selectedOwner.checkinAadhaarImage || selectedOwner.kyc?.documentImage || selectedOwner.documentImage} target="_blank" rel="noreferrer" className="group relative rounded-xl border border-slate-200 p-2 text-center bg-slate-50 hover:bg-blue-50/50 hover:border-blue-300 transition-all">
-                                 <div className="aspect-square w-full rounded-lg overflow-hidden bg-slate-200 mb-1.5 flex items-center justify-center">
-                                    <img src={selectedOwner.checkinAadhaarImage || selectedOwner.kyc?.documentImage || selectedOwner.documentImage} alt="Aadhaar Card" className="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement && (e.currentTarget.parentElement.innerHTML = '<div class=\'flex items-center justify-center h-full text-slate-400 text-xs\'>No Preview</div>'); }} />
-                                 </div>
-                                 <span className="text-[11px] font-bold text-slate-700 group-hover:text-blue-600">Aadhaar Card ↗</span>
-                              </a>
-                           )}
-                           {(selectedOwner.checkinBankProof || selectedOwner.checkinCancelledCheque) && (
-                              <a href={typeof selectedOwner.checkinBankProof === 'string' ? selectedOwner.checkinBankProof : (typeof selectedOwner.checkinCancelledCheque === 'string' ? selectedOwner.checkinCancelledCheque : selectedOwner.checkinCancelledCheque?.dataUrl)} target="_blank" rel="noreferrer" className="group relative rounded-xl border border-slate-200 p-2 text-center bg-slate-50 hover:bg-blue-50/50 hover:border-blue-300 transition-all">
-                                 <div className="aspect-square w-full rounded-lg overflow-hidden bg-slate-200 mb-1.5 flex items-center justify-center text-slate-400">
-                                    {String(selectedOwner.checkinBankProof || selectedOwner.checkinCancelledCheque?.dataUrl || '').startsWith("http") ? (
-                                       <img src={selectedOwner.checkinBankProof || selectedOwner.checkinCancelledCheque?.dataUrl} alt="Bank Proof" className="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement && (e.currentTarget.parentElement.innerHTML = '<div class=\'flex items-center justify-center h-full text-slate-400 text-xs\'>No Preview</div>'); }} />
-                                    ) : (
-                                       <FileText size={28} />
-                                    )}
-                                 </div>
-                                 <span className="text-[11px] font-bold text-slate-700 group-hover:text-blue-600">Bank Proof ↗</span>
-                              </a>
-                           )}
-                           {selectedOwner.checkinCancelledCheque && typeof selectedOwner.checkinCancelledCheque === 'object' && selectedOwner.checkinCancelledCheque.dataUrl && !selectedOwner.checkinBankProof && (
-                              <a href={selectedOwner.checkinCancelledCheque.dataUrl} target="_blank" rel="noreferrer" className="group relative rounded-xl border border-slate-200 p-2 text-center bg-slate-50 hover:bg-blue-50/50 hover:border-blue-300 transition-all">
-                                 <div className="aspect-square w-full rounded-lg overflow-hidden bg-slate-200 mb-1.5 flex items-center justify-center text-slate-400">
-                                    <img src={selectedOwner.checkinCancelledCheque.dataUrl} alt="Cancelled Cheque" className="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement && (e.currentTarget.parentElement.innerHTML = '<div class=\'flex items-center justify-center h-full text-slate-400 text-xs\'>No Preview</div>'); }} />
-                                 </div>
-                                 <span className="text-[11px] font-bold text-slate-700 group-hover:text-blue-600">Cancelled Cheque ↗</span>
-                              </a>
-                           )}
+                           <OwnerDocPreviewCard
+                              label="Owner Photo"
+                              rawVal={
+                                 selectedOwner.checkinOwnerPhoto ||
+                                 selectedOwner.ownerPhoto ||
+                                 selectedOwner.profile?.photo ||
+                                 selectedOwner.kyc?.ownerPhoto
+                              }
+                           />
+                           <OwnerDocPreviewCard
+                              label="Aadhaar Card"
+                              rawVal={
+                                 selectedOwner.checkinAadhaarImage ||
+                                 selectedOwner.checkinAadhaarFront ||
+                                 selectedOwner.kyc?.documentImage ||
+                                 selectedOwner.kyc?.idProof ||
+                                 selectedOwner.documentImage ||
+                                 selectedOwner.checkinAadhaarBack
+                              }
+                           />
+                           <OwnerDocPreviewCard
+                              label="Bank Proof"
+                              rawVal={
+                                 selectedOwner.checkinBankProof ||
+                                 selectedOwner.checkinCancelledCheque ||
+                                 selectedOwner.kyc?.ownershipProof ||
+                                 selectedOwner.bankProof
+                              }
+                           />
                         </div>
                      </section>
                   </div>

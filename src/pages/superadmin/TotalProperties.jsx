@@ -276,13 +276,25 @@ export default function TotalProperties() {
     });
   };
 
-  const stats = useMemo(()=>({
-    total:     allProperties.length,
-    published: apiStats.published,
-    pending:   apiStats.pending,
-    inactive:  apiStats.inactive,
-    rejected:  apiStats.rejected,
-  }),[apiStats,allProperties.length]);
+  const stats = useMemo(() => {
+    let published = 0;
+    let pending = 0;
+    let inactive = 0;
+    let rejected = 0;
+    for (const p of allProperties) {
+      if (p.status === "Published") published += 1;
+      else if (p.status === "Inactive") inactive += 1;
+      else if (p.status === "Rejected") rejected += 1;
+      else pending += 1;
+    }
+    return {
+      total: allProperties.length,
+      published,
+      pending,
+      inactive,
+      rejected,
+    };
+  }, [allProperties]);
 
   const handleToggleWebsite = async (p) => {
     if (toggleLoading.has(p.id)) return;

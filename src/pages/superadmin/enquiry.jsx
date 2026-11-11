@@ -47,6 +47,48 @@ export default function SuperadminEnquiry() {
     return String(v);
   };
 
+  const getListingImages = (prop) => {
+    if (!prop) return [];
+    const seen = new Set();
+    const out = [];
+    const base = getApiUrl().replace(/\/+$/, "");
+    const pushUrl = (raw) => {
+      const str = raw && typeof raw === "object" ? (raw.url || raw.secure_url || raw.src || raw.path || "") : String(raw || "");
+      const clean = str.trim();
+      if (!clean) return;
+      const full = /^(https?:|data:|blob:)/i.test(clean)
+        ? clean
+        : (clean.startsWith("/") ? `${base}${clean}` : `${base}/${clean}`);
+      if (!seen.has(full)) {
+        seen.add(full);
+        out.push(full);
+      }
+    };
+    pushUrl(prop.featuredImage);
+    pushUrl(prop.image);
+    if (Array.isArray(prop.images)) prop.images.forEach(pushUrl);
+    if (Array.isArray(prop.professionalPhotos)) prop.professionalPhotos.forEach(pushUrl);
+    if (prop.propertyViews && typeof prop.propertyViews === "object") {
+      Object.values(prop.propertyViews).forEach((arr) => {
+        if (Array.isArray(arr)) arr.forEach(pushUrl);
+      });
+    }
+    return out;
+  };
+
+  const resolveAssignedEmployeeName = (p) => {
+    if (!p) return "";
+    if (p.assignedToName && String(p.assignedToName).trim()) return String(p.assignedToName).trim();
+    const code = String(p.assignedToLoginId || p.assignedTo || "").trim();
+    if (!code) return "";
+    const match = employees.find(
+      (emp) =>
+        (emp.loginId && emp.loginId.toLowerCase() === code.toLowerCase()) ||
+        (emp.email && emp.email.toLowerCase() === code.toLowerCase())
+    );
+    return match?.name || code;
+  };
+
   const handleBulkUpdate = async (status) => {
     if (selectedIds.size === 0) return;
     const confirmMsg = `Are you sure you want to mark all ${selectedIds.size} selected enquiries as ${status}?`;
@@ -363,31 +405,42 @@ export default function SuperadminEnquiry() {
                       </p>
                     </td>
                     <td className="py-2.5 px-4">
-                      {p.assignedToName || p.assignedTo ? (
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[11px] font-semibold text-[#10242A] bg-[#F4F6F8] border border-[#E1E6EA] px-2 py-0.5 rounded-[4px] inline-flex items-center gap-1">
-                            <User size={11} className="text-[#0E7C86]" /> {p.assignedToName || p.assignedTo}
-                          </span>
-                          {!isEmployeeView && (
+                      {(() => {
+                        const assignedName = resolveAssignedEmployeeName(p);
+                        const assignedId = p.assignedToLoginId || p.assignedTo || "";
+                        if (assignedName) {
+                          return (
+                            <div className="flex items-center gap-1.5">
+                              <span
+                                className="text-[11px] font-semibold text-[#10242A] bg-[#F4F6F8] border border-[#E1E6EA] px-2 py-0.5 rounded-[4px] inline-flex items-center gap-1"
+                                title={assignedId && assignedId !== assignedName ? `${assignedName} (${assignedId})` : assignedName}
+                              >
+                                <User size={11} className="text-[#0E7C86]" /> {assignedName}
+                              </span>
+                              {!isEmployeeView && (
+                                <button
+                                  onClick={() => setAssignModal({ id: p._id, type: "property", city: p.city, title: p.title })}
+                                  className="text-[11px] text-[#4A5961] hover:text-[#0E7C86] underline cursor-pointer"
+                                  title="Reassign"
+                                >
+                                  Edit
+                                </button>
+                              )}
+                            </div>
+                          );
+                        }
+                        if (!isEmployeeView) {
+                          return (
                             <button
                               onClick={() => setAssignModal({ id: p._id, type: "property", city: p.city, title: p.title })}
-                              className="text-[11px] text-[#4A5961] hover:text-[#0E7C86] underline cursor-pointer"
-                              title="Reassign"
+                              className="text-[12px] font-semibold text-[#0E7C86] hover:underline flex items-center gap-1 cursor-pointer"
                             >
-                              Edit
+                              <UserPlus size={12} /> Assign
                             </button>
-                          )}
-                        </div>
-                      ) : !isEmployeeView ? (
-                        <button
-                          onClick={() => setAssignModal({ id: p._id, type: "property", city: p.city, title: p.title })}
-                          className="text-[12px] font-semibold text-[#0E7C86] hover:underline flex items-center gap-1 cursor-pointer"
-                        >
-                          <UserPlus size={12} /> Assign
-                        </button>
-                      ) : (
-                        <span className="text-[11px] text-[#4A5961]">Unassigned</span>
-                      )}
+                          );
+                        }
+                        return <span className="text-[11px] text-[#4A5961]">Unassigned</span>;
+                      })()}
                     </td>
                     <td className="py-2.5 px-4 text-[12px] text-[#4A5961]">
                       {p.createdAt ? new Date(p.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—"}
@@ -597,21 +650,23 @@ export default function SuperadminEnquiry() {
                 <div className="space-y-3">
                   <h4 className="text-[10px] font-bold text-[#10242A] uppercase tracking-wider">Property Media</h4>
                   <div className="grid grid-cols-2 gap-2">
-                    {selectedProperty.images?.length > 0 ? (
-                      selectedProperty.images.map((img, i) => (
-                        <img
-                          key={i}
-                          src={typeof img === "object" ? img.url : img}
-                          alt=""
-                          className="w-full h-32 object-cover rounded-xl border border-[#E1E6EA] cursor-pointer"
-                          loading="lazy"
-                          onClick={() => setFullscreenImage(typeof img === "object" ? img.url : img)}
-                          onError={(e) => { e.currentTarget.style.display = "none"; }}
-                        />
-                      ))
-                    ) : (
-                      <div className="col-span-2 py-8 bg-[#F4F6F8] rounded-xl text-center text-xs font-semibold text-[#4A5961] uppercase">No images uploaded</div>
-                    )}
+                    {(() => {
+                      const mediaList = getListingImages(selectedProperty);
+                      return mediaList.length > 0 ? (
+                        mediaList.map((url, i) => (
+                          <img
+                            key={i}
+                            src={url}
+                            alt=""
+                            className="w-full h-32 object-cover rounded-xl border border-[#E1E6EA] cursor-pointer"
+                            onClick={() => setFullscreenImage(url)}
+                            onError={(e) => { e.currentTarget.style.display = "none"; }}
+                          />
+                        ))
+                      ) : (
+                        <div className="col-span-2 py-8 bg-[#F4F6F8] rounded-xl text-center text-xs font-semibold text-[#4A5961] uppercase">No images uploaded</div>
+                      );
+                    })()}
                   </div>
                 </div>
                 <div className="space-y-3">
