@@ -196,7 +196,7 @@ const FURNISHING_OPTIONS = ["Fully Furnished", "Semi Furnished", "Unfurnished"];
 
 // ─── Shared Components ────────────────────────────────────────────────────────
 
-const FormField = ({ label, value, onChange, placeholder, type = "text", suffix, prefix, required, className }) => (
+const FormField = ({ label, value, onChange, placeholder, type = "text", suffix, prefix, required, className, id }) => (
   <div className={cn("flex flex-col", className)}>
     <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest ml-1">
       {label}{required && <span className="text-red-400 ml-0.5">*</span>}
@@ -204,7 +204,7 @@ const FormField = ({ label, value, onChange, placeholder, type = "text", suffix,
     <div className="flex items-center bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 focus-within:bg-white focus-within:border-blue-200 focus-within:ring-4 focus-within:ring-blue-100 transition-all">
       {prefix && <span className="text-[10px] font-black text-slate-400 mr-2">{prefix}</span>}
       <input 
-        type={type} 
+        id={id} type={type} 
         value={value} 
         onChange={onChange} 
         placeholder={placeholder}
@@ -1210,8 +1210,20 @@ export default function Visit() {
 
   const handleOnboard = async (e) => {
     e.preventDefault();
-    if (!formName || !formPhone || !formEmail || !formPropertyName) {
-      return notify("warning", "Missing required details", "Owner name, email, phone and property name are all needed before this report can be filed.");
+    const missingFields = [
+      [formName, "visit-owner-name", "Owner name"],
+      [formEmail, "visit-owner-email", "Email address"],
+      [formPhone, "visit-owner-phone", "Phone number"],
+      [formPropertyName, "visit-property-name", "Property name"],
+    ].filter(([value]) => !String(value || "").trim());
+    if (missingFields.length) {
+      // The sections must be open for the field to exist in the page.
+      setOpenSections((s) => ({ ...s, owner: true, property: true }));
+      setTimeout(() => {
+        const el = document.getElementById(missingFields[0][1]);
+        if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.focus({ preventScroll: true }); }
+      }, 60);
+      return notify("warning", "Missing required details", `Please fill in: ${missingFields.map(([, , label]) => label).join(", ")}.`);
     }
     // Rent drives the public listing price — a property published at ₹0 is not usable.
     if (!(parseInt(formRent, 10) > 0)) {
@@ -1839,9 +1851,9 @@ export default function Visit() {
                 {openSections.owner && (
                   <div className="px-8 pb-8 space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <FormField label="Owner Name" value={formName} onChange={e => setFormName(e.target.value)} placeholder="e.g. Rahul Sharma" required />
-                      <FormField label="Email Address" value={formEmail} onChange={e => setFormEmail(e.target.value)} type="email" placeholder="rahul@example.com" required />
-                      <FormField label="Phone Number" value={formPhone} onChange={e => setFormPhone(e.target.value)} placeholder="+91 XXXX XXXXXX" prefix="+91" required />
+                      <FormField id="visit-owner-name" label="Owner Name" value={formName} onChange={e => setFormName(e.target.value)} placeholder="e.g. Rahul Sharma" required />
+                      <FormField id="visit-owner-email" label="Email Address" value={formEmail} onChange={e => setFormEmail(e.target.value)} type="email" placeholder="rahul@example.com" required />
+                      <FormField id="visit-owner-phone" label="Phone Number" value={formPhone} onChange={e => setFormPhone(e.target.value)} placeholder="+91 XXXX XXXXXX" prefix="+91" required />
                       <FormField label="Owner City" value={formOwnerCity} onChange={e => setFormOwnerCity(e.target.value)} placeholder="e.g. Indore" />
                     </div>
 
@@ -1922,7 +1934,7 @@ export default function Visit() {
                 <SectionHeader icon={Building2} title="Property Details" subtitle="Property name, type, rent & deposit" open={openSections.property} onToggle={() => toggleSection("property")} color="indigo" />
                 {openSections.property && (
                   <div className="px-8 pb-8 space-y-6">
-                    <FormField label="Property Name" value={formPropertyName} onChange={e => setFormPropertyName(e.target.value)} placeholder="e.g. Sunshine Boys PG" required />
+                    <FormField id="visit-property-name" label="Property Name" value={formPropertyName} onChange={e => setFormPropertyName(e.target.value)} placeholder="e.g. Sunshine Boys PG" required />
                     
                     {/* Property Type Cards */}
                     <div>
