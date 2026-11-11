@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { fetchJson, getAuthHeader, clearApiCache } from "../../utils/api";
+import { broadcastStatusChange, useLiveStatusSync } from "../../utils/liveStatusSync";
 import { safeOwnerOnboardingLink } from "../../utils/ownerOnboarding";
 import { PageHeader } from "../../components/superadmin/PageHeader";
 import { StatCard } from "../../components/superadmin/StatCard";
@@ -54,7 +55,8 @@ export default function Owner() {
    const [formAccountHolderName, setFormAccountHolderName] = useState("");
    const [formUpiId, setFormUpiId] = useState("");
 
-   const loadOwners = async () => {
+   const loadOwners = async (opts = {}) => {
+      const silent = Boolean(opts?.silent);
       // Check for authentication token
       const token = sessionStorage.getItem("token") || localStorage.getItem("token");
       if (!token) {
@@ -64,7 +66,7 @@ export default function Owner() {
       }
 
       try {
-         setLoading(true);
+         if (!silent) setLoading(true);
          const [res, visitsRes] = await Promise.all([
             fetchJson("/api/owners"),
             fetchJson("/api/visits?lite=1").catch(() => ({ visits: [] }))
@@ -88,10 +90,18 @@ export default function Owner() {
             }
          });
 
-         setOwners(baseOwners.map(o => ({
+         const mergedOwners = baseOwners.map(o => ({
             ...o,
             ...(visitMap[o.loginId] || {})
-         })));
+         }));
+         setOwners(mergedOwners);
+         setSelectedOwner(prev => {
+            if (!prev) return prev;
+            const refreshed = mergedOwners.find(
+               o => (prev.loginId && o.loginId === prev.loginId) || (prev._id && o._id === prev._id)
+            );
+            return refreshed || prev;
+         });
       } catch (err) {
          console.error("Failed to load owners:", err);
          // If auth error, redirect to login
@@ -99,10 +109,16 @@ export default function Owner() {
             window.location.href = "/superadmin/login";
          }
       }
-      finally { setLoading(false); }
+      finally { if (!silent) setLoading(false); }
    };
 
    useEffect(() => { loadOwners(); }, []);
+
+   useLiveStatusSync(() => loadOwners({ silent: true }), {
+      enabled: currentView !== "add" && !isEditingOwner,
+      pollMs: 10000,
+      types: ["kyc", "owner", "visit"],
+   });
 
    useEffect(() => {
       if (currentView === "add") generateCreds();
@@ -149,7 +165,8 @@ export default function Owner() {
             kycLinkSent: res?.kycLinkSent === true
          });
 
-         loadOwners();
+         broadcastStatusChange({ type: "owner", loginId: res?.loginId || formLoginId });
+         loadOwners({ silent: true });
       } catch (err) { alert(err.message || "Failed to add property owner."); }
       finally { setSaving(false); }
    };
@@ -204,7 +221,8 @@ export default function Owner() {
 
          alert("Owner details updated successfully!");
          setIsEditingOwner(false);
-         loadOwners();
+         broadcastStatusChange({ type: "owner", loginId: id });
+         loadOwners({ silent: true });
          setSelectedOwner(prev => ({
             ...prev,
             ...payload
@@ -224,7 +242,7 @@ export default function Owner() {
             method: "DELETE",
             headers: getAuthHeader()
          });
-         clearApiCache();
+         broadcastStatusChange({ type: "owner", loginId: id });
          setOwners(prev => prev.filter(o => o.loginId !== id && o._id !== id));
          toast.success("Owner access removed. Data kept.");
       } catch (err) {
@@ -334,7 +352,8 @@ export default function Owner() {
             body: JSON.stringify({})
          });
          alert(res.message || "✅ Owner approved and credentials email sent successfully!");
-         loadOwners();
+         broadcastStatusChange({ type: "kyc", loginId: owner.loginId || owner._id, kycStatus: "completed" });
+         loadOwners({ silent: true });
       } catch (err) {
          alert("Failed to approve owner: " + (err.message));
       } finally {
@@ -455,9 +474,9 @@ export default function Owner() {
                               <td className="py-2.5">
                                  <span className={cn(
                                     "inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold",
-                                    kycStat === "verified" ? "bg-[#DDF3E4] text-[#14532D]" : kycStat === "docs_missing" ? "bg-[#FDE8E8] text-[#991B1B]" : "bg-[#FDEBD0] text-[#7A3E00]"
+                                    (kycStat === "verified" || kycStat === "completed") ? "bg-[#DDF3E4] text-[#14532D]" : kycStat === "submitted" ? "bg-[#E0F2FE] text-[#0369A1]" : kycStat === "docs_missing" ? "bg-[#FDE8E8] text-[#991B1B]" : "bg-[#FDEBD0] text-[#7A3E00]"
                                  )}>
-                                    {kycStat === "verified" ? "Verified" : kycStat === "docs_missing" ? "Docs missing" : "Pending"}
+                                    {(kycStat === "verified" || kycStat === "completed") ? "Verified" : kycStat === "submitted" ? "Submitted" : kycStat === "docs_missing" ? "Docs missing" : "Pending"}
                                  </span>
                               </td>
                               <td className="py-2.5">

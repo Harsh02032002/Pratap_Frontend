@@ -7,6 +7,7 @@ import {
   postExpectSuccess,
   postWithFallback
 } from "./utils";
+import { broadcastStatusChange } from "../../utils/liveStatusSync";
 
 const OWNER_KYC_STATE_KEY = "roomhy_owner_kyc_state";
 
@@ -147,6 +148,7 @@ export const useOwnerKyc = () => {
         { loginId: trimmedLogin, aadhaarNumber: aadhaarRaw, referenceId },
         apiBases
       );
+      broadcastStatusChange({ type: "kyc", loginId: trimmedLogin, kycStatus: "completed" });
       setOtpMsg({ type: "success", text: "DigiLocker verification completed successfully." });
       setNextVisible(true);
     } catch (err) {

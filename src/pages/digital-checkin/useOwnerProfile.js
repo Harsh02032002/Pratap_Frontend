@@ -12,6 +12,7 @@ import {
 import { compressImage, PRESETS } from "../../utils/imageCompression";
 import { captureOwnerOnboardingLink, loadOwnerOnboardingProfile, saveOwnerOnboardingProfile } from "../../utils/ownerOnboarding";
 import { recognizeOcrText } from "../../utils/tesseractOcr";
+import { broadcastStatusChange } from "../../utils/liveStatusSync";
 
 const emptyDoc = { file: null, preview: "", name: "", type: "", uploaded: false, url: "" };
 
@@ -629,6 +630,7 @@ export const useOwnerProfile = () => {
       }
 
       setDocStatus({ type: "success", text: "Documents uploaded successfully." });
+      broadcastStatusChange({ type: "kyc", loginId });
     } catch (err) {
       setDocStatus({ type: "error", text: "Upload failed: " + err.message });
     } finally {
@@ -681,6 +683,7 @@ export const useOwnerProfile = () => {
         { loginId: trimmedLogin, aadhaarNumber: aadhaarRaw, otp: otp.trim() },
         apiBases
       );
+      broadcastStatusChange({ type: "kyc", loginId: trimmedLogin, kycStatus: "completed" });
       window.location.href = `/digital-checkin/owneragreement?loginId=${encodeURIComponent(payload.loginId)}&email=${encodeURIComponent(payload.email)}`;
     } catch (err) {
       setKycStatus({ type: "error", text: `Error: ${err.message}` });
@@ -693,6 +696,7 @@ export const useOwnerProfile = () => {
       event.preventDefault();
       try {
         await saveProfile(form, autoInfo);
+        broadcastStatusChange({ type: "owner", loginId: form.loginId.trim() });
         setKycStatus({
           type: "success",
           text: "Profile saved. Upload documents and complete Aadhaar verification below."

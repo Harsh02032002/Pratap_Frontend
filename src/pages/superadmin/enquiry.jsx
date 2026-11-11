@@ -16,6 +16,7 @@ import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip
 } from "recharts";
 import { fetchJson, getAuthHeader, clearApiCache } from "../../utils/api";
+import { broadcastStatusChange, useLiveStatusSync } from "../../utils/liveStatusSync";
 import { toast } from "react-hot-toast";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
@@ -60,7 +61,8 @@ export default function SuperadminEnquiry() {
         });
       }
       setSelectedIds(new Set());
-      fetchEnquiries();
+      broadcastStatusChange({ type: "enquiry" });
+      fetchEnquiries({ silent: true });
     } catch (err) {
       console.error(err);
       alert("Failed to update some enquiries");
@@ -82,7 +84,8 @@ export default function SuperadminEnquiry() {
         });
       }
       setSelectedIds(new Set());
-      fetchEnquiries();
+      broadcastStatusChange({ type: "enquiry" });
+      fetchEnquiries({ silent: true });
     } catch (err) {
       console.error(err);
       alert("Failed to delete some enquiries");
@@ -91,12 +94,13 @@ export default function SuperadminEnquiry() {
     }
   };
 
-  const fetchEnquiries = async () => {
+  const fetchEnquiries = async (opts = {}) => {
+    const silent = Boolean(opts?.silent);
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       clearApiCache("/api/properties");
       const [enqRes, propsRes, empRes] = await Promise.all([
-        fetch(`${getApiUrl()}/api/website-enquiries?t=${Date.now()}`, { headers: getAuthHeader() })
+        fetch(`${getApiUrl()}/api/website-enquiries?t=${Date.now()}`, { headers: getAuthHeader(), cache: "no-store" })
           .then(r => r.json())
           .catch(() => ({})),
         fetchJson(`/api/properties?pendingApproval=true&withoutVisitReport=true&limit=1000&t=${Date.now()}`).catch(() => ({})),
@@ -104,8 +108,8 @@ export default function SuperadminEnquiry() {
       ]);
 
       if (enqRes?.enquiries) {
-        setEnquiries(enqRes.enquiries.map(enq => ({
-          id: enq._id || `ENQ-${Math.floor(Math.random()*10000)}`,
+        setEnquiries(enqRes.enquiries.map((enq, idx) => ({
+          id: enq._id || enq.enquiry_id || `ENQ-${idx}`,
           enquiryId: enq.enquiry_id || enq._id,
           name: enq.name || enq.owner_name || "Unknown",
           property: enq.property_name || enq.property || "Unknown Property",
@@ -121,7 +125,7 @@ export default function SuperadminEnquiry() {
                   enq.status === "assigned" ? "Assigned" : "Pending",
           date: new Date(enq.created_at || enq.createdAt || Date.now()).toLocaleDateString("en-IN", { day: 'numeric', month: 'short' }),
           initial: (enq.name || enq.owner_name || "U")[0].toUpperCase(),
-          color: ["blue", "indigo", "amber", "rose", "emerald"][Math.floor(Math.random() * 5)],
+          color: ["blue", "indigo", "amber", "rose", "emerald"][String(enq._id || enq.enquiry_id || idx).length % 5],
           raw: enq
         })));
       }
@@ -137,13 +141,18 @@ export default function SuperadminEnquiry() {
     } catch (err) {
       console.error("Error fetching enquiries & listing requests:", err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchEnquiries();
   }, []);
+
+  useLiveStatusSync(() => fetchEnquiries({ silent: true }), {
+    pollMs: 10000,
+    types: ["enquiry", "visit", "kyc", "owner"],
+  });
 
   const handleApproveListingRequest = async (id) => {
     try {
@@ -222,9 +231,9 @@ export default function SuperadminEnquiry() {
             prev.map(e => ((e.id === itemId || e.enquiryId === itemId) ? { ...e, assignedTo: assignedName || assignedId, status: "Assigned" } : e))
           );
         }
-        clearApiCache("/api/properties");
+        broadcastStatusChange({ type: "enquiry", enquiryId: itemId });
         setAssignModal(null);
-        fetchEnquiries();
+        fetchEnquiries({ silent: true });
       } else {
         toast.error(data.message || "Assignment failed");
       }

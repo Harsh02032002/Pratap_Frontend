@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { fetchJson, getAuthHeader, getApiBase, clearApiCache } from "../../utils/api";
+import { broadcastStatusChange, useLiveStatusSync } from "../../utils/liveStatusSync";
 import { compressImage, PRESETS } from "../../utils/imageCompression";
 import { PROPERTY_TIERS, normalizeTierKey } from "../../utils/propertyTiers";
 import {
@@ -1015,10 +1016,13 @@ export default function Visit() {
     return !s || s === 401 || s === 408 || s >= 500;
   };
 
-  const loadVisits = async () => {
+  const loadVisits = async (opts = {}) => {
+    const silent = Boolean(opts?.silent);
     const reqId = ++loadReqRef.current;
-    setLoading(true);
-    setLoadError(null);
+    if (!silent) {
+      setLoading(true);
+      setLoadError(null);
+    }
     const params = new URLSearchParams({ view: "table", page: String(page), limit: String(PAGE_SIZE) });
     const q = debouncedSearch.trim();
     if (q) params.set("q", q.slice(0, 60));
@@ -1042,15 +1046,36 @@ export default function Visit() {
         setPage(Math.max(1, Math.ceil(count / PAGE_SIZE)));
         return;
       }
+      setLoadError(null);
       setVisits(list);
       setTotalRows(count);
       setServerStats(data?.stats || null);
+      setViewingVisit((prev) => {
+        if (!prev) return prev;
+        const prevId = prev.visitId || prev._id;
+        const match = list.find((item) => (item.visitId || item._id) === prevId);
+        if (!match) return prev;
+        return {
+          ...prev,
+          status: match.status ?? prev.status,
+          kycStatus: match.kycStatus ?? prev.kycStatus,
+          kycSentAt: match.kycSentAt ?? prev.kycSentAt,
+          tier: match.tier ?? prev.tier,
+          rejectReason: match.rejectReason ?? prev.rejectReason,
+          holdReason: match.holdReason ?? prev.holdReason,
+          generatedCredentials: match.generatedCredentials
+            ? { ...prev.generatedCredentials, ...match.generatedCredentials }
+            : prev.generatedCredentials,
+        };
+      });
     } catch (err) {
       if (!mountedRef.current || reqId !== loadReqRef.current) return;
       console.error(err);
-      setLoadError(err?.message || "Could not load visit reports.");
+      if (!silent) {
+        setLoadError(err?.message || "Could not load visit reports.");
+      }
     } finally {
-      if (mountedRef.current && reqId === loadReqRef.current) setLoading(false);
+      if (!silent && mountedRef.current && reqId === loadReqRef.current) setLoading(false);
     }
   };
 
@@ -1061,6 +1086,13 @@ export default function Visit() {
   }, [search]);
 
   useEffect(() => { loadVisits(); }, [page, debouncedSearch]);
+
+  useLiveStatusSync(
+    () => {
+      loadVisits({ silent: true });
+    },
+    { enabled: currentView === "list", pollMs: 8000, types: ["visit", "kyc", "owner"] }
+  );
 
   // The list rows carry no photos or full details. View/Edit pull the whole
   // report first, so a form is never prefilled (and saved) from the thin row.
@@ -1117,7 +1149,7 @@ export default function Visit() {
       .catch(err => { if (!cancelled) { console.warn("Owner KYC fetch failed:", err.message); setOwnerKyc(null); } })
       .finally(() => { if (!cancelled) setOwnerKycLoading(false); });
     return () => { cancelled = true; };
-  }, [viewingVisit]);
+  }, [viewingVisit?.visitId, viewingVisit?._id, viewingVisit?.generatedCredentials?.loginId, viewingVisit?.kycStatus]);
 
   const resetForm = () => {
     setFormName(""); setFormEmail(""); setFormPhone(""); setFormOwnerCity("");
@@ -1372,7 +1404,7 @@ export default function Visit() {
       }
       resetForm();
       setCurrentView("list");
-      clearApiCache();
+      broadcastStatusChange({ type: "visit", visitId });
       loadVisits();
     } catch (err) {
       notify("error", "Could not submit the report", err?.message || "Something went wrong. Nothing was saved — please try again.");
@@ -1398,8 +1430,8 @@ export default function Visit() {
         `Emailed to ${v.ownerEmail || "the owner"}.`,
         res?.loginId ? `Owner login ID: ${res.loginId}` : null
       );
-      clearApiCache();
-      loadVisits();
+      broadcastStatusChange({ type: "kyc", visitId: id });
+      loadVisits({ silent: true });
     } catch (err) {
       notify("error", "Could not send the KYC link", err?.message || "The email did not go out. Please try again.");
     } finally {
@@ -1435,8 +1467,8 @@ export default function Visit() {
       setRejectModal(null);
       setRejectReason("");
       setViewingVisit(null);
-      clearApiCache();
-      loadVisits();
+      broadcastStatusChange({ type: "visit", visitId: id, status: "rejected" });
+      loadVisits({ silent: true });
     } catch (err) {
       notify("error", "Could not reject", err?.message || "The rejection did not go through. Please try again.");
     } finally {
@@ -1476,8 +1508,8 @@ export default function Visit() {
         notify("success", "Property published", `${name} is now live on the website.`, "Owner emailed their credentials");
       }
       setViewingVisit(null);
-      clearApiCache();
-      loadVisits();
+      broadcastStatusChange({ type: "visit", visitId: id, status: "approved" });
+      loadVisits({ silent: true });
     } catch (err) {
       notify("error", "Could not approve", err?.message || "The approval did not go through. Please try again.");
     } finally {
@@ -1498,8 +1530,8 @@ export default function Visit() {
       if (viewingVisit && (viewingVisit.visitId === id || viewingVisit._id === id)) {
         setViewingVisit(null);
       }
-      clearApiCache();
-      loadVisits();
+      broadcastStatusChange({ type: "visit", visitId: id, status: "deleted" });
+      loadVisits({ silent: true });
     } catch (err) {
       notify("error", "Could not delete visit report", err?.message || "Please try again.");
     } finally {
@@ -1532,7 +1564,8 @@ export default function Visit() {
       setHoldModal(null);
       setHoldReason("");
       setViewingVisit(null);
-      loadVisits();
+      broadcastStatusChange({ type: "visit", visitId: id, status: "hold" });
+      loadVisits({ silent: true });
     } catch (err) {
       notify("error", "Could not hold report", err?.message || "Please try again.");
     } finally {
@@ -1673,7 +1706,8 @@ export default function Visit() {
       }
 
       setSelectedIds(new Set());
-      loadVisits();
+      broadcastStatusChange({ type: "visit", status: "approved" });
+      loadVisits({ silent: true });
     } catch (err) {
       notify("error", "Bulk approval failed", err?.message || "Please try again.");
     } finally {
@@ -1700,7 +1734,8 @@ export default function Visit() {
       setBulkRejectModal(false);
       setBulkRejectReason("");
       setSelectedIds(new Set());
-      loadVisits();
+      broadcastStatusChange({ type: "visit", status: "rejected" });
+      loadVisits({ silent: true });
     } catch (err) {
       notify("error", "Bulk reject failed", err?.message || "Please try again.");
     } finally {
@@ -1727,7 +1762,8 @@ export default function Visit() {
       setBulkHoldModal(false);
       setBulkHoldReason("");
       setSelectedIds(new Set());
-      loadVisits();
+      broadcastStatusChange({ type: "visit", status: "hold" });
+      loadVisits({ silent: true });
     } catch (err) {
       notify("error", "Bulk hold failed", err?.message || "Please try again.");
     } finally {
@@ -1750,7 +1786,8 @@ export default function Visit() {
 
       notify("success", "Bulk KYC Links Sent", "Sent KYC links to " + (res?.sent || 0) + " owner(s). Skipped (already done): " + (res?.skipped || 0));
       setSelectedIds(new Set());
-      loadVisits();
+      broadcastStatusChange({ type: "kyc" });
+      loadVisits({ silent: true });
     } catch (err) {
       notify("error", "Bulk KYC send failed", err?.message || "Please try again.");
     } finally {
@@ -1775,7 +1812,8 @@ export default function Visit() {
 
       notify("success", "Bulk Deletion Complete", "Deleted " + (res?.count || list.length) + " visit report(s).");
       setSelectedIds(new Set());
-      loadVisits();
+      broadcastStatusChange({ type: "visit", status: "deleted" });
+      loadVisits({ silent: true });
     } catch (err) {
       notify("error", "Bulk deletion failed", err?.message || "Please try again.");
     } finally {

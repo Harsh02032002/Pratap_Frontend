@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getApiBases, getWithFallback, postWithFallback } from "./utils";
+import { broadcastStatusChange } from "../../utils/liveStatusSync";
 
 export const useOwnerAgreement = () => {
   const apiBases = useMemo(() => getApiBases(), []);
@@ -98,6 +99,7 @@ export const useOwnerAgreement = () => {
           return;
         }
 
+        broadcastStatusChange({ type: "kyc", loginId, kycStatus: "completed" });
         const nextUrl = resp.nextUrl || `/digital-checkin/owner-success?loginId=${encodeURIComponent(loginId)}&agreementSigned=1`;
         window.location.href = nextUrl;
       } catch (err) {

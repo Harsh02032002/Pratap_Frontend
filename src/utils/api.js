@@ -178,6 +178,7 @@ export const fetchJson = (path, options = {}) => {
       request.assertCurrent();
       const res = await fetch(url, {
         credentials: "include",
+        ...(method === "GET" ? { cache: "no-store" } : {}),
         ...fetchOptions,
         headers,
         signal: controller.signal,

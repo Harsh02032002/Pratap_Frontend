@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { PageHeader } from "../../components/superadmin/PageHeader";
+import { broadcastStatusChange, useLiveStatusSync } from "../../utils/liveStatusSync";
 
 const getApiUrl = () =>
   import.meta.env?.VITE_API_URL ||
@@ -131,11 +132,15 @@ export default function EmployeePropertyApprovals() {
   useEffect(() => {
     fetchEnquiries();
     fetchPropertyUnderOwner();
-    const interval = setInterval(fetchEnquiries, 15000);
-    return () => {
-      clearInterval(interval);
-    };
   }, []);
+
+  useLiveStatusSync(
+    () => {
+      fetchEnquiries();
+      fetchPropertyUnderOwner();
+    },
+    { pollMs: 10000, types: ["visit", "kyc", "owner"] }
+  );
 
   const fetchEnquiries = async () => {
     let list = [];
@@ -143,6 +148,7 @@ export default function EmployeePropertyApprovals() {
       const token = sessionStorage.getItem("token") || localStorage.getItem("token") || "";
       const response = await fetch(`${apiUrl}/api/visits/pending`, {
         method: "GET",
+        cache: "no-store",
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
       if (!response.ok) throw new Error("API error");
@@ -332,6 +338,7 @@ export default function EmployeePropertyApprovals() {
     setShowApprove(false);
     setShowSuccess(true);
     setCurrentApprovingId(null);
+    broadcastStatusChange({ type: "visit", status: "approved" });
     fetchEnquiries();
     fetchPropertyUnderOwner();
   };
@@ -387,6 +394,7 @@ export default function EmployeePropertyApprovals() {
       if (data.success) {
         window.alert(actionModal.type === "reject" ? "Visit rejected successfully" : "Visit held successfully");
         closeActionModal();
+        broadcastStatusChange({ type: "visit", visitId: actionModal.visitId, status: actionModal.type === "reject" ? "rejected" : "hold" });
         fetchEnquiries();
         fetchPropertyUnderOwner();
       } else {

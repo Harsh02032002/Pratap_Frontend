@@ -9,6 +9,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { getMyPropertySubmissions, getSubmissionToken } from "../../api/propertySubmissions";
 import { queryKeys } from "../../lib/queryKeys";
 import { getSubmissionPresentation, PROPERTY_SUBMISSIONS_PATH } from "../../utils/propertySubmissions";
+import { useLiveStatusSync } from "../../utils/liveStatusSync";
 
 const steps = [
   { label: "Submitted", icon: ClipboardList },
@@ -69,10 +70,22 @@ export default function MyPropertySubmissionsPage() {
     queryKey: queryKeys.propertySubmissions.mine(user?._id || user?.id || user?.loginId || "", page),
     queryFn: ({ signal }) => getMyPropertySubmissions(page, signal),
     enabled,
-    refetchInterval: 60000,
+    refetchOnWindowFocus: "always",
+    refetchInterval: (query) => {
+      const list = query.state.data?.submissions || [];
+      const hasPending = list.some((s) => s.stage !== "live" && s.stage !== "rejected");
+      return hasPending ? 8000 : 30000;
+    },
     refetchIntervalInBackground: false,
     gcTime: 0,
   });
+
+  useLiveStatusSync(
+    () => {
+      if (enabled) refetch();
+    },
+    { enabled, pollMs: 0, types: ["visit", "enquiry", "owner"] }
+  );
   const needsSignIn = !enabled || error?.status === 401;
 
   useEffect(() => {

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useHtmlPage } from "../../utils/htmlPage";
 import { stripVisitSecrets, purgeStoredVisitSecrets } from "../../utils/visitStorage";
+import { broadcastStatusChange, useLiveStatusSync } from "../../utils/liveStatusSync";
 
 const getApiUrl = () =>
   import.meta.env?.VITE_API_URL ||
@@ -127,12 +128,18 @@ export default function SuperadminEnquiry() {
     fetchEnquiries();
     fetchRoomApprovals();
     startPolling();
-    const interval = setInterval(fetchEnquiries, 15000);
     return () => {
-      clearInterval(interval);
       stopPolling();
     };
   }, []);
+
+  useLiveStatusSync(
+    () => {
+      fetchEnquiries();
+      fetchRoomApprovals();
+    },
+    { pollMs: 10000, types: ["visit", "kyc", "owner", "enquiry"] }
+  );
 
   const startPolling = () => {
     stopPolling();
@@ -245,7 +252,11 @@ export default function SuperadminEnquiry() {
   const fetchEnquiries = async () => {
     let list = [];
     try {
-      const response = await fetch(`${apiUrl}/api/visits/pending`);
+      const token = sessionStorage.getItem("token") || localStorage.getItem("token") || "";
+      const response = await fetch(`${apiUrl}/api/visits/pending`, {
+        cache: "no-store",
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
       if (!response.ok) throw new Error("API error");
       const data = await response.json();
       const allVisits = data.visits || data || [];
@@ -315,6 +326,7 @@ export default function SuperadminEnquiry() {
     setShowApprove(false);
     setShowSuccess(true);
     setCurrentApprovingId(null);
+    broadcastStatusChange({ type: "visit", status: "approved" });
     fetchEnquiries();
   };
 
@@ -330,6 +342,7 @@ export default function SuperadminEnquiry() {
       const data = await response.json();
       if (data.success) {
         alert("Visit held successfully");
+        broadcastStatusChange({ type: "visit", visitId: id, status: "hold" });
         fetchEnquiries();
       } else {
         alert("Error holding visit: " + data.message);

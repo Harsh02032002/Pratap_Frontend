@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Search, Loader2, CheckCircle2, XCircle, FileText, Image as ImageIcon } from "lucide-react";
 import { fetchJson, getAuthHeader, API_URL } from "../../utils/api";
+import { broadcastStatusChange, useLiveStatusSync } from "../../utils/liveStatusSync";
 import { PageHeader } from "../../components/superadmin/PageHeader";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
@@ -21,25 +22,35 @@ export default function KycVerification() {
   const [selectedOwner, setSelectedOwner] = useState(null);
   const [updating, setUpdating] = useState(false);
 
-  const loadOwners = async () => {
+  const loadOwners = async (opts = {}) => {
+    const silent = Boolean(opts?.silent);
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const res = await fetchJson("/api/owners");
       const baseOwners = Array.isArray(res) ? res : (res.data || res.owners || []);
       setOwners(baseOwners);
-      if (baseOwners.length > 0 && !selectedOwner) {
-        setSelectedOwner(baseOwners[0]);
-      }
+      setSelectedOwner((prev) => {
+        if (!prev) return baseOwners[0] || null;
+        const refreshed = baseOwners.find(
+          (o) => (prev.loginId && o.loginId === prev.loginId) || (prev._id && o._id === prev._id)
+        );
+        return refreshed || prev;
+      });
     } catch (err) {
       console.error("Failed to load owners for KYC:", err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     loadOwners();
   }, []);
+
+  useLiveStatusSync(() => loadOwners({ silent: true }), {
+    pollMs: 8000,
+    types: ["kyc", "owner", "visit"],
+  });
 
   const stats = useMemo(() => {
     let pending = 0;
@@ -66,7 +77,8 @@ export default function KycVerification() {
         headers: getAuthHeader(),
         body: JSON.stringify({ docType, status, kycStatus: status })
       });
-      loadOwners();
+      broadcastStatusChange({ type: "kyc", loginId: id, kycStatus: status === "verified" ? "completed" : "sent" });
+      loadOwners({ silent: true });
       // Update current selected owner state
       setSelectedOwner(prev => ({
         ...prev,
@@ -141,9 +153,9 @@ export default function KycVerification() {
                   </div>
                   <span className={cn(
                     "inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold",
-                    kycStat === "verified" ? "bg-[#DDF3E4] text-[#14532D]" : kycStat === "rejected" ? "bg-[#FEE2E2] text-[#991B1B]" : "bg-[#FDEBD0] text-[#7A3E00]"
+                    kycStat === "verified" ? "bg-[#DDF3E4] text-[#14532D]" : (kycStat === "submitted" || kycStat === "completed") ? "bg-[#E0F2FE] text-[#0369A1]" : kycStat === "rejected" ? "bg-[#FEE2E2] text-[#991B1B]" : "bg-[#FDEBD0] text-[#7A3E00]"
                   )}>
-                    {kycStat === "verified" ? "Verified" : kycStat === "rejected" ? "Rejected" : "Pending"}
+                    {kycStat === "verified" ? "Verified" : (kycStat === "submitted" || kycStat === "completed") ? "Submitted" : kycStat === "rejected" ? "Rejected" : "Pending"}
                   </span>
                 </div>
               );

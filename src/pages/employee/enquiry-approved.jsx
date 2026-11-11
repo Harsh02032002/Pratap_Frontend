@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useHtmlPage } from "../../utils/htmlPage";
 import { fetchJson } from "../../utils/api";
+import { useLiveStatusSync } from "../../utils/liveStatusSync";
 
 const normalizeVisit = (visit) => {
   const stableId = visit?.visitId || visit?._id || "";
@@ -31,22 +32,28 @@ export default function EnquiryApproved() {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
 
-  const loadVisits = async () => {
+  const loadVisits = async (opts = {}) => {
+    const silent = Boolean(opts?.silent);
     try {
-      setErrorMsg("");
+      if (!silent) setErrorMsg("");
       const data = await fetchJson("/api/visits");
       const list = (data?.visits || data || []).map(normalizeVisit);
       setVisits(list);
       setLoading(false);
     } catch (err) {
       setLoading(false);
-      setErrorMsg(err?.message || "Failed to load visits");
+      if (!silent) setErrorMsg(err?.message || "Failed to load visits");
     }
   };
 
   useEffect(() => {
     loadVisits();
   }, []);
+
+  useLiveStatusSync(() => loadVisits({ silent: true }), {
+    pollMs: 10000,
+    types: ["visit", "kyc", "owner"],
+  });
 
   useEffect(() => {
     if (window?.lucide) window.lucide.createIcons();

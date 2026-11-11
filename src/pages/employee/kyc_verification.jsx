@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useHtmlPage } from "../../utils/htmlPage";
 import { fetchJson } from "../../utils/api";
+import { broadcastStatusChange, useLiveStatusSync } from "../../utils/liveStatusSync";
 import { useLegacySidebar } from "../../utils/legacyUi";
 
 export default function KycVerification() {
@@ -35,27 +36,29 @@ export default function KycVerification() {
   const [errorMsg, setErrorMsg] = useState("");
   const [actionId, setActionId] = useState("");
 
-  const loadOwners = async () => {
+  const loadOwners = async (opts = {}) => {
+    const silent = Boolean(opts?.silent);
     try {
-      setLoadingOwners(true);
+      if (!silent) setLoadingOwners(true);
       const data = await fetchJson("/api/owners");
       setOwners(data?.owners || data || []);
     } catch (err) {
-      setErrorMsg(err?.message || "Failed to load owners");
+      if (!silent) setErrorMsg(err?.message || "Failed to load owners");
     } finally {
-      setLoadingOwners(false);
+      if (!silent) setLoadingOwners(false);
     }
   };
 
-  const loadTenants = async () => {
+  const loadTenants = async (opts = {}) => {
+    const silent = Boolean(opts?.silent);
     try {
-      setLoadingTenants(true);
+      if (!silent) setLoadingTenants(true);
       const data = await fetchJson("/api/tenants");
       setTenants(data?.tenants || data || []);
     } catch (err) {
-      setErrorMsg(err?.message || "Failed to load tenants");
+      if (!silent) setErrorMsg(err?.message || "Failed to load tenants");
     } finally {
-      setLoadingTenants(false);
+      if (!silent) setLoadingTenants(false);
     }
   };
 
@@ -63,6 +66,14 @@ export default function KycVerification() {
     loadOwners();
     loadTenants();
   }, []);
+
+  useLiveStatusSync(
+    () => {
+      loadOwners({ silent: true });
+      loadTenants({ silent: true });
+    },
+    { pollMs: 10000, types: ["kyc", "owner", "visit"] }
+  );
 
   useEffect(() => {
     if (window?.lucide) window.lucide.createIcons();
@@ -88,7 +99,8 @@ export default function KycVerification() {
         method: "PATCH",
         body: JSON.stringify({ status, rejectionReason: status === "rejected" ? "Rejected by admin" : "" })
       });
-      await loadOwners();
+      broadcastStatusChange({ type: "kyc", loginId: owner.loginId || id, kycStatus: status === "verified" ? "completed" : "sent" });
+      await loadOwners({ silent: true });
     } catch (err) {
       window.alert(err?.message || "Failed to update owner KYC");
     } finally {

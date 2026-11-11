@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Search, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { fetchJson, getAuthHeader } from "../../utils/api";
+import { broadcastStatusChange, useLiveStatusSync } from "../../utils/liveStatusSync";
 import { PageHeader } from "../../components/superadmin/PageHeader";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
@@ -12,22 +13,28 @@ export default function OwnerPending() {
    const [currentPage, setCurrentPage] = useState(1);
    const LIMIT = 10;
 
-   const loadOwners = async () => {
+   const loadOwners = async (opts = {}) => {
+      const silent = Boolean(opts?.silent);
       try {
-         setLoading(true);
+         if (!silent) setLoading(true);
          const res = await fetchJson("/api/owners");
          const baseOwners = Array.isArray(res) ? res : (res.data || res.owners || []);
          setOwners(baseOwners);
       } catch (err) {
          console.error("Failed to load pending owners:", err);
       } finally {
-         setLoading(false);
+         if (!silent) setLoading(false);
       }
    };
 
    useEffect(() => {
       loadOwners();
    }, []);
+
+   useLiveStatusSync(() => loadOwners({ silent: true }), {
+      pollMs: 8000,
+      types: ["kyc", "owner", "visit"],
+   });
 
    const pendingOwners = useMemo(() => {
       return owners.filter(o => {
@@ -70,7 +77,8 @@ export default function OwnerPending() {
             body: JSON.stringify({})
          });
          alert(res.message || "Owner approved and credentials email sent successfully!");
-         loadOwners();
+         broadcastStatusChange({ type: "kyc", loginId: owner.loginId || owner._id, kycStatus: "completed" });
+         loadOwners({ silent: true });
       } catch (err) {
          alert("Failed to approve owner: " + (err.message));
       } finally {
@@ -141,9 +149,9 @@ export default function OwnerPending() {
                               <td className="py-2.5 px-4">
                                  <span className={cn(
                                     "inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold",
-                                    kycStat === "verified" ? "bg-[#DDF3E4] text-[#14532D]" : kycStat === "docs_missing" ? "bg-[#FDE8E8] text-[#991B1B]" : "bg-[#FDEBD0] text-[#7A3E00]"
+                                    (kycStat === "verified" || kycStat === "completed") ? "bg-[#DDF3E4] text-[#14532D]" : kycStat === "submitted" ? "bg-[#E0F2FE] text-[#0369A1]" : kycStat === "docs_missing" ? "bg-[#FDE8E8] text-[#991B1B]" : "bg-[#FDEBD0] text-[#7A3E00]"
                                  )}>
-                                    {kycStat === "verified" ? "Verified" : kycStat === "docs_missing" ? "Docs missing" : "Pending"}
+                                    {(kycStat === "verified" || kycStat === "completed") ? "Verified" : kycStat === "submitted" ? "Submitted" : kycStat === "docs_missing" ? "Docs missing" : "Pending"}
                                  </span>
                               </td>
                               <td className="py-2.5 px-4 text-right pr-2">
