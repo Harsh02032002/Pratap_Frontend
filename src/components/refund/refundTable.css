@@ -1,0 +1,50 @@
+.refund-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.refund-table {
+  width: 100%;
+  min-width: 1120px;
+  border-collapse: collapse;
+}
+
+.refund-table th {
+  padding-right: 16px;
+  padding-bottom: 12px;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+.refund-table td {
+  padding-right: 16px;
+  vertical-align: middle;
+}
+
+.refund-table th:last-child,
+.refund-table td:last-child {
+  padding-right: 0;
+}
+
+.refund-table th:nth-child(2) {
+  min-width: 145px;
+}
+
+.refund-table td:nth-child(3) {
+  min-width: 200px;
+  max-width: 250px;
+  overflow-wrap: anywhere;
+}
+
+.refund-table td:last-child > div {
+  min-width: max-content;
+}
+
+.refund-table td:last-child button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.refund-table td:last-child svg {
+  flex-shrink: 0;
+}

@@ -5,8 +5,6 @@ import {
   CheckCircle2,
   Loader2,
   ArrowLeft,
-  ShieldAlert,
-  ShieldCheck,
   Eye,
   Repeat,
   FileSearch
@@ -14,6 +12,8 @@ import {
 import { fetchJson } from "../../utils/api";
 import { Link, useLocation } from "react-router-dom";
 import RefundVerificationModal from "../../components/refund/RefundVerificationModal";
+import RefundOnboardingBadge from "../../components/refund/RefundOnboardingBadge";
+import "../../components/refund/refundTable.css";
 
 export default function RefundBookingPage() {
   const location = useLocation();
@@ -116,7 +116,7 @@ export default function RefundBookingPage() {
   });
 
   return (
-    <div className="space-y-4 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
+    <div className="min-w-0 space-y-4 font-['Plus_Jakarta_Sans',sans-serif] text-[#10242A]">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-[22px] font-bold text-[#10242A] tracking-tight leading-tight">
@@ -193,8 +193,8 @@ export default function RefundBookingPage() {
             No booking refund or alternative property requests found. Use the Booking ID lookup bar above to inspect any booking directly.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+          <div className="refund-table-scroll">
+            <table className="refund-table text-left">
               <thead>
                 <tr className="border-b border-[#E1E6EA]">
                   <th className="pb-2.5 text-[11px] font-bold text-[#4A5961] uppercase tracking-wider">Booking ID</th>
@@ -265,17 +265,10 @@ export default function RefundBookingPage() {
                       </td>
 
                       <td className="py-3 pr-3">
-                        {r.is_tenant_onboarded ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-red-50 text-red-800 border border-red-200 text-[11px] font-bold">
-                            <ShieldAlert size={13} className="text-red-600" />
-                            ⚠️ Already Onboarded
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-bold">
-                            <ShieldCheck size={13} className="text-emerald-600" />
-                            Not Onboarded
-                          </span>
-                        )}
+                        <RefundOnboardingBadge
+                          isOnboarded={r.is_tenant_onboarded}
+                          verificationStatus={r.onboarding_check_status}
+                        />
                       </td>
 
                       <td className="py-3 pr-3">

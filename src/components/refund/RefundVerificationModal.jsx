@@ -100,7 +100,7 @@ export default function RefundVerificationModal({
   const owner = dossier?.ownerKacchaChitha;
   const propDetails = dossier?.propertyDetails;
   const assignedEmp = dossier?.assignedEmployee;
-  const onboarding = dossier?.onboardingCheck || { isOnboarded: false, records: [] };
+  const onboarding = dossier?.onboardingCheck || { verificationStatus: "unavailable", isOnboarded: false, records: [] };
   const chatHistory = dossier?.chatHistory || { totalMessages: 0, messages: [] };
   const recommendedAlts = dossier?.recommendedAlternatives || [];
 
@@ -251,16 +251,21 @@ export default function RefundVerificationModal({
           <>
             {/* Onboarding Fraud Check Banner */}
             <div className="px-6 pt-4">
-              {onboarding.isOnboarded ? (
+              {onboarding.verificationStatus !== "verified" ? (
+                <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900">
+                  <span className="text-xs font-bold block">Unable to Verify Onboarding</span>
+                  <p className="text-[11px] mt-1">Onboarding could not be verified for this property and owner. Retry verification before making a decision.</p>
+                </div>
+              ) : onboarding.isOnboarded ? (
                 <div className="p-4 rounded-xl bg-red-50 border-2 border-red-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-start gap-3">
                     <ShieldAlert className="text-red-600 shrink-0 mt-0.5" size={24} />
                     <div>
                       <h3 className="text-sm font-extrabold text-red-900 uppercase tracking-wide">
-                        ⚠️ FRAUD ALERT: TENANT IS ALREADY ONBOARDED!
+                        ⚠️ TENANT IS ALREADY ONBOARDED AT THIS PROPERTY
                       </h3>
                       <p className="text-xs text-red-800 mt-0.5">
-                        This user has an active/existing tenant onboarding record. Verify carefully before approving any refund!
+                        Completed tenant onboarding was found for this property and owner. Review the records before approving a refund.
                       </p>
                       <div className="mt-2 flex flex-wrap gap-2">
                         {onboarding.records.map((rec, idx) => (
@@ -281,10 +286,10 @@ export default function RefundVerificationModal({
                     <ShieldCheck className="text-emerald-600 shrink-0" size={20} />
                     <div>
                       <span className="text-xs font-bold text-emerald-900 block">
-                        ✅ Onboarding Verification Passed: Tenant is NOT onboarded in any property
+                        ✅ No completed onboarding found for this property and owner
                       </span>
                       <span className="text-[11px] text-emerald-700">
-                        Checked against Tenant & Rent records by phone ({tenantInfo.phone || "N/A"}), email ({tenantInfo.email || "N/A"}), and user ID.
+                        Checked tenant identity, property, owner, room assignment, active status, and onboarding completion.
                       </span>
                     </div>
                   </div>
