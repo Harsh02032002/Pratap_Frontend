@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { markAccountActivity, ACTIVITY_STAYS } from '../../utils/accountActivity';
 import { Zap, ArrowLeft, Send, Loader, CheckCircle, Shield, Info, Sparkles, ShieldCheck, CheckCircle2, PhoneCall, Bell } from 'lucide-react';
 import WebsiteNavbar from "../../components/website/WebsiteNavbar";
 import WebsiteFooter from "../../components/website/WebsiteFooter";
@@ -29,6 +30,8 @@ export default function FastBiddingPage() {
   const propertiesFetched = useRef(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [resultCategory, setResultCategory] = useState(null);
+  // A bid was just placed: make "My Stays" appear in the menu.
+  useEffect(() => { if (showSuccessModal && resultCategory) markAccountActivity(ACTIVITY_STAYS); }, [showSuccessModal, resultCategory]);
   const [showSignupModal, setShowSignupModal] = useState(false);
   const [signupEmail, setSignupEmail] = useState('');
   const [successCount, setSuccessCount] = useState(0);
@@ -777,6 +780,13 @@ export default function FastBiddingPage() {
                   {resultCategory.ctaLabel}
                 </button>
               )}
+              <button
+                onClick={() => { setShowSuccessModal(false); window.location.href = '/website/mystays'; }}
+                className="w-full py-3 bg-white hover:bg-slate-50 border-2 font-black text-xs uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                style={{ color: (resultCategory.accentColor || '#0d9488'), borderColor: (resultCategory.accentColor || '#0d9488') }}
+              >
+                Track in My Stays
+              </button>
               <button
                 onClick={() => setShowSuccessModal(false)}
                 className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-3 rounded-2xl transition-all text-xs uppercase tracking-wider cursor-pointer"

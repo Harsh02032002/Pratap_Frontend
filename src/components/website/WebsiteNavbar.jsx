@@ -2,6 +2,7 @@ import { Building2, Users, Search, MapPin, Home, MessageSquare, User, LogOut, Se
 import { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useAccountActivity } from '../../hooks/useAccountActivity';
 import LocationMapPicker from './LocationMapPicker';
 import FloatingBidNowButton from './FloatingBidNowButton';
 import FastBiddingModal from './FastBiddingModal';
@@ -11,6 +12,7 @@ export default function WebsiteNavbar() {
   const location = useLocation();
   const pathname = location.pathname || '';
   const { user, logout, isAuthenticated } = useAuth();
+  const { hasStays, hasSubmissions } = useAccountActivity();
   const [showSearch, setShowSearch] = useState(false);
   const [showMapPicker, setShowMapPicker] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
@@ -130,12 +132,16 @@ export default function WebsiteNavbar() {
                           <button onClick={() => { setShowUserDropdown(false); navigate('/website/profile'); }} className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3">
                             <User className="w-4 h-4 text-gray-500" /> Profile
                           </button>
-                          <button onClick={() => { setShowUserDropdown(false); navigate('/website/mystays'); }} className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3">
+                          {hasStays && (
+                            <button onClick={() => { setShowUserDropdown(false); navigate('/website/mystays'); }} className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3">
                             <Home className="w-4 h-4 text-gray-500" /> My Stays
-                          </button>
-                          <Link to="/my-property-submissions" onClick={() => setShowUserDropdown(false)} className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3">
+                            </button>
+                          )}
+                          {hasSubmissions && (
+                            <Link to="/my-property-submissions" onClick={() => setShowUserDropdown(false)} className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3">
                             <Building2 className="w-4 h-4 text-gray-500" /> My Property Submissions
-                          </Link>
+                            </Link>
+                          )}
                           <button onClick={handleLogout} className="w-full px-4 py-2 text-left text-sm text-red-650 hover:bg-red-50 flex items-center gap-3 border-t border-gray-100">
                             <LogOut className="w-4 h-4 text-red-500" /> Logout
                           </button>

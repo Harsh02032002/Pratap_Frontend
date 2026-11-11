@@ -5,6 +5,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { getSubmissionToken, submitPropertyEnquiry } from '../../api/propertySubmissions';
 import { queryKeys } from '../../lib/queryKeys';
 import { PROPERTY_SUBMISSIONS_PATH } from '../../utils/propertySubmissions';
+import { markAccountActivity, ACTIVITY_SUBMISSIONS } from '../../utils/accountActivity';
+import { useAccountActivity } from '../../hooks/useAccountActivity';
 import { 
   ListPlus, Send, CheckCircle, Loader, Building2, User, Mail, Phone, MapPin, 
   Home, Sparkles, ShieldCheck, CheckCircle2, PhoneCall,
@@ -48,6 +50,7 @@ export default function ListYourPropertyPage() {
   const [loadingForm, setLoadingForm] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [submissionReference, setSubmissionReference] = useState("");
+  const { hasSubmissions } = useAccountActivity();
   const [errors, setErrors] = useState({});
   const [layoutSections, setLayoutSections] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -163,6 +166,7 @@ export default function ListYourPropertyPage() {
       setSubmissionReference(response.enquiry_id || '');
       queryClient.invalidateQueries({ queryKey: queryKeys.propertySubmissions.all });
       setShowSuccess(true);
+      markAccountActivity(ACTIVITY_SUBMISSIONS);
       setFormData({
         ownerName: '',
         email: '',
@@ -585,10 +589,12 @@ export default function ListYourPropertyPage() {
           {isSectionVisible('list-hero') && renderHero()}
 
           <main className="flex-grow max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-12 w-full">
-            <div className="mb-6 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-teal-100 bg-white p-4 text-sm">
-              <span className="text-slate-600">Already submitted a property?</span>
-              <Link to={PROPERTY_SUBMISSIONS_PATH} className="font-semibold text-teal-700 hover:underline">Track my submissions →</Link>
-            </div>
+            {hasSubmissions && (
+              <div className="mb-6 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-teal-100 bg-white p-4 text-sm">
+                <span className="text-slate-600">Already submitted a property?</span>
+                <Link to={PROPERTY_SUBMISSIONS_PATH} className="font-semibold text-teal-700 hover:underline">Track my submissions →</Link>
+              </div>
+            )}
             {activeOrder.map(sectionId => {
               if (sectionId === 'list-hero' || !isSectionVisible(sectionId)) return null;
               switch (sectionId) {

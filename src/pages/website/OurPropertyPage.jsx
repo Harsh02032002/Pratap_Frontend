@@ -6,6 +6,7 @@ import MobileBottomNav from "../../components/website/MobileBottomNav";
 import { Filter, MapPin, Wallet, Home, Users, TrendingUp, Send, RefreshCw, ChevronLeft, ChevronRight, Building2, BookOpen, Star, Check, Phone, Wifi, Utensils, Car, Dumbbell, Tv, Wind, Droplets, Zap, X, Menu, Heart, ChevronDown, Clock, Shirt, Cctv, Video, Waves, Fan, Shield, Search, Bed, SlidersHorizontal, Sparkles, Tag, GraduationCap, School } from "lucide-react";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useSearchParams, Link, useNavigate, useParams, useLocation } from "react-router-dom";
+import { markAccountActivity, ACTIVITY_STAYS } from "../../utils/accountActivity";
 import { fetchProperties, searchPropertiesByLocation, getNearbyAreas, getInstitutions, getPriceRangeByType, trackPropertyClick, getApiBase, fetchJson, resolvePropertyOwnerLoginId, firstNonEmptyList } from "../../utils/api";
 import { cacheInvalidate } from "../../utils/cache";
 import FastBiddingModal from "../../components/website/FastBiddingModal";
@@ -466,6 +467,8 @@ export default function OurPropertyPage() {
   const [biddingSubmitting, setBiddingSubmitting] = useState(false);
 
   const [bidResultModal, setBidResultModal] = useState(null);
+  // A bid/booking was just placed: make "My Stays" appear in the menu.
+  useEffect(() => { if (bidResultModal) markAccountActivity(ACTIVITY_STAYS); }, [bidResultModal]);
 
   const handleDesktopBidSubmit = async () => {
     if (!isAuthenticated) {
@@ -2201,6 +2204,13 @@ export default function OurPropertyPage() {
           <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100 flex flex-col max-h-[90vh]">
             {/* Header */}
             <div className={`px-6 pt-6 pb-4 bg-gradient-to-br ${bidResultModal.bgGradient} border-b ${bidResultModal.borderColor} relative shrink-0`}>
+              <button
+                onClick={() => { setBidResultModal(null); navigate('/website/mystays'); }}
+                className="w-full py-3 bg-white hover:bg-slate-50 border-2 font-black text-xs uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                style={{ color: bidResultModal.accentColor, borderColor: bidResultModal.accentColor }}
+              >
+                Track in My Stays
+              </button>
               <button
                 onClick={() => setBidResultModal(null)}
                 className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/80 hover:bg-white text-slate-500 flex items-center justify-center transition-colors cursor-pointer"

@@ -4,6 +4,7 @@ import { fetchCities, fetchProperties, fetchJson, getPropertyDetailsUrl, getApiB
 import { cacheInvalidate } from '../../utils/cache';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
+import { markAccountActivity, ACTIVITY_STAYS } from '../../utils/accountActivity';
 import { matchesPropertyGender, normalizePropertyGender } from '../../utils/propertyGender';
 
 // Cities & Localities map dynamically built from MongoDB database properties
@@ -86,6 +87,8 @@ export default function FastBiddingModal({ isOpen, onClose, initialData = {} }) 
   }, [allProperties, selectedCity, selectedArea, selectedType, selectedGender, maxPrice]);
 
   const [resultModal, setResultModal] = useState(null);
+  // A bid/booking was just placed: make "My Stays" appear in the menu.
+  useEffect(() => { if (resultModal) markAccountActivity(ACTIVITY_STAYS); }, [resultModal]);
 
   const handleBidSubmit = async (e) => {
     if (e) e.preventDefault();
@@ -629,6 +632,13 @@ export default function FastBiddingModal({ isOpen, onClose, initialData = {} }) 
                   {resultModal.ctaLabel}
                 </button>
               )}
+              <button
+                onClick={() => { setResultModal(null); onClose(); navigate('/website/mystays'); }}
+                className="w-full py-3 bg-white hover:bg-slate-50 border-2 font-black text-xs uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                style={{ color: resultModal.accentColor, borderColor: resultModal.accentColor }}
+              >
+                Track in My Stays
+              </button>
               <button
                 onClick={() => { setResultModal(null); onClose(); }}
                 className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer"

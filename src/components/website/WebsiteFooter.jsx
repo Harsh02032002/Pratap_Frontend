@@ -5,6 +5,7 @@ import {
   CheckCircle2, ShieldCheck, Users, Star, Building2, ArrowRight,
   Bed, Layers, Phone, Mail
 } from "lucide-react";
+import { useAccountActivity } from "../../hooks/useAccountActivity";
 
 function Logo() {
   return (
@@ -43,6 +44,8 @@ const LinkItem = ({ to, children }) => (
 );
 
 export default function WebsiteFooter() {
+  // Track / My Stays links only appear once they have something to show.
+  const { hasStays, hasSubmissions } = useAccountActivity();
   return (
     <footer className="font-sans relative pb-16 md:pb-0">
 
@@ -257,9 +260,9 @@ export default function WebsiteFooter() {
                 </h3>
                 <ul className="space-y-2 text-xs font-semibold text-[#102A43]">
                   <li><Link to="/list-property" className="hover:text-[#0FA89C] transition-colors">List Your Property</Link></li>
-                  <li><Link to="/my-property-submissions" className="hover:text-[#0FA89C] transition-colors">Track My Property</Link></li>
+                  {hasSubmissions && <li><Link to="/my-property-submissions" className="hover:text-[#0FA89C] transition-colors">Track My Property</Link></li>}
                   <li><Link to="/propertyowner/dashboard" className="hover:text-[#0FA89C] transition-colors">Owner Dashboard</Link></li>
-                  <li><Link to="/website/mystays" className="hover:text-[#0FA89C] transition-colors font-bold text-[#0FA89C]">Tenant Dashboard / My Stays</Link></li>
+                  {hasStays && <li><Link to="/website/mystays" className="hover:text-[#0FA89C] transition-colors font-bold text-[#0FA89C]">Tenant Dashboard / My Stays</Link></li>}
                   <li><Link to="/about-us" className="hover:text-[#0FA89C] transition-colors">About Us</Link></li>
                   <li><Link to="/contact-us" className="hover:text-[#0FA89C] transition-colors">Contact Us</Link></li>
                   <li><Link to="/faq" className="hover:text-[#0FA89C] transition-colors">FAQ</Link></li>

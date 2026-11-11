@@ -3,6 +3,7 @@ import WebsiteFooter from "../../components/website/WebsiteFooter";
 import MobileBottomNav from "../../components/website/MobileBottomNav";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import { markAccountActivity, ACTIVITY_STAYS } from "../../utils/accountActivity";
 import { fetchPropertyByVisitId, getPropertyReviews, getPropertyReviewStats, checkUserReview, submitReview, trackPropertyView, trackPropertyClick, fetchJson, firstNonEmptyList } from "../../utils/api";
 import useSEO from "../../hooks/useSEO";
 import { toast } from "react-hot-toast";
@@ -359,6 +360,8 @@ export default function PropertyDetailsPage() {
   const [loadingInstitutes, setLoadingInstitutes] = useState(false);
   const [showQuickBookingModal, setShowQuickBookingModal] = useState(false);
   const [bidResultModal, setBidResultModal] = useState(null);
+  // A bid/booking was just placed: make "My Stays" appear in the menu.
+  useEffect(() => { if (bidResultModal) markAccountActivity(ACTIVITY_STAYS); }, [bidResultModal]);
   const [rooms, setRooms] = useState([]);
 
   // Helper to extract visitId or ObjectId from property slug (e.g. "roomhy-boys-pg-rh1025" -> "RH1025")
@@ -1272,6 +1275,13 @@ export default function PropertyDetailsPage() {
           <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100 flex flex-col max-h-[90vh]">
             {/* Header */}
             <div className={`px-6 pt-6 pb-4 bg-gradient-to-br ${bidResultModal.bgGradient} border-b ${bidResultModal.borderColor} relative shrink-0`}>
+              <button
+                onClick={() => { setBidResultModal(null); navigate('/website/mystays'); }}
+                className="w-full py-3 bg-white hover:bg-slate-50 border-2 font-black text-xs uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                style={{ color: bidResultModal.accentColor, borderColor: bidResultModal.accentColor }}
+              >
+                Track in My Stays
+              </button>
               <button
                 onClick={() => setBidResultModal(null)}
                 className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/80 hover:bg-white text-slate-500 flex items-center justify-center transition-colors cursor-pointer"

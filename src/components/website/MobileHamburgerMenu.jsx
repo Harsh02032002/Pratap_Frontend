@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { X, Home, Building2, Heart, MessageCircle, User, PlusCircle, HelpCircle, FileText, Gavel, Menu } from 'lucide-react';
+import { useAccountActivity } from '../../hooks/useAccountActivity';
 
 export default function MobileHamburgerMenu() {
   const [isOpen, setIsOpen] = useState(false);
@@ -8,6 +9,7 @@ export default function MobileHamburgerMenu() {
   const [hasUserData, setHasUserData] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { hasStays, hasSubmissions } = useAccountActivity();
 
   useEffect(() => {
     const checkMobile = () => {
@@ -55,10 +57,11 @@ export default function MobileHamburgerMenu() {
     { icon: Building2, label: 'Our Properties', path: '/properties' },
     { icon: Gavel, label: 'Fast Bidding', path: '/bidding' },
     { icon: PlusCircle, label: 'List Property', path: '/list-property' },
-    { icon: Building2, label: 'Track My Property', path: '/my-property-submissions' },
-    { icon: Heart, label: 'My Stays', path: '/website/mystays' },
+    // Only shown once the user has actually listed a property / bid / booked.
+    ...(hasSubmissions ? [{ icon: Building2, label: 'Track My Property', path: '/my-property-submissions' }] : []),
+    ...(hasStays ? [{ icon: Heart, label: 'My Stays', path: '/website/mystays' }] : []),
     { icon: MessageCircle, label: 'Chat Support', path: '/website/chat' },
-    { icon: User, label: hasUserData ? 'My Account' : 'Login / Signup', path: hasUserData ? '/website/mystays' : '/login' },
+    { icon: User, label: hasUserData ? 'My Account' : 'Login / Signup', path: hasUserData ? (hasStays ? '/website/mystays' : '/website/profile') : '/login' },
     { icon: HelpCircle, label: 'FAQs', path: '/faq' },
     { icon: FileText, label: 'Terms & Privacy', path: '/website/terms' },
   ];

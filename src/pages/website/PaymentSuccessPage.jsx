@@ -7,6 +7,7 @@ import MobileBottomNav from '../../components/website/MobileBottomNav';
 import { usePaymentConfirmation } from '../../utils/paymentConfirmation';
 import { getAuthSession } from '../../utils/authScope';
 import { toast } from 'react-hot-toast';
+import { markAccountActivity, ACTIVITY_STAYS } from '../../utils/accountActivity';
 
 export default function PaymentSuccessPage() {
   const [searchParams] = useSearchParams();
@@ -19,6 +20,9 @@ export default function PaymentSuccessPage() {
   const paid = state === 'paid' && paymentDetails !== null;
 
   useEffect(() => { setPrinting(false); }, [orderId]);
+
+  // A confirmed payment means a booking now exists: show "My Stays" in the menu.
+  useEffect(() => { if (paid) markAccountActivity(ACTIVITY_STAYS); }, [paid]);
 
   // Printing always rechecks the server so a stale or refunded record cannot
   // produce a new paid receipt from an earlier successful page load.
