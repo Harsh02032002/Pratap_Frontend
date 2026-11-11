@@ -4,6 +4,7 @@ import { User, Lock, ArrowRight, X, Mail, Eye, EyeOff } from "lucide-react";
 import { useHeadAssets } from "../../utils/useHeadAssets.js";
 import { getApiBase } from "../../utils/api";
 import { useAuth } from "../../contexts/AuthContext";
+import { getFirstAllowedEmployeeRoute } from "../../utils/employeePermissions";
 
 const title = "RoomHy - Superadmin Login";
 
@@ -66,6 +67,10 @@ export default function SuperadminIndexPage() {
             const data = await res.json();
 
             if (res.ok && data.requireReset) {
+                setLoginId(data.loginId || identifierVal);
+                setPassword(passwordVal);
+                setNewPassword("");
+                setConfirmPassword("");
                 setRequireReset(true);
                 return;
             }
@@ -92,9 +97,9 @@ export default function SuperadminIndexPage() {
                     localStorage.setItem("managerData", JSON.stringify(data.user));
                     navigate("/manager/dashboard");
                 } else if (role === 'areamanager' || role === 'employee') {
-                    navigate("/employee/areaadmin");
+                    navigate(getFirstAllowedEmployeeRoute(data.user));
                 } else {
-                    navigate("/employee/areaadmin");
+                    navigate(getFirstAllowedEmployeeRoute(data.user));
                 }
             } else {
                 setError(data.message || "Invalid credentials");
@@ -258,39 +263,48 @@ export default function SuperadminIndexPage() {
     return (
         <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-inter">
             <div className="w-full max-w-md bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 p-8 md:p-10 fade-in">
-                <div className="text-center mb-10">
-                    <div className="inline-flex items-center justify-center mb-6">
+                <div className="text-center mb-8">
+                    <div className="inline-flex items-center justify-center mb-5">
                         <img
                             src="/website/roomhy_logo.jpeg"
                             alt="Roomhy Logo"
                             className="h-12 w-auto object-contain"
                         />
                     </div>
-                    <h1 className="text-3xl font-extrabold text-slate-900 mb-2 tracking-tight">Superadmin Login</h1>
-                    <p className="text-slate-500 text-sm">Enter your credentials to access Roomhy</p>
+                    {!requireReset && (
+                        <>
+                            <h1 className="text-3xl font-extrabold text-slate-900 mb-2 tracking-tight">Superadmin Login</h1>
+                            <p className="text-slate-500 text-sm">Enter your credentials to access Roomhy</p>
+                        </>
+                    )}
                 </div>
 
                 {requireReset ? (
-                    <form onSubmit={handleResetInitialPassword} className="space-y-6">
-                        <div className="text-center mb-6">
-                            <h2 className="text-xl font-bold text-slate-800">Set New Password</h2>
-                            <p className="text-slate-500 text-xs mt-1">This is your first login. Please set a new password.</p>
+                    <form onSubmit={handleResetInitialPassword} className="space-y-5 fade-in">
+                        <div className="text-center mb-4">
+                            <div className="flex justify-center mb-4">
+                                <div className="bg-green-100 p-3 rounded-full">
+                                    <Lock className="w-8 h-8 text-green-600" />
+                                </div>
+                            </div>
+                            <h2 className="text-2xl font-semibold text-slate-800">Set New Password</h2>
+                            <p className="text-slate-500 text-sm mt-1">This is your first login. Please set a new password.</p>
                         </div>
                         <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">New Password</label>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">New Password</label>
                             <div className="relative">
                                 <input 
                                     type={showNewPassword ? "text" : "password"} 
                                     value={newPassword}
                                     onChange={(e) => setNewPassword(e.target.value)}
-                                    className="w-full p-3.5 pr-12 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 transition-all outline-none" 
-                                    placeholder="New Password" 
+                                    className="w-full p-3.5 pr-12 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all outline-none" 
+                                    placeholder="Min 6 chars" 
                                     required
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowNewPassword(prev => !prev)}
-                                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-purple-600 transition-colors"
+                                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
                                     tabIndex={-1}
                                 >
                                     {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -298,20 +312,20 @@ export default function SuperadminIndexPage() {
                             </div>
                         </div>
                         <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">Confirm Password</label>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">Confirm Password</label>
                             <div className="relative">
                                 <input 
                                     type={showConfirmPassword ? "text" : "password"} 
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
-                                    className="w-full p-3.5 pr-12 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 transition-all outline-none" 
+                                    className="w-full p-3.5 pr-12 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all outline-none" 
                                     placeholder="Confirm Password" 
                                     required
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowConfirmPassword(prev => !prev)}
-                                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-purple-600 transition-colors"
+                                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
                                     tabIndex={-1}
                                 >
                                     {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -325,9 +339,9 @@ export default function SuperadminIndexPage() {
                         )}
                         <button 
                             type="submit" 
-                            className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-2xl transition-all"
+                            className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3.5 rounded-xl transition-all flex justify-center items-center gap-2"
                         >
-                            Reset Password
+                            Update & Continue <ArrowRight size={18} />
                         </button>
                     </form>
                 ) : (
@@ -388,7 +402,7 @@ export default function SuperadminIndexPage() {
 
                         <button 
                             type="submit" 
-                            className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-2xl transition-all flex justify-center items-center gap-2 group shadow-lg shadow-slate-900/10 active:scale-[0.98]"
+                            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 rounded-2xl transition-all flex justify-center items-center gap-2 group shadow-lg shadow-purple-600/20 active:scale-[0.98]"
                         >
                             Login 
                             <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />

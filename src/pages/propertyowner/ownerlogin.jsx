@@ -130,6 +130,15 @@ export default function Ownerlogin() {
         body: JSON.stringify({ identifier: loginId, password })
       });
       if (data.requireReset) {
+        const resetRole = String(data.role || "").trim().toLowerCase();
+        if (resetRole && resetRole !== "owner") {
+          setErrorMsg(
+            resetRole === "tenant"
+              ? "This is a tenant account. Please sign in through the tenant portal."
+              : "This is a staff/employee account. Please sign in through the Staff Portal."
+          );
+          return;
+        }
         setStep("setPassword");
         return;
       }

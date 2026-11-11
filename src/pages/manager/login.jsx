@@ -145,7 +145,7 @@ const ManagerLogin = () => {
     <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
       <div style={{ background: 'white', borderRadius: '16px', boxShadow: '0 20px 60px rgba(0,0,0,0.3)', maxWidth: '450px', width: '100%', padding: '40px' }}>
         <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-          <img src="/logo.jpg" alt="RoomHy" style={{ height: '60px', marginBottom: '20px' }} />
+          <img src="/website/roomhy_logo.jpeg" alt="RoomHy" style={{ height: '48px', width: 'auto', objectFit: 'contain', margin: '0 auto 20px', display: 'block' }} />
           <h1 style={{ fontSize: '28px', fontWeight: '700', color: '#1e293b', margin: '0 0 10px' }}>
             {requireReset ? 'Reset Password' : 'Property Manager Login'}
           </h1>

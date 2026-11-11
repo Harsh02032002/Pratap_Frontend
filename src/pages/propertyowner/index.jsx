@@ -35,7 +35,7 @@ export default function Index() {
     <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
       <div className="bg-card rounded-xl shadow-soft w-full max-w-md p-8 text-center relative overflow-hidden border border-border">
         <a href="/website/index" className="inline-flex items-center justify-center mb-6">
-          <img src="https://res.cloudinary.com/dpwgvcibj/image/upload/v1768990260/roomhy/website/logoroomhy.png" alt="Roomhy Logo" className="h-12 w-auto" />
+          <img src="/website/roomhy_logo.jpeg" alt="Roomhy Logo" className="h-12 w-auto object-contain" />
         </a>
 
         <div className="mb-6 flex justify-center gap-3">
