@@ -214,16 +214,12 @@ export default function DigitalCheckinOwneragreement() {
                 <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px dashed #cbd5e1", display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12 }}>
                   <div style={{ flex: "1 1 260px" }}>
                     <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#166534", textTransform: "uppercase", marginBottom: 4 }}>
-                      GSTIN Number {ownerData?.autoDetectedGstin !== false && (
-                        <span style={{ marginLeft: 6, background: "#dcfce7", color: "#166534", padding: "2px 6px", borderRadius: 4, fontSize: 10 }}>
-                          ✓ Auto-Detected from Bank Details {ownerData?.ifscCode ? `(IFSC: ${ownerData.ifscCode})` : ""}
-                        </span>
-                      )}
+                      GSTIN Number
                     </label>
                     <input
                       value={gstinNumber || ownerData?.gstinNumber || ""}
                       onChange={(e) => setGstinNumber(e.target.value.toUpperCase())}
-                      placeholder="Auto-detected GSTIN from Bank Details"
+                      placeholder="Enter GSTIN Number"
                       style={{
                         width: "100%", padding: "8px 12px", fontSize: 13, fontFamily: "monospace",
                         fontWeight: 700, borderRadius: 6, border: "1px solid #86efac", background: "#ffffff", color: "#0f172a"

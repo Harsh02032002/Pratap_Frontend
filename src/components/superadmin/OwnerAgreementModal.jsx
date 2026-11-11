@@ -120,7 +120,7 @@ export default function OwnerAgreementModal({ owner, onClose }) {
                 <span className="text-slate-900 font-semibold">{owner.bankName || owner.checkinBankName || "Linked"} — A/C: {owner.accountNumber || owner.checkinBankAccountNumber || "Verified"}{resolvedIfsc ? ` (IFSC: ${resolvedIfsc})` : ""}</span>
               </div>
               <div>
-                <span className="text-slate-500 font-medium block">GSTIN (Auto-Detected from Bank Details):</span>
+                <span className="text-slate-500 font-medium block">GSTIN Number:</span>
                 <code className="text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded font-mono font-bold">{resolvedGstin}</code>
               </div>
               <div>
