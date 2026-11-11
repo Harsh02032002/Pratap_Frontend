@@ -62,9 +62,19 @@ export const useAadhaarOcr = (apiBases, role = "tenant") => {
       // Layer 2 — Tesseract.js browser OCR (sandbox fallback or File-only input)
       try {
         setter({ status: "loading", message: "Reading card with OCR…" });
-        const text = await recognizeOcrText(tesseractSrc, { apiBases });
-
-        const candidate  = extractAadhaarFromText(text);
+        let text = await recognizeOcrText(tesseractSrc, { apiBases });
+        let candidate = extractAadhaarFromText(text);
+        if ((!candidate || !verhoeffCheck(candidate)) && tesseractSrc instanceof Blob) {
+          try {
+            const rawText = await recognizeOcrText(tesseractSrc, { raw: true, apiBases });
+            const merged = text + "\n" + rawText;
+            const mergedCandidate = extractAadhaarFromText(merged);
+            if (mergedCandidate && (verhoeffCheck(mergedCandidate) || !candidate)) {
+              candidate = mergedCandidate;
+            }
+            text = merged;
+          } catch (_) {}
+        }
         const hasKeywords = hasAadhaarKeywords(text) || hasAadhaarSecondaryMarkers(text);
 
         if (candidate && verhoeffCheck(candidate)) {

@@ -4,12 +4,21 @@ import { getApiBase } from "./api";
 const MAX_OCR_DIM = 2400;
 const MIN_OCR_DIM = 1000;
 
-const SELF_HOSTED_WORKER_OPTIONS = {
-  workerPath: "/tesseract/worker.min.js",
-  corePath: "/tesseract",
-  langPath: "/tesseract",
-  gzip: true,
-  workerBlobURL: false,
+const getTesseractAssetBase = () =>
+  typeof window !== "undefined" && window.location?.origin
+    ? window.location.origin + "/tesseract"
+    : "/tesseract";
+
+const getSelfHostedWorkerOptions = () => {
+  const base = getTesseractAssetBase();
+  return {
+    workerPath: base + "/worker.min.js",
+    corePath: base,
+    langPath: base,
+    gzip: true,
+    workerBlobURL: false,
+    errorHandler: () => {},
+  };
 };
 
 const loadBitmap = async (file) => {
@@ -150,7 +159,7 @@ export const createOcrWorker = async (lang = "eng", options = {}) => {
     throw new Error("Tesseract createWorker is unavailable");
   }
   return createWorker(lang, 1, {
-    ...SELF_HOSTED_WORKER_OPTIONS,
+    ...getSelfHostedWorkerOptions(),
     ...options,
   });
 };

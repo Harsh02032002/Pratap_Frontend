@@ -367,10 +367,20 @@ export const useOwnerProfile = () => {
 
       if (cashfreeDone) return;
 
-      // Layer 2 — Self-hosted Tesseract.js OCR (+ backend fallback)
-      const text = await recognizeOcrText(file, { apiBases });
-
-      const candidate = extractAadhaarFromText(text);
+      // Layer 2 — Self-hosted Tesseract.js OCR (+ backend fallback), 2-pass for low-contrast WhatsApp photos
+      let text = await recognizeOcrText(file, { apiBases });
+      let candidate = extractAadhaarFromText(text);
+      if (!candidate || !verhoeffCheck(candidate)) {
+        try {
+          const rawText = await recognizeOcrText(file, { raw: true, apiBases });
+          const merged = text + "\n" + rawText;
+          const mergedCandidate = extractAadhaarFromText(merged);
+          if (mergedCandidate && (verhoeffCheck(mergedCandidate) || !candidate)) {
+            candidate = mergedCandidate;
+          }
+          text = merged;
+        } catch (_) {}
+      }
       const hasKeywords = hasAadhaarKeywords(text) || hasAadhaarSecondaryMarkers(text);
 
       if (candidate && verhoeffCheck(candidate)) {

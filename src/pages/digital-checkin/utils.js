@@ -209,11 +209,28 @@ export function hasAadhaarSecondaryMarkers(text) {
 
 export function extractAadhaarFromText(text) {
   const clean = String(text || "");
-  const grouped = clean.match(/[2-9]\d{3}[\s\-]?\d{4}[\s\-]?\d{4}/g);
-  if (grouped && grouped.length > 0) return grouped[0].replace(/[\s\-]/g, "");
-  const plain = clean.replace(/[\s\-]/g, "").match(/[2-9]\d{11}/g);
-  if (plain && plain.length > 0) return plain[0];
-  return null;
+  const lines = clean.split(/\r?\n/);
+  let fallbackTwelve = null;
+
+  // Prefer exact 12-digit runs (prevents slicing 12 digits out of a 16-digit VID or enrolment ID)
+  for (const line of lines) {
+    const runs = line.match(/\d[\d\s\-]*\d/g) || [];
+    for (const run of runs) {
+      const digits = run.replace(/\D/g, "");
+      if (digits.length !== 12 || !/^[2-9]/.test(digits)) continue;
+      if (verhoeffCheck(digits)) return digits;
+      if (!fallbackTwelve) fallbackTwelve = digits;
+    }
+  }
+
+  const grouped = clean.match(/\b[2-9]\d{3}[\s\-]\d{4}[\s\-]\d{4}\b/g) || [];
+  for (const g of grouped) {
+    const digits = g.replace(/\D/g, "");
+    if (verhoeffCheck(digits)) return digits;
+    if (!fallbackTwelve) fallbackTwelve = digits;
+  }
+
+  return fallbackTwelve;
 }
 
 export function extractDobFromText(text) {
