@@ -113,7 +113,9 @@ export default function TotalProperties() {
   const fetchProps = async () => {
     setLoading(true);
     try {
-      const res  = await fetch(`${apiUrl}/api/properties?limit=5000&t=${Date.now()}`, { headers: getAuthHeader() });
+      // Only properties that have a visit report. "List your property" requests
+      // (no visit report yet) live under Enquiry / Support tickets, not here.
+      const res  = await fetch(`${apiUrl}/api/properties?hasVisitReport=true&limit=5000&t=${Date.now()}`, { headers: getAuthHeader() });
       const data = await res.json();
       if (data.success && data.properties) {
         setAllProperties(data.properties.map(p => ({

@@ -110,8 +110,9 @@ function PropertiesPage() {
   const loadProperties = async () => {
     try {
       setLoading(true);
-      // Same endpoint as reference panel (localhost:5173/superadmin/total-properties)
-      const res = await api.get(`/api/properties?limit=5000&t=${Date.now()}`).catch(() => null);
+      // Same endpoint as reference panel (localhost:5173/superadmin/total-properties).
+      // Only visit-report properties: list-your-property requests are excluded.
+      const res = await api.get(`/api/properties?hasVisitReport=true&limit=5000&t=${Date.now()}`).catch(() => null);
       let list: any[] = [];
       if (res) {
         const d = res.data || res;
