@@ -1,17 +1,16 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   formatAadhaarWithSpaces,
   getApiBases,
   getParamValue,
-  getWithFallback,
   postExpectSuccess,
-  postWithFallback,
   verhoeffCheck,
   hasAadhaarKeywords,
   hasAadhaarSecondaryMarkers,
   extractAadhaarFromText
 } from "./utils";
 import { compressImage, PRESETS } from "../../utils/imageCompression";
+import { captureOwnerOnboardingLink, loadOwnerOnboardingProfile, saveOwnerOnboardingProfile } from "../../utils/ownerOnboarding";
 
 const emptyDoc = { file: null, preview: "", name: "", type: "", uploaded: false, url: "" };
 
@@ -87,9 +86,10 @@ const toRoomBedArrays = (roomInventory = [], fallback = emptyForm) => {
 
 export const useOwnerProfile = () => {
   const apiBases = useMemo(() => getApiBases(), []);
-  const hydratedLoginRef = useRef("");
   const [form, setForm] = useState(emptyForm);
-  const [autoInfo, setAutoInfo] = useState({ email: "", area: "", password: "" });
+  const [autoInfo, setAutoInfo] = useState({ email: "", area: "" });
+  const [onboardingLink] = useState(() => captureOwnerOnboardingLink());
+  const [profileAccess, setProfileAccess] = useState({ loading: true, error: "" });
   const [aadhaarLinkedPhone, setAadhaarLinkedPhone] = useState("");
   const [aadhaarNumber, setAadhaarNumber] = useState("");
   const [otp, setOtp] = useState("");
@@ -138,7 +138,6 @@ export const useOwnerProfile = () => {
       const loginIdValue = formValue.loginId.trim();
       const emailValue = autoInfoValue.email || formValue.email.trim();
       const areaValue = autoInfoValue.area || formValue.area.trim();
-      const passwordValue = autoInfoValue.password || "";
 
       if (!loginIdValue) throw new Error("Login ID is required");
       if (!emailValue) throw new Error("Email is required");
@@ -152,7 +151,6 @@ export const useOwnerProfile = () => {
         phone: formValue.phone.trim(),
         address: formValue.address.trim(),
         area: areaValue,
-        password: passwordValue,
         occupiedRooms: normalizeBedsArray(formValue.occupiedRoomBeds, formValue.occupiedRooms).length,
         occupiedBeds: normalizeBedsArray(formValue.occupiedRoomBeds, formValue.occupiedRooms).reduce((sum, v) => sum + Number(v || 0), 0),
         vacantRooms: normalizeBedsArray(formValue.vacantRoomBeds, formValue.vacantRooms).length,
@@ -197,7 +195,7 @@ export const useOwnerProfile = () => {
         }
       };
 
-      const data = await postWithFallback("/api/checkin/owner/profile", payload, apiBases);
+      const data = await saveOwnerOnboardingProfile(loginIdValue, payload);
       if (!data.success) throw new Error(data.message || "Failed to save profile");
       return payload;
     },
@@ -228,12 +226,11 @@ export const useOwnerProfile = () => {
     const loginId = getParamValue(["loginId", "loginid", "staffId"]);
     const email = getParamValue(["email", "ownerEmail", "mail"]);
     const area = getParamValue(["area", "assignedArea", "location"]);
-    const password = getParamValue(["password", "tempPassword", "pass"]);
     const phone = getParamValue(["phone", "ownerPhone", "mobile", "contact"]);
 
     if (loginId) updateForm({ loginId });
     if (email || area || phone) updateForm({ email, area, ...(phone ? { phone } : {}) });
-    if (email || area || password) setAutoInfo({ email, area, password });
+    if (email || area) setAutoInfo({ email, area });
   }, [updateForm]);
 
   // Restore session state
@@ -249,23 +246,19 @@ export const useOwnerProfile = () => {
 
   // Hydrate from backend — runs once per loginId
   useEffect(() => {
+    let active = true;
     const hydrateFromOwner = async () => {
       const id = form.loginId.trim();
-      if (!id || hydratedLoginRef.current === id) return;
-      hydratedLoginRef.current = id;
+      if (!id) {
+        setProfileAccess({ loading: false, error: "Open the onboarding link sent by RoomHy to access your profile." });
+        return;
+      }
+      setProfileAccess({ loading: true, error: "" });
       try {
-        // The public check-in endpoint, NOT /api/owners/:loginId. That one sits
-        // behind `protect`, and the owner arrives here from an emailed link with
-        // no session — it answered 401, the catch below swallowed it, and every
-        // field that did not come from the URL rendered blank under a
-        // "PRE-FILLED BY ROOMHY" heading. The link's password authorises the read.
-        const checkinPassword = getParamValue(["password", "tempPassword", "pass"]);
-        const res = await getWithFallback(
-          `/api/checkin/owner/profile/${encodeURIComponent(id)}?password=${encodeURIComponent(checkinPassword)}`,
-          apiBases
-        ).catch(() => getWithFallback(`/api/owners/public/${encodeURIComponent(id)}`, apiBases));
+        const res = await loadOwnerOnboardingProfile(id, onboardingLink);
+        if (!active) return;
         const owner = res?.owner || res;
-        if (!owner || typeof owner !== "object") return;
+        if (!owner || typeof owner !== "object") throw new Error("Owner profile is unavailable. Request a new onboarding link.");
 
         const nextOccupiedRooms = Number(owner.occupiedRooms ?? 0);
         const nextOccupiedBeds = Number(owner.occupiedBeds ?? 0);
@@ -300,8 +293,7 @@ export const useOwnerProfile = () => {
 
         setAutoInfo((prev) => ({
           email: prev.email || owner.email || owner.profile?.email || owner.checkinEmail || "",
-          area: prev.area || owner.checkinArea || owner.locationCode || owner.profile?.locationCode || "",
-          password: prev.password || owner.checkinPassword || owner.credentials?.password || ""
+          area: prev.area || owner.checkinArea || owner.locationCode || owner.profile?.locationCode || ""
         }));
 
         const storedAadhaar = owner.checkinAadhaarNumber || owner.kyc?.aadharNumber || owner.kyc?.aadhaarNumber || "";
@@ -321,17 +313,15 @@ export const useOwnerProfile = () => {
         if (owner.checkinAadhaarImage) {
           setAadhaarDoc((prev) => prev.url ? prev : { ...emptyDoc, url: owner.checkinAadhaarImage, preview: owner.checkinAadhaarImage, name: "", uploaded: true });
         }
+        setProfileAccess({ loading: false, error: "" });
       } catch (err) {
-        // Prefill is optional — the owner can always type the fields — so a
-        // failure here must not block the page. But it is not silent: a swallowed
-        // 401 from the wrong endpoint hid an entirely blank form for a long time,
-        // and console.warn survives the production terser config.
-        console.warn("[ownerprofile] prefill unavailable:", err?.message || err);
+        if (active) setProfileAccess({ loading: false, error: err?.message || "Request a new onboarding link from RoomHy." });
       }
     };
 
     hydrateFromOwner();
-  }, [apiBases, form.loginId]);
+    return () => { active = false; };
+  }, [form.loginId, onboardingLink]);
 
   const showAutoInfo = Boolean(autoInfo.email || autoInfo.area);
 
@@ -658,6 +648,7 @@ export const useOwnerProfile = () => {
     updateRoomCount,
     updateRoomBed,
     autoInfo,
+    profileAccess,
     showAutoInfo,
     aadhaarLinkedPhone,
     setAadhaarLinkedPhone,

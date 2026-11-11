@@ -355,78 +355,22 @@ async function approve(id) {
  * Sends generated login credentials to the property owner
  */
 async function sendOwnerCredentialsEmail(email, name, loginId, password, area = '') {
+    // Onboarding links must be issued and emailed by the authenticated backend.
+    // Never rebuild a link from the owner's login password in this legacy path.
+    if (!/^\/(superadmin|employee)(\/|$)/.test(window.location.pathname)) return;
     try {
-        const checkinBase = 'http://localhost:5173';
-        const checkinLink = `${checkinBase}/digital-checkin/ownerprofile?loginId=${encodeURIComponent(loginId)}&email=${encodeURIComponent(email)}&area=${encodeURIComponent(area)}&password=${encodeURIComponent(password)}`;
-        const mainCheckinLink = `${checkinBase}/digital-checkin/index`;
-        const response = await fetch(API_URL + '/api/email/send', {
+        const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+        if (!token) throw new Error('Sign in to resend the onboarding link');
+        const base = ['localhost', '127.0.0.1'].includes(window.location.hostname)
+            ? 'http://localhost:5001' : window.location.origin;
+        const response = await fetch(`${base}/api/owners/${encodeURIComponent(loginId)}/onboarding-link`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                to: email,
-                subject: '?? Your Property Approved! Login Credentials Inside',
-                html: `
-                            <!DOCTYPE html>
-                            <html>
-                            <head>
-                                <meta charset="UTF-8">
-                                <style>
-                                    body { font-family: 'Arial', sans-serif; line-height: 1.6; color: #333; }
-                                    .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
-                                    .header { background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
-                                    .header h1 { margin: 0; font-size: 28px; }
-                                    .content { padding: 30px; background: #f8fafc; }
-                                    .credentials { background: white; border-left: 4px solid #2563eb; padding: 15px; margin: 20px 0; border-radius: 4px; }
-                                    .credentials p { margin: 10px 0; }
-                                    .label { font-weight: bold; color: #2563eb; }
-                                    .button { display: inline-block; background: #2563eb; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; margin: 10px 5px 10px 0; }
-                                    .footer { text-align: center; padding: 20px; font-size: 12px; color: #999; border-top: 1px solid #eee; }
-                                </style>
-                            </head>
-                            <body>
-                                <div class="container">
-                                    <div class="header">
-                                        <h1>?? Your Property is Approved!</h1>
-                                    </div>
-                                    <div class="content">
-                                        <p>Hi <strong>${name}</strong>,</p>
-                                        <p>Great news! Your property has been approved and is now live on Roomhy. Here are your login credentials to manage your property:</p>
-                                        
-                                        <div class="credentials">
-                                            <p><span class="label">Login ID:</span> <strong>${loginId}</strong></p>
-                                            <p><span class="label">Temporary Password:</span> <strong>${password}</strong></p>
-                                            <p><span class="label">Area:</span> <strong>${area || 'N/A'}</strong></p>
-                                        </div>
-
-                                        <p style="margin-top: 20px;"><strong>?? Digital Check-In Links:</strong></p>
-                                        <p>
-                                            <a href="${mainCheckinLink}" class="button">Digital Check-In (Main)</a><br>
-                                            <a href="${checkinLink}" class="button">Owner Check-In (Direct)</a>
-                                        </p>
-
-                                        <p style="color: #d32f2f; font-weight: bold;">?? Important: Please change your password on first login for security.</p>
-
-                                        <p>You can now log in to your property owner dashboard to manage bookings, view inquiries, and track your property performance.</p>
-
-                                        <p style="margin-top: 30px;">If you have any questions, feel free to contact our support team at <strong>team@roomhy.com</strong></p>
-                                    </div>
-                                    <div class="footer">
-                                        <p>&copy; 2025 Roomhy. All rights reserved. | Made for property owners</p>
-                                    </div>
-                                </div>
-                            </body>
-                            </html>
-                        `,
-                text: `Your Property Approved!\n\nHi ${name},\n\nYour property has been approved and is now live on Roomhy.\n\nLogin Credentials:\nLogin ID: ${loginId}\nTemporary Password: ${password}\nArea: ${area || 'N/A'}\n\nDigital Check-In Link:\n${checkinLink}\n\nPlease change your password on first login for security.\n\nQuestions? Contact us at team@roomhy.com\n\n 2025 Roomhy. All rights reserved.`
-            })
+            headers: { Authorization: `Bearer ${token}` },
+            referrerPolicy: 'no-referrer'
         });
-        if (response.ok) {
-            console.log('? Owner credentials email sent successfully');
-        } else {
-            console.warn('?? Failed to send owner credentials email');
-        }
+        if (!response.ok) throw new Error('Could not resend the onboarding link');
     } catch (err) {
-        console.warn('?? Email sending error:', err.message);
+        console.warn('Onboarding email could not be sent:', err.message);
     }
 }
 

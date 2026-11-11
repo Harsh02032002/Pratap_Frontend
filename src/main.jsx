@@ -3,6 +3,9 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import App from './App.jsx';
 import { queryClient } from './lib/queryClient';
 import './index.css';
+import { captureOwnerOnboardingLink } from './utils/ownerOnboarding';
+
+captureOwnerOnboardingLink();
 
 // A previously installed Workbox worker calls createHandlerBoundToURL("index.html")
 // even though HTML is not precached. That rejected promise intercepts navigations

@@ -160,6 +160,7 @@ export default function DigitalCheckinOwnerprofile() {
     form,
     updateForm,
     autoInfo,
+    profileAccess,
     showAutoInfo,
     aadhaarLinkedPhone,
     setAadhaarLinkedPhone,
@@ -205,6 +206,12 @@ export default function DigitalCheckinOwnerprofile() {
           <h2 className="hero-title">Complete your property owner check-in</h2>
           <p className="hero-copy">Fields pre-filled by Roomhy staff are locked. Enter your name, date of birth, and upload required documents.</p>
         </div>
+
+        {(profileAccess.loading || profileAccess.error) && (
+          <div className="info-panel" role="status">
+            {profileAccess.loading ? "Opening your secure check-in session…" : profileAccess.error}
+          </div>
+        )}
 
         {showAutoInfo && (
           <div id="autoFetchedInfo" className="info-panel">
@@ -300,7 +307,7 @@ export default function DigitalCheckinOwnerprofile() {
             </div>
           </div>
           <div className="full actions-row" style={{ marginTop: 8 }}>
-            <button type="submit" className="secondary-btn">Save Profile</button>
+            <button type="submit" disabled={profileAccess.loading || Boolean(profileAccess.error)} className="secondary-btn">Save Profile</button>
           </div>
 
           {/* ── Occupancy (read-only) ── */}

@@ -1,6 +1,15 @@
 import React from "react";
 import { X, Printer } from "lucide-react";
 
+// Receipt fields are plain text. Encode at the HTML sink so both print actions
+// are safe without changing the raw values used by React's escaped preview.
+const escapeReceiptText = (value) => String(value ?? "")
+  .replaceAll("&", "&amp;")
+  .replaceAll("<", "&lt;")
+  .replaceAll(">", "&gt;")
+  .replaceAll('"', "&quot;")
+  .replaceAll("'", "&#39;");
+
 export function numberToWords(num) {
   const ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven",
     "Eight", "Nine", "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen",
@@ -35,7 +44,7 @@ export function buildReceiptHtml(r) {
 <html>
 <head>
   <meta charset="UTF-8"/>
-  <title>Receipt ${r.id}</title>
+  <title>Receipt ${escapeReceiptText(r.id)}</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:'Helvetica Neue',Arial,sans-serif;color:#000;background:#fff;font-size:13px}
@@ -98,21 +107,21 @@ export function buildReceiptHtml(r) {
     <div class="box">
       <div class="box-head">Invoice Details</div>
       <div class="box-body">
-        <div class="field-row"><span class="lbl">Invoice #</span><span class="val">${r.id}</span></div>
-        <div class="field-row"><span class="lbl">Invoice Date</span><span class="val">${r.date}</span></div>
+        <div class="field-row"><span class="lbl">Invoice #</span><span class="val">${escapeReceiptText(r.id)}</span></div>
+        <div class="field-row"><span class="lbl">Invoice Date</span><span class="val">${escapeReceiptText(r.date)}</span></div>
         <div class="field-row"><span class="lbl">Due On</span><span class="val">Due on Receipt</span></div>
         <div class="field-row"><span class="lbl">State Code</span><span class="val">MP (23)</span></div>
         <div class="field-row"><span class="lbl">Status</span><span class="val"><span class="${isPaid ? "badge-paid" : "badge-partial"}">${isPaid ? "&#10003; PAID" : "PARTIAL"}</span></span></div>
-        ${r.paymentMethod ? `<div class="field-row"><span class="lbl">Payment Method</span><span class="val" style="text-transform: capitalize;">${String(r.paymentMethod).replace('_', ' ')}</span></div>` : ""}
+        ${r.paymentMethod ? `<div class="field-row"><span class="lbl">Payment Method</span><span class="val" style="text-transform: capitalize;">${escapeReceiptText(String(r.paymentMethod).replace('_', ' '))}</span></div>` : ""}
       </div>
     </div>
     <div class="box">
       <div class="box-head">Bill To</div>
       <div class="box-body">
-        <div class="bill-name">${r.tenant}</div>
-        <div class="field-row"><span class="lbl">Room</span><span class="val">Room ${r.room}</span></div>
-        ${r.phone ? `<div class="field-row"><span class="lbl">Phone</span><span class="val">${r.phone}</span></div>` : ""}
-        ${r.email ? `<div class="field-row"><span class="lbl">Email</span><span class="val">${r.email}</span></div>` : ""}
+        <div class="bill-name">${escapeReceiptText(r.tenant)}</div>
+        <div class="field-row"><span class="lbl">Room</span><span class="val">Room ${escapeReceiptText(r.room)}</span></div>
+        ${r.phone ? `<div class="field-row"><span class="lbl">Phone</span><span class="val">${escapeReceiptText(r.phone)}</span></div>` : ""}
+        ${r.email ? `<div class="field-row"><span class="lbl">Email</span><span class="val">${escapeReceiptText(r.email)}</span></div>` : ""}
       </div>
     </div>
   </div>
@@ -131,12 +140,12 @@ export function buildReceiptHtml(r) {
         <td>1</td>
         <td>
           <strong>Original Rent</strong>
-          <div class="desc-sub">Agreed rent for this duration (${r.period})</div>
+          <div class="desc-sub">Agreed rent for this duration (${escapeReceiptText(r.period)})</div>
           <div class="desc-sub">SAC: 997211</div>
         </td>
         <td class="center">1</td>
-        <td class="right">&#8377;${originalRent.toLocaleString("en-IN")}.00</td>
-        <td class="right">&#8377;${originalRent.toLocaleString("en-IN")}.00</td>
+        <td class="right">&#8377;${escapeReceiptText(originalRent.toLocaleString("en-IN"))}.00</td>
+        <td class="right">&#8377;${escapeReceiptText(originalRent.toLocaleString("en-IN"))}.00</td>
       </tr>
       ${advanceCharge > 0 ? `<tr>
         <td>-</td>
@@ -145,8 +154,8 @@ export function buildReceiptHtml(r) {
           <div class="desc-sub">Initial advance / deposit adjustments</div>
         </td>
         <td class="center">1</td>
-        <td class="right">&#8377;${advanceCharge.toLocaleString("en-IN")}.00</td>
-        <td class="right">&#8377;${advanceCharge.toLocaleString("en-IN")}.00</td>
+        <td class="right">&#8377;${escapeReceiptText(advanceCharge.toLocaleString("en-IN"))}.00</td>
+        <td class="right">&#8377;${escapeReceiptText(advanceCharge.toLocaleString("en-IN"))}.00</td>
       </tr>` : ""}
       ${penalty > 0 ? `<tr>
         <td>2</td>
@@ -155,8 +164,8 @@ export function buildReceiptHtml(r) {
           <div class="desc-sub">Accumulated penalty for delayed payment</div>
         </td>
         <td class="center">1</td>
-        <td class="right" style="color:#dc2626">&#8377;${penalty.toLocaleString("en-IN")}.00</td>
-        <td class="right" style="color:#dc2626">&#8377;${penalty.toLocaleString("en-IN")}.00</td>
+        <td class="right" style="color:#dc2626">&#8377;${escapeReceiptText(penalty.toLocaleString("en-IN"))}.00</td>
+        <td class="right" style="color:#dc2626">&#8377;${escapeReceiptText(penalty.toLocaleString("en-IN"))}.00</td>
       </tr>` : ""}
       ${electricity > 0 ? `<tr>
         <td>${penalty > 0 ? "3" : "2"}</td>
@@ -165,24 +174,24 @@ export function buildReceiptHtml(r) {
           <div class="desc-sub">Electricity charges for this period</div>
         </td>
         <td class="center">1</td>
-        <td class="right">&#8377;${electricity.toLocaleString("en-IN")}.00</td>
-        <td class="right">&#8377;${electricity.toLocaleString("en-IN")}.00</td>
+        <td class="right">&#8377;${escapeReceiptText(electricity.toLocaleString("en-IN"))}.00</td>
+        <td class="right">&#8377;${escapeReceiptText(electricity.toLocaleString("en-IN"))}.00</td>
       </tr>` : ""}
     </tbody>
   </table>
   <div class="totals-wrap">
     <div class="totals-inner">
       <div class="totals-head">Payment Breakdown Summary</div>
-      <div class="t-row"><span class="tk">Original Rent</span><span class="tv">&#8377;${originalRent.toLocaleString("en-IN")}.00</span></div>
-      ${advanceCharge > 0 ? `<div class="t-row"><span class="tk">Move In Charges</span><span class="tv">&#8377;${advanceCharge.toLocaleString("en-IN")}.00</span></div>` : ""}
-      ${penalty > 0 ? `<div class="t-row"><span class="tk">Late Penalty</span><span class="tv" style="color:#dc2626">&#8377;${penalty.toLocaleString("en-IN")}.00</span></div>` : ""}
-      ${electricity > 0 ? `<div class="t-row"><span class="tk">Electricity Bill</span><span class="tv">&#8377;${electricity.toLocaleString("en-IN")}.00</span></div>` : ""}
-      <div class="t-row" style="border-top:1px dashed #ccc;margin-top:4px;padding-top:6px"><span class="tk" style="font-weight:700">Total Rent Due</span><span class="tv" style="font-weight:700">&#8377;${totalDue.toLocaleString("en-IN")}.00</span></div>
-      <div class="t-row"><span class="tk">Total Rent Paid</span><span class="tv" style="color:#16a34a">(-) &#8377;${paidAmt.toLocaleString("en-IN")}.00</span></div>
-      <div class="t-row sep"><span class="tk">Balance Remaining</span><span class="tv">&#8377;${balance.toLocaleString("en-IN")}.00</span></div>
+      <div class="t-row"><span class="tk">Original Rent</span><span class="tv">&#8377;${escapeReceiptText(originalRent.toLocaleString("en-IN"))}.00</span></div>
+      ${advanceCharge > 0 ? `<div class="t-row"><span class="tk">Move In Charges</span><span class="tv">&#8377;${escapeReceiptText(advanceCharge.toLocaleString("en-IN"))}.00</span></div>` : ""}
+      ${penalty > 0 ? `<div class="t-row"><span class="tk">Late Penalty</span><span class="tv" style="color:#dc2626">&#8377;${escapeReceiptText(penalty.toLocaleString("en-IN"))}.00</span></div>` : ""}
+      ${electricity > 0 ? `<div class="t-row"><span class="tk">Electricity Bill</span><span class="tv">&#8377;${escapeReceiptText(electricity.toLocaleString("en-IN"))}.00</span></div>` : ""}
+      <div class="t-row" style="border-top:1px dashed #ccc;margin-top:4px;padding-top:6px"><span class="tk" style="font-weight:700">Total Rent Due</span><span class="tv" style="font-weight:700">&#8377;${escapeReceiptText(totalDue.toLocaleString("en-IN"))}.00</span></div>
+      <div class="t-row"><span class="tk">Total Rent Paid</span><span class="tv" style="color:#16a34a">(-) &#8377;${escapeReceiptText(paidAmt.toLocaleString("en-IN"))}.00</span></div>
+      <div class="t-row sep"><span class="tk">Balance Remaining</span><span class="tv">&#8377;${escapeReceiptText(balance.toLocaleString("en-IN"))}.00</span></div>
     </div>
   </div>
-  <div class="words"><strong>Amount Due In Words:</strong> ${numberToWords(totalDue)}</div>
+  <div class="words"><strong>Amount Due In Words:</strong> ${escapeReceiptText(numberToWords(totalDue))}</div>
   <div class="terms-head">Terms &amp; Notes</div>
   <ul class="terms-list">
     <li><b>Tenant App:</b> Manage Your Stay and Pay your rent through the Tenant App (Available On Android &amp; iOS)</li>

@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { fetchJson, getAuthHeader, clearApiCache } from "../../utils/api";
+import { safeOwnerOnboardingLink } from "../../utils/ownerOnboarding";
 import { PageHeader } from "../../components/superadmin/PageHeader";
 import { StatCard } from "../../components/superadmin/StatCard";
 import OwnerAgreementModal from "../../components/superadmin/OwnerAgreementModal";
@@ -43,6 +44,7 @@ export default function Owner() {
    const [formPassword, setFormPassword] = useState("");
    const [saving, setSaving] = useState(false);
    const [addedOwnerResult, setAddedOwnerResult] = useState(null); // {loginId, kycLink, email}
+   const [resendingKycLink, setResendingKycLink] = useState(false);
 
    // Banking fields
    const [formBankName, setFormBankName] = useState("");
@@ -128,7 +130,6 @@ export default function Owner() {
                phone: formPhone,
                locationCode: formArea || formCity,
                credentials: { password: formPassword, firstTime: true },
-               checkinPassword: formPassword,
                checkinBankName: formBankName,
                checkinBranchName: formBranchName,
                checkinBankAccountNumber: formBankAccountNumber,
@@ -138,20 +139,36 @@ export default function Owner() {
             })
          });
 
-         // Build KYC link from response or construct manually
-         const kycLink = res?.kycLink ||
-            `${window.location.origin}/digital-checkin/ownerprofile?loginId=${encodeURIComponent(formLoginId)}&email=${encodeURIComponent(formEmail)}&area=${encodeURIComponent(formArea || formCity)}&password=${encodeURIComponent(formPassword)}`;
+         const kycLink = safeOwnerOnboardingLink(res?.kycLink);
 
          setAddedOwnerResult({
             loginId: res?.loginId || formLoginId,
             email: formEmail,
             name: formName,
-            kycLink
+            kycLink,
+            kycLinkSent: res?.kycLinkSent === true
          });
 
          loadOwners();
       } catch (err) { alert(err.message || "Failed to add property owner."); }
       finally { setSaving(false); }
+   };
+
+   const handleResendKycLink = async () => {
+      if (!addedOwnerResult?.loginId || resendingKycLink) return;
+      const loginId = addedOwnerResult.loginId;
+      setResendingKycLink(true);
+      try {
+         const res = await fetchJson(`/api/owners/${encodeURIComponent(loginId)}/onboarding-link`, { method: "POST" });
+         const kycLink = safeOwnerOnboardingLink(res?.kycLink);
+         if (!kycLink) throw new Error("A secure onboarding link could not be generated.");
+         setAddedOwnerResult(current => current?.loginId === loginId ? { ...current, kycLink, kycLinkSent: res.kycLinkSent === true } : current);
+         toast.success(res.kycLinkSent ? "A fresh onboarding link was emailed to the owner." : "Fresh link generated. Copy it to share with the owner.");
+      } catch (err) {
+         toast.error(err.message || "Could not resend the onboarding link.");
+      } finally {
+         setResendingKycLink(false);
+      }
    };
 
    const handleSaveEdit = async () => {
@@ -647,8 +664,8 @@ export default function Owner() {
                         <Send size={22} />
                      </div>
                      <div>
-                        <h3 className="text-base font-black text-slate-800">Owner Added & KYC Link Sent!</h3>
-                        <p className="text-xs text-slate-500 mt-0.5">A KYC verification email has been sent to the owner.</p>
+                        <h3 className="text-base font-black text-slate-800">Owner Added{addedOwnerResult.kycLinkSent ? " & KYC Link Sent!" : ""}</h3>
+                        <p className="text-xs text-slate-500 mt-0.5">{addedOwnerResult.kycLinkSent ? "A KYC verification email has been sent to the owner." : "The owner was created. Request a new onboarding link if the email did not arrive."}</p>
                      </div>
                   </div>
 
@@ -670,12 +687,20 @@ export default function Owner() {
 
                      <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
                         <span className="text-blue-600 font-bold uppercase tracking-wider text-[10px]">KYC Verification Link</span>
-                        <p className="font-mono text-[10px] text-blue-800 mt-1 break-all leading-relaxed">{addedOwnerResult.kycLink}</p>
+                        <p className="font-mono text-[10px] text-blue-800 mt-1 break-all leading-relaxed">{addedOwnerResult.kycLink || "A secure link could not be generated. Please resend the onboarding link."}</p>
                         <button
                            onClick={() => { navigator.clipboard.writeText(addedOwnerResult.kycLink); alert("KYC link copied!"); }}
+                           disabled={!addedOwnerResult.kycLink}
                            className="mt-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-[10px] font-bold hover:bg-blue-700 transition-all"
                         >
                            Copy KYC Link
+                        </button>
+                        <button
+                           onClick={handleResendKycLink}
+                           disabled={resendingKycLink}
+                           className="mt-2 ml-2 px-3 py-1.5 bg-white text-blue-700 rounded-lg text-[10px] font-bold border border-blue-200 disabled:opacity-50"
+                        >
+                           {resendingKycLink ? "Sending…" : "Resend KYC Email"}
                         </button>
                      </div>
 
