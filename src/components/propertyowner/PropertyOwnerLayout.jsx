@@ -268,6 +268,7 @@ export default function PropertyOwnerLayout({
   const displayNotificationCount = displayNotifications.filter((n) => !n.read).length;
 
   const notificationTarget = (n) => {
+    if (n.type === "alternate_visit") return "/propertyowner/alternate-visits";
     const t = `${n.type || ""} ${n.title || ""}`.toLowerCase();
     if (t.includes("move-out") || t.includes("moveout") || t.includes("moved out")) return "/propertyowner/moveout-requests";
     if (t.includes("cash") || t.includes("payment") || t.includes("rent")) return "/propertyowner/payment";

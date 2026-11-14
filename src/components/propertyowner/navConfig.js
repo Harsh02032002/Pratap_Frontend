@@ -54,6 +54,7 @@ export const PROPERTY_OWNER_NAV = [
       { label: "All Leads", href: "/propertyowner/enquiry", goldOnly: false },
       { label: "Conversion Tracking", href: "/propertyowner/conversion-tracking", goldOnly: false },
       { label: "New Enquiries", href: "/propertyowner/new-enquiries", goldOnly: false },
+      { label: "Alternate Visits", href: "/propertyowner/alternate-visits", goldOnly: false },
       { label: "Booking Requests", href: "/propertyowner/booking_request", goldOnly: false },
       { label: "Confirmed Bookings", href: "/propertyowner/booking", goldOnly: false },
       { label: "Cancelled Bookings", href: "/propertyowner/cancelled-bookings", goldOnly: false },

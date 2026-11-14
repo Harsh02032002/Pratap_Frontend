@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import AlternateVisitStatus, { BookingAlternateVisits, useAlternateWorkflow } from "../../components/AlternateVisitStatus";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import WebsiteFooter from "../../components/website/WebsiteFooter";
 import MobileBottomNav from "../../components/website/MobileBottomNav";
 import { useHtmlPage } from "../../utils/htmlPage";
@@ -39,6 +40,7 @@ export default function WebsiteMystays() {
     requirements: ""
   });
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const [feedback, setFeedback] = useState("");
   const [copiedBookingId, setCopiedBookingId] = useState(null);
 
@@ -175,6 +177,15 @@ export default function WebsiteMystays() {
     fetchActiveBids();
   }, [collectBookings, fetchActiveBids]);
 
+  const [alternateRevision, setAlternateRevision] = useState(0);
+  const selectedWorkflow = useAlternateWorkflow(
+    selectedBooking?.booking_id || selectedBooking?.bookingId || selectedBooking?._id || selectedBooking?.id || "",
+    selectedBooking?.email || selectedBooking?.user_email || "", alternateRevision);
+  const existingAlternate = selectedWorkflow.data?.request;
+  const needsAlternateChoice = requestType === "alternative_property" && Boolean(existingAlternate);
+  const refundOnly = ["refund_only", "refund_requested"].includes(existingAlternate?.workflow_status);
+  useEffect(() => { if (refundOnly) setRequestType("refund"); }, [refundOnly]);
+
   const fetchAltRecommendations = useCallback(async (booking, areaFilter = "") => {
     if (!booking) return;
     setLoadingAlt(true);
@@ -274,7 +285,7 @@ export default function WebsiteMystays() {
   };
 
   const handleRefundSubmit = async () => {
-    if (!selectedBooking) return;
+    if (!selectedBooking || submittingRef.current || selectedWorkflow.loading || selectedWorkflow.error || needsAlternateChoice) return;
     const name = formData.name.trim();
     const phone = formData.phone.trim();
     const email = formData.email.trim();
@@ -316,7 +327,8 @@ export default function WebsiteMystays() {
       user_name: name,
       user_phone: phone,
       user_email: email,
-      refund_amount: Number(selectedBooking.total_amount || selectedBooking.totalAmount || selectedBooking.payment_amount || selectedBooking.price || 500),
+      refund_amount: 500,
+      workflow_version: existingAlternate?.workflow_version,
       request_type: requestType,
       refund_method: requestType === "refund" ? paymentMethod : null,
       upi_id: paymentMethod === "upi" ? formData.upiId.trim() : null,
@@ -329,6 +341,7 @@ export default function WebsiteMystays() {
       selected_alternative_properties: requestType === "alternative_property" ? selectedAlternatives : []
     };
 
+    submittingRef.current = true;
     setSubmitting(true);
     setFeedback("");
     try {
@@ -337,24 +350,21 @@ export default function WebsiteMystays() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(errText || "Request failed");
-      }
+      const response = await res.json().catch(() => null);
+      if (!res.ok || response?.success !== true) throw new Error(response?.message || "Request could not be saved. Please try again.");
       toast.success(
-        requestType === "alternative_property"
+        response.message || (requestType === "alternative_property"
           ? "Alternative property request submitted! Assigned area executive has been notified."
-          : "Refund request submitted! Assigned area executive & SuperAdmin have been notified."
+          : "Refund request submitted! Assigned area executive & SuperAdmin have been notified.")
       );
+      setAlternateRevision(value => value + 1);
       closeRefundModal();
     } catch (err) {
       console.warn("Refund request failed:", err);
-      const submissions = JSON.parse(localStorage.getItem("refundSubmissions") || "[]");
-      submissions.push({ ...payload, submitted_at: new Date().toISOString(), status: "pending_sync" });
-      localStorage.setItem("refundSubmissions", JSON.stringify(submissions));
-      toast.success("Request saved and submitted!");
-      closeRefundModal();
+      setFeedback(err.message || "Request could not be saved. Please try again.");
+      toast.error("Request was not submitted. Please try again.");
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   };
@@ -777,6 +787,7 @@ export default function WebsiteMystays() {
                             </div>
                           )}
 
+                          <BookingAlternateVisits booking={booking} revision={alternateRevision} onRefund={() => openRefundModal(booking, "refund")}>
                           <div className="flex gap-3 pt-4 mt-auto">
                             <button
                               onClick={() => openRefundModal(booking, "refund")}
@@ -793,6 +804,7 @@ export default function WebsiteMystays() {
                               <span>Alternative</span>
                             </button>
                           </div>
+                          </BookingAlternateVisits>
                         </div>
                       </div>
                     );
@@ -870,7 +882,7 @@ export default function WebsiteMystays() {
                                       <span className="text-xs text-gray-600">Get token refund to your UPI/Bank account</span>
                                   </label>
                               </div>
-                              <div
+                              {!refundOnly && <div
                                 onClick={() => setRequestType("alternative_property")}
                                 className={`flex items-center p-3.5 rounded-xl border cursor-pointer transition ${
                                   requestType === "alternative_property" ? "bg-blue-50 border-blue-400" : "bg-white border-gray-200 hover:bg-gray-50"
@@ -881,7 +893,7 @@ export default function WebsiteMystays() {
                                       <span className="text-sm font-semibold text-gray-900">Alternative Property</span>
                                       <span className="text-xs text-gray-600">Property pasand nahi aayi? Select another stay</span>
                                   </label>
-                              </div>
+                              </div>}
                           </div>
                       </div>
 
@@ -951,7 +963,12 @@ export default function WebsiteMystays() {
                       </div>
       
                       
-                      <div id="alternativeForm" className={`space-y-4 ${requestType === "alternative_property" ? "" : "hidden"}`}>
+                      {selectedWorkflow.loading && <p role="status">Loading alternate request status...</p>}
+                      {selectedWorkflow.error && <p role="alert" className="text-sm text-red-700">{selectedWorkflow.error} <button type="button" onClick={selectedWorkflow.refresh} className="underline">Retry</button></p>}
+                      {needsAlternateChoice && <AlternateVisitStatus data={selectedWorkflow.data}
+                        bookingId={selectedBooking?.booking_id || selectedBooking?._id} email={selectedBooking?.email || selectedBooking?.user_email}
+                        onRefund={() => setRequestType("refund")} onRefresh={selectedWorkflow.refresh} onChange={data => { selectedWorkflow.setData(data); setAlternateRevision(value => value + 1); }} />}
+                      <div id="alternativeForm" className={`space-y-4 ${requestType === "alternative_property" && !needsAlternateChoice ? "" : "hidden"}`}>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
                                 <label className="block text-xs font-semibold text-gray-700 mb-1">Preferred Area / Location</label>
@@ -1081,7 +1098,7 @@ export default function WebsiteMystays() {
                       <button onClick={closeRefundModal} className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-100 cursor-pointer">
                           Cancel
                       </button>
-                      <button onClick={handleRefundSubmit} disabled={submitting} className="px-6 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 cursor-pointer">
+                      <button onClick={handleRefundSubmit} disabled={submitting || selectedWorkflow.loading || Boolean(selectedWorkflow.error) || needsAlternateChoice} className="px-6 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 cursor-pointer">
                           {submitting ? "Submitting..." : requestType === "alternative_property" ? "Submit Alternative Stay Request" : "Submit Refund Request"}
                       </button>
                   </div>

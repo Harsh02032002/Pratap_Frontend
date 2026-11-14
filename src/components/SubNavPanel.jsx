@@ -103,6 +103,7 @@ const SUB_NAV_CONFIG = {
           { label: "Property & Room Edit Requests", path: "/superadmin/property/edit-requests" },
           { label: "Rooms Management", path: "/superadmin/rooms" },
           { label: "Online Leads", path: "/superadmin/enquiry" },
+          { label: "Request Alternate", path: "/superadmin/property/request-alternate" },
           { label: "Property Categories", path: "/superadmin/property/categories" },
         ],
       },

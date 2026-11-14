@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, useLocation, Outlet, useNavigate } from "react-router-dom";
 import { resolveSectionFromPath, sharedNavConfig } from "./sharedNavConfig";
-import { Menu, Search, Bell, ChevronRight, X, MessageSquare, Building2, HelpCircle, Plus, ChevronDown, UserPlus, Wallet, AlertCircle, Calendar, Receipt, Smartphone } from "lucide-react";
+import { Menu, Bell, ChevronRight, X, MessageSquare, Building2, HelpCircle, Plus, ChevronDown, UserPlus, Wallet, AlertCircle, Calendar, Receipt, Smartphone } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { SubNavPanel } from "./SubNavPanel";
 import { fetchJson } from "../utils/api";
@@ -10,6 +10,8 @@ import NotificationPromptBanner from "./NotificationPromptBanner";
 import AdminNotificationPrompt from "./AdminNotificationPrompt";
 import { getModuleActionPermissions } from "../utils/employeePermissions";
 import { invalidateAuthSession } from "../utils/authScope";
+import AlternateRequestSearch from "./AlternateRequestSearch";
+import { alternateRequestNotificationPath } from "../utils/alternativeRequests";
 
 const SAFE_BUTTON_TEXT_RE = /^(all|active|inactive|pending|verified|approved|rejected|published|overview|details|view|view details|preview|cancel|close|back|next|prev|previous|reset|clear|refresh|retry|filter|filters|search|export|export csv|export excel|download|print|ok|got it|\d+|✕|×)$/i;
 
@@ -206,6 +208,7 @@ export default function SharedShell() {
             msg,
             time: new Date(n.createdAt).toLocaleDateString(),
             createdAtMs: n.createdAt ? new Date(n.createdAt).getTime() : 0,
+            targetPath: alternateRequestNotificationPath(n.type, meta, location.pathname),
             read: n.read
           };
         });
@@ -419,14 +422,7 @@ export default function SharedShell() {
               </button>
               
               {/* Search Field - Design Spec Section 3: 44px high, radius 8px, border 1px #CBD3D9 */}
-              <div className="hidden md:flex items-center bg-white border border-[#CBD3D9] rounded-[8px] px-3.5 h-[44px] w-96 focus-within:border-[#0E7C86] focus-within:ring-1 focus-within:ring-[#0E7C86] transition-all">
-                <Search size={17} className="text-[#4A5961] shrink-0" />
-                <input 
-                  type="text" 
-                  placeholder="Search users, properties, bookings..." 
-                  className="bg-transparent border-none outline-none text-sm ml-2.5 w-full text-[#10242A] placeholder:text-[#708088]"
-                />
-              </div>
+              <AlternateRequestSearch />
             </div>
 
             <div className="flex items-center gap-4">
@@ -539,6 +535,10 @@ export default function SharedShell() {
                                     setNotifications(prev => prev.map(item => item.id === n.id ? { ...item, read: true } : item));
                                     setUnreadCount(prev => Math.max(0, prev - 1));
                                   } catch (_) {}
+                                }
+                                if (n.targetPath) {
+                                  setNotifDropdownOpen(false);
+                                  navigate(n.targetPath);
                                 }
                               }}
                               className="p-3.5 hover:bg-slate-50 transition-colors flex items-start gap-3 cursor-pointer"

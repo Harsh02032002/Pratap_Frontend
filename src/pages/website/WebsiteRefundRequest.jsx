@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from "react";
+import AlternateVisitStatus, { useAlternateWorkflow } from "../../components/AlternateVisitStatus";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import WebsiteNavbar from "../../components/website/WebsiteNavbar";
 import WebsiteFooter from "../../components/website/WebsiteFooter";
@@ -45,6 +46,7 @@ export default function WebsiteRefundRequest() {
 
   const [requestType, setRequestType] = useState(initialType);
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const [submittedSuccess, setSubmittedSuccess] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -67,6 +69,18 @@ export default function WebsiteRefundRequest() {
     maxBudget: "",
     comments: ""
   });
+
+  const workflow = useAlternateWorkflow(formData.bookingId.trim(), formData.userEmail.trim());
+  const existingAlternate = workflow.data?.request;
+  const needsAlternateChoice = requestType === "alternative" && Boolean(existingAlternate);
+  const refundOnly = ["refund_only", "refund_requested"].includes(existingAlternate?.workflow_status);
+  useEffect(() => {
+    if (existingAlternate?.workflow_status === "refund_requested" ||
+      existingAlternate?.workflow_status === "refund_only") {
+      setRequestType("refund");
+    }
+  }, [existingAlternate?.workflow_status, workflow.data?.remaining_count]);
+
 
   // Recommended Alternative Properties state
   const [recommendedStays, setRecommendedStays] = useState([]);
@@ -113,9 +127,9 @@ export default function WebsiteRefundRequest() {
   const toggleSelectAlternative = (stay) => {
     const stayKey = stay.propertyId || stay.id;
     setSelectedAlternatives((prev) => {
-      const exists = prev.some((item) => (item.propertyId || item.id) === stayKey);
+      const exists = prev.some((item) => (item.property_id || item.propertyId || item.id) === stayKey);
       if (exists) {
-        return prev.filter((item) => (item.propertyId || item.id) !== stayKey);
+        return prev.filter((item) => (item.property_id || item.propertyId || item.id) !== stayKey);
       }
       return [
         ...prev,
@@ -133,10 +147,14 @@ export default function WebsiteRefundRequest() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submittingRef.current || workflow.loading || workflow.error || needsAlternateChoice) return;
+    submittingRef.current = true;
     setSubmitting(true);
 
     const payload = {
       booking_id: formData.bookingId.trim(),
+      workflow_version: existingAlternate?.workflow_version,
+      refund_amount: 500,
       user_email: formData.userEmail.trim(),
       user_name: formData.userName.trim() || undefined,
       user_phone: formData.userPhone.trim() || undefined,
@@ -172,6 +190,7 @@ export default function WebsiteRefundRequest() {
           "Your refund / alternative property request has been submitted!"
       );
       setSubmittedSuccess(true);
+      workflow.refresh();
     } catch (error) {
       console.error("Error submitting refund request:", error);
       toast.error(
@@ -179,6 +198,7 @@ export default function WebsiteRefundRequest() {
           "Failed to submit request. Please verify your Booking ID and Email address."
       );
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   };
@@ -329,6 +349,10 @@ export default function WebsiteRefundRequest() {
 
             {/* Right Interactive Form */}
             <div className="lg:col-span-8 space-y-6">
+              {workflow.loading && <p role="status">Loading alternate request status...</p>}
+              {workflow.error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{workflow.error} <button type="button" onClick={workflow.refresh} className="underline">Retry</button></p>}
+              <AlternateVisitStatus data={workflow.data} bookingId={formData.bookingId.trim()} email={formData.userEmail.trim()}
+                onRefund={() => setRequestType("refund")} onChange={workflow.setData} onRefresh={workflow.refresh} />
               {submittedSuccess && (
                 <div className="bg-emerald-50 border border-emerald-200 rounded-3xl p-6 text-emerald-900 space-y-2">
                   <div className="flex items-center gap-2 font-black text-base text-emerald-800">
@@ -383,7 +407,7 @@ export default function WebsiteRefundRequest() {
                         </div>
                       </label>
 
-                      <label
+                      {!refundOnly && <label
                         className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center gap-3 ${
                           requestType === "alternative"
                             ? "border-[#0FA596] bg-teal-50/50 shadow-xs"
@@ -406,7 +430,7 @@ export default function WebsiteRefundRequest() {
                             Property pasand nahi aayi? Choose another stay
                           </div>
                         </div>
-                      </label>
+                      </label>}
                     </div>
                   </div>
 
@@ -592,7 +616,7 @@ export default function WebsiteRefundRequest() {
                         </div>
                       )}
                     </div>
-                  ) : (
+                  ) : !needsAlternateChoice ? (
                     <div className="space-y-5 pt-2 border-t border-slate-100">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         <div className="text-xs font-black tracking-wider uppercase text-[#0FA596]">
@@ -758,7 +782,7 @@ export default function WebsiteRefundRequest() {
                         )}
                       </div>
                     </div>
-                  )}
+                  ) : null}
 
                   {/* Comments / Extra Information */}
                   <div>
@@ -779,7 +803,7 @@ export default function WebsiteRefundRequest() {
                   <div className="pt-2">
                     <button
                       type="submit"
-                      disabled={submitting}
+                      disabled={submitting || workflow.loading || Boolean(workflow.error) || needsAlternateChoice}
                       className="w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl bg-[#0FA596] hover:bg-teal-600 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-teal-500/25 transition-all disabled:opacity-50 cursor-pointer"
                     >
                       {submitting ? (
